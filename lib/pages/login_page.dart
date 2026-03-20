@@ -5,24 +5,59 @@ import '../utils/api.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import '../utils/responsive.dart';
 
-// Форматирует ввод номера в +7XXXXXXXXXX
+// Форматирует ввод номера в +7 700 123 45 67
 class PhoneTextInputFormatter extends TextInputFormatter {
+  static String normalize(String value) {
+    var digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('8')) {
+      digits = '7${digits.substring(1)}';
+    }
+    if (digits.isNotEmpty && !digits.startsWith('7')) {
+      digits = '7$digits';
+    }
+    if (digits.length > 11) {
+      digits = digits.substring(0, 11);
+    }
+    return digits;
+  }
+
+  static String formatDigits(String digits) {
+    if (digits.isEmpty) return '';
+
+    final buffer = StringBuffer('+7');
+    final localDigits = digits.length > 1 ? digits.substring(1) : '';
+
+    if (localDigits.isNotEmpty) {
+      buffer.write(' ');
+      final first = localDigits.substring(0, localDigits.length.clamp(0, 3));
+      buffer.write(first);
+    }
+    if (localDigits.length > 3) {
+      buffer.write(' ');
+      final second = localDigits.substring(3, localDigits.length.clamp(3, 6));
+      buffer.write(second);
+    }
+    if (localDigits.length > 6) {
+      buffer.write(' ');
+      final third = localDigits.substring(6, localDigits.length.clamp(6, 8));
+      buffer.write(third);
+    }
+    if (localDigits.length > 8) {
+      buffer.write(' ');
+      final fourth = localDigits.substring(8, localDigits.length.clamp(8, 10));
+      buffer.write(fourth);
+    }
+
+    return buffer.toString();
+  }
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    String digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('8')) {
-      digits = '7' + digits.substring(1);
-    }
-    if (!digits.startsWith('7') && digits.isNotEmpty) {
-      digits = '7' + digits;
-    }
-    if (digits.length > 11) {
-      digits = digits.substring(0, 11);
-    }
-    final formatted = '+$digits';
+    final digits = normalize(newValue.text);
+    final formatted = formatDigits(digits);
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -51,6 +86,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
+  final _codeFocusNode = FocusNode();
   final _pageController = PageController();
   bool _codeSent = false;
   bool _isLoading = false;
@@ -85,14 +121,21 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _phoneController.dispose();
     _codeController.dispose();
+    _codeFocusNode.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  String _normalizedPhone() {
+    final digits = PhoneTextInputFormatter.normalize(_phoneController.text.trim());
+    if (digits.isEmpty) return '';
+    return '+$digits';
   }
 
   Future<void> _sendCode() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    final phone = _phoneController.text.trim();
+    final phone = _normalizedPhone();
     try {
       final sent = await ApiService.sendAuthCode(phone);
       if (sent) {
@@ -127,9 +170,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _verifyCode() async {
-    if (_codeController.text.trim().isEmpty) return;
+    if (_codeController.text.trim().length != 6) return;
     setState(() => _isLoading = true);
-    final phone = _phoneController.text.trim();
+    final phone = _normalizedPhone();
     final code = _codeController.text.trim();
     try {
       final data = await ApiService.verifyAuthCode(phone, code);
@@ -538,7 +581,7 @@ class _LoginPageState extends State<LoginPage> {
                     formatters: [PhoneTextInputFormatter()],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) return 'Введите номер телефона';
-                      if (!RegExp(r"^\+7\d{10}").hasMatch(value.trim())) return 'Неверный формат номера';
+                      if (PhoneTextInputFormatter.normalize(value).length != 11) return 'Неверный формат номера';
                       return null;
                     },
                   ),
@@ -549,18 +592,11 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ] else ...[
                   // Code input
-                  _inputField(
-                    controller: _codeController,
-                    label: 'Код из СМС',
-                    hint: '123456',
-                    icon: Icons.lock_outline_rounded,
-                    keyboardType: TextInputType.number,
-                    autofocus: true,
-                  ),
+                  _otpInput(),
                   const SizedBox(height: 20),
                   _primaryButton(
                     label: 'Подтвердить',
-                    onPressed: _isLoading ? null : _verifyCode,
+                    onPressed: _isLoading || _codeController.text.trim().length != 6 ? null : _verifyCode,
                   ),
                   SizedBox(height: 14.s),
                   // Resend / change number
@@ -569,6 +605,7 @@ class _LoginPageState extends State<LoginPage> {
                       onTap: () => setState(() {
                         _codeSent = false;
                         _codeController.clear();
+                        _codeFocusNode.unfocus();
                       }),
                       child: Text(
                         'Изменить номер',
@@ -586,6 +623,109 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _otpInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Код из СМС',
+          style: TextStyle(
+            color: _textMute.withValues(alpha: 0.7),
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 10.s),
+        GestureDetector(
+          onTap: () => _codeFocusNode.requestFocus(),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                children: List.generate(6, (index) {
+                  final code = _codeController.text;
+                  final hasValue = index < code.length;
+                  final isActive = _codeFocusNode.hasFocus && code.length == index;
+                  final isFilled = hasValue;
+
+                  return Expanded(
+                    child: Container(
+                      margin: EdgeInsets.only(right: index == 5 ? 0 : 8.s),
+                      height: 58.s,
+                      decoration: BoxDecoration(
+                        color: _card,
+                        borderRadius: BorderRadius.circular(14.s),
+                        border: Border.all(
+                          color: isActive
+                              ? _orange
+                              : isFilled
+                                  ? _orange.withValues(alpha: 0.55)
+                                  : Colors.white.withValues(alpha: 0.06),
+                          width: isActive ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          hasValue ? code[index] : '',
+                          style: TextStyle(
+                            color: _text,
+                            fontSize: 22.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.0,
+                  child: TextFormField(
+                    controller: _codeController,
+                    focusNode: _codeFocusNode,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    onChanged: (_) {
+                      if (mounted) setState(() {});
+                    },
+                    onFieldSubmitted: (_) {
+                      if (!_isLoading && _codeController.text.trim().length == 6) {
+                        _verifyCode();
+                      }
+                    },
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      counterText: '',
+                    ),
+                    style: const TextStyle(color: Colors.transparent),
+                    cursorColor: Colors.transparent,
+                    maxLength: 6,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.s),
+        Text(
+          'Можно вставить код целиком',
+          style: TextStyle(
+            color: _textMute.withValues(alpha: 0.45),
+            fontSize: 11.sp,
+          ),
+        ),
+      ],
     );
   }
 

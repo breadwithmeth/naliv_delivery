@@ -149,7 +149,7 @@ class CartItem {
     // DISCOUNT акции (учитываем ключи discount и discount_value)
     for (final promo in promotions) {
       final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'DISCOUNT') {
+      if (type == 'DISCOUNT' || type == 'PERCENT') {
         final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
         total = total * (1 - disc / 100);
       }

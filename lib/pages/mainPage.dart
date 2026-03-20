@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 
 import '../shared/app_theme.dart';
 import '../utils/address_storage_service.dart';
-import '../utils/cartFloatingButton.dart';
 import '../utils/responsive.dart';
 import '../utils/api.dart';
 import '../utils/cart_provider.dart';
@@ -1860,13 +1859,6 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
           if (_activeOrders.isNotEmpty) _floatingActiveOrdersButton(),
-          // Floating cart
-          Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 110.s,
-            left: 0,
-            right: 0,
-            child: Center(child: CartFloatingButton()),
-          ),
         ],
       ),
     );

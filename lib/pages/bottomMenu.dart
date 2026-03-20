@@ -58,6 +58,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   // Акции загружаются в MainPage
 
+  String _money(double value) {
+    return value == value.roundToDouble() ? '${value.toInt()} ₸' : '${value.toStringAsFixed(0)} ₸';
+  }
+
   int? _selectedBusinessIdAsInt() {
     final rawId = _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'];
     if (rawId == null) return null;
@@ -638,20 +642,85 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
               left: 0,
               right: 0,
               child: Center(
-                child: GestureDetector(
-                  onTap: () => _onTabTapped(3),
-                  child: Container(
-                    width: 70.s,
-                    height: 70.s,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(colors: [_orange, Color(0xFFFFB457)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12.s, offset: Offset(0, 8.s))],
-                    ),
-                    child: Center(
-                      child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 26.s),
-                    ),
-                  ),
+                child: Consumer<CartProvider>(
+                  builder: (context, cart, _) {
+                    final itemCount = cart.items.length;
+                    final total = cart.getTotalPrice();
+                    final hasItems = itemCount > 0;
+
+                    return GestureDetector(
+                      onTap: () => _onTabTapped(3),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: 70.s,
+                                height: 70.s,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                      colors: [_orange, Color(0xFFFFB457)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12.s, offset: Offset(0, 8.s))],
+                                ),
+                                child: Center(
+                                  child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 26.s),
+                                ),
+                              ),
+                              if (hasItems)
+                                Positioned(
+                                  top: -2.s,
+                                  right: -2.s,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(10.s),
+                                      border: Border.all(color: _orange, width: 1.4),
+                                    ),
+                                    child: Text(
+                                      '$itemCount',
+                                      style: TextStyle(
+                                        color: _orange,
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          if (hasItems) ...[
+                            SizedBox(height: 6.s),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 4.s),
+                              decoration: BoxDecoration(
+                                color: _orange,
+                                borderRadius: BorderRadius.circular(12.s),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.18),
+                                    blurRadius: 8.s,
+                                    offset: Offset(0, 4.s),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                _money(total),
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

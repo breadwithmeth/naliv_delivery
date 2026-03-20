@@ -6,6 +6,18 @@ import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
 import 'search_page.dart';
 
+class _CategoryItemsCacheEntry {
+  const _CategoryItemsCacheEntry({
+    required this.items,
+    required this.pagination,
+    required this.storedAt,
+  });
+
+  final List<ItemModel.Item> items;
+  final PaginationInfo? pagination;
+  final DateTime storedAt;
+}
+
 class CategoryPage extends StatefulWidget {
   final Category category;
   final List<Category> allCategories;
@@ -25,6 +37,9 @@ class CategoryPage extends StatefulWidget {
 }
 
 class _CategoryPageState extends State<CategoryPage> {
+  static const Duration _cacheTtl = Duration(minutes: 5);
+  static final Map<String, _CategoryItemsCacheEntry> _categoryItemsCache = <String, _CategoryItemsCacheEntry>{};
+
   // ─── Palette (matches mainPage) ──────────────────────────
   static const Color _bgDeep = Color(0xFF121212);
   static const Color _bgTop = Color(0xFF161616);
@@ -43,6 +58,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
+  int _selectionVersion = 0;
 
   // Category sidebar state
   bool _showCategorySidebar = false;
@@ -67,37 +83,131 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
+  String _cacheKey({
+    required int businessId,
+    required int categoryId,
+    required int page,
+  }) {
+    return '$businessId:$categoryId:$page';
+  }
+
+  _CategoryItemsCacheEntry? _getCachedCategoryItems(String key) {
+    final cached = _categoryItemsCache[key];
+    if (cached == null) return null;
+
+    if (DateTime.now().difference(cached.storedAt) > _cacheTtl) {
+      _categoryItemsCache.remove(key);
+      return null;
+    }
+
+    return cached;
+  }
+
+  void _storeCachedCategoryItems({
+    required String key,
+    required List<ItemModel.Item> items,
+    required PaginationInfo? pagination,
+  }) {
+    _categoryItemsCache[key] = _CategoryItemsCacheEntry(
+      items: List<ItemModel.Item>.from(items),
+      pagination: pagination,
+      storedAt: DateTime.now(),
+    );
+  }
+
+  bool _matchesSelectionSnapshot({
+    required int version,
+    required int categoryId,
+    required int? subcategoryId,
+  }) {
+    return version == _selectionVersion && _selectedCategory?.categoryId == categoryId && _selectedSubcategory?.categoryId == subcategoryId;
+  }
+
   // ─── Data Loading ────────────────────────────────────────
   Future<void> _loadCategoryItems({bool isLoadMore = false}) async {
     if (!mounted) return;
+
+    final selectedCategory = _selectedCategory;
+    if (selectedCategory == null) return;
+
+    final requestedCategoryId = selectedCategory.categoryId;
+    final requestedSubcategoryId = _selectedSubcategory?.categoryId;
+    final requestVersion = _selectionVersion;
+    final requestedPage = isLoadMore ? (_pagination?.page ?? 0) + 1 : 1;
+    final businessId = widget.businessId;
+    final effectiveCategoryId = requestedSubcategoryId ?? requestedCategoryId;
+
+    if (businessId == null) {
+      if (!isLoadMore) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Ошибка загрузки товаров: businessId is required to load categories';
+        });
+      }
+      return;
+    }
+
+    final cacheKey = _cacheKey(
+      businessId: businessId,
+      categoryId: effectiveCategoryId,
+      page: requestedPage,
+    );
+    final cached = _getCachedCategoryItems(cacheKey);
 
     if (!isLoadMore) {
       setState(() {
         _isLoading = true;
         _error = null;
+        _items = [];
+        _pagination = null;
       });
     } else {
       setState(() => _isLoadingMore = true);
     }
 
-    try {
-      final categoryId = _selectedSubcategory?.categoryId ?? _selectedCategory!.categoryId;
-      if (widget.businessId == null) {
-        throw Exception('businessId is required to load categories');
+    if (cached != null) {
+      if (mounted &&
+          _matchesSelectionSnapshot(
+            version: requestVersion,
+            categoryId: requestedCategoryId,
+            subcategoryId: requestedSubcategoryId,
+          )) {
+        setState(() {
+          if (isLoadMore) {
+            _items.addAll(List<ItemModel.Item>.from(cached.items));
+          } else {
+            _items = List<ItemModel.Item>.from(cached.items);
+          }
+          _pagination = cached.pagination;
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
       }
-      final currentPage = isLoadMore ? (_pagination?.page ?? 0) + 1 : 1;
+      return;
+    }
 
+    try {
       final response = await ApiService.getCategoryItemsTyped(
-        categoryId,
-        businessId: widget.businessId!,
-        page: currentPage,
+        effectiveCategoryId,
+        businessId: businessId,
+        page: requestedPage,
         limit: 5000,
       );
 
-      if (mounted) {
+      if (mounted &&
+          _matchesSelectionSnapshot(
+            version: requestVersion,
+            categoryId: requestedCategoryId,
+            subcategoryId: requestedSubcategoryId,
+          )) {
         setState(() {
           if (response != null) {
             final convertedItems = response.data.items.map((categoryItem) => ItemModel.Item.fromCategoryItem(categoryItem)).toList();
+            _storeCachedCategoryItems(
+              key: cacheKey,
+              items: convertedItems,
+              pagination: response.data.pagination,
+            );
             if (isLoadMore) {
               _items.addAll(convertedItems);
             } else {
@@ -112,7 +222,12 @@ class _CategoryPageState extends State<CategoryPage> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted &&
+          _matchesSelectionSnapshot(
+            version: requestVersion,
+            categoryId: requestedCategoryId,
+            subcategoryId: requestedSubcategoryId,
+          )) {
         setState(() {
           _error = 'Ошибка загрузки товаров: $e';
           _isLoading = false;
@@ -130,9 +245,13 @@ class _CategoryPageState extends State<CategoryPage> {
   void _onCategoryChanged(Category cat) {
     if (_selectedCategory?.categoryId == cat.categoryId) return;
     setState(() {
+      _selectionVersion++;
       _selectedCategory = cat;
       _selectedSubcategory = null;
       _showCategorySidebar = false;
+      _items = [];
+      _pagination = null;
+      _error = null;
     });
     _scrollToTop();
     _loadCategoryItems();
@@ -140,7 +259,13 @@ class _CategoryPageState extends State<CategoryPage> {
 
   void _onSubcategorySelected(Category? subcategory) {
     if (_selectedSubcategory == subcategory) return;
-    setState(() => _selectedSubcategory = subcategory);
+    setState(() {
+      _selectionVersion++;
+      _selectedSubcategory = subcategory;
+      _items = [];
+      _pagination = null;
+      _error = null;
+    });
     _scrollToTop();
     _loadCategoryItems();
   }

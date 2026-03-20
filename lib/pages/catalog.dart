@@ -3,7 +3,6 @@ import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
-import '../utils/cartFloatingButton.dart';
 import 'categoryPage.dart';
 import 'search_page.dart';
 
@@ -199,8 +198,6 @@ class _CatalogState extends State<Catalog> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgDeep,
-      floatingActionButton: CartFloatingButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: Stack(
         children: [
           _background(),
