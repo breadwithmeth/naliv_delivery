@@ -5,6 +5,7 @@ import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 
@@ -42,7 +43,7 @@ class CartPage extends StatelessWidget {
                 businessProvider.selectedBusiness != null
                     ? '${businessProvider.selectedBusiness!["name"].toString()} — ${businessProvider.selectedBusiness!["address"].toString()}'
                     : 'Выберите магазин',
-                style: TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
           ],
         ),
@@ -52,7 +53,7 @@ class CartPage extends StatelessWidget {
           const AppBackground(),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 18.s),
               child: items.isEmpty ? _buildEmptyState() : _buildFilled(context, cartProvider, items),
             ),
           ),
@@ -70,17 +71,17 @@ class CartPage extends StatelessWidget {
       children: [
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: 10.s),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
+            separatorBuilder: (_, __) => SizedBox(height: 12.s),
             itemBuilder: (context, index) => _cartItemTile(context, cartProvider, items[index]),
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 16.s),
         _summaryCard(total: total, deliveryFee: deliveryFee, etaLabel: etaLabel),
-        const SizedBox(height: 18),
+        SizedBox(height: 16.s),
         _checkoutButton(context),
-        const SizedBox(height: 14),
+        SizedBox(height: 12.s),
         _footerBadge(),
       ],
     );
@@ -99,17 +100,43 @@ class CartPage extends StatelessWidget {
     );
   }
 
+  /// Format quantity: show whole numbers without decimals
+  static String _formatQty(double qty) {
+    return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
+  }
+
+  /// Detect SUBTRACT promo and calculate free amount
+  static double _freeAmount(CartItem item) {
+    for (final promo in item.promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'SUBTRACT') {
+        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
+        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
+        final groupSize = base + add;
+        if (groupSize > 0 && base > 0 && item.quantity >= groupSize) {
+          final count = item.quantity ~/ groupSize;
+          return (count * add).toDouble();
+        }
+      }
+    }
+    return 0;
+  }
+
   Widget _cartItemTile(BuildContext context, CartProvider cartProvider, CartItem item) {
     final double? maxAmount = item.maxAmount;
     final bool canIncrease = maxAmount == null || item.quantity < maxAmount;
     final bool canDecrease = item.quantity > 0;
+    final double freeQty = _freeAmount(item);
+    final bool hasFreeBonus = freeQty > 0;
+    final double rawTotal = item.price * item.quantity;
+    final double actualTotal = item.totalPrice;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(10.s),
       decoration: BoxDecoration(
         color: AppColors.cardDark.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(16.s),
+        border: Border.all(color: hasFreeBonus ? AppColors.orange.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 10)),
         ],
@@ -117,7 +144,7 @@ class CartPage extends StatelessWidget {
       child: Row(
         children: [
           _itemThumb(item),
-          const SizedBox(width: 12),
+          SizedBox(width: 10.s),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,13 +153,49 @@ class CartPage extends StatelessWidget {
                   item.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800),
+                  style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${item.price.toStringAsFixed(0)} ₸',
-                  style: const TextStyle(color: AppColors.orange, fontSize: 13, fontWeight: FontWeight.w700),
-                ),
+                SizedBox(height: 5.s),
+                if (hasFreeBonus) ...[
+                  // Show strikethrough raw price + actual price
+                  Row(
+                    children: [
+                      Text(
+                        _money(rawTotal),
+                        style: TextStyle(
+                          color: AppColors.textMute.withValues(alpha: 0.5),
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: AppColors.textMute.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      SizedBox(width: 6.s),
+                      Text(
+                        _money(actualTotal),
+                        style: TextStyle(color: AppColors.orange, fontSize: 13.sp, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 3.s),
+                  // Free bonus badge
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 2.s),
+                    decoration: BoxDecoration(
+                      color: AppColors.orange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6.s),
+                    ),
+                    child: Text(
+                      '${_formatQty(freeQty)} л в подарок 🎁',
+                      style: TextStyle(color: AppColors.orange, fontSize: 10.sp, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    _money(actualTotal),
+                    style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                  ),
+                ],
               ],
             ),
           ),
@@ -164,7 +227,7 @@ class CartPage extends StatelessWidget {
                     cartProvider.updateQuantityWithVariants(item.itemId, item.selectedVariants, newValue);
                   }
                 : null,
-            value: item.quantity.toStringAsFixed(item.stepQuantity == 1 ? 0 : 2),
+            value: _formatQty(item.quantity),
           ),
         ],
       ),
@@ -173,8 +236,8 @@ class CartPage extends StatelessWidget {
 
   Widget _itemThumb(CartItem item) {
     return Container(
-      width: 58,
-      height: 58,
+      width: 52.s,
+      height: 52.s,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white.withValues(alpha: 0.06),
@@ -194,10 +257,10 @@ class CartPage extends StatelessWidget {
 
   Widget _quantityCapsule({required VoidCallback? onDecrement, required VoidCallback? onIncrement, required String value}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 7.s),
       decoration: BoxDecoration(
         color: AppColors.blue.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(26.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
@@ -205,8 +268,8 @@ class CartPage extends StatelessWidget {
         children: [
           _quantityButton(icon: Icons.remove, onPressed: onDecrement, filled: false),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(value, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+            padding: EdgeInsets.symmetric(horizontal: 10.s),
+            child: Text(value, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 13.sp)),
           ),
           _quantityButton(icon: Icons.add, onPressed: onIncrement, filled: true),
         ],
@@ -219,16 +282,16 @@ class CartPage extends StatelessWidget {
     final Color fg = filled ? Colors.black : AppColors.text;
     return InkWell(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16.s),
       child: Container(
-        width: 34,
-        height: 34,
+        width: 30.s,
+        height: 30.s,
         decoration: BoxDecoration(
           color: onPressed == null ? bg.withValues(alpha: 0.5) : bg,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
-        child: Icon(icon, size: 18, color: fg.withValues(alpha: onPressed == null ? 0.5 : 1)),
+        child: Icon(icon, size: 16.s, color: fg.withValues(alpha: onPressed == null ? 0.5 : 1)),
       ),
     );
   }
@@ -236,10 +299,10 @@ class CartPage extends StatelessWidget {
   Widget _summaryCard({required double total, required double deliveryFee, required String etaLabel}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(14.s),
       decoration: BoxDecoration(
         color: AppColors.cardDark.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18.s),
         border: Border.all(color: Colors.orange.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.32), blurRadius: 20, offset: const Offset(0, 12)),
@@ -249,26 +312,26 @@ class CartPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.receipt_long, color: AppColors.orange),
-              SizedBox(width: 8),
-              Text('Детали заказа', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800)),
+            children: [
+              Icon(Icons.receipt_long, color: AppColors.orange, size: 20.s),
+              SizedBox(width: 7.s),
+              Text('Детали заказа', style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w800)),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 12.s),
           _summaryRow('Сумма товаров', _money(total)),
-          const SizedBox(height: 10),
+          SizedBox(height: 9.s),
           _summaryRow('Доставка', deliveryFee > 0 ? _money(deliveryFee) : '—'),
-          const SizedBox(height: 10),
+          SizedBox(height: 9.s),
           _etaRow('Время доставки', etaLabel),
-          const SizedBox(height: 16),
+          SizedBox(height: 14.s),
           Divider(color: Colors.white.withValues(alpha: 0.07)),
-          const SizedBox(height: 12),
+          SizedBox(height: 10.s),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('ИТОГО', style: TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w800)),
-              Text(_money(total + deliveryFee), style: const TextStyle(color: AppColors.orange, fontSize: 20, fontWeight: FontWeight.w900)),
+              Text('ИТОГО', style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w800)),
+              Text(_money(total + deliveryFee), style: TextStyle(color: AppColors.orange, fontSize: 18.sp, fontWeight: FontWeight.w900)),
             ],
           ),
         ],
@@ -280,8 +343,8 @@ class CartPage extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
-        Text(value, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
+        Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+        Text(value, style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700)),
       ],
     );
   }
@@ -289,13 +352,13 @@ class CartPage extends StatelessWidget {
   Widget _etaRow(String label, String eta) {
     return Row(
       children: [
-        const Icon(Icons.access_time, color: AppColors.textMute, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13))),
+        Icon(Icons.access_time, color: AppColors.textMute, size: 16.s),
+        SizedBox(width: 7.s),
+        Expanded(child: Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
           decoration: AppDecorations.pill(color: AppColors.orange.withValues(alpha: 0.15)),
-          child: Text(eta, style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800, fontSize: 12)),
+          child: Text(eta, style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800, fontSize: 11.sp)),
         ),
       ],
     );
@@ -313,9 +376,9 @@ class CartPage extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: EdgeInsets.symmetric(vertical: 14.s),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(23.s),
           gradient: const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
@@ -323,10 +386,10 @@ class CartPage extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.credit_card, color: Colors.white, size: 18),
-            SizedBox(width: 10),
-            Text('Оформить заказ', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+          children: [
+            Icon(Icons.credit_card, color: Colors.white, size: 16.s),
+            SizedBox(width: 9.s),
+            Text('Оформить заказ', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w800)),
           ],
         ),
       ),

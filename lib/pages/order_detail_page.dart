@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import '../utils/responsive.dart';
 
 const Map<String, String> _orderStatusLabels = <String, String>{
   '0': 'Новый заказ',
@@ -169,14 +170,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _buildErrorState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(18.s),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColors.red, size: 48),
-            const SizedBox(height: 12),
+            Icon(Icons.error_outline, color: AppColors.red, size: 42.s),
+            SizedBox(height: 10.s),
             Text(_error!, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
+            SizedBox(height: 10.s),
             ElevatedButton(
               onPressed: _loadOrderDetails,
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: Colors.black),
@@ -198,35 +199,35 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 18.s),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _statusCard(order),
-            const SizedBox(height: 14),
+            SizedBox(height: 12.s),
             if (business != null) ...[
               _section(child: _businessCard(business)),
-              const SizedBox(height: 14),
+              SizedBox(height: 12.s),
             ],
             if (deliveryAddress != null) ...[
               _section(child: _addressCard(deliveryAddress)),
-              const SizedBox(height: 14),
+              SizedBox(height: 12.s),
             ],
             if (_shouldShowCourierCard(order)) ...[
               _section(child: _courierCard()),
-              const SizedBox(height: 14),
+              SizedBox(height: 12.s),
             ],
             if (itemsSummary != null) ...[
               _section(child: _itemsCard(itemsSummary)),
-              const SizedBox(height: 14),
+              SizedBox(height: 12.s),
             ],
             if (costSummary != null) ...[
               _section(child: _costCard(costSummary)),
-              const SizedBox(height: 14),
+              SizedBox(height: 12.s),
             ],
             _section(child: _metaCard(order)),
             if (statuses.isNotEmpty) ...[
-              const SizedBox(height: 14),
+              SizedBox(height: 12.s),
               _section(child: _historyCard(statuses)),
             ],
           ],
@@ -238,17 +239,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _section({required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: AppDecorations.card(radius: 18),
+      padding: EdgeInsets.all(14.s),
+      decoration: AppDecorations.card(radius: 16.s),
       child: child,
     );
   }
 
   Widget _statusChip(String label, {Color? color, Color? textColor}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
       decoration: AppDecorations.pill(color: (color ?? AppColors.blue).withValues(alpha: 0.9)),
-      child: Text(label, style: TextStyle(color: textColor ?? AppColors.text, fontWeight: FontWeight.w700, fontSize: 12)),
+      child: Text(label, style: TextStyle(color: textColor ?? AppColors.text, fontWeight: FontWeight.w700, fontSize: 11.sp)),
     );
   }
 
@@ -261,40 +262,40 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark),
+      padding: EdgeInsets.all(14.s),
+      decoration: AppDecorations.card(radius: 16.s, color: AppColors.cardDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.local_shipping, color: AppColors.orange, size: 22),
-              const SizedBox(width: 8),
-              const Text('Статус заказа', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 16)),
+              Icon(Icons.local_shipping, color: AppColors.orange, size: 20.s),
+              SizedBox(width: 7.s),
+              Text('Статус заказа', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 14.sp)),
               const Spacer(),
               _statusChip(statusCode.isNotEmpty ? statusCode : '—', color: AppColors.orange, textColor: Colors.black),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(statusDescription, style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
+          SizedBox(height: 9.s),
+          Text(statusDescription, style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900)),
+          SizedBox(height: 5.s),
           Row(
             children: [
-              const Icon(Icons.receipt_long, color: AppColors.textMute, size: 16),
-              const SizedBox(width: 6),
-              Text('Заказ #${order['order_id'] ?? '-'}', style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+              Icon(Icons.receipt_long, color: AppColors.textMute, size: 14.s),
+              SizedBox(width: 5.s),
+              Text('Заказ #${order['order_id'] ?? '-'}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
             ],
           ),
           if (createdAt != null) ...[
-            const SizedBox(height: 4),
-            Text('Создан: ${_formatDateTime(createdAt)}', style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+            SizedBox(height: 4.s),
+            Text('Создан: ${_formatDateTime(createdAt)}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
           ],
-          const SizedBox(height: 8),
+          SizedBox(height: 7.s),
           Row(
             children: [
-              const Icon(Icons.place_outlined, color: AppColors.textMute, size: 16),
-              const SizedBox(width: 6),
-              Text('Тип доставки: $deliveryType', style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+              Icon(Icons.place_outlined, color: AppColors.textMute, size: 14.s),
+              SizedBox(width: 5.s),
+              Text('Тип доставки: $deliveryType', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
             ],
           ),
         ],
@@ -310,25 +311,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
+          children: [
             Icon(Icons.store_mall_directory, color: AppColors.orange),
-            SizedBox(width: 8),
+            SizedBox(width: 7.s),
             Text('Магазин', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
         ),
-        const SizedBox(height: 10),
-        Text(name, style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700)),
+        SizedBox(height: 9.s),
+        Text(name, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
         if (address != null) ...[
-          const SizedBox(height: 4),
-          Text(address, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+          SizedBox(height: 4.s),
+          Text(address, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
         ],
         if (phone != null) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 7.s),
           Row(
             children: [
-              const Icon(Icons.phone, color: AppColors.textMute, size: 16),
-              const SizedBox(width: 6),
-              Text(phone, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+              Icon(Icons.phone, color: AppColors.textMute, size: 14.s),
+              SizedBox(width: 5.s),
+              Text(phone, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
             ],
           ),
         ],
@@ -346,19 +347,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
+          children: [
             Icon(Icons.location_on_outlined, color: AppColors.orange),
-            SizedBox(width: 8),
+            SizedBox(width: 7.s),
             Text('Адрес доставки', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 9.s),
         Text(address['address']?.toString() ?? 'Адрес не указан',
-            style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 6),
+            style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+        SizedBox(height: 5.s),
         Wrap(
-          spacing: 10,
-          runSpacing: 6,
+          spacing: 9.s,
+          runSpacing: 5.s,
           children: [
             if (entrance != null) _statusChip('Подъезд $entrance'),
             if (floor != null) _statusChip('Этаж $floor'),
@@ -366,15 +367,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ],
         ),
         if (comment != null && comment.isNotEmpty) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 9.s),
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: AppDecorations.card(radius: 12, color: AppColors.cardDark, shadow: false),
+            padding: EdgeInsets.all(10.s),
+            decoration: AppDecorations.card(radius: 10.s, color: AppColors.cardDark, shadow: false),
             child: Row(
               children: [
-                const Icon(Icons.comment, color: AppColors.textMute, size: 16),
-                const SizedBox(width: 8),
-                Expanded(child: Text(comment, style: const TextStyle(color: AppColors.textMute, fontSize: 13))),
+                Icon(Icons.comment, color: AppColors.textMute, size: 14.s),
+                SizedBox(width: 7.s),
+                Expanded(child: Text(comment, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))),
               ],
             ),
           ),
@@ -394,13 +395,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         Row(
           children: [
             const Icon(Icons.shopping_bag, color: AppColors.orange),
-            const SizedBox(width: 8),
+            SizedBox(width: 7.s),
             Text('Товары ($itemsCount)', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
             const Spacer(),
-            Text('Всего: $totalAmount', style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+            Text('Всего: $totalAmount', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 10.s),
         for (int i = 0; i < items.length; i++) ...[
           _itemRow(items[i]),
           if (i < items.length - 1) const Divider(color: Color(0x229FB0C8), height: 16),
@@ -419,7 +420,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         Row(
           children: [
             const Icon(Icons.near_me, color: AppColors.orange),
-            const SizedBox(width: 8),
+            SizedBox(width: 7.s),
             const Expanded(
               child: Text('Курьер', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
             ),
@@ -449,12 +450,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         else ...[
           if (coords != null)
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: AppDecorations.card(radius: 12, color: AppColors.cardDark, shadow: false),
+              padding: EdgeInsets.all(10.s),
+              decoration: AppDecorations.card(radius: 10.s, color: AppColors.cardDark, shadow: false),
               child: Row(
                 children: [
-                  const Icon(Icons.my_location, color: AppColors.orange, size: 18),
-                  const SizedBox(width: 8),
+                  Icon(Icons.my_location, color: AppColors.orange, size: 16.s),
+                  SizedBox(width: 7.s),
                   Expanded(
                     child: Text(
                       '${coords['lat']!.toStringAsFixed(6)}, ${coords['lon']!.toStringAsFixed(6)}',
@@ -465,14 +466,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
           if (updatedAt != null) ...[
-            const SizedBox(height: 8),
-            Text('Обновлено: ${_formatDateTime(updatedAt)}', style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+            SizedBox(height: 7.s),
+            Text('Обновлено: ${_formatDateTime(updatedAt)}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
           ],
           if (_courierLocation != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 7.s),
             Text(
               _buildCourierSummary(_courierLocation!),
-              style: const TextStyle(color: AppColors.textMute, fontSize: 13),
+              style: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
             ),
           ],
         ],
@@ -503,17 +504,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 )
               : const Icon(Icons.inventory_2_outlined, color: AppColors.textMute),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 10.s),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(name,
-                  style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
-              Text('Количество: ${qty % 1 == 0 ? qty.toInt() : qty}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+              SizedBox(height: 4.s),
+              Text('Количество: ${qty % 1 == 0 ? qty.toInt() : qty}', style: TextStyle(color: AppColors.textMute, fontSize: 11.sp)),
             ],
           ),
         ),
@@ -534,9 +535,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
+          children: [
             Icon(Icons.receipt_long, color: AppColors.orange),
-            SizedBox(width: 8),
+            SizedBox(width: 7.s),
             Text('Стоимость', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
         ),
@@ -556,13 +557,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     if (amount == null) return const SizedBox.shrink();
     final color = isTotal ? AppColors.orange : accent ?? AppColors.text;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: 5.s),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: AppColors.text, fontSize: isTotal ? 15 : 14, fontWeight: isTotal ? FontWeight.w800 : FontWeight.w600)),
+          Text(label,
+              style: TextStyle(color: AppColors.text, fontSize: isTotal ? 13.sp : 12.sp, fontWeight: isTotal ? FontWeight.w800 : FontWeight.w600)),
           Text(_formatMoney(amount),
-              style: TextStyle(color: color, fontSize: isTotal ? 16 : 14, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700)),
+              style: TextStyle(color: color, fontSize: isTotal ? 14.sp : 12.sp, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700)),
         ],
       ),
     );
@@ -765,12 +767,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _infoRow(String label, String? value) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 5.s),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 140, child: Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13))),
-          Expanded(child: Text(value, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700))),
+          SizedBox(width: 126.s, child: Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))),
+          Expanded(child: Text(value, style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700))),
         ],
       ),
     );
@@ -781,9 +783,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
+          children: [
             Icon(Icons.history, color: AppColors.orange),
-            SizedBox(width: 8),
+            SizedBox(width: 7.s),
             Text('История статусов', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
         ),
@@ -804,24 +806,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 12,
-          height: 12,
-          margin: const EdgeInsets.only(top: 5),
+          width: 10.s,
+          height: 10.s,
+          margin: EdgeInsets.only(top: 4.s),
           decoration: BoxDecoration(color: isLatest ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.7), shape: BoxShape.circle),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 9.s),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: TextStyle(color: isLatest ? AppColors.orange : AppColors.text, fontWeight: FontWeight.w800)),
               if (desc != null) ...[
-                const SizedBox(height: 2),
-                Text(desc, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+                SizedBox(height: 2.s),
+                Text(desc, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
               ],
               if (ts != null) ...[
-                const SizedBox(height: 4),
-                Text(_formatDateTime(ts), style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                SizedBox(height: 4.s),
+                Text(_formatDateTime(ts), style: TextStyle(color: AppColors.textMute, fontSize: 11.sp)),
               ],
             ],
           ),

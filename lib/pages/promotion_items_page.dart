@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/model/item.dart' as ItemModel;
 import 'package:naliv_delivery/shared/product_card.dart';
+import '../utils/responsive.dart';
 
 /// Страница с товарами конкретной акции
 class PromotionItemsPage extends StatefulWidget {
@@ -94,13 +95,13 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                       children: [
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(7.s),
                             child: GridView.builder(
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
                                 childAspectRatio: 0.56,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 7.s,
+                                mainAxisSpacing: 7.s,
                               ),
                               itemCount: _items!.length,
                               itemBuilder: (context, index) {
@@ -113,7 +114,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                         // Навигация по страницам
                         if (_totalPages != null && _totalPages! > 1)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            padding: EdgeInsets.symmetric(vertical: 7.s),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -126,9 +127,9 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                                       : null,
                                   child: const Text('Назад'),
                                 ),
-                                const SizedBox(width: 16),
+                                SizedBox(width: 14.s),
                                 Text('Страница $_page из $_totalPages'),
-                                const SizedBox(width: 16),
+                                SizedBox(width: 14.s),
                                 TextButton(
                                   onPressed: _page < _totalPages!
                                       ? () {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import '../utils/responsive.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -88,7 +89,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(14.s),
         children: [
           Card(
             child: Padding(

@@ -5,6 +5,7 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:naliv_delivery/widgets/app_entry_gate.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -59,6 +60,10 @@ class _MainState extends State<Main> with LocationMixin {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        builder: (context, child) {
+          Responsive.init(context);
+          return child!;
+        },
         navigatorKey: AppNavigator.key,
         navigatorObservers: [routeObserver],
         title: "Налив/Градусы24",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/agreement_service.dart';
 import '../pages/mandatory_offer_page.dart';
+import '../utils/responsive.dart';
 import 'authentication_wrapper.dart';
 
 /// Виджет-обертка для проверки принятия пользовательских соглашений
@@ -55,19 +56,19 @@ class _AgreementWrapperState extends State<AgreementWrapper> {
             children: [
               Image.asset(
                 'assets/naliv_logo_loading.png',
-                width: 120,
-                height: 120,
+                width: 108.s,
+                height: 108.s,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 22.s),
               const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 14.s),
+              Text(
                 'Загружаем приложение...',
                 style: TextStyle(
                   color: Colors.white70,
-                  fontSize: 16,
+                  fontSize: 15.sp,
                 ),
               ),
             ],

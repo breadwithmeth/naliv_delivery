@@ -8,6 +8,7 @@ import '../utils/api.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/business_provider.dart';
 import '../utils/liked_items_provider.dart';
+import '../utils/responsive.dart';
 
 class ProductCard extends StatefulWidget {
   final ItemModel.Item item;
@@ -96,7 +97,9 @@ class _ProductCardState extends State<ProductCard> {
 
     // Promotion calculations
     final promo = item.hasPromotions ? item.promotions!.first : null;
-    final hasDiscount = promo != null && promo.isActive;
+    final hasActivePromo = promo != null && promo.isActive;
+    final isSubtractPromo = hasActivePromo && promo.discountType == 'SUBTRACT';
+    final hasDiscount = hasActivePromo && !isSubtractPromo;
     final discountedPrice = hasDiscount ? promo.calculateDiscountedPrice(item.price) : item.price;
     final discountPercent = hasDiscount
         ? (promo.discountType == 'PERCENT'
@@ -116,7 +119,7 @@ class _ProductCardState extends State<ProductCard> {
       child: Container(
         decoration: BoxDecoration(
           color: _card,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14.s),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Column(
@@ -128,15 +131,15 @@ class _ProductCardState extends State<ProductCard> {
             // ── Info ──
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                padding: EdgeInsets.fromLTRB(9.s, 7.s, 9.s, 9.s),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name
                     Text(
                       item.name,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w700,
                         color: _text,
                         height: 1.25,
@@ -153,14 +156,14 @@ class _ProductCardState extends State<ProductCard> {
                       Text(
                         '${_formatPrice(item.price)} ₸',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10.sp,
                           color: _textMute.withValues(alpha: 0.45),
                           decoration: TextDecoration.lineThrough,
                           decorationColor: _textMute.withValues(alpha: 0.45),
                           height: 1.1,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.s),
                       // New price + savings row
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -169,8 +172,8 @@ class _ProductCardState extends State<ProductCard> {
                           Flexible(
                             child: Text(
                               '${_formatPrice(discountedPrice)} ₸',
-                              style: const TextStyle(
-                                fontSize: 18,
+                              style: TextStyle(
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.w900,
                                 color: _text,
                                 height: 1.1,
@@ -182,11 +185,11 @@ class _ProductCardState extends State<ProductCard> {
                         ],
                       ),
                       if (savingsAmount >= 1) ...[
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2.s),
                         Text(
                           'Выгода ${_formatPrice(savingsAmount)} ₸',
-                          style: const TextStyle(
-                            fontSize: 10,
+                          style: TextStyle(
+                            fontSize: 9.sp,
                             fontWeight: FontWeight.w700,
                             color: _orange,
                             height: 1.1,
@@ -198,8 +201,8 @@ class _ProductCardState extends State<ProductCard> {
                     ] else ...[
                       Text(
                         '${_formatPrice(item.price)} ₸',
-                        style: const TextStyle(
-                          fontSize: 18,
+                        style: TextStyle(
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w900,
                           color: _text,
                           height: 1.1,
@@ -209,7 +212,7 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                     ],
 
-                    const SizedBox(height: 8),
+                    SizedBox(height: 7.s),
 
                     // ── Cart button ──
                     _cartSection(item),
@@ -238,9 +241,9 @@ class _ProductCardState extends State<ProductCard> {
           // Product image
           Positioned.fill(
             child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(14.s),
+                topRight: Radius.circular(14.s),
               ),
               child: Container(
                 color: _cardDark,
@@ -248,12 +251,12 @@ class _ProductCardState extends State<ProductCard> {
                     ? Image.network(
                         item.image!,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 48),
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 42.s),
                         ),
                       )
-                    : const Center(
-                        child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 48),
+                    : Center(
+                        child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 42.s),
                       ),
               ),
             ),
@@ -264,11 +267,11 @@ class _ProductCardState extends State<ProductCard> {
             left: 0,
             right: 0,
             bottom: 0,
-            height: 48,
+            height: 42.s,
             child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(14.s),
+                topRight: Radius.circular(14.s),
               ),
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -287,25 +290,25 @@ class _ProductCardState extends State<ProductCard> {
 
           // ── Top-left badges column ──
           Positioned(
-            top: 8,
-            left: 8,
-            right: 40,
+            top: 7.s,
+            left: 7.s,
+            right: 36.s,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Discount % badge
                 if (hasDiscount && discountPercent > 0)
                   Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    margin: EdgeInsets.only(bottom: 3.s),
+                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
                     decoration: BoxDecoration(
                       color: _red,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(7.s),
                     ),
                     child: Text(
                       '-$discountPercent%',
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: TextStyle(
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.w800,
                         color: _text,
                       ),
@@ -314,16 +317,16 @@ class _ProductCardState extends State<ProductCard> {
                 // Low stock badge
                 if (isLowStock)
                   Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    margin: EdgeInsets.only(bottom: 3.s),
+                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
                     decoration: BoxDecoration(
                       color: _red.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(6.s),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Осталось мало',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9.sp,
                         fontWeight: FontWeight.w700,
                         color: _text,
                       ),
@@ -335,22 +338,22 @@ class _ProductCardState extends State<ProductCard> {
 
           // Heart button (top-right)
           Positioned(
-            top: 8,
-            right: 8,
+            top: 7.s,
+            right: 7.s,
             child: GestureDetector(
               onTap: _toggleLike,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 150),
                 opacity: _likeInProgress ? 0.5 : 1,
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: EdgeInsets.all(5.s),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.4),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     _isLiked ? Icons.favorite : Icons.favorite_border,
-                    size: 18,
+                    size: 16.s,
                     color: _isLiked ? _red : Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
@@ -360,9 +363,9 @@ class _ProductCardState extends State<ProductCard> {
 
           // ── Bottom row: promos/options (left) + bonus (right) ──
           Positioned(
-            bottom: 8,
-            left: 8,
-            right: 8,
+            bottom: 7.s,
+            left: 7.s,
+            right: 7.s,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -396,10 +399,10 @@ class _ProductCardState extends State<ProductCard> {
   // ─── Promo badge ─────────────────────────────────────────
   Widget _promoBadge(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
       decoration: BoxDecoration(
         color: _orange,
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(6.s),
         boxShadow: [
           BoxShadow(
             color: _orange.withValues(alpha: 0.4),
@@ -410,8 +413,8 @@ class _ProductCardState extends State<ProductCard> {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 11,
+        style: TextStyle(
+          fontSize: 10.sp,
           fontWeight: FontWeight.w800,
           color: Colors.black,
         ),
@@ -428,21 +431,21 @@ class _ProductCardState extends State<ProductCard> {
     final extra = item.options!.length > 2 ? ' +${item.options!.length - 2}' : '';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 3.s),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(6.s),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.tune, size: 10, color: _text),
-          const SizedBox(width: 3),
+          Icon(Icons.tune, size: 9.s, color: _text),
+          SizedBox(width: 3.s),
           Flexible(
             child: Text(
               '$optionNames$extra',
-              style: const TextStyle(
-                fontSize: 10,
+              style: TextStyle(
+                fontSize: 9.sp,
                 fontWeight: FontWeight.w600,
                 color: _text,
               ),
@@ -458,10 +461,10 @@ class _ProductCardState extends State<ProductCard> {
   // ─── Bonus points badge ──────────────────────────────────
   Widget _bonusBadge(int points) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 3.s),
       decoration: BoxDecoration(
         color: _purple,
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(6.s),
         boxShadow: [
           BoxShadow(
             color: _purple.withValues(alpha: 0.35),
@@ -473,12 +476,12 @@ class _ProductCardState extends State<ProductCard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, size: 11, color: Colors.white),
-          const SizedBox(width: 2),
+          Icon(Icons.star_rounded, size: 10.s, color: Colors.white),
+          SizedBox(width: 2.s),
           Text(
             '+$points',
-            style: const TextStyle(
-              fontSize: 10,
+            style: TextStyle(
+              fontSize: 9.sp,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
@@ -533,19 +536,19 @@ class _ProductCardState extends State<ProductCard> {
             }
           },
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: 5.s),
         Expanded(
           child: Container(
-            height: 34,
+            height: 30.s,
             decoration: BoxDecoration(
               border: Border.all(color: _orange.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7.s),
             ),
             child: Center(
               child: Text(
                 item.effectiveStepQuantity == 1.0 ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
-                style: const TextStyle(
-                  fontSize: 13,
+                style: TextStyle(
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.w700,
                   color: _orange,
                 ),
@@ -553,7 +556,7 @@ class _ProductCardState extends State<ProductCard> {
             ),
           ),
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: 5.s),
         _ctrlButton(
           icon: item.hasOptions ? Icons.settings : Icons.add,
           enabled: canIncrease,
@@ -593,16 +596,16 @@ class _ProductCardState extends State<ProductCard> {
     bool enabled = true,
   }) {
     return SizedBox(
-      width: 34,
-      height: 34,
+      width: 30.s,
+      height: 30.s,
       child: Material(
         color: enabled ? _orange : _cardDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(7.s),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(7.s),
           onTap: onPressed,
           child: Center(
-            child: Icon(icon, size: 16, color: enabled ? Colors.black : _textMute),
+            child: Icon(icon, size: 14.s, color: enabled ? Colors.black : _textMute),
           ),
         ),
       ),
@@ -617,12 +620,12 @@ class _ProductCardState extends State<ProductCard> {
   ) {
     final bool canAdd = maxAmount == null || maxAmount.toDouble() > 0;
     return SizedBox(
-      height: 34,
+      height: 30.s,
       child: Material(
         color: canAdd ? _orange : _cardDark,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9.s),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(9.s),
           onTap: canAdd
               ? () {
                   if (item.hasOptions) {
@@ -648,14 +651,14 @@ class _ProductCardState extends State<ProductCard> {
             children: [
               Icon(
                 item.hasOptions ? Icons.tune : Icons.shopping_bag_outlined,
-                size: 16,
+                size: 14.s,
                 color: canAdd ? Colors.black : _textMute,
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: 5.s),
               Text(
                 item.hasOptions ? 'Выбрать опции' : 'В корзину',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.w700,
                   color: canAdd ? Colors.black : _textMute,
                 ),

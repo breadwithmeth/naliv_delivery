@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
+import '../utils/responsive.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key, required this.onCompleted, this.initialCity});
@@ -241,7 +242,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(width: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 7.s),
           decoration: BoxDecoration(
             color: _card,
             borderRadius: BorderRadius.circular(999),
@@ -264,8 +265,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
-            margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
-            height: 4,
+            margin: EdgeInsets.only(right: index == 2 ? 0 : 7.s),
+            height: 4.s,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               color: index <= _pageIndex ? _orange : Colors.white.withValues(alpha: 0.08),
@@ -384,7 +385,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: _cardDark,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20.s),
               border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Column(
@@ -403,7 +404,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       foregroundColor: _text,
                       side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
                     ),
                     child: Text(_isLoadingCities ? 'Загружаем...' : 'Повторить'),
                   ),
@@ -432,20 +433,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
             final city = _cities[index];
             final isSelected = _selectedCity == city.name;
             return InkWell(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20.s),
               onTap: () => setState(() => _selectedCity = city.name),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(14.s),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isSelected ? const [_orange, _red] : const [_blue, _cardDark],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: Colors.white.withValues(alpha: isSelected ? 0.18 : 0.06)),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 10))],
+                  borderRadius: BorderRadius.circular(20.s),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,9 +588,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+              padding: EdgeInsets.symmetric(vertical: 16.s),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+              textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
             child: const Text('Продолжить'),
           ),
@@ -603,21 +602,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget _buildLocationStatusCard() {
     if (_locationMessage == null) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(14.s),
         decoration: BoxDecoration(
           color: _cardDark,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18.s),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
+              width: 36.s,
+              height: 36.s,
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12.s)),
               child: const Icon(Icons.place_outlined, color: _orange),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 10.s),
             const Expanded(
               child: Text(
                 'Дадим доступ только для поиска ближайшего магазина и ускорения выбора адреса.',
@@ -630,10 +629,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(14.s),
       decoration: BoxDecoration(
         color: _locationGranted ? _orange.withValues(alpha: 0.12) : _cardDark,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
@@ -672,9 +671,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+              padding: EdgeInsets.symmetric(vertical: 16.s),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+              textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
             child: _isRequestingLocation
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
@@ -689,8 +688,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
             style: OutlinedButton.styleFrom(
               foregroundColor: _text,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              padding: EdgeInsets.symmetric(vertical: 14.s),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
             ),
             child: const Text('Открыть настройки'),
           ),
@@ -710,16 +709,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget _buildNotificationStatusCard() {
     if (_notificationMessage == null) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(14.s),
         decoration: BoxDecoration(
           color: _cardDark,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18.s),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: const Row(
           children: [
             Icon(Icons.notifications_active_outlined, color: _orange),
-            SizedBox(width: 12),
+            SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Уведомления нужны для статусов заказа, новых акций и важных обновлений по доставке.',
@@ -732,10 +731,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(14.s),
       decoration: BoxDecoration(
         color: _notificationsGranted ? _orange.withValues(alpha: 0.12) : _cardDark,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
@@ -774,9 +773,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+              padding: EdgeInsets.symmetric(vertical: 16.s),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+              textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
             child: _isRequestingNotifications
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
@@ -854,10 +853,10 @@ class _BenefitPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
       decoration: BoxDecoration(
         color: _OnboardingPageState._cardDark,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(

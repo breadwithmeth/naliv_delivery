@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/utils/cartFloatingButton.dart';
 import '../utils/api.dart';
+import '../utils/responsive.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
 import 'search_page.dart';
@@ -161,7 +162,8 @@ class _CategoryPageState extends State<CategoryPage> {
     return Scaffold(
       backgroundColor: _bgDeep,
       extendBodyBehindAppBar: true,
-      floatingActionButton: const CartFloatingButton(),
+      floatingActionButton: CartFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: Stack(
         children: [
           _background(),
@@ -215,11 +217,11 @@ class _CategoryPageState extends State<CategoryPage> {
   // ─── Top bar ─────────────────────────────────────────────
   Widget _topBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 8, 0),
+      padding: EdgeInsets.fromLTRB(4.s, 4.s, 7.s, 0),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 18.s),
             onPressed: () => Navigator.of(context).pop(),
           ),
           Expanded(
@@ -227,11 +229,11 @@ class _CategoryPageState extends State<CategoryPage> {
               widget.sectionTitle ?? _selectedCategory?.name ?? 'Каталог',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900),
+              style: TextStyle(color: _text, fontSize: 18.sp, fontWeight: FontWeight.w900),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.search_rounded, color: _textMute, size: 22),
+            icon: Icon(Icons.search_rounded, color: _textMute, size: 20.s),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
           ),
         ],
@@ -242,45 +244,45 @@ class _CategoryPageState extends State<CategoryPage> {
   // ─── Category switcher row ───────────────────────────────
   Widget _categorySwitcherRow() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 4.s),
       child: GestureDetector(
         onTap: () => setState(() => _showCategorySidebar = !_showCategorySidebar),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
           decoration: BoxDecoration(
             color: _card,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 25.s,
+                height: 25.s,
                 decoration: BoxDecoration(
                   color: _orange.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(7.s),
                 ),
-                child: const Icon(Icons.category_rounded, color: _orange, size: 16),
+                child: Icon(Icons.category_rounded, color: _orange, size: 14.s),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 10.s),
               Expanded(
                 child: Text(
                   _selectedCategory?.name ?? 'Каталог',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: _text, fontSize: 15, fontWeight: FontWeight.w800),
+                  style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w800),
                 ),
               ),
               Text(
                 '${widget.allCategories.length} кат.',
-                style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 7.s),
               AnimatedRotation(
                 turns: _showCategorySidebar ? 0.5 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: const Icon(Icons.expand_more_rounded, color: _textMute, size: 20),
+                child: Icon(Icons.expand_more_rounded, color: _textMute, size: 18.s),
               ),
             ],
           ),
@@ -300,7 +302,7 @@ class _CategoryPageState extends State<CategoryPage> {
             child: Align(
               alignment: Alignment.topCenter,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 110, 16, 0),
+                padding: EdgeInsets.fromLTRB(14.s, 100.s, 14.s, 0),
                 child: Material(
                   color: Colors.transparent,
                   child: Container(
@@ -309,14 +311,14 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                     decoration: BoxDecoration(
                       color: _card,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(16.s),
                       border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 24, offset: const Offset(0, 12))],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(16.s),
                       child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: EdgeInsets.symmetric(vertical: 7.s),
                         shrinkWrap: true,
                         itemCount: widget.allCategories.length,
                         itemBuilder: (_, i) {
@@ -325,43 +327,43 @@ class _CategoryPageState extends State<CategoryPage> {
                           return InkWell(
                             onTap: () => _onCategoryChanged(cat),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                              padding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 12.s),
                               color: selected ? _orange.withValues(alpha: 0.1) : Colors.transparent,
                               child: Row(
                                 children: [
                                   Container(
-                                    width: 8,
-                                    height: 8,
+                                    width: 7.s,
+                                    height: 7.s,
                                     decoration: BoxDecoration(
                                       color: selected ? _orange : Colors.white.withValues(alpha: 0.12),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
+                                  SizedBox(width: 12.s),
                                   Expanded(
                                     child: Text(
                                       cat.name,
                                       style: TextStyle(
                                         color: selected ? _orange : _text,
-                                        fontSize: 15,
+                                        fontSize: 14.sp,
                                         fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                   if (cat.hasSubcategories)
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 8),
+                                      padding: EdgeInsets.only(left: 7.s),
                                       child: Text(
                                         '${cat.subcategories.length}',
-                                        style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 12),
+                                        style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 11.sp),
                                       ),
                                     ),
                                   if (cat.itemsCount > 0)
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 8),
+                                      padding: EdgeInsets.only(left: 7.s),
                                       child: Text(
                                         '${cat.getTotalItemsCount()}',
-                                        style: TextStyle(color: _textMute.withValues(alpha: 0.5), fontSize: 12),
+                                        style: TextStyle(color: _textMute.withValues(alpha: 0.5), fontSize: 11.sp),
                                       ),
                                     ),
                                 ],
@@ -385,14 +387,14 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget _subcategoryChips() {
     final subs = _selectedCategory?.subcategories ?? [];
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: EdgeInsets.only(top: 7.s),
       child: SizedBox(
-        height: 42,
+        height: 38.s,
         child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 14.s),
           scrollDirection: Axis.horizontal,
           itemCount: subs.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, __) => SizedBox(width: 7.s),
           itemBuilder: (_, i) {
             if (i == 0) {
               return _chip(
@@ -419,10 +421,10 @@ class _CategoryPageState extends State<CategoryPage> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 9.s),
         decoration: BoxDecoration(
           color: selected ? _orange : _card,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(11.s),
           border: Border.all(
             color: selected ? _orange : Colors.white.withValues(alpha: 0.06),
           ),
@@ -435,17 +437,17 @@ class _CategoryPageState extends State<CategoryPage> {
               style: TextStyle(
                 color: selected ? Colors.black : _text,
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
+                fontSize: 12.sp,
               ),
             ),
             if (count != null) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 5.s),
               Text(
                 '$count',
                 style: TextStyle(
                   color: selected ? Colors.black.withValues(alpha: 0.6) : _textMute.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                  fontSize: 10.sp,
                 ),
               ),
             ],
@@ -458,7 +460,7 @@ class _CategoryPageState extends State<CategoryPage> {
   // ─── Info row ────────────────────────────────────────────
   Widget _infoRow() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 7.s),
       child: Row(
         children: [
           Expanded(
@@ -466,19 +468,19 @@ class _CategoryPageState extends State<CategoryPage> {
               _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'Все товары',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800),
+              style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800),
             ),
           ),
           if (!_isLoading && _items.isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(7.s),
               ),
               child: Text(
                 '${_items.length} шт.',
-                style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -519,13 +521,13 @@ class _CategoryPageState extends State<CategoryPage> {
       onRefresh: () => _loadCategoryItems(),
       child: GridView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+        padding: EdgeInsets.fromLTRB(14.s, 4.s, 14.s, 120.s),
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.56,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+          crossAxisSpacing: 9.s,
+          mainAxisSpacing: 9.s,
         ),
         itemCount: _items.length + (_isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
@@ -547,35 +549,35 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget _errorState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(28.s),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 58.s,
+              height: 58.s,
               decoration: BoxDecoration(
                 color: _red.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.error_outline_rounded, color: _red, size: 32),
+              child: Icon(Icons.error_outline_rounded, color: _red, size: 28.s),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 16.s),
             Text(
               _error!,
-              style: const TextStyle(color: _text, fontSize: 15, fontWeight: FontWeight.w700),
+              style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 16.s),
             ElevatedButton.icon(
               onPressed: () => _loadCategoryItems(),
-              icon: const Icon(Icons.refresh_rounded, size: 18),
+              icon: Icon(Icons.refresh_rounded, size: 16.s),
               label: const Text('Повторить'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _orange,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11.s)),
+                padding: EdgeInsets.symmetric(horizontal: 20.s, vertical: 10.s),
                 textStyle: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
@@ -590,28 +592,28 @@ class _CategoryPageState extends State<CategoryPage> {
     final label = _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'категории';
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(28.s),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 58.s,
+              height: 58.s,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.inventory_2_outlined, color: _textMute.withValues(alpha: 0.5), size: 30),
+              child: Icon(Icons.inventory_2_outlined, color: _textMute.withValues(alpha: 0.5), size: 27.s),
             ),
-            const SizedBox(height: 18),
-            const Text(
+            SizedBox(height: 16.s),
+            Text(
               'Товары не найдены',
-              style: TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800),
+              style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 7.s),
             Text(
               'В "$label" пока нет товаров',
-              style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 14),
+              style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 13.sp),
               textAlign: TextAlign.center,
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
@@ -450,13 +451,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
           const AppBackground(),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 24.s),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 12),
+                  SizedBox(height: 10.s),
                   _deliveryTabs(),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 10.s),
                   _infoCard(
                     icon: Icons.store,
                     title: businessProvider.selectedBusinessName ?? 'Магазин не выбран',
@@ -466,7 +467,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     onTap: () => Navigator.pop(context),
                   ),
                   if (_deliveryType == 'DELIVERY') ...[
-                    const SizedBox(height: 10),
+                    SizedBox(height: 9.s),
                     _infoCard(
                       icon: Icons.location_on_outlined,
                       title: 'Адрес доставки',
@@ -474,16 +475,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
                       onTap: _showAddressSelectionModal,
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 9.s),
                     _addressDetailsCard(),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 9.s),
                     _infoCard(
                       icon: Icons.local_shipping_outlined,
                       title: 'Стоимость доставки',
                       subtitle: _isCalculatingDelivery ? 'Рассчитываем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
                       onTap: _calculateDelivery,
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 9.s),
                     _infoCard(
                       icon: Icons.access_time,
                       title: 'Время доставки',
@@ -492,15 +493,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       onTap: _showDeliveryTimeSelection,
                     ),
                   ],
-                  const SizedBox(height: 14),
+                  SizedBox(height: 12.s),
                   _sectionHeader('Товары в корзине'),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 9.s),
                   ...cartProvider.items.map((item) => _itemTile(item)).toList(),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 12.s),
                   _bonusCard(),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 12.s),
                   _totalCard(itemsTotal: itemsTotal, deliveryCost: _deliveryType == 'DELIVERY' ? deliveryCost : 0, total: totalWithDelivery),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 18.s),
                   _primaryButton(
                     label: _isSubmitting ? 'Отправка…' : 'Подтвердить заказ',
                     onTap: _isSubmitting ? null : _submitOrder,
@@ -516,10 +517,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _deliveryTabs() {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: EdgeInsets.all(4.s),
       decoration: BoxDecoration(
         color: AppColors.cardDark.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -548,10 +549,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: 10.s),
           decoration: BoxDecoration(
             color: active ? AppColors.orange : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18.s),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -568,28 +569,28 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _infoCard({required IconData icon, required String title, String? subtitle, Widget? trailing, VoidCallback? onTap}) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.95)),
+      padding: EdgeInsets.all(12.s),
+      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.95)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(9.s),
             decoration: BoxDecoration(
               color: AppColors.orange.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12.s),
             ),
-            child: Icon(icon, color: AppColors.orange, size: 20),
+            child: Icon(icon, color: AppColors.orange, size: 18.s),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 10.s),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+                Text(title, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 14.sp)),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
+                  SizedBox(height: 3.s),
+                  Text(subtitle, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
                 ],
               ],
             ),
@@ -610,21 +611,45 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: EdgeInsets.all(5.s),
           decoration: BoxDecoration(color: AppColors.orange.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: const Icon(Icons.shopping_bag, color: AppColors.orange, size: 16),
+          child: Icon(Icons.shopping_bag, color: AppColors.orange, size: 14.s),
         ),
-        const SizedBox(width: 8),
-        Text(text, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 16)),
+        SizedBox(width: 7.s),
+        Text(text, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 15.sp)),
       ],
     );
   }
 
+  static double _freeAmount(item) {
+    for (final promo in item.promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'SUBTRACT') {
+        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
+        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
+        final groupSize = base + add;
+        if (groupSize > 0 && base > 0 && item.quantity >= groupSize) {
+          final count = item.quantity ~/ groupSize;
+          return (count * add).toDouble();
+        }
+      }
+    }
+    return 0;
+  }
+
+  static String _fmtQty(double qty) {
+    return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
+  }
+
   Widget _itemTile(item) {
+    final double freeQty = _freeAmount(item);
+    final bool hasFree = freeQty > 0;
+    final double rawTotal = item.price * item.quantity;
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.9)),
+      margin: EdgeInsets.symmetric(vertical: 5.s),
+      padding: EdgeInsets.all(12.s),
+      decoration: AppDecorations.card(radius: 14, color: AppColors.cardDark.withValues(alpha: 0.9)),
       child: Row(
         children: [
           Expanded(
@@ -633,12 +658,37 @@ class _CheckoutPageState extends State<CheckoutPage> {
               children: [
                 Text(item.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
-                Text('x${item.stepQuantity == 1.0 ? item.quantity.toStringAsFixed(0) : item.quantity.toStringAsFixed(2)}',
-                    style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                Row(
+                  children: [
+                    Text('x${_fmtQty(item.quantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                    if (hasFree) ...[
+                      SizedBox(width: 6.s),
+                      Text(
+                        '(${_fmtQty(freeQty)} бесплатно)',
+                        style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
-          Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (hasFree)
+                Text(
+                  _money(rawTotal),
+                  style: TextStyle(
+                    color: AppColors.textMute.withValues(alpha: 0.5),
+                    fontSize: 11.sp,
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: AppColors.textMute.withValues(alpha: 0.5),
+                  ),
+                ),
+              Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
+            ],
+          ),
         ],
       ),
     );
@@ -648,8 +698,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
     final subtitle = canUseBonus ? _buildBonusSubtitle() : const Text('Загрузка...', style: TextStyle(color: AppColors.textMute));
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.95)),
+      padding: EdgeInsets.all(12.s),
+      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.95)),
       child: Row(
         children: [
           Expanded(
@@ -657,7 +707,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Использовать бонусы', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
+                SizedBox(height: 5.s),
                 subtitle,
               ],
             ),
@@ -684,34 +734,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _totalCard({required double itemsTotal, required double deliveryCost, required double total}) {
     final bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: AppDecorations.card(radius: 20, color: AppColors.cardDark.withValues(alpha: 0.96)),
+      padding: EdgeInsets.all(14.s),
+      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.96)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.receipt_long, color: AppColors.orange),
-              SizedBox(width: 8),
-              Text('Итоги', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w800)),
+            children: [
+              Icon(Icons.receipt_long, color: AppColors.orange, size: 20.s),
+              SizedBox(width: 7.s),
+              Text('Итоги', style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w800)),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 10.s),
           _summaryRow('Товары', _money(itemsTotal)),
           if (_deliveryType == 'DELIVERY') ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 7.s),
             _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
           ],
           if (bonusUsed > 0) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 7.s),
             _summaryRow('Бонусы', '-${_money(bonusUsed)}', valueColor: Colors.greenAccent),
           ],
-          const Divider(color: Color(0x229FB0C8), height: 18),
+          Divider(color: const Color(0x229FB0C8), height: 16.s),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Итого', style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
-              Text(_money(total), style: const TextStyle(color: AppColors.orange, fontSize: 20, fontWeight: FontWeight.w900)),
+              Text('Итого', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+              Text(_money(total), style: TextStyle(color: AppColors.orange, fontSize: 18.sp, fontWeight: FontWeight.w900)),
             ],
           ),
         ],
@@ -723,8 +773,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 13)),
-        Text(value, style: TextStyle(color: valueColor, fontSize: 14, fontWeight: FontWeight.w700)),
+        Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+        Text(value, style: TextStyle(color: valueColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
       ],
     );
   }
@@ -737,9 +787,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         opacity: disabled ? 0.7 : 1,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: EdgeInsets.symmetric(vertical: 14.s),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(23.s),
             gradient: const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
             boxShadow: [
               BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
@@ -748,9 +798,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 18),
-              const SizedBox(width: 10),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+              Icon(Icons.check_circle, color: Colors.white, size: 16.s),
+              SizedBox(width: 9.s),
+              Text(label, style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -799,8 +849,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _addressDetailsCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.95)),
+      padding: EdgeInsets.all(12.s),
+      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.95)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

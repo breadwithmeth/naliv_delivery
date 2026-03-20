@@ -13,6 +13,7 @@ import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../utils/responsive.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
@@ -77,7 +78,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       bp.loadSavedBusiness();
     });
     _loadCitiesAndSelection();
-    _loadBusinesses();
     _loadSavedAddress();
   }
 
@@ -94,7 +94,19 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       _selectedCity = fallbackSelectedCity;
     });
 
-    await _refreshBusinessesForSelectedCity();
+    // Re-enrich businesses that were loaded before cities arrived
+    if (_allBusinesses.isNotEmpty) {
+      for (final b in _allBusinesses) {
+        b['_cityName'] = _detectBusinessCity(b) ?? '';
+      }
+    }
+
+    // Load businesses if not loaded yet, otherwise just refresh filter
+    if (_allBusinesses.isEmpty) {
+      await _loadBusinesses();
+    } else {
+      await _refreshBusinessesForSelectedCity();
+    }
   }
 
   Future<void> _loadBusinesses() async {
@@ -591,22 +603,22 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: 96,
+        height: 88.s,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
               child: Container(
-                margin: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                margin: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 16.s),
+                padding: EdgeInsets.symmetric(horizontal: 16.s),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [_bgTop, _bgDeep],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 10))],
+                  borderRadius: BorderRadius.circular(26.s),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12.s, offset: Offset(0, 8.s))],
                   border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
                 ),
                 child: Row(
@@ -614,7 +626,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                   children: [
                     _navItem(icon: Icons.home_rounded, label: 'Главная', index: 0),
                     _navItem(icon: Icons.grid_view_rounded, label: 'Каталог', index: 1),
-                    const SizedBox(width: 70),
+                    SizedBox(width: 64.s),
                     _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
                     _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
                   ],
@@ -622,22 +634,22 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
               ),
             ),
             Positioned(
-              top: -18,
+              top: -16.s,
               left: 0,
               right: 0,
               child: Center(
                 child: GestureDetector(
                   onTap: () => _onTabTapped(3),
                   child: Container(
-                    width: 78,
-                    height: 78,
+                    width: 70.s,
+                    height: 70.s,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(colors: [_orange, Color(0xFFFFB457)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 10))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12.s, offset: Offset(0, 8.s))],
                     ),
-                    child: const Center(
-                      child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 30),
+                    child: Center(
+                      child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 26.s),
                     ),
                   ),
                 ),
@@ -658,15 +670,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(7.s),
             decoration: BoxDecoration(
               color: isActive ? _orange.withValues(alpha: 0.12) : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12.s),
             ),
-            child: Icon(icon, color: isActive ? _orange : _textMute, size: 24),
+            child: Icon(icon, color: isActive ? _orange : _textMute, size: 22.s),
           ),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 12, fontWeight: FontWeight.w700)),
+          SizedBox(height: 3.s),
+          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 10.sp, fontWeight: FontWeight.w700)),
         ],
       ),
     );

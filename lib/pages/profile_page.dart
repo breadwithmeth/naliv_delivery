@@ -6,6 +6,7 @@ import '../services/agreement_service.dart';
 import '../services/auth_service.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
+import '../utils/responsive.dart';
 
 class ProfilePage extends StatefulWidget {
   final Map<String, dynamic> userInfo;
@@ -108,8 +109,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.orange,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 10.s),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
                     ),
                     child: const Text('Войти', style: TextStyle(fontWeight: FontWeight.w800)),
                   ),
@@ -122,7 +123,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
               return SafeArea(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                  padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 110.s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -144,18 +145,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.orange,
                             foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 10.s),
                       _infoCard(user),
                       _ordersCard(),
                       _addressesCard(addresses),
                       _cardsCard(cards),
                       _devSettingsCard(),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 14.s),
                     ],
                   ),
                 ),
@@ -169,36 +170,36 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _infoCard(Map<String, dynamic> user) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: AppDecorations.card(radius: 18),
+      margin: EdgeInsets.only(bottom: 14.s),
+      padding: EdgeInsets.all(14.s),
+      decoration: AppDecorations.card(radius: 16.s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(9.s),
                 decoration: AppDecorations.pill(color: AppColors.blue),
-                child: const Icon(Icons.person, color: AppColors.orange, size: 28),
+                child: Icon(Icons.person, color: AppColors.orange, size: 25.s),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 10.s),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user['name'] ?? '', style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text(user['login'] ?? '', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+                  Text(user['name'] ?? '', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                  Text(user['login'] ?? '', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
                 ],
               ),
             ],
           ),
           if (user['date_of_birth'] != null) ...[
-            const SizedBox(height: 8),
-            Text('Дата рождения: ${user['date_of_birth']}', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+            SizedBox(height: 7.s),
+            Text('Дата рождения: ${user['date_of_birth']}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
           ],
           if (user['sex'] != null) ...[
-            const SizedBox(height: 4),
-            Text('Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+            SizedBox(height: 4.s),
+            Text('Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
           ],
         ],
       ),
@@ -218,8 +219,8 @@ class _ProfilePageState extends State<ProfilePage> {
         .toList();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: AppDecorations.card(radius: 16),
+      margin: EdgeInsets.symmetric(vertical: 7.s),
+      decoration: AppDecorations.card(radius: 14.s),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
         child: ExpansionTile(
@@ -228,29 +229,29 @@ class _ProfilePageState extends State<ProfilePage> {
           children: normalized
               .map(
                 (addr) => Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  padding: const EdgeInsets.all(12),
-                  decoration: AppDecorations.card(radius: 12, shadow: false, color: AppColors.cardDark),
+                  margin: EdgeInsets.symmetric(horizontal: 10.s, vertical: 5.s),
+                  padding: EdgeInsets.all(10.s),
+                  decoration: AppDecorations.card(radius: 10.s, shadow: false, color: AppColors.cardDark),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           const Icon(Icons.home, color: AppColors.textMute),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 7.s),
                           Expanded(
                             child: Text(addr['address']!, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 5.s),
                       ...[
                         if (addr['name']!.isNotEmpty) 'Имя: ${addr['name']}',
                         if (addr['apartment']!.isNotEmpty) 'Кв.: ${addr['apartment']}',
                         if (addr['entrance']!.isNotEmpty) 'Под.: ${addr['entrance']}',
                         if (addr['floor']!.isNotEmpty) 'Эт.: ${addr['floor']}',
                         if (addr['other']!.isNotEmpty) 'Прим.: ${addr['other']}',
-                      ].map((text) => Text(text, style: TextStyle(color: AppColors.textMute, fontSize: 12))).toList(),
+                      ].map((text) => Text(text, style: TextStyle(color: AppColors.textMute, fontSize: 11.sp))).toList(),
                     ],
                   ),
                 ),
@@ -263,12 +264,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _ordersCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: AppDecorations.card(radius: 16),
+      margin: EdgeInsets.symmetric(vertical: 7.s),
+      decoration: AppDecorations.card(radius: 14.s),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 5.s),
         leading: Container(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(9.s),
           decoration: AppDecorations.pill(color: AppColors.blue),
           child: const Icon(Icons.receipt_long, color: AppColors.orange),
         ),
@@ -294,8 +295,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _cardsCard(List<Map<String, dynamic>> cards) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: AppDecorations.card(radius: 16),
+      margin: EdgeInsets.symmetric(vertical: 7.s),
+      decoration: AppDecorations.card(radius: 14.s),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
         child: ExpansionTile(
@@ -316,8 +317,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _devSettingsCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: AppDecorations.card(radius: 16),
+      margin: EdgeInsets.symmetric(vertical: 7.s),
+      decoration: AppDecorations.card(radius: 14.s),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
         child: ExpansionTile(

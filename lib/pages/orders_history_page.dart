@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../shared/app_theme.dart';
 import '../utils/api.dart';
+import '../utils/responsive.dart';
 import 'order_detail_page.dart';
 
 const Map<String, String> _orderStatusLabels = <String, String>{
@@ -256,14 +257,14 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 80),
-          const Icon(Icons.receipt_long_outlined, color: AppColors.textMute, size: 54),
-          const SizedBox(height: 16),
+          Icon(Icons.receipt_long_outlined, color: AppColors.textMute, size: 48.s),
+          SizedBox(height: 14.s),
           Text(
             _error!,
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 12.s),
           Center(
             child: ElevatedButton(
               onPressed: _loadOrders,
@@ -284,14 +285,14 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
         padding: const EdgeInsets.all(24),
         children: const [
           SizedBox(height: 80),
-          Icon(Icons.shopping_bag_outlined, color: AppColors.textMute, size: 54),
-          SizedBox(height: 16),
+          Icon(Icons.shopping_bag_outlined, color: AppColors.textMute, size: 48),
+          SizedBox(height: 14),
           Text(
             'Заказов пока нет',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 18),
+            style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 16),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 7),
           Text(
             'Когда появятся активные или завершённые заказы, они будут отображаться здесь.',
             textAlign: TextAlign.center,
@@ -306,23 +307,23 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
     return ListView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 22.s),
       children: [
         if (_activeOrders.isNotEmpty) ...[
           _sectionTitle('Активные заказы', '${_activeOrders.length}'),
-          const SizedBox(height: 10),
+          SizedBox(height: 9.s),
           ..._activeOrders.map((order) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: EdgeInsets.only(bottom: 9.s),
                 child: OrderPreviewCard(order: order),
               )),
-          const SizedBox(height: 14),
+          SizedBox(height: 12.s),
         ],
         _sectionTitle('История заказов', '${_historyOrders.length}'),
-        const SizedBox(height: 10),
+        SizedBox(height: 9.s),
         if (_historyOrders.isEmpty)
           Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppDecorations.card(radius: 18),
+            padding: EdgeInsets.all(16.s),
+            decoration: AppDecorations.card(radius: 16.s),
             child: const Text(
               'История пока пуста или ещё не доступна от сервера.',
               style: TextStyle(color: AppColors.textMute, fontWeight: FontWeight.w700),
@@ -332,20 +333,20 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
           ...historyEntries.map((entry) {
             if (entry.label != null) {
               return Padding(
-                padding: const EdgeInsets.fromLTRB(2, 12, 2, 10),
+                padding: EdgeInsets.fromLTRB(2, 10.s, 2, 9.s),
                 child: Text(
                   entry.label!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textMute,
                     fontWeight: FontWeight.w800,
-                    fontSize: 13,
+                    fontSize: 12.sp,
                   ),
                 ),
               );
             }
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: EdgeInsets.only(bottom: 9.s),
               child: OrderPreviewCard(order: entry.order!),
             );
           }),
@@ -379,15 +380,15 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
       children: [
         Text(
           title,
-          style: const TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w900),
+          style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 7.s),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
           decoration: AppDecorations.pill(color: AppColors.blue.withValues(alpha: 0.9)),
           child: Text(
             count,
-            style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 12),
+            style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 11.sp),
           ),
         ),
       ],
@@ -460,7 +461,7 @@ class OrderPreviewCard extends StatelessWidget {
     final deliveryPrice = costSummary?['delivery_price'] as num?;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16.s),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -469,8 +470,8 @@ class OrderPreviewCard extends StatelessWidget {
         );
       },
       child: Container(
-        decoration: AppDecorations.card(radius: 18),
-        padding: const EdgeInsets.all(14),
+        decoration: AppDecorations.card(radius: 16.s),
+        padding: EdgeInsets.all(12.s),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -483,9 +484,9 @@ class OrderPreviewCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.s),
                       Text(
                         businessName,
                         style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
@@ -493,21 +494,21 @@ class OrderPreviewCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 9.s),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
                   decoration: AppDecorations.pill(color: statusColor.withValues(alpha: 0.18)),
                   child: Text(
                     statusText,
-                    style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 12),
+                    style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 11.sp),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 9.s),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 7.s,
+              runSpacing: 7.s,
               children: [
                 _metaChip(Icons.schedule, dateText),
                 _metaChip(Icons.local_shipping_outlined, order['delivery_type']?.toString() ?? 'Не указан'),
@@ -517,22 +518,22 @@ class OrderPreviewCard extends StatelessWidget {
               ],
             ),
             if (address != null && (address['address']?.toString().trim().isNotEmpty ?? false)) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: 9.s),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.location_on_outlined, color: AppColors.textMute, size: 16),
-                  const SizedBox(width: 6),
+                  Icon(Icons.location_on_outlined, color: AppColors.textMute, size: 14.s),
+                  SizedBox(width: 5.s),
                   Expanded(
                     child: Text(
                       address['address'].toString(),
-                      style: const TextStyle(color: AppColors.textMute, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
             ],
-            const SizedBox(height: 12),
+            SizedBox(height: 10.s),
             Align(
               alignment: Alignment.centerRight,
               child: Text(
@@ -548,16 +549,16 @@ class OrderPreviewCard extends StatelessWidget {
 
   Widget _metaChip(IconData icon, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
       decoration: AppDecorations.pill(color: AppColors.cardDark.withValues(alpha: 0.95)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.textMute, size: 14),
-          const SizedBox(width: 6),
+          Icon(icon, color: AppColors.textMute, size: 12.s),
+          SizedBox(width: 5.s),
           Text(
             text,
-            style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700),
+            style: TextStyle(color: AppColors.text, fontSize: 11.sp, fontWeight: FontWeight.w700),
           ),
         ],
       ),

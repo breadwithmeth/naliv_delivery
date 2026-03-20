@@ -7,6 +7,7 @@ import '../model/item.dart' as item_model;
 import '../models/cart_item.dart';
 import '../shared/app_theme.dart';
 import '../utils/cart_provider.dart';
+import '../utils/responsive.dart';
 
 class ProductDetailPage extends StatefulWidget {
   const ProductDetailPage({super.key, required this.item});
@@ -41,6 +42,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _submitting = false;
 
   bool get _usesPourFlow => _containerOption != null && _filteredBottles.isNotEmpty && _looksPourProduct();
+
+  // ── promotion helpers ─────────────────────────────────────────
+
+  item_model.ItemPromotion? get _subtractPromo {
+    final promos = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    for (final p in promos) {
+      if (p.discountType == 'SUBTRACT' && p.baseAmount > 0 && p.addAmount > 0) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  item_model.ItemPromotion? get _discountPromo {
+    final promos = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    for (final p in promos) {
+      if (p.discountType == 'PERCENT' && p.discountValue > 0) return p;
+      if (p.discountType == 'FIXED' && p.discountValue > 0) return p;
+    }
+    return null;
+  }
+
+  /// How many liters are free thanks to SUBTRACT promo.
+  double _freeFromPromo(double quantity) {
+    final promo = _subtractPromo;
+    if (promo == null) return 0;
+    final groupSize = promo.baseAmount + promo.addAmount;
+    if (groupSize <= 0 || quantity < groupSize) return 0;
+    final count = (quantity ~/ groupSize);
+    return (count * promo.addAmount).toDouble();
+  }
 
   // ── lifecycle ─────────────────────────────────────────────────
 
@@ -392,6 +424,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   double _previewTotal() {
+    final promos = _promotionMaps();
+
     if (_usesPourFlow) {
       final counts = _activeBottleCounts();
       if (counts.isEmpty) {
@@ -400,6 +434,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       var total = 0.0;
       for (final entry in counts.entries) {
+        if (entry.value <= 0) continue;
         final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
         final quantity = _volumeForBottle(bottle) * entry.value;
         total += CartItem(
@@ -410,7 +445,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           stepQuantity: _volumeForBottle(bottle),
           image: widget.item.image,
           selectedVariants: _selectedVariantMaps(includeBottle: true, bottle: bottle),
-          promotions: _promotionMaps(),
+          promotions: promos,
           maxAmount: widget.item.amount?.toDouble(),
         ).totalPrice;
       }
@@ -425,7 +460,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       stepQuantity: widget.item.effectiveStepQuantity,
       image: widget.item.image,
       selectedVariants: _selectedVariantMaps(),
-      promotions: _promotionMaps(),
+      promotions: promos,
       maxAmount: widget.item.amount?.toDouble(),
     ).totalPrice;
   }
@@ -467,9 +502,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         }
 
         for (final entry in counts.entries) {
-          if (entry.value <= 0) {
-            continue;
-          }
+          if (entry.value <= 0) continue;
           final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
           final ok = cart.addItemWithOptions(
             widget.item.itemId,
@@ -513,7 +546,46 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       }
 
       if (added) {
-        Navigator.of(context).pop();
+        setState(() => _submitting = false);
+        // Brief success flash before popping
+        final overlay = Overlay.of(context);
+        final entry = OverlayEntry(
+          builder: (_) => Positioned(
+            bottom: MediaQuery.of(context).padding.bottom + 80.s,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 20.s, vertical: 12.s),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A8C3E),
+                    borderRadius: BorderRadius.circular(12.s),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 18.s),
+                      SizedBox(width: 8.s),
+                      Text(
+                        'Добавлено в корзину',
+                        style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        overlay.insert(entry);
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        entry.remove();
+        if (mounted) Navigator.of(context).pop();
         return;
       }
 
@@ -559,35 +631,43 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       color: _bg,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                     ),
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                    padding: EdgeInsets.fromLTRB(18.s, 24.s, 18.s, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _productInfo(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 16.s),
+                        if (_subtractPromo != null) ...[
+                          _subtractPromoBanner(),
+                          SizedBox(height: 14.s),
+                        ],
                         _thinDivider(),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 16.s),
                         if (_usesPourFlow) ...[
                           _pourControls(),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 22.s),
                         ],
                         if (!_usesPourFlow) ...[
                           _quantityControl(),
-                          const SizedBox(height: 24),
+                          if (_subtractPromo != null) ...[
+                            SizedBox(height: 14.s),
+                            _subtractPromoInfo(),
+                          ],
+                          SizedBox(height: 22.s),
                         ],
                         if (_visibleOptions.isNotEmpty) ...[
                           _optionsBlock(),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 22.s),
                         ],
                         if (widget.item.hasPromotions) ...[
                           _promoBlock(),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 22.s),
                         ],
                         if ((widget.item.description ?? '').trim().isNotEmpty) ...[
                           _descriptionBlock(),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 22.s),
                         ],
-                        SizedBox(height: 80 + pad.bottom),
+                        SizedBox(height: 72.s + pad.bottom),
                       ],
                     ),
                   ),
@@ -598,8 +678,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
           // ─ back button ─
           Positioned(
-            top: pad.top + 12,
-            left: 16,
+            top: pad.top + 10.s,
+            left: 14.s,
             child: _circleBtn(
               Icons.arrow_back_ios_new_rounded,
               () => Navigator.maybePop(context),
@@ -623,10 +703,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget _imageArea(EdgeInsets pad) {
     final hasImage = (widget.item.image ?? '').trim().isNotEmpty;
     return Container(
-      height: 340 + pad.top,
+      height: 260.s + pad.top,
       color: _surfDim,
       alignment: Alignment.center,
-      padding: EdgeInsets.fromLTRB(40, pad.top + 48, 40, 48),
+      padding: EdgeInsets.fromLTRB(36.s, pad.top + 36.s, 36.s, 36.s),
       child: hasImage
           ? Image.network(
               widget.item.image!,
@@ -638,7 +718,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _placeholder() {
-    return const Icon(Icons.inventory_2_outlined, color: _dim, size: 64);
+    return const Icon(Icons.inventory_2_outlined, color: _dim, size: 58);
   }
 
   // ── product info ──────────────────────────────────────────────
@@ -649,50 +729,188 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       children: [
         if ((widget.item.category?.name ?? '').trim().isNotEmpty) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
             decoration: BoxDecoration(
               color: _accent,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7.s),
             ),
             child: Text(
               widget.item.category!.name,
-              style: const TextStyle(color: _dim, fontSize: 12, fontWeight: FontWeight.w600),
+              style: TextStyle(color: _dim, fontSize: 11.sp, fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 10.s),
         ],
         Text(
           widget.item.name,
-          style: const TextStyle(
+          style: TextStyle(
             color: _tx,
-            fontSize: 22,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w800,
             height: 1.2,
           ),
         ),
-        if ((widget.item.code ?? '').trim().isNotEmpty) ...[
-          const SizedBox(height: 8),
+        if ((widget.item.code ?? '').trim().isNotEmpty)
           Text(
             'Арт. ${widget.item.code}',
-            style: const TextStyle(color: _dim, fontSize: 13),
+            style: TextStyle(color: _dim.withValues(alpha: 0.45), fontSize: 11.sp),
+          ),
+        SizedBox(height: 14.s),
+        ..._priceDisplay(),
+        if (_usesPourFlow) ...[
+          SizedBox(height: 3.s),
+          Text(
+            '${_money(widget.item.price)} за 1 л',
+            style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
           ),
         ],
-        const SizedBox(height: 16),
+        if (widget.item.amount != null && widget.item.amount! > 0) ...[
+          SizedBox(height: 5.s),
+          _stockIndicator(widget.item.amount!),
+        ],
+      ],
+    );
+  }
+
+  // ── price display with discount ────────────────────────────
+
+  List<Widget> _priceDisplay() {
+    final promo = _discountPromo;
+    if (promo != null && promo.isActive) {
+      final discounted = promo.calculateDiscountedPrice(widget.item.price);
+      final savings = widget.item.price - discounted;
+      return [
         Text(
           _money(widget.item.price),
-          style: const TextStyle(
-            color: _orange,
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
+          style: TextStyle(
+            color: _dim.withValues(alpha: 0.5),
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.lineThrough,
+            decorationColor: _dim.withValues(alpha: 0.5),
           ),
         ),
-        if (widget.item.amount != null && widget.item.amount! > 0) ...[
-          const SizedBox(height: 6),
+        SizedBox(height: 4.s),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              _money(discounted),
+              style: TextStyle(
+                color: _orange,
+                fontSize: 25.sp,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            SizedBox(width: 10.s),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
+              decoration: BoxDecoration(
+                color: _red,
+                borderRadius: BorderRadius.circular(6.s),
+              ),
+              child: Text(
+                '-${promo.discountValue.round()}%',
+                style: TextStyle(
+                  color: _tx,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (savings >= 1) ...[
+          SizedBox(height: 4.s),
           Text(
-            'В наличии: ${widget.item.amount}',
-            style: const TextStyle(color: _dim, fontSize: 13),
+            'Выгода ${_money(savings)}',
+            style: TextStyle(
+              color: _orange,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
+      ];
+    }
+
+    // SUBTRACT promo — shown as dedicated banner below, keep price clean
+    return [
+      Text(
+        _money(widget.item.price),
+        style: TextStyle(
+          color: _orange,
+          fontSize: 25.sp,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ];
+  }
+
+  // ── stock indicator ────────────────────────────────────────
+
+  Widget _stockIndicator(num amount) {
+    final String label;
+    final Color color;
+    final bool urgent;
+
+    if (amount <= 2) {
+      label = 'Заканчивается';
+      color = _red;
+      urgent = true;
+    } else if (amount <= 5) {
+      label = 'Мало';
+      color = const Color(0xFFE8913A);
+      urgent = false;
+    } else if (amount <= 15) {
+      label = 'В наличии';
+      color = _dim;
+      urgent = false;
+    } else {
+      label = 'Много';
+      color = const Color(0xFF5BAE6E);
+      urgent = false;
+    }
+
+    if (urgent) {
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 3.s),
+        decoration: BoxDecoration(
+          color: _red.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(6.s),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6.s,
+              height: 6.s,
+              decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
+            ),
+            SizedBox(width: 5.s),
+            Text(
+              label,
+              style: TextStyle(color: _red, fontSize: 11.sp, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7.s,
+          height: 7.s,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        SizedBox(width: 6.s),
+        Text(
+          label,
+          style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }
@@ -707,7 +925,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('Объём'),
-        const SizedBox(height: 14),
+        SizedBox(height: 12.s),
         _stepper(
           value: _volumeLabel(liters),
           subtitle: '$bottles бут.',
@@ -716,9 +934,143 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           onDec: () => _adjustLiters(-1),
           onInc: () => _adjustLiters(1),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 10.s),
         _bottleSummaryBtn(),
+
+        // ── Bottle breakdown text ──
+        if (_activeBottleCounts().isNotEmpty) ...[
+          SizedBox(height: 10.s),
+          ..._activeBottleCounts().entries.map((entry) {
+            final bottle = _filteredBottles.firstWhere((b) => b.relationId == entry.key);
+            final vol = _volumeForBottle(bottle);
+            final name = _shortBottleName(bottle);
+            final cost = widget.item.price * vol * entry.value;
+            return Padding(
+              padding: EdgeInsets.only(bottom: 4.s),
+              child: Row(
+                children: [
+                  Icon(Icons.wine_bar_outlined, size: 13.s, color: _dim),
+                  SizedBox(width: 6.s),
+                  Expanded(
+                    child: Text(
+                      '${entry.value}× $name (${_volumeLabel(vol)})',
+                      style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    _money(cost),
+                    style: TextStyle(color: _tx, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+
+        // ── Inline SUBTRACT promo info ──
+        if (_subtractPromo != null) ...[
+          SizedBox(height: 14.s),
+          _subtractPromoInfo(),
+        ],
       ],
+    );
+  }
+
+  /// Inline free-amount indicator for SUBTRACT promo (inside pour/quantity controls).
+  Widget _subtractPromoInfo() {
+    final promo = _subtractPromo!;
+    final amount = _configuredAmount();
+    final free = _freeFromPromo(amount);
+    final groupSize = promo.baseAmount + promo.addAmount;
+    final nextThreshold = ((amount / groupSize).floor() + 1) * groupSize;
+    final litersToNext = _normalizeDouble(nextThreshold - amount);
+
+    if (free > 0) {
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 8.s),
+        decoration: BoxDecoration(
+          color: _orange.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10.s),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.card_giftcard_rounded, size: 15.s, color: _orange),
+            SizedBox(width: 7.s),
+            Text(
+              '${_volumeLabel(free)} бесплатно 🎁',
+              style: TextStyle(color: _orange, fontSize: 13.sp, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Icon(Icons.info_outline_rounded, size: 14.s, color: _dim),
+        SizedBox(width: 6.s),
+        Text(
+          'Ещё ${_volumeLabel(litersToNext)} до ${promo.addAmount} л бесплатно',
+          style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  /// Full-width promo banner — shown between product info and controls.
+  Widget _subtractPromoBanner() {
+    final promo = _subtractPromo!;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_orange.withValues(alpha: 0.15), _orange.withValues(alpha: 0.06)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14.s),
+        border: Border.all(color: _orange.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36.s,
+            height: 36.s,
+            decoration: BoxDecoration(
+              color: _orange.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10.s),
+            ),
+            child: Icon(Icons.card_giftcard_rounded, size: 18.s, color: _orange),
+          ),
+          SizedBox(width: 12.s),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Акция ${promo.baseAmount}+${promo.addAmount}',
+                  style: TextStyle(
+                    color: _orange,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 2.s),
+                Text(
+                  'Купите ${promo.baseAmount} л \u2014 ${promo.addAmount} л в подарок. Скидка автоматически.',
+                  style: TextStyle(
+                    color: _tx.withValues(alpha: 0.8),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -729,28 +1081,40 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final bottle = _filteredBottles.firstWhere((b) => b.relationId == entry.key);
       parts.add('${entry.value}×${_volumeLabel(_volumeForBottle(bottle))}');
     }
-    final summary = parts.isNotEmpty ? parts.join(' · ') : 'Выбрать тару';
+    final detail = parts.isNotEmpty ? parts.join(' · ') : null;
 
     return GestureDetector(
       onTap: _openBottleSheet,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 12.s),
         decoration: BoxDecoration(
           color: _surfDim,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12.s),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.wine_bar_outlined, color: _dim, size: 18),
-            const SizedBox(width: 10),
+            Icon(Icons.wine_bar_outlined, color: _dim, size: 16.s),
+            SizedBox(width: 9.s),
             Expanded(
-              child: Text(
-                summary,
-                style: const TextStyle(color: _tx, fontSize: 14, fontWeight: FontWeight.w600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Настроить тару',
+                    style: TextStyle(color: _tx, fontSize: 13.sp, fontWeight: FontWeight.w600),
+                  ),
+                  if (detail != null) ...[
+                    SizedBox(height: 2.s),
+                    Text(
+                      detail,
+                      style: TextStyle(color: _dim, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: _dim, size: 20),
+            Icon(Icons.chevron_right_rounded, color: _dim, size: 18.s),
           ],
         ),
       ),
@@ -788,7 +1152,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('Количество'),
-        const SizedBox(height: 14),
+        SizedBox(height: 12.s),
         _stepper(
           value: _quantityLabel(_manualQuantity),
           canDec: _manualQuantity > step + 0.001,
@@ -807,11 +1171,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('Опции'),
-        const SizedBox(height: 14),
+        SizedBox(height: 12.s),
         ..._visibleOptions.map((option) {
           final selected = _selectedItemsFor(option);
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: EdgeInsets.only(bottom: 14.s),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -820,29 +1184,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     Flexible(
                       child: Text(
                         option.name,
-                        style: const TextStyle(color: _tx, fontSize: 15, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: _tx, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                     if (option.required == 1) ...[
-                      const SizedBox(width: 8),
+                      SizedBox(width: 7.s),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
                         decoration: BoxDecoration(
                           color: _orange.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(5.s),
                         ),
-                        child: const Text(
+                        child: Text(
                           'обяз.',
-                          style: TextStyle(color: _orange, fontSize: 11, fontWeight: FontWeight.w700),
+                          style: TextStyle(color: _orange, fontSize: 10.sp, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 9.s),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 7.s,
+                  runSpacing: 7.s,
                   children: option.optionItems.map((optionItem) {
                     final isActive = selected.any((s) => s.relationId == optionItem.relationId);
                     return _chip(
@@ -864,43 +1228,86 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── promotions ─────────────────────────────────────────────────
 
   Widget _promoBlock() {
-    final promotions = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    var promotions = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    // SUBTRACT promos shown near price + inline in pour controls — skip here
+    promotions = promotions.where((p) => p.discountType != 'SUBTRACT').toList();
+    if (promotions.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('Акции'),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: promotions
-              .map(
-                (promotion) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: _red.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _red.withValues(alpha: 0.25)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_offer_outlined, size: 14, color: _red),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          promotion.description?.trim().isNotEmpty == true ? promotion.description! : promotion.name,
-                          style: const TextStyle(color: _red, fontSize: 13, fontWeight: FontWeight.w700),
+        SizedBox(height: 10.s),
+        ...promotions.map((promotion) {
+          final icon = promotion.discountType == 'SUBTRACT' ? Icons.card_giftcard_rounded : Icons.local_offer_outlined;
+          final color = promotion.discountType == 'SUBTRACT' ? _orange : _red;
+          final label = _promoLabel(promotion);
+          final detail = _promoDetail(promotion);
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: 7.s),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10.s),
+                border: Border.all(color: color.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 16.s, color: color),
+                  SizedBox(width: 8.s),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(color: color, fontSize: 13.sp, fontWeight: FontWeight.w800),
                         ),
-                      ),
-                    ],
+                        if (detail != null) ...[
+                          SizedBox(height: 3.s),
+                          Text(
+                            detail,
+                            style: TextStyle(color: _dim, fontSize: 11.sp, height: 1.3),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-              )
-              .toList(growable: false),
-        ),
+                ],
+              ),
+            ),
+          );
+        }),
       ],
     );
+  }
+
+  String _promoLabel(item_model.ItemPromotion promo) {
+    if (promo.discountType == 'SUBTRACT') {
+      return '${promo.baseAmount}+${promo.addAmount}';
+    }
+    if (promo.discountType == 'PERCENT') {
+      return '-${promo.discountValue.round()}%';
+    }
+    if (promo.discountType == 'FIXED') {
+      return '-${_money(promo.discountValue)}';
+    }
+    return promo.name;
+  }
+
+  String? _promoDetail(item_model.ItemPromotion promo) {
+    if (promo.discountType == 'SUBTRACT') {
+      return 'За каждые ${promo.baseAmount + promo.addAmount} л оплата только за ${promo.baseAmount} л';
+    }
+    if (promo.discountType == 'PERCENT') {
+      return 'Скидка ${promo.discountValue.round()}% от цены';
+    }
+    if (promo.discountType == 'FIXED') {
+      return 'Скидка ${_money(promo.discountValue)} от цены';
+    }
+    return promo.description;
   }
 
   // ── description ────────────────────────────────────────────────
@@ -910,10 +1317,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('Описание'),
-        const SizedBox(height: 12),
+        SizedBox(height: 10.s),
         Text(
           widget.item.description!,
-          style: const TextStyle(color: _dim, fontSize: 14, height: 1.6),
+          style: TextStyle(color: _dim, fontSize: 13.sp, height: 1.6),
         ),
       ],
     );
@@ -923,8 +1330,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _bottomBar(double total, double amount, EdgeInsets pad) {
     final ready = amount > 0;
+    final free = _freeFromPromo(amount);
+
+    // Build subtitle
+    String subtitle;
+    if (_usesPourFlow) {
+      final bottles = _configuredBottleCount();
+      if (free > 0) {
+        subtitle = '${_volumeLabel(amount)} · $bottles бут. (${_volumeLabel(free)} бесплатно)';
+      } else {
+        subtitle = '${_volumeLabel(amount)} · $bottles бут.';
+      }
+    } else {
+      subtitle = _quantityLabel(amount);
+    }
+
+    // Show strikethrough when promo gives savings
+    final rawTotal = widget.item.price * amount;
+    final hasSavings = total < rawTotal - 1;
+
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + pad.bottom),
+      padding: EdgeInsets.fromLTRB(18.s, 12.s, 18.s, 12.s + pad.bottom),
       decoration: BoxDecoration(
         color: _surface,
         border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
@@ -936,21 +1362,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (hasSavings)
+                  Text(
+                    _money(rawTotal),
+                    style: TextStyle(
+                      color: _dim.withValues(alpha: 0.5),
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: _dim.withValues(alpha: 0.5),
+                    ),
+                  ),
                 Text(
                   _money(total),
-                  style: const TextStyle(color: _tx, fontSize: 22, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: _tx, fontSize: 20.sp, fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 2),
+                if (hasSavings) ...[
+                  SizedBox(height: 1.s),
+                  Text(
+                    'Выгода ${_money(rawTotal - total)}',
+                    style: TextStyle(color: _orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
+                  ),
+                ],
+                SizedBox(height: 2.s),
                 Text(
-                  _usesPourFlow ? '${_volumeLabel(amount)} · ${_configuredBottleCount()} бут.' : _quantityLabel(amount),
-                  style: const TextStyle(color: _dim, fontSize: 13, fontWeight: FontWeight.w600),
+                  subtitle,
+                  style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 14.s),
           SizedBox(
-            height: 52,
+            height: 48.s,
             child: ElevatedButton(
               onPressed: !_submitting && ready ? _submit : null,
               style: ElevatedButton.styleFrom(
@@ -959,18 +1403,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 disabledBackgroundColor: _accent,
                 disabledForegroundColor: _dim,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
+                padding: EdgeInsets.symmetric(horizontal: 24.s),
               ),
               child: _submitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                  ? SizedBox(
+                      width: 18.s,
+                      height: 18.s,
+                      child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                     )
-                  : const Text(
+                  : Text(
                       'В корзину',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
                     ),
             ),
           ),
@@ -990,9 +1434,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget _sectionLabel(String text) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         color: _dim,
-        fontSize: 13,
+        fontSize: 12.sp,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
       ),
@@ -1009,10 +1453,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 9.s),
         decoration: BoxDecoration(
           color: active ? _orange : _surfDim,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(11.s),
           border: active ? null : Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Column(
@@ -1023,17 +1467,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               label,
               style: TextStyle(
                 color: active ? Colors.black : _tx,
-                fontSize: 14,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
               ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 2),
+              SizedBox(height: 2.s),
               Text(
                 subtitle,
                 style: TextStyle(
                   color: active ? Colors.black54 : _dim,
-                  fontSize: 11,
+                  fontSize: 10.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1053,10 +1497,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     required VoidCallback onInc,
   }) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: EdgeInsets.all(5.s),
       decoration: BoxDecoration(
         color: _surfDim,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14.s),
       ),
       child: Row(
         children: [
@@ -1067,14 +1511,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 Text(
                   value,
-                  style: const TextStyle(color: _tx, fontSize: 24, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: _tx, fontSize: 22.sp, fontWeight: FontWeight.w900),
                 ),
                 if (subtitle != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: EdgeInsets.only(top: 2.s),
                     child: Text(
                       subtitle,
-                      style: const TextStyle(color: _dim, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: _dim, fontSize: 11.sp, fontWeight: FontWeight.w600),
                     ),
                   ),
               ],
@@ -1089,13 +1533,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget _stepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
       color: onTap != null ? _accent : _accent.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(11.s),
         child: SizedBox(
-          width: 44,
-          height: 44,
+          width: 40.s,
+          height: 40.s,
           child: Icon(
             icon,
             color: onTap != null ? _tx : _dim.withValues(alpha: 0.4),
@@ -1109,13 +1553,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 36.s,
+        height: 36.s,
         decoration: BoxDecoration(
           color: _surface.withValues(alpha: 0.85),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: _tx, size: 18),
+        child: Icon(icon, color: _tx, size: 16.s),
       ),
     );
   }
@@ -1201,47 +1645,47 @@ class _BottleSheetState extends State<_BottleSheet> {
         color: _surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + pad.bottom),
+      padding: EdgeInsets.fromLTRB(18.s, 10.s, 18.s, 14.s + pad.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // drag handle
           Container(
-            width: 36,
+            width: 32.s,
             height: 4,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 18.s),
           // header
           Row(
             children: [
-              const Text(
+              Text(
                 'Тара',
-                style: TextStyle(color: _tx, fontSize: 18, fontWeight: FontWeight.w800),
+                style: TextStyle(color: _tx, fontSize: 16.sp, fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               Text(
                 '${widget.volumeLabel(liters)} · $bottleCount бут.',
-                style: const TextStyle(color: _dim, fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 18.s),
           // bottle rows — all types always visible
           ...widget.bottles.map((bottle) {
             final count = _counts[bottle.relationId] ?? 0;
             final vol = widget.volumeForBottle(bottle);
             final canAdd = liters + vol <= widget.maxAmount + 0.001;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: EdgeInsets.only(bottom: 9.s),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 10.s),
                 decoration: BoxDecoration(
                   color: count > 0 ? _accent : _surfDim,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12.s),
                   border: count > 0 ? Border.all(color: _orange.withValues(alpha: 0.2)) : null,
                 ),
                 child: Row(
@@ -1249,7 +1693,7 @@ class _BottleSheetState extends State<_BottleSheet> {
                     Expanded(
                       child: Text(
                         widget.shortName(bottle),
-                        style: const TextStyle(color: _tx, fontSize: 15, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: _tx, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                     _sheetStepBtn(
@@ -1257,11 +1701,11 @@ class _BottleSheetState extends State<_BottleSheet> {
                       count > 0 ? () => _change(bottle, -1) : null,
                     ),
                     SizedBox(
-                      width: 40,
+                      width: 36.s,
                       child: Center(
                         child: Text(
                           '$count',
-                          style: const TextStyle(color: _tx, fontSize: 16, fontWeight: FontWeight.w900),
+                          style: TextStyle(color: _tx, fontSize: 15.sp, fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
@@ -1274,22 +1718,22 @@ class _BottleSheetState extends State<_BottleSheet> {
               ),
             );
           }),
-          const SizedBox(height: 12),
+          SizedBox(height: 10.s),
           // apply button
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 48.s,
             child: ElevatedButton(
               onPressed: _apply,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _orange,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
               ),
-              child: const Text(
+              child: Text(
                 'Готово',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -1301,16 +1745,16 @@ class _BottleSheetState extends State<_BottleSheet> {
   Widget _sheetStepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
       color: onTap != null ? _accent : _accent.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(11.s),
         child: SizedBox(
-          width: 40,
-          height: 40,
+          width: 36.s,
+          height: 36.s,
           child: Icon(
             icon,
-            size: 20,
+            size: 18.s,
             color: onTap != null ? _tx : _dim.withValues(alpha: 0.4),
           ),
         ),

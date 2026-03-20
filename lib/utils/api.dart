@@ -3013,6 +3013,7 @@ class CategoryItemPromotion {
   final String type; // "SUBTRACT" | "DISCOUNT"
   final int? baseAmount;
   final int? addAmount;
+  final double? discount;
   final String name;
 
   CategoryItemPromotion({
@@ -3020,6 +3021,7 @@ class CategoryItemPromotion {
     required this.type,
     this.baseAmount,
     this.addAmount,
+    this.discount,
     required this.name,
   });
 
@@ -3029,6 +3031,7 @@ class CategoryItemPromotion {
       type: json['type'] ?? '',
       baseAmount: json['base_amount'] != null ? ApiService._parseInt(json['base_amount']) : null,
       addAmount: json['add_amount'] != null ? ApiService._parseInt(json['add_amount']) : null,
+      discount: ApiService._parseDouble(json['discount']),
       name: json['name'] ?? '',
     );
   }
@@ -3039,6 +3042,7 @@ class CategoryItemPromotion {
       'type': type,
       if (baseAmount != null) 'base_amount': baseAmount,
       if (addAmount != null) 'add_amount': addAmount,
+      if (discount != null) 'discount': discount,
       'name': name,
     };
   }

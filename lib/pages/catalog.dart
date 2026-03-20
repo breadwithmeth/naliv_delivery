@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../utils/api.dart';
+import '../utils/responsive.dart';
+import '../utils/cartFloatingButton.dart';
 import 'categoryPage.dart';
 import 'search_page.dart';
 
@@ -197,6 +199,8 @@ class _CatalogState extends State<Catalog> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgDeep,
+      floatingActionButton: CartFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: Stack(
         children: [
           _background(),
@@ -206,17 +210,17 @@ class _CatalogState extends State<Catalog> {
               children: [
                 // ── Title row ──
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+                  padding: EdgeInsets.fromLTRB(18.s, 10.s, 10.s, 0),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'каталог',
-                          style: TextStyle(color: _text, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                          style: TextStyle(color: _text, fontSize: 25.sp, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.search_rounded, color: _text, size: 24),
+                        icon: Icon(Icons.search_rounded, color: _text, size: 22.s),
                         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
                       ),
                     ],
@@ -256,15 +260,15 @@ class _CatalogState extends State<Catalog> {
   // ─── Navigation chips ────────────────────────────────────
   Widget _navChips() {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: EdgeInsets.only(top: 10.s),
       child: SizedBox(
-        height: 40,
+        height: 36.s,
         child: ListView.separated(
           controller: _chipScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 14.s),
           scrollDirection: Axis.horizontal,
           itemCount: _superCategories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, __) => SizedBox(width: 7.s),
           itemBuilder: (_, i) {
             final isActive = i == _activeSuperIndex;
             final label = _superCategories[i]['name']?.toString() ?? 'Раздел';
@@ -273,10 +277,10 @@ class _CatalogState extends State<Catalog> {
               onTap: () => _scrollToSection(i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 8.s),
                 decoration: BoxDecoration(
                   color: isActive ? _orange : _card,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(11.s),
                   border: Border.all(color: isActive ? _orange : Colors.white.withValues(alpha: 0.03)),
                 ),
                 child: Text(
@@ -284,7 +288,7 @@ class _CatalogState extends State<Catalog> {
                   style: TextStyle(
                     color: isActive ? Colors.black : _text,
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: 12.sp,
                   ),
                 ),
               ),
@@ -303,8 +307,8 @@ class _CatalogState extends State<Catalog> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(width: 36, height: 36, child: CircularProgressIndicator(color: _orange, strokeWidth: 3)),
-            SizedBox(height: 16),
-            Text('Загрузка каталога...', style: TextStyle(color: _textMute, fontSize: 14)),
+            SizedBox(height: 14),
+            Text('Загрузка каталога...', style: TextStyle(color: _textMute, fontSize: 13)),
           ],
         ),
       );
@@ -313,28 +317,28 @@ class _CatalogState extends State<Catalog> {
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(28.s),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 58.s,
+                height: 58.s,
                 decoration: BoxDecoration(color: _red.withValues(alpha: 0.12), shape: BoxShape.circle),
-                child: const Icon(Icons.error_outline_rounded, color: _red, size: 32),
+                child: Icon(Icons.error_outline_rounded, color: _red, size: 28.s),
               ),
-              const SizedBox(height: 18),
-              Text(_error!, style: const TextStyle(color: _text, fontSize: 15, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-              const SizedBox(height: 18),
+              SizedBox(height: 16.s),
+              Text(_error!, style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+              SizedBox(height: 16.s),
               ElevatedButton.icon(
                 onPressed: _loadCategories,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
+                icon: Icon(Icons.refresh_rounded, size: 16.s),
                 label: const Text('Повторить'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _orange,
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11.s)),
+                  padding: EdgeInsets.symmetric(horizontal: 20.s, vertical: 10.s),
                   textStyle: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -347,22 +351,22 @@ class _CatalogState extends State<Catalog> {
     if (_superCategories.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(28.s),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 58.s,
+                height: 58.s,
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), shape: BoxShape.circle),
-                child: Icon(Icons.category_outlined, color: _textMute.withValues(alpha: 0.5), size: 30),
+                child: Icon(Icons.category_outlined, color: _textMute.withValues(alpha: 0.5), size: 27.s),
               ),
-              const SizedBox(height: 18),
-              const Text('Категории не найдены', style: TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
+              SizedBox(height: 16.s),
+              Text('Категории не найдены', style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800)),
+              SizedBox(height: 7.s),
               Text(
                 widget.businessId != null ? 'Для выбранного магазина нет категорий' : 'Выберите магазин для просмотра каталога',
-                style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 14),
+                style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 13.sp),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -381,7 +385,7 @@ class _CatalogState extends State<Catalog> {
         child: ScrollablePositionedList.builder(
           itemScrollController: _itemScrollController,
           itemPositionsListener: _itemPositionsListener,
-          padding: const EdgeInsets.fromLTRB(0, 12, 0, 100),
+          padding: EdgeInsets.fromLTRB(0, 10.s, 0, 90.s),
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           itemCount: _superCategories.length,
           itemBuilder: (_, sectionIndex) {
@@ -404,34 +408,34 @@ class _CatalogState extends State<Catalog> {
   Widget _section({Key? key, required String title, required List<Map<String, dynamic>> cats}) {
     return Container(
       key: key,
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 7.s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Section title
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+            padding: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 10.s),
             child: Text(
               title,
-              style: const TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900),
+              style: TextStyle(color: _text, fontSize: 18.sp, fontWeight: FontWeight.w900),
             ),
           ),
           // Grid of category tiles
           if (cats.isEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
-              child: Text('Категории пока не добавлены', style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 13)),
+              padding: EdgeInsets.fromLTRB(16.s, 0, 16.s, 14.s),
+              child: Text('Категории пока не добавлены', style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 12.sp)),
             )
           else
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: 10.s),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Responsive: 3 columns on wider screens, 2 on narrow
                   final crossCount = constraints.maxWidth > 400 ? 3 : 2;
-                  const spacing = 8.0;
-                  final tileWidth = (constraints.maxWidth - (crossCount - 1) * spacing - 12) / crossCount;
-                  final tileHeight = tileWidth / 0.78;
+                  final spacing = 6.s;
+                  final tileWidth = (constraints.maxWidth - (crossCount - 1) * spacing - 10.s) / crossCount;
+                  final tileHeight = tileWidth / 0.95;
 
                   return Wrap(
                     spacing: spacing,
@@ -473,7 +477,7 @@ class _CatalogState extends State<Catalog> {
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(11.s),
           color: _cardDark,
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
@@ -510,16 +514,16 @@ class _CatalogState extends State<Catalog> {
               ),
             ),
             Positioned(
-              left: 10,
-              top: 10,
-              right: 10,
+              left: 7.s,
+              top: 7.s,
+              right: 7.s,
               child: Text(
                 name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _text,
-                  fontSize: 13,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
                   shadows: [Shadow(color: Colors.black, blurRadius: 6)],
@@ -538,7 +542,7 @@ class _CatalogState extends State<Catalog> {
       child: Center(
         child: showLoader
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: _orange, strokeWidth: 2))
-            : Icon(Icons.liquor_rounded, color: _textMute.withValues(alpha: 0.2), size: 36),
+            : Icon(Icons.liquor_rounded, color: _textMute.withValues(alpha: 0.2), size: 32.s),
       ),
     );
   }

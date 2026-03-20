@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/services.dart';
 import '../services/agreement_service.dart';
+import '../utils/responsive.dart';
 
 class MandatoryOfferPage extends StatefulWidget {
   final VoidCallback onAccepted;
@@ -102,24 +103,24 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
         backgroundColor: const Color(0xFF121212),
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
-        title: const Text(
+        title: Text(
           'Публичная оферта',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
       ),
       body: _offerContent == null
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text(
+                  const CircularProgressIndicator(),
+                  SizedBox(height: 14.s),
+                  const Text(
                     'Загружаем условия оферты...',
                     style: TextStyle(color: Colors.white70),
                   ),
@@ -131,10 +132,10 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                 // Контент оферты
                 Expanded(
                   child: Container(
-                    margin: const EdgeInsets.all(16),
+                    margin: EdgeInsets.all(14.s),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10.s),
                       border: Border.all(
                         color: Colors.grey.withValues(alpha: 0.3),
                         width: 1,
@@ -158,18 +159,18 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(14.s),
                     ),
                   ),
                 ),
 
                 // Чекбокс согласия
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(16),
+                  margin: EdgeInsets.symmetric(horizontal: 14.s),
+                  padding: EdgeInsets.all(14.s),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10.s),
                     border: Border.all(
                       color: _isAccepted ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
                       width: 2,
@@ -187,13 +188,13 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                         activeColor: Theme.of(context).primaryColor,
                         checkColor: Colors.white,
                       ),
-                      const SizedBox(width: 12),
-                      const Expanded(
+                      SizedBox(width: 10.s),
+                      Expanded(
                         child: Text(
                           'Я прочитал(а) и принимаю условия публичной оферты',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 15.sp,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -204,16 +205,16 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
 
                 // Кнопка принятия
                 Container(
-                  margin: const EdgeInsets.all(16),
+                  margin: EdgeInsets.all(14.s),
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _acceptOffer,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isAccepted ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 14.s),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10.s),
                       ),
                       elevation: _isAccepted ? 4 : 0,
                     ),
@@ -226,10 +227,10 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Принять и продолжить',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -238,18 +239,18 @@ class _MandatoryOfferPageState extends State<MandatoryOfferPage> {
 
                 // Предупреждение
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: const Text(
+                  margin: EdgeInsets.symmetric(horizontal: 14.s, vertical: 7.s),
+                  child: Text(
                     'Для использования приложения необходимо принять условия публичной оферты',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white54,
-                      fontSize: 12,
+                      fontSize: 11.sp,
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: 14.s),
               ],
             ),
     );

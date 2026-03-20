@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 
 import '../shared/app_theme.dart';
 import '../utils/address_storage_service.dart';
+import '../utils/cartFloatingButton.dart';
+import '../utils/responsive.dart';
 import '../utils/api.dart';
 import '../utils/cart_provider.dart';
 import '../utils/location_service.dart';
@@ -724,30 +726,30 @@ class _MainPageState extends State<MainPage> {
   // ─── Header ──────────────────────────────────────────────
   Widget _buildHeader({required bool showLogoBackground}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: EdgeInsets.symmetric(horizontal: 4.s),
       child: Row(
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 4.s),
             decoration: showLogoBackground
                 ? BoxDecoration(
                     color: _cardDark,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16.s),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.22),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
+                        blurRadius: 16.s,
+                        offset: Offset(0, 8.s),
                       ),
                     ],
                   )
                 : null,
             child: SvgPicture.asset(
               'assets/logo_new.svg',
-              height: 46,
+              height: 42.s,
             ),
           ),
           const Spacer(),
@@ -799,7 +801,7 @@ class _MainPageState extends State<MainPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24.s),
         onTap: widget.isLoadingBusinesses ? null : _showBusinessSelectorSheet,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: chipMaxWidth),
@@ -807,10 +809,10 @@ class _MainPageState extends State<MainPage> {
             builder: (context, constraints) {
               return Container(
                 width: constraints.maxWidth,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 7.s),
                 decoration: BoxDecoration(
                   color: _card,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(24.s),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
@@ -818,15 +820,15 @@ class _MainPageState extends State<MainPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 30,
-                      height: 30,
+                      width: 28.s,
+                      height: 28.s,
                       decoration: BoxDecoration(
                         color: _orange.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(9.s),
                       ),
-                      child: const Icon(Icons.storefront_rounded, color: _orange, size: 16),
+                      child: Icon(Icons.storefront_rounded, color: _orange, size: 14.s),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 7.s),
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -838,19 +840,19 @@ class _MainPageState extends State<MainPage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: _textMute.withValues(alpha: 0.72),
-                              fontSize: 10,
+                              fontSize: 9.sp,
                               fontWeight: FontWeight.w700,
                               height: 1.0,
                             ),
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3.s),
                           Text(
                             shopAddress ?? subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _text,
-                              fontSize: 12,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w800,
                               height: 1.0,
                             ),
@@ -858,10 +860,10 @@ class _MainPageState extends State<MainPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4.s),
                     widget.isLoadingBusinesses
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: _orange))
-                        : const Icon(Icons.expand_more_rounded, color: _textMute, size: 18),
+                        ? SizedBox(width: 14.s, height: 14.s, child: CircularProgressIndicator(strokeWidth: 1.5, color: _orange))
+                        : Icon(Icons.expand_more_rounded, color: _textMute, size: 16.s),
                   ],
                 ),
               );
@@ -875,13 +877,13 @@ class _MainPageState extends State<MainPage> {
   // ─── Address + Shop Row ──────────────────────────────────
   Widget _addressShopRow({required bool showLogoBackground}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      padding: EdgeInsets.fromLTRB(14.s, 5.s, 14.s, 5.s),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Logo + shop chip row
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: EdgeInsets.only(bottom: 5.s),
             child: _buildHeader(showLogoBackground: showLogoBackground),
           ),
           // Address pill — full width
@@ -896,34 +898,34 @@ class _MainPageState extends State<MainPage> {
     return GestureDetector(
       onTap: _showAddressSelectionModal,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 9.s),
         decoration: BoxDecoration(
           color: _card,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14.s),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 28.s,
+              height: 28.s,
               decoration: BoxDecoration(
                 color: _orange.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(9.s),
               ),
-              child: const Icon(Icons.location_on_rounded, color: _orange, size: 17),
+              child: Icon(Icons.location_on_rounded, color: _orange, size: 15.s),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 9.s),
             Expanded(
               child: Text(
                 addressText,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, height: 1.15),
+                style: TextStyle(color: _text, fontSize: 11.sp, fontWeight: FontWeight.w800, height: 1.15),
               ),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: _textMute, size: 20),
+            SizedBox(width: 4.s),
+            Icon(Icons.keyboard_arrow_down_rounded, color: _textMute, size: 18.s),
           ],
         ),
       ),
@@ -933,34 +935,34 @@ class _MainPageState extends State<MainPage> {
   // ─── Search ──────────────────────────────────────────────
   Widget _searchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 14.s),
       child: GestureDetector(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 7.s),
           decoration: BoxDecoration(
             color: _card,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Row(
             children: [
-              Icon(Icons.search_rounded, color: _textMute.withValues(alpha: 0.7), size: 22),
-              const SizedBox(width: 12),
+              Icon(Icons.search_rounded, color: _textMute.withValues(alpha: 0.7), size: 20.s),
+              SizedBox(width: 10.s),
               Expanded(
                 child: Text(
                   'Найти любимый напиток...',
-                  style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 15, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 14.sp, fontWeight: FontWeight.w600),
                 ),
               ),
               Container(
-                width: 32,
-                height: 32,
+                width: 28.s,
+                height: 28.s,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9.s),
                 ),
-                child: Icon(Icons.tune_rounded, color: _textMute.withValues(alpha: 0.7), size: 18),
+                child: Icon(Icons.tune_rounded, color: _textMute.withValues(alpha: 0.7), size: 16.s),
               ),
             ],
           ),
@@ -972,38 +974,38 @@ class _MainPageState extends State<MainPage> {
   // ─── Promotions ──────────────────────────────────────────
   Widget _promotionsSection() {
     if (_isLoadingPromotions) {
-      return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: _orange)));
+      return SizedBox(height: 180.s, child: const Center(child: CircularProgressIndicator(color: _orange)));
     }
     if (_promotionsError != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 10.s),
         child: Column(
           children: [
-            Text(_promotionsError!, style: const TextStyle(color: _textMute)),
-            const SizedBox(height: 8),
-            TextButton(onPressed: _loadPromotions, child: const Text('Повторить', style: TextStyle(color: _orange))),
+            Text(_promotionsError!, style: TextStyle(color: _textMute, fontSize: 13.sp)),
+            SizedBox(height: 8.s),
+            TextButton(onPressed: _loadPromotions, child: Text('Повторить', style: TextStyle(color: _orange, fontSize: 13.sp))),
           ],
         ),
       );
     }
     if (_promotions.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 10.s),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(18.s),
           decoration: BoxDecoration(
             color: _card,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
-              Icon(Icons.local_offer_outlined, color: _textMute.withValues(alpha: 0.5), size: 36),
-              const SizedBox(height: 10),
-              const Text('Акции пока не найдены', style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 15)),
-              const SizedBox(height: 4),
-              const Text('Выберите магазин или обновите страницу', style: TextStyle(color: _textMute, fontSize: 13)),
+              Icon(Icons.local_offer_outlined, color: _textMute.withValues(alpha: 0.5), size: 32.s),
+              SizedBox(height: 8.s),
+              Text('Акции пока не найдены', style: TextStyle(color: _text, fontWeight: FontWeight.w700, fontSize: 14.sp)),
+              SizedBox(height: 4.s),
+              Text('Выберите магазин или обновите страницу', style: TextStyle(color: _textMute, fontSize: 12.sp)),
             ],
           ),
         ),
@@ -1017,7 +1019,7 @@ class _MainPageState extends State<MainPage> {
           itemCount: _promotions.length,
           itemBuilder: (_, i, __) => _promotionCard(_promotions[i]),
           options: CarouselOptions(
-            height: 200,
+            height: 180.s,
             viewportFraction: 0.92,
             autoPlay: true,
             autoPlayInterval: const Duration(seconds: 5),
@@ -1028,7 +1030,7 @@ class _MainPageState extends State<MainPage> {
             onPageChanged: (index, _) => setState(() => _currentPromoIndex = index),
           ),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 12.s),
         // Dot indicators
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1036,12 +1038,12 @@ class _MainPageState extends State<MainPage> {
             _promotions.length,
             (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: i == _currentPromoIndex ? 20 : 6,
-              height: 6,
+              margin: EdgeInsets.symmetric(horizontal: 3.s),
+              width: i == _currentPromoIndex ? 18.s : 5.s,
+              height: 5.s,
               decoration: BoxDecoration(
                 color: i == _currentPromoIndex ? _orange : Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(3.s),
               ),
             ),
           ),
@@ -1068,13 +1070,13 @@ class _MainPageState extends State<MainPage> {
               )
           : null,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
+        margin: EdgeInsets.symmetric(vertical: 5.s),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
+          borderRadius: BorderRadius.circular(18.s),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18.s, offset: Offset(0, 8.s))],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18.s),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1103,32 +1105,32 @@ class _MainPageState extends State<MainPage> {
               ),
               // Content
               Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
+                left: 14.s,
+                right: 14.s,
+                bottom: 14.s,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('Акция', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 11)),
+                      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
+                      decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(7.s)),
+                      child: Text('Акция', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 10.sp)),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 7.s),
                     Text(
                       promo.name ?? 'Акция',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w900, height: 1.2),
+                      style: TextStyle(color: _text, fontSize: 16.sp, fontWeight: FontWeight.w900, height: 1.2),
                     ),
                     if (promo.details.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.s),
                       Text(
                         promo.details.first.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: _text.withValues(alpha: 0.85), fontSize: 13, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: _text.withValues(alpha: 0.85), fontSize: 12.sp, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ],
@@ -1149,32 +1151,32 @@ class _MainPageState extends State<MainPage> {
       child: Stack(
         children: [
           Positioned(
-            right: -16,
-            top: -10,
-            child: Icon(Icons.local_offer_outlined, size: 80, color: Colors.white.withValues(alpha: 0.06)),
+            right: -14.s,
+            top: -8.s,
+            child: Icon(Icons.local_offer_outlined, size: 70.s, color: Colors.white.withValues(alpha: 0.06)),
           ),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.photo_size_select_actual_outlined, color: Colors.white.withValues(alpha: 0.6), size: 32),
-                const SizedBox(height: 8),
+                Icon(Icons.photo_size_select_actual_outlined, color: Colors.white.withValues(alpha: 0.6), size: 28.s),
+                SizedBox(height: 7.s),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: EdgeInsets.symmetric(horizontal: 24.s),
                   child: Text(
                     promo.name ?? 'Акция',
                     maxLines: 2,
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800),
+                    style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w800),
                   ),
                 ),
                 if (showLoader) ...[
-                  const SizedBox(height: 12),
-                  const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(_text)),
+                  SizedBox(height: 10.s),
+                  SizedBox(
+                    width: 16.s,
+                    height: 16.s,
+                    child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(_text)),
                   ),
                 ],
               ],
@@ -1203,13 +1205,13 @@ class _MainPageState extends State<MainPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader('Категории'),
-        const SizedBox(height: 12),
+        SizedBox(height: 10.s),
         GridView.count(
           crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
+          mainAxisSpacing: 8.s,
+          crossAxisSpacing: 8.s,
           childAspectRatio: 1.0,
           children: _superCategories.map((sc) {
             final name = sc['name']?.toString() ?? 'Раздел';
@@ -1250,7 +1252,7 @@ class _MainPageState extends State<MainPage> {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14.s),
           color: _cardDark,
           border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
@@ -1284,19 +1286,19 @@ class _MainPageState extends State<MainPage> {
               ),
             ),
             Positioned(
-              left: 8,
-              right: 8,
-              bottom: 8,
+              left: 7.s,
+              right: 7.s,
+              bottom: 7.s,
               child: Text(
                 name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _text,
-                  fontSize: 12,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
                 ),
               ),
             ),
@@ -1331,7 +1333,7 @@ class _MainPageState extends State<MainPage> {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14.s),
           color: _cardDark,
           border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
@@ -1368,19 +1370,19 @@ class _MainPageState extends State<MainPage> {
             ),
             // Category name at bottom
             Positioned(
-              left: 8,
-              right: 8,
-              bottom: 8,
+              left: 7.s,
+              right: 7.s,
+              bottom: 7.s,
               child: Text(
                 name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _text,
-                  fontSize: 12,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
                 ),
               ),
             ),
@@ -1401,8 +1403,8 @@ class _MainPageState extends State<MainPage> {
       ),
       child: Center(
         child: showLoader
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: _orange, strokeWidth: 2))
-            : Icon(style['icon'] as IconData? ?? Icons.category, color: (style['color'] as Color? ?? _orange).withValues(alpha: 0.5), size: 36),
+            ? SizedBox(width: 18.s, height: 18.s, child: const CircularProgressIndicator(color: _orange, strokeWidth: 2))
+            : Icon(style['icon'] as IconData? ?? Icons.category, color: (style['color'] as Color? ?? _orange).withValues(alpha: 0.5), size: 32.s),
       ),
     );
   }
@@ -1417,57 +1419,57 @@ class _MainPageState extends State<MainPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader('В корзине'),
-        const SizedBox(height: 10),
+        SizedBox(height: 8.s),
         SizedBox(
-          height: 160,
+          height: 145.s,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, __) => SizedBox(width: 8.s),
             itemBuilder: (_, i) {
               final item = items[i];
               return Container(
-                width: 140,
+                width: 125.s,
                 decoration: BoxDecoration(
                   color: _card,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14.s),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(9.s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10.s),
                           child: item.image != null
                               ? Image.network(item.image!, width: double.infinity, fit: BoxFit.cover)
                               : Container(
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(colors: [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(10.s),
                                   ),
-                                  child: Center(child: Icon(Icons.image_outlined, color: _textMute.withValues(alpha: 0.3), size: 28)),
+                                  child: Center(child: Icon(Icons.image_outlined, color: _textMute.withValues(alpha: 0.3), size: 24.s)),
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 7.s),
                       Text(
                         item.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: _text, fontSize: 13, fontWeight: FontWeight.w800),
+                        style: TextStyle(color: _text, fontSize: 12.sp, fontWeight: FontWeight.w800),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.s),
                       Text(
                         '${item.quantity} шт',
-                        style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontSize: 10.sp, fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 3.s),
                       Text(
                         '${item.totalPrice.toStringAsFixed(0)} ₸',
-                        style: const TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 14),
+                        style: TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 13.sp),
                       ),
                     ],
                   ),
@@ -1493,41 +1495,41 @@ class _MainPageState extends State<MainPage> {
       children: [
         Row(
           children: [
-            const Icon(Icons.card_giftcard_rounded, color: _orange, size: 20),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text('Бонусная карта', style: TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800)),
+            Icon(Icons.card_giftcard_rounded, color: _orange, size: 18.s),
+            SizedBox(width: 7.s),
+            Expanded(
+              child: Text('Бонусная карта', style: TextStyle(color: _text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
             ),
             if (isLoginRequired)
               TextButton.icon(
                 onPressed: _openLoginPage,
-                icon: const Icon(Icons.login_rounded, size: 16),
-                label: const Text('Войти'),
+                icon: Icon(Icons.login_rounded, size: 14.s),
+                label: Text('Войти', style: TextStyle(fontSize: 13.sp)),
                 style: TextButton.styleFrom(foregroundColor: _orange, textStyle: const TextStyle(fontWeight: FontWeight.w800)),
               )
             else
               IconButton(
                 onPressed: _isLoadingBonuses ? null : _loadBonuses,
-                icon: const Icon(Icons.refresh_rounded, color: _textMute, size: 20),
+                icon: Icon(Icons.refresh_rounded, color: _textMute, size: 18.s),
               ),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 8.s),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.all(16.s),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18.s),
             gradient: const LinearGradient(
               colors: [Color(0xFF1C1A16), _card],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             border: Border.all(color: _orange.withValues(alpha: 0.12)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 14.s, offset: Offset(0, 7.s))],
           ),
           child: _isLoadingBonuses
-              ? const SizedBox(height: 120, child: Center(child: CircularProgressIndicator(color: _orange)))
+              ? SizedBox(height: 100.s, child: const Center(child: CircularProgressIndicator(color: _orange)))
               : _bonusesError != null
                   ? _bonusErrorContent(isLoginRequired)
                   : _bonusContent(totalBonuses, cardUuid, history),
@@ -1542,24 +1544,24 @@ class _MainPageState extends State<MainPage> {
         Icon(
           isLoginRequired ? Icons.person_outline_rounded : Icons.warning_amber_rounded,
           color: _textMute,
-          size: 36,
+          size: 32.s,
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 8.s),
         Text(
           _bonusesError!,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: _text, fontSize: 14),
+          style: TextStyle(color: _text, fontSize: 13.sp),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 10.s),
         ElevatedButton(
           onPressed: isLoginRequired ? _openLoginPage : _loadBonuses,
           style: ElevatedButton.styleFrom(
             backgroundColor: _orange,
             foregroundColor: Colors.black,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11.s)),
+            padding: EdgeInsets.symmetric(horizontal: 22.s, vertical: 10.s),
           ),
-          child: Text(isLoginRequired ? 'Войти' : 'Обновить', style: const TextStyle(fontWeight: FontWeight.w800)),
+          child: Text(isLoginRequired ? 'Войти' : 'Обновить', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp)),
         ),
       ],
     );
@@ -1577,18 +1579,18 @@ class _MainPageState extends State<MainPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Баланс', style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 4),
+                  Text('Баланс', style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontWeight: FontWeight.w600, fontSize: 12.sp)),
+                  SizedBox(height: 3.s),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
                         totalBonuses != null ? totalBonuses.toStringAsFixed(0) : '—',
-                        style: const TextStyle(color: _orange, fontSize: 34, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: _orange, fontSize: 30.sp, fontWeight: FontWeight.w900),
                       ),
-                      const SizedBox(width: 6),
-                      Text('бонусов', style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600)),
+                      SizedBox(width: 5.s),
+                      Text('бонусов', style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 12.sp, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ],
@@ -1598,27 +1600,27 @@ class _MainPageState extends State<MainPage> {
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => BonusHistoryPage(history: history)));
               },
-              icon: const Icon(Icons.history_rounded, size: 16),
-              label: const Text('История'),
+              icon: Icon(Icons.history_rounded, size: 14.s),
+              label: Text('История', style: TextStyle(fontSize: 12.sp)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _orange,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
+                padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 10.s),
+                textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp),
               ),
             ),
           ],
         ),
         // QR Code
         if (cardUuid != null && _qrPayload != null) ...[
-          const SizedBox(height: 16),
+          SizedBox(height: 14.s),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(12.s),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14.s),
             ),
             child: Column(
               children: [
@@ -1627,28 +1629,28 @@ class _MainPageState extends State<MainPage> {
                   barcode: Barcode.qrCode(),
                   color: Colors.black,
                   width: double.infinity,
-                  height: 180,
+                  height: 160.s,
                   backgroundColor: Colors.transparent,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 7.s),
                 Text(
                   'Покажите QR на кассе',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11.sp, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 7.s),
           Center(
             child: Text(
               'QR обновляется каждую минуту',
-              style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 11),
+              style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 10.sp),
             ),
           ),
         ] else if (cardUuid == null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text('Карта не найдена', style: TextStyle(color: _textMute.withValues(alpha: 0.7))),
+            padding: EdgeInsets.only(top: 7.s),
+            child: Text('Карта не найдена', style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 12.sp)),
           ),
       ],
     );
@@ -1656,28 +1658,28 @@ class _MainPageState extends State<MainPage> {
 
   // ─── Reusable UI Blocks ──────────────────────────────────
   Widget _sectionHeader(String title) {
-    return Text(title, style: const TextStyle(color: _text, fontSize: 18, fontWeight: FontWeight.w800));
+    return Text(title, style: TextStyle(color: _text, fontSize: 16.sp, fontWeight: FontWeight.w800));
   }
 
   Widget _errorRow(String message, VoidCallback onRetry) {
     return Row(
       children: [
-        const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(message, style: const TextStyle(color: _textMute, fontSize: 13))),
-        TextButton(onPressed: onRetry, child: const Text('Повторить', style: TextStyle(color: _orange))),
+        Icon(Icons.error_outline, color: Colors.redAccent, size: 16.s),
+        SizedBox(width: 7.s),
+        Expanded(child: Text(message, style: TextStyle(color: _textMute, fontSize: 12.sp))),
+        TextButton(onPressed: onRetry, child: Text('Повторить', style: TextStyle(color: _orange, fontSize: 12.sp))),
       ],
     );
   }
 
   Widget _emptyHint(String message, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: 10.s),
       child: Row(
         children: [
-          Icon(icon, color: _textMute.withValues(alpha: 0.5), size: 20),
-          const SizedBox(width: 10),
-          Expanded(child: Text(message, style: const TextStyle(color: _textMute, fontSize: 13))),
+          Icon(icon, color: _textMute.withValues(alpha: 0.5), size: 18.s),
+          SizedBox(width: 9.s),
+          Expanded(child: Text(message, style: TextStyle(color: _textMute, fontSize: 12.sp))),
         ],
       ),
     );
@@ -1686,24 +1688,24 @@ class _MainPageState extends State<MainPage> {
   Widget _emptyCityBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(12.s),
       decoration: BoxDecoration(
         color: _card,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.info_outline, color: _orange, size: 18),
+          Padding(
+            padding: EdgeInsets.only(top: 2.s),
+            child: Icon(Icons.info_outline, color: _orange, size: 16.s),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 9.s),
           Expanded(
             child: Text(
               'В городе ${widget.selectedCity} пока не найдено доступных магазинов. Можно выбрать другой город.',
-              style: const TextStyle(color: _text, height: 1.3, fontWeight: FontWeight.w600),
+              style: TextStyle(color: _text, height: 1.3, fontWeight: FontWeight.w600, fontSize: 12.sp),
             ),
           ),
         ],
@@ -1714,10 +1716,10 @@ class _MainPageState extends State<MainPage> {
   // ─── Floating Active Orders ──────────────────────────────
   Widget _floatingActiveOrdersButton() {
     final total = _activeOrders.length;
-    final bottomOffset = MediaQuery.of(context).padding.bottom + 122;
+    final bottomOffset = MediaQuery.of(context).padding.bottom + 110.s;
 
     return Positioned(
-      right: 16,
+      right: 14.s,
       bottom: bottomOffset,
       child: SafeArea(
         top: false,
@@ -1732,25 +1734,25 @@ class _MainPageState extends State<MainPage> {
               _loadActiveOrders();
             },
             child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
               decoration: BoxDecoration(
                 color: _orange,
                 borderRadius: BorderRadius.circular(999),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 14.s, offset: Offset(0, 7.s))],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.receipt_long_rounded, color: Colors.black, size: 18),
-                  const SizedBox(width: 8),
+                  Icon(Icons.receipt_long_rounded, color: Colors.black, size: 16.s),
+                  SizedBox(width: 7.s),
                   Container(
-                    constraints: const BoxConstraints(minWidth: 24),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    constraints: BoxConstraints(minWidth: 22.s),
+                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 4.s),
                     decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(999)),
                     child: Text(
                       '$total',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 12),
+                      style: TextStyle(color: _orange, fontWeight: FontWeight.w900, fontSize: 11.sp),
                     ),
                   ),
                 ],
@@ -1800,7 +1802,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    const navHeight = 110.0;
+    final navHeight = 100.s;
     final bottomPadding = bottomInset + navHeight;
 
     return Scaffold(
@@ -1816,48 +1818,55 @@ class _MainPageState extends State<MainPage> {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _SlimHeaderDelegate(
-                    minExtent: 138,
-                    maxExtent: 142,
+                    minExtent: 126.s,
+                    maxExtent: 130.s,
                     builder: (context, _, overlapsContent) => _addressShopRow(showLogoBackground: overlapsContent),
                   ),
                 ),
                 // ── Search ──
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.only(bottom: 7.s),
                     child: _searchBar(),
                   ),
                 ),
                 // ── Empty city banner ──
                 if (widget.selectedCity != null && widget.businesses.isEmpty)
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 10.s),
                     sliver: SliverToBoxAdapter(child: _emptyCityBanner()),
                   ),
                 // ── Promotions ──
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 7.s),
                   sliver: SliverToBoxAdapter(child: _promotionsSection()),
                 ),
                 // ── Supercategories ──
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 0),
                   sliver: SliverToBoxAdapter(child: _superCategoriesSection()),
                 ),
                 // ── Cart discovery row ──
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                  padding: EdgeInsets.fromLTRB(14.s, 16.s, 14.s, 0),
                   sliver: SliverToBoxAdapter(child: _productDiscoveryRow()),
                 ),
                 // ── Bonuses ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 18, 16, bottomPadding),
+                  padding: EdgeInsets.fromLTRB(14.s, 16.s, 14.s, bottomPadding),
                   sliver: SliverToBoxAdapter(child: _bonusesSection()),
                 ),
               ],
             ),
           ),
           if (_activeOrders.isNotEmpty) _floatingActiveOrdersButton(),
+          // Floating cart
+          Positioned(
+            bottom: MediaQuery.of(context).padding.bottom + 110.s,
+            left: 0,
+            right: 0,
+            child: Center(child: CartFloatingButton()),
+          ),
         ],
       ),
     );
@@ -1996,34 +2005,34 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
             // ── Handle
             Center(
               child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 14),
+                width: 32.s,
+                height: 4.s,
+                margin: EdgeInsets.only(top: 10.s, bottom: 12.s),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.s),
                 ),
               ),
             ),
             // ── Title
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 2),
+            Padding(
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 2.s),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Выберите магазин',
-                  style: TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w800),
+                  style: TextStyle(color: _text, fontSize: 18.sp, fontWeight: FontWeight.w800),
                 ),
               ),
             ),
             // ── Subtitle
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 12.s),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Цены и ассортимент могут отличаться',
-                  style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 13),
+                  style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 12.sp),
                 ),
               ),
             ),
@@ -2051,7 +2060,7 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
                           return _cityHeader(item.cityName!, item.shopCount!, item.isCurrentCity!);
                         }
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
+                          padding: EdgeInsets.only(bottom: 7.s),
                           child: _shopCard(ctx, item.business!, item.isSelectedShop!),
                         );
                       },
@@ -2065,35 +2074,35 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
 
   Widget _cityHeader(String city, int count, bool isCurrent) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      padding: EdgeInsets.only(top: 7.s, bottom: 9.s),
       child: Row(
         children: [
           Icon(
             isCurrent ? Icons.my_location_rounded : Icons.location_city_rounded,
-            size: 16,
+            size: 14.s,
             color: isCurrent ? _orange : _textMute.withValues(alpha: 0.5),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 7.s),
           Text(
             city,
             style: TextStyle(
               color: isCurrent ? _orange : _text,
-              fontSize: 16,
+              fontSize: 14.sp,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 7.s),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 2.s),
             decoration: BoxDecoration(
               color: isCurrent ? _orange.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(9.s),
             ),
             child: Text(
               '$count',
               style: TextStyle(
                 color: isCurrent ? _orange : _textMute.withValues(alpha: 0.5),
-                fontSize: 12,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -2102,7 +2111,7 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
             const Spacer(),
             Text(
               'ваш город',
-              style: TextStyle(color: _orange.withValues(alpha: 0.5), fontSize: 11, fontWeight: FontWeight.w600),
+              style: TextStyle(color: _orange.withValues(alpha: 0.5), fontSize: 10.sp, fontWeight: FontWeight.w600),
             ),
           ],
         ],
@@ -2118,10 +2127,10 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
       onTap: () => Navigator.pop(context, shop),
       child: Container(
         key: isSelected ? _selectedShopKey : null,
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(12.s),
         decoration: BoxDecoration(
           color: isSelected ? _orange.withValues(alpha: 0.10) : _cardDark,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12.s),
           border: Border.all(
             color: isSelected ? _orange.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.04),
           ),
@@ -2129,19 +2138,19 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 36.s,
+              height: 36.s,
               decoration: BoxDecoration(
                 color: isSelected ? _orange.withValues(alpha: 0.18) : _orange.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10.s),
               ),
               child: Icon(
                 isSelected ? Icons.check_circle_rounded : Icons.storefront_rounded,
                 color: _orange,
-                size: 20,
+                size: 18.s,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 10.s),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2152,26 +2161,26 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isSelected ? _orange : _text,
-                      fontSize: 15,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   if (addr.isNotEmpty) ...[
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3.s),
                     Text(
                       addr,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: _textMute.withValues(alpha: 0.85), fontSize: 13, height: 1.2),
+                      style: TextStyle(color: _textMute.withValues(alpha: 0.85), fontSize: 12.sp, height: 1.2),
                     ),
                   ],
                 ],
               ),
             ),
             if (isSelected)
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.check_rounded, color: _orange, size: 20),
+              Padding(
+                padding: EdgeInsets.only(left: 7.s),
+                child: Icon(Icons.check_rounded, color: _orange, size: 18.s),
               ),
           ],
         ),

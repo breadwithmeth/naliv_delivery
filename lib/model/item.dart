@@ -424,12 +424,17 @@ class ItemPromotion {
   });
 
   factory ItemPromotion.fromJson(Map<String, dynamic> json) {
+    final rawType = json['discount_type'] ?? json['type'] ?? '';
+    final rawValue = Item._parseDouble(json['discount_value']) ?? Item._parseDouble(json['discount']) ?? 0.0;
+    // Map API "DISCOUNT" type to internal "PERCENT"
+    final mappedType = rawType == 'DISCOUNT' ? 'PERCENT' : rawType;
+
     return ItemPromotion(
-      promotionId: Item._parseInt(json['promotion_id']),
+      promotionId: Item._parseInt(json['promotion_id'] ?? json['detail_id']),
       name: json['name'] ?? '',
       description: json['description'],
-      discountType: json['discount_type'] ?? '',
-      discountValue: Item._parseDouble(json['discount_value']) ?? 0.0,
+      discountType: mappedType,
+      discountValue: rawValue,
       baseAmount: Item._parseInt(json['base_amount'] ?? json['baseAmount']),
       addAmount: Item._parseInt(json['add_amount'] ?? json['addAmount']),
       startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date']) : null,
@@ -443,14 +448,20 @@ class ItemPromotion {
       return ItemPromotion.fromJson(categoryPromotion);
     }
 
+    final rawType = categoryPromotion.type ?? '';
+    // Map API "DISCOUNT" type to internal "PERCENT"
+    final mappedType = rawType == 'DISCOUNT' ? 'PERCENT' : rawType;
+
     return ItemPromotion(
       promotionId: categoryPromotion.detailId ?? 0,
       name: categoryPromotion.name ?? '',
       description: categoryPromotion.formattedDescription ?? categoryPromotion.name,
-      discountType: categoryPromotion.type ?? '',
-      discountValue: 0.0, // CategoryItemPromotion не имеет discountValue
-      startDate: null, // CategoryItemPromotion не имеет дат
-      endDate: null, // CategoryItemPromotion не имеет дат
+      discountType: mappedType,
+      discountValue: categoryPromotion.discount ?? 0.0,
+      baseAmount: categoryPromotion.baseAmount ?? 0,
+      addAmount: categoryPromotion.addAmount ?? 0,
+      startDate: null,
+      endDate: null,
     );
   }
 

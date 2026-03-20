@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/api.dart';
 import '../utils/business_provider.dart';
+import '../utils/responsive.dart';
+import '../utils/cartFloatingButton.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
 import 'package:naliv_delivery/shared/app_theme.dart';
@@ -209,12 +211,12 @@ class _SearchPageState extends State<SearchPage> {
 
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      padding: EdgeInsets.all(7.s),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.56,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 10.s,
+        mainAxisSpacing: 10.s,
       ),
       itemCount: _items.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
@@ -237,6 +239,8 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
       extendBodyBehindAppBar: true,
+      floatingActionButton: CartFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -249,11 +253,11 @@ class _SearchPageState extends State<SearchPage> {
           const AppBackground(),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 110.s),
               child: Column(
                 children: [
                   _buildSearchField(),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 10.s),
                   Expanded(child: _buildBody()),
                 ],
               ),
@@ -266,8 +270,8 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildSearchField() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: AppDecorations.card(radius: 16),
+      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 7.s),
+      decoration: AppDecorations.card(radius: 14),
       child: Row(
         children: [
           const Icon(Icons.search, color: AppColors.textMute),

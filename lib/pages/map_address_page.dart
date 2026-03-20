@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../services/onboarding_service.dart';
 import '../utils/api.dart';
 import '../utils/location_service.dart';
+import '../utils/responsive.dart';
 
 class MapAddressPage extends StatefulWidget {
   final double initialLat;
@@ -236,22 +237,22 @@ class _MapAddressPageState extends State<MapAddressPage> {
           Positioned.fill(child: _map()),
           Positioned.fill(child: _backgroundGlow()),
           Positioned(
-            top: safeTop + 12,
-            left: 16,
-            right: 16,
+            top: safeTop + 10.s,
+            left: 14.s,
+            right: 14.s,
             child: _topBar(),
           ),
           Positioned.fill(
             child: IgnorePointer(
               child: Center(
                 child: Transform.translate(
-                  offset: const Offset(0, -22),
+                  offset: Offset(0, -20.s),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 14,
-                        height: 14,
+                        width: 12.s,
+                        height: 12.s,
                         decoration: BoxDecoration(
                           color: _orange,
                           shape: BoxShape.circle,
@@ -260,7 +261,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.location_on_rounded, size: 48, color: _orange),
+                      Icon(Icons.location_on_rounded, size: 42.s, color: _orange),
                     ],
                   ),
                 ),
@@ -268,14 +269,14 @@ class _MapAddressPageState extends State<MapAddressPage> {
             ),
           ),
           Positioned(
-            right: 16,
-            bottom: 164 + safeBottom,
+            right: 14.s,
+            bottom: 148.s + safeBottom,
             child: _locateButton(),
           ),
           Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16 + safeBottom,
+            left: 14.s,
+            right: 14.s,
+            bottom: 14.s + safeBottom,
             child: _addressCard(),
           ),
         ],
@@ -341,14 +342,14 @@ class _MapAddressPageState extends State<MapAddressPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16.s),
         onTap: _openSearch,
         child: Ink(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          height: 46.s,
+          padding: EdgeInsets.symmetric(horizontal: 12.s),
           decoration: BoxDecoration(
             color: _card.withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             boxShadow: [
               BoxShadow(color: Colors.black.withValues(alpha: 0.24), blurRadius: 16, offset: const Offset(0, 8)),
@@ -357,13 +358,13 @@ class _MapAddressPageState extends State<MapAddressPage> {
           child: Row(
             children: [
               const Icon(Icons.search_rounded, color: _textMute),
-              const SizedBox(width: 10),
+              SizedBox(width: 8.s),
               Expanded(
                 child: Text(
                   hint,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: _text, fontSize: 14, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: _text, fontSize: 13.sp, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -377,17 +378,17 @@ class _MapAddressPageState extends State<MapAddressPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16.s),
         onTap: onTap,
         child: Ink(
-          width: 52,
-          height: 52,
+          width: 46.s,
+          height: 46.s,
           decoration: BoxDecoration(
             color: _card.withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
-          child: Icon(icon, color: _text, size: 18),
+          child: Icon(icon, color: _text, size: 16.s),
         ),
       ),
     );
@@ -397,22 +398,22 @@ class _MapAddressPageState extends State<MapAddressPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16.s),
         onTap: _isLocatingUser ? null : _centerOnUserLocation,
         child: Ink(
-          width: 52,
-          height: 52,
+          width: 46.s,
+          height: 46.s,
           decoration: BoxDecoration(
             color: _card.withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: _isLocatingUser
-              ? const Padding(
-                  padding: EdgeInsets.all(14),
+              ? Padding(
+                  padding: EdgeInsets.all(12.s),
                   child: CircularProgressIndicator(strokeWidth: 2.2, color: _orange),
                 )
-              : const Icon(Icons.my_location_rounded, color: _text, size: 20),
+              : Icon(Icons.my_location_rounded, color: _text, size: 18.s),
         ),
       ),
     );
@@ -423,10 +424,10 @@ class _MapAddressPageState extends State<MapAddressPage> {
         _isResolvingAddress ? 'Ищем адрес...' : (_currentAddress.trim().isEmpty ? 'Подвиньте карту немного' : _currentAddress.trim());
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(12.s),
       decoration: BoxDecoration(
         color: _cardDark.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.34), blurRadius: 22, offset: const Offset(0, 14)),
@@ -440,14 +441,14 @@ class _MapAddressPageState extends State<MapAddressPage> {
             addressLabel,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800, height: 1.25),
+            style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800, height: 1.25),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 7.s),
+          Text(
             'Сначала подтвердите точку на карте, затем добавьте подъезд, этаж и квартиру на следующем шаге.',
-            style: TextStyle(color: _textMute, fontSize: 13, height: 1.35),
+            style: TextStyle(color: _textMute, fontSize: 12.sp, height: 1.35),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 10.s),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -457,12 +458,12 @@ class _MapAddressPageState extends State<MapAddressPage> {
                 foregroundColor: Colors.black,
                 disabledBackgroundColor: _orange.withValues(alpha: 0.55),
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                padding: EdgeInsets.symmetric(vertical: 14.s),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
               ),
               child: Text(
                 _isResolvingAddress ? 'Определяем...' : 'Подтвердить адрес',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w900),
               ),
             ),
           ),
@@ -542,7 +543,7 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+            padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, bottomInset + 14.s),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -551,56 +552,56 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(16.s),
                         onTap: () => Navigator.of(context).pop(),
                         child: Ink(
-                          width: 52,
-                          height: 52,
+                          width: 46.s,
+                          height: 46.s,
                           decoration: BoxDecoration(
                             color: _card.withValues(alpha: 0.94),
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(16.s),
                             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 18),
+                          child: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
+                    SizedBox(width: 10.s),
+                    Expanded(
                       child: Text(
                         'Детали адреса',
-                        style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: _text, fontSize: 22.sp, fontWeight: FontWeight.w900),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 16.s),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(14.s),
                   decoration: BoxDecoration(
                     color: _cardDark,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(22.s),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Выбранный адрес',
-                        style: TextStyle(color: _textMute, fontSize: 13, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: _textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 7.s),
                       Text(
                         widget.address,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: _text, fontSize: 16, fontWeight: FontWeight.w800, height: 1.35),
+                        style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800, height: 1.35),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 18.s),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -612,30 +613,30 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                           hint: 'Например, 2',
                           icon: Icons.stairs_rounded,
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 12.s),
                         _detailsField(
                           controller: _floorController,
                           label: 'Этаж',
                           hint: 'Например, 7',
                           icon: Icons.layers_rounded,
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 12.s),
                         _detailsField(
                           controller: _apartmentController,
                           label: 'Квартира',
                           hint: 'Например, 45',
                           icon: Icons.door_front_door_rounded,
                         ),
-                        const SizedBox(height: 14),
-                        const Text(
+                        SizedBox(height: 12.s),
+                        Text(
                           'Можно заполнить сейчас или позже на этапе оформления заказа.',
-                          style: TextStyle(color: _textMute, fontSize: 13, height: 1.4),
+                          style: TextStyle(color: _textMute, fontSize: 12.sp, height: 1.4),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 14.s),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -644,12 +645,12 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                       backgroundColor: _orange,
                       foregroundColor: Colors.black,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      padding: EdgeInsets.symmetric(vertical: 14.s),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Подтвердить и выбрать адрес',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w900),
                     ),
                   ),
                 ),
@@ -670,29 +671,29 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: _text, fontSize: 14, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
+        Text(label, style: TextStyle(color: _text, fontSize: 13.sp, fontWeight: FontWeight.w800)),
+        SizedBox(height: 7.s),
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          style: const TextStyle(color: _text, fontSize: 15, fontWeight: FontWeight.w700),
+          style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: _textMute),
             prefixIcon: Icon(icon, color: _orange),
             filled: true,
             fillColor: _card,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 14.s),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16.s),
               borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16.s),
               borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
             ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(18)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16.s)),
               borderSide: BorderSide(color: _orange),
             ),
           ),
@@ -773,19 +774,19 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 7.s),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 18),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
                   ),
                   Expanded(
                     child: Container(
-                      height: 52,
+                      height: 46.s,
                       decoration: BoxDecoration(
                         color: _card,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(16.s),
                         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       child: TextField(
@@ -797,7 +798,7 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
                           hintStyle: const TextStyle(color: _textMute),
                           prefixIcon: const Icon(Icons.search_rounded, color: _textMute),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
                         ),
                         onChanged: _runSearch,
                         textInputAction: TextInputAction.search,
@@ -819,9 +820,9 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
                               child: Text('Ничего не найдено', style: TextStyle(color: _textMute, fontWeight: FontWeight.w700)),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                              padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 14.s),
                               itemCount: _results.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              separatorBuilder: (_, __) => SizedBox(height: 7.s),
                               itemBuilder: (_, index) {
                                 final item = _results[index];
                                 double lat;
@@ -844,31 +845,31 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
                                 return Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius: BorderRadius.circular(16.s),
                                     onTap: () => Navigator.of(context).pop({
                                       'lat': lat,
                                       'lon': lon,
                                       'label': label,
                                     }),
                                     child: Ink(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
                                       decoration: BoxDecoration(
                                         color: _cardDark,
-                                        borderRadius: BorderRadius.circular(18),
+                                        borderRadius: BorderRadius.circular(16.s),
                                         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                                       ),
                                       child: Row(
                                         children: [
                                           Container(
-                                            width: 36,
-                                            height: 36,
+                                            width: 32.s,
+                                            height: 32.s,
                                             decoration: BoxDecoration(
                                               color: _orange.withValues(alpha: 0.14),
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius: BorderRadius.circular(10.s),
                                             ),
-                                            child: const Icon(Icons.place_outlined, color: _orange, size: 18),
+                                            child: Icon(Icons.place_outlined, color: _orange, size: 16.s),
                                           ),
-                                          const SizedBox(width: 12),
+                                          SizedBox(width: 10.s),
                                           Expanded(
                                             child: Text(
                                               label,
