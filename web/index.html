@@ -254,7 +254,10 @@
     }
   </style>
   <script id="splash-screen-script">
+    var __splashRemoved = false;
     function removeSplashFromWeb() {
+      if (__splashRemoved) return;
+      __splashRemoved = true;
       var el = document.getElementById("splash");
       if (el) {
         el.classList.add("removing");
@@ -263,6 +266,21 @@
       document.getElementById("splash-branding")?.remove();
       document.body.style.background = "transparent";
     }
+    // Fallback: watch for Flutter root element in the DOM
+    (function () {
+      var obs = new MutationObserver(function () {
+        if (document.querySelector('flutter-view, flt-glass-pane')) {
+          obs.disconnect();
+          removeSplashFromWeb();
+        }
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+      // Ultimate safety net: remove splash after 15 seconds no matter what
+      setTimeout(function () {
+        obs.disconnect();
+        removeSplashFromWeb();
+      }, 15000);
+    })();
   </script>
 </head>
 
