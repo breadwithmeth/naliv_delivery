@@ -266,20 +266,26 @@ class _MainPageState extends State<MainPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _autoSelectNearestBusiness());
       return;
     }
+
     final isFirst = await AddressStorageService.isFirstLaunch();
     if (isFirst) {
-      _attemptAutoDetectAddress();
-    } else {
-      _fallbackShowAddressModal();
+      await _attemptAutoDetectAddress();
     }
   }
 
   Future<void> _attemptAutoDetectAddress() async {
     try {
       final permission = await _locationService.checkAndRequestPermissions();
-      if (!permission.success) return _fallbackShowAddressModal();
+      if (!permission.success) {
+        await AddressStorageService.markAsLaunched();
+        return;
+      }
+
       final enabled = await _locationService.isLocationServiceEnabled();
-      if (!enabled) return _fallbackShowAddressModal();
+      if (!enabled) {
+        await AddressStorageService.markAsLaunched();
+        return;
+      }
 
       Position? pos;
       for (final acc in [LocationAccuracy.high, LocationAccuracy.medium, LocationAccuracy.low]) {
@@ -288,9 +294,14 @@ class _MainPageState extends State<MainPage> {
           break;
         } catch (_) {}
       }
-      if (pos == null) return _fallbackShowAddressModal();
+      if (pos == null) {
+        await AddressStorageService.markAsLaunched();
+        return;
+      }
+
       if (!_locationService.isAccurateEnoughForAutoSelection(pos)) {
-        return _fallbackShowAddressModal();
+        await AddressStorageService.markAsLaunched();
+        return;
       }
 
       final reverse = await ApiService.searchAddresses(lat: pos.latitude, lon: pos.longitude, city: widget.selectedCity);
@@ -315,16 +326,8 @@ class _MainPageState extends State<MainPage> {
       setState(() => _selectedAddress = autoAddress);
       WidgetsBinding.instance.addPostFrameCallback((_) => _autoSelectNearestBusiness());
     } catch (_) {
-      _fallbackShowAddressModal();
+      await AddressStorageService.markAsLaunched();
     }
-  }
-
-  void _fallbackShowAddressModal() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await Future.delayed(const Duration(milliseconds: 120));
-      if (mounted) _showAddressSelectionModal();
-    });
   }
 
   Future<void> _showAddressSelectionModal() async {

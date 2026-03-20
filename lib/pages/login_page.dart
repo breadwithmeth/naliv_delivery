@@ -86,6 +86,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
+  final _phoneFocusNode = FocusNode();
   final _codeFocusNode = FocusNode();
   final _pageController = PageController();
   bool _codeSent = false;
@@ -121,9 +122,20 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _phoneController.dispose();
     _codeController.dispose();
+    _phoneFocusNode.dispose();
     _codeFocusNode.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _ensurePhonePrefix() {
+    if (_phoneController.text.trim().isNotEmpty) return;
+
+    final value = PhoneTextInputFormatter.formatDigits('7');
+    _phoneController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
   }
 
   String _normalizedPhone() {
@@ -392,7 +404,10 @@ class _LoginPageState extends State<LoginPage> {
               borderRadius: BorderRadius.circular(14.s),
               child: InkWell(
                 borderRadius: BorderRadius.circular(14.s),
-                onTap: () => setState(() => _showAuthForm = true),
+                onTap: () => setState(() {
+                  _showAuthForm = true;
+                  _ensurePhonePrefix();
+                }),
                 child: Center(
                   child: Text(
                     'Войти или зарегистрироваться',
@@ -574,14 +589,17 @@ class _LoginPageState extends State<LoginPage> {
                   // Phone input
                   _inputField(
                     controller: _phoneController,
+                    focusNode: _phoneFocusNode,
                     label: 'Номер телефона',
                     hint: '+7 700 123 45 67',
                     icon: Icons.phone_iphone_rounded,
                     keyboardType: TextInputType.phone,
                     formatters: [PhoneTextInputFormatter()],
+                    onTap: _ensurePhonePrefix,
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Введите номер телефона';
-                      if (PhoneTextInputFormatter.normalize(value).length != 11) return 'Неверный формат номера';
+                      final normalized = PhoneTextInputFormatter.normalize(value ?? '');
+                      if (normalized.isEmpty || normalized == '7') return 'Введите номер телефона';
+                      if (normalized.length != 11) return 'Неверный формат номера';
                       return null;
                     },
                   ),
@@ -735,17 +753,21 @@ class _LoginPageState extends State<LoginPage> {
     required String label,
     required String hint,
     required IconData icon,
+    FocusNode? focusNode,
     TextInputType? keyboardType,
     List<TextInputFormatter>? formatters,
     String? Function(String?)? validator,
+    VoidCallback? onTap,
     bool autofocus = false,
   }) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       inputFormatters: formatters,
       validator: validator,
       autofocus: autofocus,
+      onTap: onTap,
       style: TextStyle(
         color: _text,
         fontSize: 14.sp,
