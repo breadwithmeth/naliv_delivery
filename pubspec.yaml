@@ -68,6 +68,7 @@ dependencies:
   persistent_header_adaptive: ^2.1.0
   loading_animation_widget: ^1.3.0
   carousel_slider: ^5.0.0
+  flutter_svg: ^2.0.9
   bottom_sheet_scroll_physics: ^1.0.0
   
   dynamic_tabbar: ^1.0.9
@@ -158,6 +159,7 @@ flutter:
     - assets/vectors/chocolate.png
     - assets/vectors/other.png
     - assets/naliv_logo.png
+    - assets/logo_new.svg
     - assets/s/mc.png
     - assets/s/visa.png
     - assets/naliv_logo_loading.png

@@ -212,7 +212,7 @@ class _SearchPageState extends State<SearchPage> {
       padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.6,
+        childAspectRatio: 0.56,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),

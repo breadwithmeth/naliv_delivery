@@ -50,10 +50,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
       if (resp == null) throw Exception('Пустой ответ');
       final data = resp['data'] as Map<String, dynamic>;
       final itemsJson = data['items'] as List<dynamic>;
-      final items = itemsJson
-          .cast<Map<String, dynamic>>()
-          .map((e) => ItemModel.Item.fromJson(e))
-          .toList();
+      final items = itemsJson.cast<Map<String, dynamic>>().map((e) => ItemModel.Item.fromJson(e)).toList();
       final pagination = data['pagination'] as Map<String, dynamic>?;
       setState(() {
         _items = items;
@@ -73,9 +70,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.promotionName != null
-              ? 'Акция: ${widget.promotionName}'
-              : 'Товары акции',
+          widget.promotionName != null ? 'Акция: ${widget.promotionName}' : 'Товары акции',
         ),
       ),
       body: _isLoading
@@ -101,10 +96,9 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                           child: Padding(
                             padding: const EdgeInsets.all(8),
                             child: GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 0.6,
+                                childAspectRatio: 0.56,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
                               ),

@@ -8,7 +8,6 @@ import '../utils/api.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/business_provider.dart';
 import '../utils/liked_items_provider.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
 
 class ProductCard extends StatefulWidget {
   final ItemModel.Item item;
@@ -20,17 +19,24 @@ class ProductCard extends StatefulWidget {
 }
 
 class _ProductCardState extends State<ProductCard> {
-  bool _likeInProgress = false;
-  bool? _isLikedOverride; // локальное переопределение если изменили
+  // ─── Palette (mainPage) ──────────────────────────────────
+  static const Color _card = Color(0xFF1E1E1E);
+  static const Color _cardDark = Color(0xFF181818);
+  static const Color _orange = Color(0xFFF6A10C);
+  static const Color _red = Color(0xFFC23B30);
+  static const Color _purple = Color(0xFF8B5CF6);
+  static const Color _text = Colors.white;
+  static const Color _textMute = Color(0xFF9FB0C8);
 
+  bool _likeInProgress = false;
+  bool? _isLikedOverride;
   int? _businessId;
 
-  bool get _isLiked => _isLikedOverride ?? false; // локальное состояние
+  bool get _isLiked => _isLikedOverride ?? false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Получаем текущий бизнес (если есть)
     final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     final bid = businessProvider.selectedBusinessId;
     if (bid != null && bid != _businessId) {
@@ -40,23 +46,19 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   Future<void> _initLikeState(int businessId) async {
-    // Сначала пробуем из провайдера
     final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
     final providerLiked = likedProvider.isLiked(businessId, widget.item.itemId);
     if (providerLiked) {
       _isLikedOverride = true;
       setState(() {});
-      return; // уже знаем
+      return;
     }
-    // Иначе грузим из локального хранилища
     final liked = await LikedStorageService.isLiked(
       businessId: businessId,
       itemId: widget.item.itemId,
     );
     if (mounted) {
-      setState(() {
-        _isLikedOverride = liked;
-      });
+      setState(() => _isLikedOverride = liked);
       if (liked) {
         likedProvider.updateLike(businessId, widget.item.itemId, true);
       }
@@ -69,17 +71,13 @@ class _ProductCardState extends State<ProductCard> {
     try {
       final newValue = await ApiService.toggleLikeItem(widget.item.itemId);
       if (newValue != null) {
-        setState(() {
-          _isLikedOverride = newValue;
-        });
+        setState(() => _isLikedOverride = newValue);
         if (_businessId != null) {
-          // Сохраняем в SharedPreferences
           LikedStorageService.setLiked(
             businessId: _businessId!,
             itemId: widget.item.itemId,
             liked: newValue,
           );
-          // Обновляем провайдер
           final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
           likedProvider.updateLike(_businessId!, widget.item.itemId, newValue);
         }
@@ -89,400 +87,132 @@ class _ProductCardState extends State<ProductCard> {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  //  BUILD
+  // ═══════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+
+    // Promotion calculations
+    final promo = item.hasPromotions ? item.promotions!.first : null;
+    final hasDiscount = promo != null && promo.isActive;
+    final discountedPrice = hasDiscount ? promo.calculateDiscountedPrice(item.price) : item.price;
+    final discountPercent = hasDiscount
+        ? (promo.discountType == 'PERCENT'
+            ? promo.discountValue.round()
+            : item.price > 0
+                ? ((1 - discountedPrice / item.price) * 100).round()
+                : 0)
+        : 0;
+    final isLowStock = item.amount != null && item.amount! > 0 && item.amount! <= 5;
+    final savingsAmount = hasDiscount ? (item.price - discountedPrice) : 0.0;
+    final bonusPoints = (discountedPrice * 0.03).round();
+
     return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ProductDetailPage(item: item)),
+      ),
       child: Container(
-        decoration: AppDecorations.card(radius: 16),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Квадратное изображение товара
-            Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.0, // Квадратное соотношение
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.cardDark,
-                      borderRadius: const BorderRadius.all(Radius.circular(15)),
-                    ),
-                    child: item.image != null && item.image!.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.all(Radius.circular(15)),
-                            child: Image.network(
-                              item.image!,
-                              fit: BoxFit.fitHeight,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.inventory_2_outlined,
-                                  color: AppColors.textMute,
-                                  size: 48,
-                                );
-                              },
-                            ),
-                          )
-                        : Icon(
-                            Icons.inventory_2_outlined,
-                            color: AppColors.textMute,
-                            size: 48,
-                          ),
-                  ),
-                ),
-                AspectRatio(
-                  aspectRatio: 1.0,
-                  child: Stack(
-                    children: [
-                      // Overlay content (promos + options + like)
-                      Positioned.fill(
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(15)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        if (item.hasPromotions) ...[
-                                          Wrap(
-                                            spacing: 4,
-                                            runSpacing: 4,
-                                            children: item.promotions!.map((promo) {
-                                              return Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.card,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  promo.description ?? promo.name,
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: AppColors.text,
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  GestureDetector(
-                                    onTap: _toggleLike,
-                                    child: AnimatedOpacity(
-                                      duration: const Duration(milliseconds: 150),
-                                      opacity: _likeInProgress ? 0.5 : 1,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.cardDark.withValues(alpha: 0.7),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          _isLiked ? Icons.favorite : Icons.favorite_border,
-                                          size: 18,
-                                          color: _isLiked ? AppColors.orange : AppColors.textMute,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              if (item.hasOptions) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.card,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.tune,
-                                        size: 12,
-                                        color: AppColors.text,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '+ опции (${item.options!.length})',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.text,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            // ── Image ──
+            _imageSection(item, hasDiscount, discountPercent, isLowStock, bonusPoints),
 
-            // Информация о товаре
-            // Используем Flexible вместо Expanded для избежания ошибок ограничения высоты
-            Flexible(
-              fit: FlexFit.loose,
+            // ── Info ──
+            Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Название товара
+                    // Name
                     Text(
                       item.name,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _text,
+                        height: 1.25,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
 
-                    // Описание товара (только если есть и нет акций/опций)
-                    // if (item.description != null &&
-                    //     item.description!.isNotEmpty &&
-                    //     !item.hasPromotions &&
-                    //     !item.hasOptions) ...[
-                    //   Expanded(
-                    //     child: Text(
-                    //       item.description!,
-                    //       style: TextStyle(
-                    //         fontSize: 12,
-                    //         color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    //       ),
-                    //       maxLines: 2,
-                    //       overflow: TextOverflow.ellipsis,
-                    //     ),
-                    //   ),
-                    //   const SizedBox(height: 6),
-                    // ],
+                    const Spacer(),
 
-                    // Spacer чтобы цена и кнопка были внизу
-                    // if (!item.hasPromotions &&
-                    //     !item.hasOptions &&
-                    //     (item.description == null || item.description!.isEmpty))
-                    //   const Spacer(),
-
-                    // Цена товара
+                    // ── Price ──
+                    if (hasDiscount) ...[
+                      // Old price strikethrough
+                      Text(
+                        '${_formatPrice(item.price)} ₸',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _textMute.withValues(alpha: 0.45),
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: _textMute.withValues(alpha: 0.45),
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // New price + savings row
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${_formatPrice(discountedPrice)} ₸',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: _text,
+                                height: 1.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (savingsAmount >= 1) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Выгода ${_formatPrice(savingsAmount)} ₸',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _orange,
+                            height: 1.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ] else ...[
+                      Text(
+                        '${_formatPrice(item.price)} ₸',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: _text,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
 
                     const SizedBox(height: 8),
 
-                    Consumer<CartProvider>(
-                      builder: (context, cartProvider, child) {
-                        final totalQuantity = cartProvider.getTotalQuantityForItem(item.itemId);
-                        final isInCart = totalQuantity > 0;
-                        final num? maxAmount = item.amount;
-                        final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
-
-                        if (isInCart) {
-                          // Товар в корзине - показываем общее количество и кнопку управления
-                          return Row(
-                            children: [
-                              // Кнопка уменьшения
-                              SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    final variants = cartProvider.getItemVariants(item.itemId);
-                                    if (variants.isNotEmpty) {
-                                      final firstVariant = variants.first;
-                                      // Вычисляем шаг изменения количества: parent_item_amount или stepQuantity
-                                      double step = firstVariant.stepQuantity;
-                                      for (var v in firstVariant.selectedVariants) {
-                                        if (v.containsKey('parent_item_amount')) {
-                                          step = (v['parent_item_amount'] as num).toDouble();
-                                          break;
-                                        }
-                                      }
-                                      // Уменьшаем на шаг
-                                      cartProvider.updateQuantityWithVariants(
-                                        item.itemId,
-                                        firstVariant.selectedVariants,
-                                        firstVariant.quantity - step,
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.orange,
-                                    foregroundColor: Colors.black,
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: const Size(32, 32),
-                                  ),
-                                  child: const Icon(Icons.remove, size: 16),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Показываем общее количество
-                              Expanded(
-                                child: Container(
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: AppColors.orange),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '${item.effectiveStepQuantity == 1.0 ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.orange,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Кнопка увеличения/настройки
-                              SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: ElevatedButton(
-                                  onPressed: canIncrease
-                                      ? () {
-                                          if (item.hasOptions) {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (context) => ProductDetailPage(item: item),
-                                              ),
-                                            );
-                                          } else {
-                                            final variants = cartProvider.getItemVariants(item.itemId);
-                                            if (variants.isNotEmpty) {
-                                              final firstVariant = variants.first;
-                                              double step = firstVariant.stepQuantity; // базовый шаг
-                                              for (var v in firstVariant.selectedVariants) {
-                                                if (v.containsKey('parent_item_amount')) {
-                                                  step = (v['parent_item_amount'] as num).toDouble();
-                                                  break;
-                                                }
-                                              }
-                                              // Если после увеличения превысим лимит – ограничим до максимума
-                                              final target = firstVariant.quantity + step;
-                                              if (maxAmount != null && target > maxAmount.toDouble()) {
-                                                // ставим максимум
-                                                cartProvider.updateQuantityWithVariants(
-                                                  item.itemId,
-                                                  firstVariant.selectedVariants,
-                                                  maxAmount.toDouble(),
-                                                );
-                                              } else {
-                                                cartProvider.updateQuantityWithVariants(
-                                                  item.itemId,
-                                                  firstVariant.selectedVariants,
-                                                  target,
-                                                );
-                                              }
-                                            }
-                                          }
-                                        }
-                                      : null,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: canIncrease ? AppColors.orange : AppColors.cardDark,
-                                    foregroundColor: canIncrease ? Colors.black : AppColors.textMute,
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: const Size(32, 32),
-                                  ),
-                                  child: Icon(
-                                    item.hasOptions ? Icons.settings : Icons.add,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        } else {
-                          // Товар не в корзине - показываем кнопку добавления
-                          final bool canAdd = (maxAmount == null || maxAmount.toDouble() > 0);
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${item.price.toStringAsFixed(0)} ₸',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.orange,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                height: 32,
-                                width: 32,
-                                child: IconButton(
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: canAdd ? AppColors.orange : AppColors.cardDark,
-                                    foregroundColor: canAdd ? Colors.black : AppColors.textMute,
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: const Size(32, 32),
-                                  ),
-                                  onPressed: canAdd
-                                      ? () {
-                                          if (item.hasOptions) {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (context) => ProductDetailPage(item: item),
-                                              ),
-                                            );
-                                          } else {
-                                            final stepQuantity = item.effectiveStepQuantity;
-                                            final newCartItem = CartItem(
-                                              itemId: item.itemId,
-                                              name: item.name,
-                                              price: item.price,
-                                              quantity: stepQuantity,
-                                              stepQuantity: stepQuantity,
-                                              selectedVariants: [],
-                                              promotions: [],
-                                              maxAmount: item.amount?.toDouble(),
-                                            );
-                                            cartProvider.addItem(newCartItem);
-                                          }
-                                        }
-                                      : null,
-                                  icon: Icon(
-                                    item.hasOptions ? Icons.tune : Icons.add_shopping_cart,
-                                    size: 14,
-                                  ),
-                                ),
-                              )
-                            ],
-                          );
-                        }
-                      },
-                    ),
-
-                    // Код товара (если есть)
+                    // ── Cart button ──
+                    _cartSection(item),
                   ],
                 ),
               ),
@@ -490,13 +220,469 @@ class _ProductCardState extends State<ProductCard> {
           ],
         ),
       ),
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ProductDetailPage(item: item),
+    );
+  }
+
+  // ─── Image section ───────────────────────────────────────
+  Widget _imageSection(
+    ItemModel.Item item,
+    bool hasDiscount,
+    int discountPercent,
+    bool isLowStock,
+    int bonusPoints,
+  ) {
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: Stack(
+        children: [
+          // Product image
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+              child: Container(
+                color: _cardDark,
+                child: item.hasImage
+                    ? Image.network(
+                        item.image!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 48),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 48),
+                      ),
+              ),
+            ),
           ),
-        );
+
+          // Bottom gradient for badge readability
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 48,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.5),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Top-left badges column ──
+          Positioned(
+            top: 8,
+            left: 8,
+            right: 40,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Discount % badge
+                if (hasDiscount && discountPercent > 0)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _red,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '-$discountPercent%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: _text,
+                      ),
+                    ),
+                  ),
+                // Low stock badge
+                if (isLowStock)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _red.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Осталось мало',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: _text,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Heart button (top-right)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: _toggleLike,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                opacity: _likeInProgress ? 0.5 : 1,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isLiked ? Icons.favorite : Icons.favorite_border,
+                    size: 18,
+                    color: _isLiked ? _red : Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Bottom row: promos/options (left) + bonus (right) ──
+          Positioned(
+            bottom: 8,
+            left: 8,
+            right: 8,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Left: promo + option badges
+                Expanded(
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: [
+                      if (item.hasPromotions)
+                        ...item.promotions!.map((p) => _promoBadge(
+                              p.description ?? p.name,
+                            )),
+                      if (item.hasOptions) _optionBadge(item),
+                    ],
+                  ),
+                ),
+                // Right: bonus points badge
+                if (bonusPoints > 0) ...[
+                  const SizedBox(width: 4),
+                  _bonusBadge(bonusPoints),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Promo badge ─────────────────────────────────────────
+  Widget _promoBadge(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: _orange,
+        borderRadius: BorderRadius.circular(7),
+        boxShadow: [
+          BoxShadow(
+            color: _orange.withValues(alpha: 0.4),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: Colors.black,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  // ─── Option badge (shows option names) ───────────────────
+  Widget _optionBadge(ItemModel.Item item) {
+    // Show first option names like "Объём • Крепость" instead of generic count
+    final optionNames = item.options!.take(2).map((o) => o.name).join(' • ');
+    final extra = item.options!.length > 2 ? ' +${item.options!.length - 2}' : '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.tune, size: 10, color: _text),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              '$optionNames$extra',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: _text,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Bonus points badge ──────────────────────────────────
+  Widget _bonusBadge(int points) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: _purple,
+        borderRadius: BorderRadius.circular(7),
+        boxShadow: [
+          BoxShadow(
+            color: _purple.withValues(alpha: 0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, size: 11, color: Colors.white),
+          const SizedBox(width: 2),
+          Text(
+            '+$points',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Cart section ────────────────────────────────────────
+  Widget _cartSection(ItemModel.Item item) {
+    return Consumer<CartProvider>(
+      builder: (context, cartProvider, _) {
+        final totalQuantity = cartProvider.getTotalQuantityForItem(item.itemId);
+        final isInCart = totalQuantity > 0;
+        final num? maxAmount = item.amount;
+        final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
+
+        if (isInCart) {
+          return _quantityControls(item, cartProvider, totalQuantity, maxAmount, canIncrease);
+        } else {
+          return _addToCartButton(item, cartProvider, maxAmount);
+        }
       },
     );
+  }
+
+  // ─── Quantity controls (in-cart) ─────────────────────────
+  Widget _quantityControls(
+    ItemModel.Item item,
+    CartProvider cartProvider,
+    double totalQuantity,
+    num? maxAmount,
+    bool canIncrease,
+  ) {
+    return Row(
+      children: [
+        _ctrlButton(
+          icon: Icons.remove,
+          onPressed: () {
+            final variants = cartProvider.getItemVariants(item.itemId);
+            if (variants.isNotEmpty) {
+              final v = variants.first;
+              double step = v.stepQuantity;
+              for (var sv in v.selectedVariants) {
+                if (sv.containsKey('parent_item_amount')) {
+                  step = (sv['parent_item_amount'] as num).toDouble();
+                  break;
+                }
+              }
+              cartProvider.updateQuantityWithVariants(item.itemId, v.selectedVariants, v.quantity - step);
+            }
+          },
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Container(
+            height: 34,
+            decoration: BoxDecoration(
+              border: Border.all(color: _orange.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                item.effectiveStepQuantity == 1.0 ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _orange,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _ctrlButton(
+          icon: item.hasOptions ? Icons.settings : Icons.add,
+          enabled: canIncrease,
+          onPressed: canIncrease
+              ? () {
+                  if (item.hasOptions) {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductDetailPage(item: item)));
+                  } else {
+                    final variants = cartProvider.getItemVariants(item.itemId);
+                    if (variants.isNotEmpty) {
+                      final v = variants.first;
+                      double step = v.stepQuantity;
+                      for (var sv in v.selectedVariants) {
+                        if (sv.containsKey('parent_item_amount')) {
+                          step = (sv['parent_item_amount'] as num).toDouble();
+                          break;
+                        }
+                      }
+                      final target = v.quantity + step;
+                      if (maxAmount != null && target > maxAmount.toDouble()) {
+                        cartProvider.updateQuantityWithVariants(item.itemId, v.selectedVariants, maxAmount.toDouble());
+                      } else {
+                        cartProvider.updateQuantityWithVariants(item.itemId, v.selectedVariants, target);
+                      }
+                    }
+                  }
+                }
+              : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _ctrlButton({
+    required IconData icon,
+    VoidCallback? onPressed,
+    bool enabled = true,
+  }) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: Material(
+        color: enabled ? _orange : _cardDark,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onPressed,
+          child: Center(
+            child: Icon(icon, size: 16, color: enabled ? Colors.black : _textMute),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Add-to-cart button ──────────────────────────────────
+  Widget _addToCartButton(
+    ItemModel.Item item,
+    CartProvider cartProvider,
+    num? maxAmount,
+  ) {
+    final bool canAdd = maxAmount == null || maxAmount.toDouble() > 0;
+    return SizedBox(
+      height: 34,
+      child: Material(
+        color: canAdd ? _orange : _cardDark,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: canAdd
+              ? () {
+                  if (item.hasOptions) {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductDetailPage(item: item)));
+                  } else {
+                    final stepQuantity = item.effectiveStepQuantity;
+                    cartProvider.addItem(CartItem(
+                      itemId: item.itemId,
+                      name: item.name,
+                      price: item.price,
+                      quantity: stepQuantity,
+                      stepQuantity: stepQuantity,
+                      image: item.image,
+                      selectedVariants: [],
+                      promotions: [],
+                      maxAmount: item.amount?.toDouble(),
+                    ));
+                  }
+                }
+              : null,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                item.hasOptions ? Icons.tune : Icons.shopping_bag_outlined,
+                size: 16,
+                color: canAdd ? Colors.black : _textMute,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                item.hasOptions ? 'Выбрать опции' : 'В корзину',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: canAdd ? Colors.black : _textMute,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Price formatting ────────────────────────────────────
+  static String _formatPrice(double price) {
+    if (price >= 10000) {
+      // "12 345" style for large prices
+      final whole = price.truncate();
+      final frac = price - whole;
+      final parts = <String>[];
+      var n = whole;
+      while (n >= 1000) {
+        parts.insert(0, (n % 1000).toString().padLeft(3, '0'));
+        n = n ~/ 1000;
+      }
+      parts.insert(0, n.toString());
+      final formatted = parts.join(' ');
+      return frac > 0.005 ? '$formatted.${(frac * 100).round().toString().padLeft(2, '0')}' : formatted;
+    }
+    return price == price.roundToDouble() ? price.toStringAsFixed(0) : price.toStringAsFixed(2);
   }
 }

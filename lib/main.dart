@@ -5,7 +5,6 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
-import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:naliv_delivery/widgets/app_entry_gate.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';

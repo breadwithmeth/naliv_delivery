@@ -70,10 +70,7 @@ class _LikedPageState extends State<LikedPage> {
       }
 
       final List<dynamic> list = data['items'] ?? data['liked_items'] ?? [];
-      final newItems = list
-          .cast<Map<String, dynamic>>()
-          .map((json) => model.Item.fromJson(json))
-          .toList();
+      final newItems = list.cast<Map<String, dynamic>>().map((json) => model.Item.fromJson(json)).toList();
 
       setState(() {
         _items.addAll(newItems);
@@ -93,8 +90,7 @@ class _LikedPageState extends State<LikedPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       _loadPage();
     }
   }
@@ -173,7 +169,7 @@ class _LikedPageState extends State<LikedPage> {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.60,
+              childAspectRatio: 0.56,
             ),
             itemCount: _items.length + (_isLoading ? 1 : 0),
             itemBuilder: (context, index) {

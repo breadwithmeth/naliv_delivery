@@ -106,6 +106,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       if (!mounted) return;
       if (allBusinesses != null && allBusinesses.isNotEmpty) {
         final list = List<Map<String, dynamic>>.from(allBusinesses);
+        // Enrich each business with resolved city name for the shop selector
+        for (final b in list) {
+          b['_cityName'] = _detectBusinessCity(b) ?? '';
+        }
         _allBusinesses = list;
         await _refreshBusinessesForSelectedCity(markLoadingComplete: true);
         // Пытаемся выбрать ближайший магазин к текущему адресу
@@ -338,7 +342,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       // Если нет адреса – fallback: если ничего не выбрано, возьмём первый для стабильности
       if (_selectedBusiness == null && _businesses.isNotEmpty) {
         _selectBusiness(_businesses.first);
-        _showBusinessChangeSnack(_businesses.first, auto: true);
       }
       return;
     }
@@ -352,7 +355,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
       if (nearest != null && nearest['id'] != _selectedBusiness!['id']) {
         _selectBusiness(nearest);
-        _showBusinessChangeSnack(nearest, auto: true);
       }
       return;
     }
@@ -360,7 +362,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
     if (nearest != null) {
       _selectBusiness(nearest);
-      _showBusinessChangeSnack(nearest, auto: true);
     }
   }
 
@@ -411,42 +412,18 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return null;
   }
 
-  void _showBusinessChangeSnack(Map<String, dynamic> business, {bool auto = false}) {
-    // Показываем уже после построения кадра, чтобы Scaffold был доступен
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final distanceM = business['distanceMeters'];
-      String distanceText = '';
-      if (distanceM is num) {
-        final km = (distanceM / 1000).toStringAsFixed(distanceM >= 1000 ? 1 : 2);
-        distanceText = ' ($km км)';
-      }
-      final text = auto ? 'Выбран ближайший магазин: ${business['name']}$distanceText' : 'Магазин изменён: ${business['name']}$distanceText';
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(text),
-            duration: const Duration(seconds: 3),
-            action: SnackBarAction(
-              label: 'Изменить',
-              onPressed: () {
-                // Открываем селектор магазинов через MainPage (там уже есть логика)
-                // Можно навигацией или callback; упрощённо ничего не делаем здесь.
-              },
-            ),
-          ),
-        );
-    });
-  }
-
   Future<void> _changeAddress() async {
+    final hadSelectedAddress = _selectedAddress != null;
     final newAddress = await AddressSelectionModalHelper.show(context);
     if (newAddress != null && mounted) {
       await AddressStorageService.saveSelectedAddress(newAddress);
       setState(() {
         _selectedAddress = newAddress;
       });
+      if (!hadSelectedAddress) {
+        _autoSelectNearestBusiness(force: true);
+        return;
+      }
       // Если магазин ещё не выбран – просто выберем ближайший
       if (_selectedBusiness == null) {
         _autoSelectNearestBusiness(force: true);
@@ -539,24 +516,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     if (shouldSwitch == true) {
       if (hasCartItems) {
         cartProvider.clearCart();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Корзина очищена из-за смены магазина'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
       }
       await _selectBusiness(nearest);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Вы переключились на ближайший магазин: ${nearest['name']}'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
     }
   }
 
@@ -583,6 +544,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       MainPage(
         key: const PageStorageKey('tab-home'),
         businesses: _businesses,
+        allBusinesses: _allBusinesses,
         availableCities: _availableCities,
         selectedBusiness: _selectedBusiness,
         selectedAddress: _selectedAddress,
