@@ -8,6 +8,7 @@ import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'cart_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
@@ -32,6 +33,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _entranceController = TextEditingController();
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
+
+  Future<bool> _handleBack() async {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      // Safeguard: if this is the last route, return to cart instead of a blank screen.
+      navigator.pushReplacement(MaterialPageRoute(builder: (_) => const CartPage()));
+    }
+    return false;
+  }
 
   @override
   void dispose() {
@@ -359,22 +371,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   /// Получить итоговую сумму с учетом доставки
   double _getTotalWithDelivery() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final cartTotal = cartProvider.getTotalPrice();
+    final itemsTotal = cartProvider.getTotalPrice();
+    final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null) ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0 : 0.0;
 
-    double total = cartTotal;
+    // Bonuses apply only to items (not delivery).
+    final bonusApplied = _useBonus && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
 
-    // Добавляем стоимость доставки
-    if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-      total += deliveryCost;
-    }
-
-    // Вычитаем бонусы если они используются
-    if (_useBonus && _bonusData != null && _bonusData!['success'] == true) {
-      total -= _getUsedBonuses();
-    }
-
-    return total;
+    return (itemsTotal - bonusApplied).clamp(0, double.infinity) + deliveryCost;
   }
 
   /// Получить сумму использованных бонусов
@@ -384,20 +387,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final cartTotal = cartProvider.getTotalPrice();
+    final itemsTotal = cartProvider.getTotalPrice();
 
-    double total = cartTotal;
-    if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-      total += deliveryCost;
-    }
-
-    // Максимум 25% от суммы заказа можно оплатить бонусами
-    final maxBonusUsage = total * 0.25;
+    // Максимум 30% от суммы товаров можно оплатить бонусами, доставка не покрывается бонусами.
+    final maxBonusUsage = itemsTotal * 0.30;
     final availableBonuses = (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
 
-    // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (25%), или полная сумма
-    return [availableBonuses, maxBonusUsage, total].reduce((a, b) => a < b ? a : b);
+    // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (30%), или сумма товаров
+    return [availableBonuses, maxBonusUsage, itemsTotal].reduce((a, b) => a < b ? a : b);
   }
 
   /// Форматировать дату бонуса
@@ -429,88 +426,89 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final itemsTotal = cartProvider.getTotalPrice();
     final totalWithDelivery = _getTotalWithDelivery();
 
-    return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        foregroundColor: AppColors.text,
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
-        title: const Text('Оформление заказа', style: TextStyle(fontWeight: FontWeight.w800)),
-      ),
-      body: Stack(
-        children: [
-          const AppBackground(),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 24.s),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(height: 10.s),
-                  _deliveryTabs(),
-                  SizedBox(height: 10.s),
-                  _infoCard(
-                    icon: Icons.store,
-                    title: businessProvider.selectedBusinessName ?? 'Магазин не выбран',
-                    subtitle: businessProvider.selectedBusiness != null
-                        ? businessProvider.selectedBusiness!['address'] ?? ''
-                        : 'Выберите магазин на предыдущем экране',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  if (_deliveryType == 'DELIVERY') ...[
-                    SizedBox(height: 9.s),
+    return WillPopScope(
+      onWillPop: _handleBack,
+      child: Scaffold(
+        backgroundColor: AppColors.bgDeep,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          foregroundColor: AppColors.text,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+            onPressed: _handleBack,
+          ),
+          title: const Text('Оформление заказа', style: TextStyle(fontWeight: FontWeight.w800)),
+        ),
+        body: Stack(
+          children: [
+            const AppBackground(),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 24.s),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 10.s),
+                    _deliveryTabs(),
+                    SizedBox(height: 10.s),
                     _infoCard(
-                      icon: Icons.location_on_outlined,
-                      title: 'Адрес доставки',
-                      subtitle: _addressText(),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
-                      onTap: _showAddressSelectionModal,
+                      icon: Icons.store,
+                      title: businessProvider.selectedBusinessName ?? 'Магазин не выбран',
+                      subtitle: businessProvider.selectedBusiness != null
+                          ? businessProvider.selectedBusiness!['address'] ?? ''
+                          : 'Выберите магазин на предыдущем экране',
+                      onTap: () => Navigator.pop(context),
                     ),
+                    if (_deliveryType == 'DELIVERY') ...[
+                      SizedBox(height: 9.s),
+                      _infoCard(
+                        icon: Icons.location_on_outlined,
+                        title: 'Адрес доставки',
+                        subtitle: _addressText(),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
+                        onTap: _showAddressSelectionModal,
+                      ),
+                      SizedBox(height: 9.s),
+                      _addressDetailsCard(),
+                      SizedBox(height: 9.s),
+                      _infoCard(
+                        icon: Icons.local_shipping_outlined,
+                        title: 'Стоимость доставки',
+                        subtitle: _isCalculatingDelivery ? 'Рассчитываем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                        onTap: _calculateDelivery,
+                      ),
+                      SizedBox(height: 9.s),
+                      _infoCard(
+                        icon: Icons.access_time,
+                        title: 'Время доставки',
+                        subtitle: _getDeliveryTimeText(),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
+                        onTap: _showDeliveryTimeSelection,
+                      ),
+                    ],
+                    SizedBox(height: 12.s),
+                    _sectionHeader('Товары в корзине'),
                     SizedBox(height: 9.s),
-                    _addressDetailsCard(),
-                    SizedBox(height: 9.s),
-                    _infoCard(
-                      icon: Icons.local_shipping_outlined,
-                      title: 'Стоимость доставки',
-                      subtitle: _isCalculatingDelivery ? 'Рассчитываем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
-                      onTap: _calculateDelivery,
-                    ),
-                    SizedBox(height: 9.s),
-                    _infoCard(
-                      icon: Icons.access_time,
-                      title: 'Время доставки',
-                      subtitle: _getDeliveryTimeText(),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
-                      onTap: _showDeliveryTimeSelection,
+                    ...cartProvider.items.map((item) => _itemTile(item)).toList(),
+                    SizedBox(height: 12.s),
+                    _bonusCard(),
+                    SizedBox(height: 12.s),
+                    _totalCard(itemsTotal: itemsTotal, deliveryCost: _deliveryType == 'DELIVERY' ? deliveryCost : 0, total: totalWithDelivery),
+                    SizedBox(height: 18.s),
+                    _primaryButton(
+                      label: _isSubmitting ? 'Отправка…' : 'Подтвердить заказ',
+                      onTap: _isSubmitting ? null : _submitOrder,
                     ),
                   ],
-                  SizedBox(height: 12.s),
-                  _sectionHeader('Товары в корзине'),
-                  SizedBox(height: 9.s),
-                  ...cartProvider.items.map((item) => _itemTile(item)).toList(),
-                  SizedBox(height: 12.s),
-                  _bonusCard(),
-                  SizedBox(height: 12.s),
-                  _totalCard(itemsTotal: itemsTotal, deliveryCost: _deliveryType == 'DELIVERY' ? deliveryCost : 0, total: totalWithDelivery),
-                  SizedBox(height: 18.s),
-                  _primaryButton(
-                    label: _isSubmitting ? 'Отправка…' : 'Подтвердить заказ',
-                    onTap: _isSubmitting ? null : _submitOrder,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -518,11 +516,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _deliveryTabs() {
     return Container(
       padding: EdgeInsets.all(4.s),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(22.s),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+      decoration: AppDecorations.card(radius: 22, color: AppColors.cardDark.withValues(alpha: 0.9)),
       child: Row(
         children: [
           _deliveryTab('Доставка', 'DELIVERY'),
@@ -927,30 +921,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['amount'] ?? 0 : 0;
     final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['timestamp'] ?? '' : '';
 
-    // Рассчитываем максимальную сумму для использования бонусов (25% от заказа)
+    // Рассчитываем максимальную сумму для использования бонусов (30% от суммы товаров, без доставки)
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final cartTotal = cartProvider.getTotalPrice();
-    double orderTotal = cartTotal;
-    if (_deliveryType == 'DELIVERY' && _deliveryData != null) {
-      final deliveryCost = (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-      orderTotal += deliveryCost;
-    }
-    final maxBonusUsage = orderTotal * 0.25;
+    final itemsTotal = cartProvider.getTotalPrice();
+    final maxBonusUsage = itemsTotal * 0.30;
     final availableToUse = totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Доступно: $totalBonuses бонусов', style: const TextStyle(color: AppColors.text, fontSize: 13)),
-        if (orderTotal > 0)
-          Text(
-            'Можно использовать: ${availableToUse.toStringAsFixed(0)} ₸ ',
-            style: const TextStyle(color: AppColors.textMute, fontSize: 12),
-          ),
-        if (latestBonusAmount > 0)
-          Text(
-            'Последнее: +$latestBonusAmount ₸ ${_formatBonusDate(latestBonusDate)}',
-            style: const TextStyle(color: AppColors.textMute, fontSize: 11),
+        Text('Доступно: $totalBonuses ₸', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w800)),
+        Text(
+          'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸ (30% от товаров, доставка не списывается).',
+          style: const TextStyle(color: AppColors.textMute, fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
+        ),
+        if (latestBonusAmount != 0)
+          Padding(
+            padding: EdgeInsets.only(top: 4.s),
+            child: Text(
+              'Последнее изменение: ${latestBonusAmount > 0 ? '+' : ''}$latestBonusAmount ₸ ${_formatBonusDate(latestBonusDate)}',
+              style: const TextStyle(color: AppColors.textMute, fontSize: 11, fontWeight: FontWeight.w600),
+            ),
           ),
       ],
     );

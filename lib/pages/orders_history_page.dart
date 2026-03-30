@@ -50,6 +50,7 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   bool _isLoadingMore = false;
   bool _hasMoreHistory = true;
   int _historyPage = 1;
+  final int _pageSize = 10;
   String? _error;
 
   @override
@@ -81,7 +82,7 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
           : ApiService.getMyActiveOrdersList();
       final historyFuture = widget.initialHistoryOrders != null
           ? Future<List<Map<String, dynamic>>>.value(widget.initialHistoryOrders!)
-          : ApiService.getMyOrdersHistoryList(page: 1);
+          : ApiService.getMyOrdersHistoryList(page: 1, pageSize: _pageSize);
 
       final results = await Future.wait<List<Map<String, dynamic>>>([
         activeFuture,
@@ -117,7 +118,7 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
     try {
       final nextPage = _historyPage + 1;
-      final pageOrders = await ApiService.getMyOrdersHistoryList(page: nextPage);
+      final pageOrders = await ApiService.getMyOrdersHistoryList(page: nextPage, pageSize: _pageSize);
       if (!mounted) return;
 
       if (pageOrders.isEmpty) {
@@ -359,6 +360,20 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
               child: CircularProgressIndicator(
                 strokeWidth: 2.2,
                 valueColor: AlwaysStoppedAnimation(AppColors.orange),
+              ),
+            ),
+          ),
+        ] else if (_hasMoreHistory && _historyOrders.isNotEmpty) ...[
+          SizedBox(height: 10.s),
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: _loadMoreHistory,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Загрузить ещё'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.card,
+                foregroundColor: AppColors.text,
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
             ),
           ),

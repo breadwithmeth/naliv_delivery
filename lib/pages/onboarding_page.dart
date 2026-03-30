@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
+import '../utils/address_storage_service.dart';
+import '../utils/api.dart';
 import '../utils/responsive.dart';
+import '../widgets/address_selection_modal_material.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key, required this.onCompleted, this.initialCity});
@@ -23,6 +27,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   static const Color _blue = Color(0xFF242A32);
   static const Color _orange = Color(0xFFF6A10C);
   static const Color _red = Color(0xFFC23B30);
+  static const Color _teal = Color(0xFF2AD1C9);
   static const Color _text = Colors.white;
   static const Color _textMute = Color(0xFF9FB0C8);
 
@@ -37,6 +42,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   String? _citiesError;
   bool _isRequestingLocation = false;
   bool _isRequestingNotifications = false;
+  bool _isOpeningMap = false;
   bool _locationGranted = false;
   bool _notificationsGranted = false;
   String? _locationMessage;
@@ -146,31 +152,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     await _goToPage(1);
   }
 
-  Future<void> _requestLocationPermission() async {
-    if (_isRequestingLocation) return;
-    setState(() {
-      _isRequestingLocation = true;
-      _locationMessage = null;
-    });
-
-    final result = await _locationService.checkAndRequestPermissions();
-    await OnboardingService.markLocationPromptSeen();
-
-    if (!mounted) return;
-    setState(() {
-      _isRequestingLocation = false;
-      _locationGranted = result.success;
-      _locationMessage = result.message;
-    });
-
-    if (result.success) {
-      await Future<void>.delayed(const Duration(milliseconds: 180));
-      if (mounted) {
-        await _goToPage(2);
-      }
-    }
-  }
-
   Future<void> _requestNotificationPermission() async {
     if (_isRequestingNotifications) return;
     setState(() {
@@ -192,7 +173,109 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
 
     if (granted) {
+      await _goToPage(2);
+    }
+  }
+
+  Future<void> _handleLocationFlow() async {
+    if (_isRequestingLocation || _isOpeningMap) return;
+    setState(() {
+      _isRequestingLocation = true;
+      _locationMessage = null;
+    });
+
+    final result = await _locationService.checkAndRequestPermissions();
+    await OnboardingService.markLocationPromptSeen();
+
+    if (!mounted) return;
+    setState(() {
+      _isRequestingLocation = false;
+      _locationGranted = result.success;
+      _locationMessage = result.message;
+    });
+
+    if (!result.success) return;
+
+    await Future<void>.delayed(const Duration(milliseconds: 140));
+    if (!mounted) return;
+    await _launchMapFlow();
+  }
+
+  Future<void> _launchMapFlow() async {
+    if (_isOpeningMap) return;
+    setState(() => _isOpeningMap = true);
+    try {
+      final picked = await AddressSelectionModalHelper.show(context);
+      if (picked != null) {
+        await _persistAddress(picked);
+        await _finishOnboarding();
+        return;
+      }
+
+      final detected = await _autoDetectAddressFromGps();
+      if (detected) {
+        await _finishOnboarding();
+        return;
+      }
+
       await _finishOnboarding();
+    } finally {
+      if (mounted) {
+        setState(() => _isOpeningMap = false);
+      }
+    }
+  }
+
+  Future<bool> _autoDetectAddressFromGps() async {
+    try {
+      final pos = await _locationService.getCurrentPosition(
+        accuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 8),
+      );
+      if (pos == null) return false;
+      if (!_locationService.isAccurateEnoughForAutoSelection(pos)) return false;
+
+      final reverse = await ApiService.searchAddresses(
+        lat: pos.latitude,
+        lon: pos.longitude,
+        city: _selectedCity,
+      );
+
+      final resolved = (reverse?.isNotEmpty ?? false)
+          ? ApiService.extractAddressLabel(
+                reverse!.first,
+                lat: pos.latitude,
+                lon: pos.longitude,
+                preferredCity: _selectedCity,
+              ) ??
+              'Определённый адрес'
+          : 'Определённый адрес';
+
+      final address = {
+        'address': resolved,
+        'lat': pos.latitude,
+        'lon': pos.longitude,
+        'accuracy': pos.accuracy,
+        'source': 'onboarding_gps',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      await _persistAddress(address);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _persistAddress(Map<String, dynamic> address) async {
+    await AddressStorageService.saveSelectedAddress(address);
+    final lat = (address['lat'] ?? address['latitude']) as num?;
+    final lon = (address['lon'] ?? address['lng'] ?? address['longitude']) as num?;
+    if (lat != null && lon != null) {
+      await AddressStorageService.addToAddressHistory({
+        'name': address['address'] ?? address['name'] ?? 'Выбранный адрес',
+        'point': {'lat': lat.toDouble(), 'lon': lon.toDouble()},
+      });
     }
   }
 
@@ -590,9 +673,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return _buildShell(
       eyebrow: 'ШАГ 1',
       title: 'Выберите ваш город',
-      description: 'Это поможет сразу показать нужный сценарий доставки и ближайшие магазины.',
+      description: 'Покажем доступные магазины и доставку для вашего города.',
       icon: Icons.location_city_rounded,
-      artGradient: const [_orange, _red],
+      artGradient: const [_orange, _teal],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -712,11 +795,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildLocationStep() {
     return _buildShell(
-      eyebrow: 'ШАГ 2',
+      eyebrow: 'ШАГ 3',
       title: 'Разрешите геолокацию',
-      description: 'Покажем ближайший магазин, быстрее заполним адрес и точнее рассчитаем доставку.',
+      description: 'Найдём ближайший магазин и быстрее подставим адрес.',
       icon: Icons.near_me_rounded,
-      artGradient: const [_blue, _orange],
+      artGradient: const [_blue, _teal],
       body: Column(
         children: [
           _buildLocationStatusCard(),
@@ -731,10 +814,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () async {
-              await OnboardingService.markLocationPromptSeen();
-              await _goToPage(2);
-            },
+            onPressed: _isRequestingLocation ? null : _handleLocationFlow,
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
@@ -742,23 +822,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
               textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
-            child: const Text('Продолжить без геолокации'),
+            child: (_isRequestingLocation || _isOpeningMap)
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
+                : const Text('Включить геолокацию'),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: _isRequestingLocation ? null : _requestLocationPermission,
+            onPressed: () async {
+              await OnboardingService.markLocationPromptSeen();
+              await _finishOnboarding();
+            },
             style: OutlinedButton.styleFrom(
               foregroundColor: _text,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               padding: EdgeInsets.symmetric(vertical: 14.s),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
             ),
-            child: _isRequestingLocation
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white))
-                : const Text('Включить геолокацию сейчас'),
+            child: const Text('Продолжить без геолокации'),
           ),
         ),
         const SizedBox(height: 12),
@@ -766,7 +849,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           child: TextButton(
             onPressed: () async {
               await OnboardingService.markLocationPromptSeen();
-              await _goToPage(2);
+              await _finishOnboarding();
             },
             style: TextButton.styleFrom(foregroundColor: _textMute),
             child: const Text('Пока пропустить'),
@@ -791,8 +874,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Уведомления нужны для статусов заказа, новых акций и важных обновлений по доставке.',
-                style: TextStyle(color: _textMute, height: 1.4, fontWeight: FontWeight.w600),
+                'Уведомления — про статус заказа и акции без задержек.',
+                style: TextStyle(color: _textMute, height: 1.35, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -820,35 +903,48 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildNotificationStep() {
     return _buildShell(
-      eyebrow: 'ШАГ 3',
+      eyebrow: 'ШАГ 2',
       title: 'Включите уведомления',
-      description: 'Так вы не пропустите статус заказа, новые акции и изменения по доставке.',
+      description: 'Статусы заказа и персональные акции вовремя.',
       icon: Icons.notifications_active_rounded,
-      artGradient: const [_red, _orange],
+      artGradient: const [_red, _teal],
       body: Column(
         children: [
           _buildNotificationStatusCard(),
           const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 4.s, bottom: 6.s),
+              child: Text(
+                'Прозрачность',
+                style: TextStyle(color: _teal.withValues(alpha: 0.85), fontWeight: FontWeight.w800, letterSpacing: 0.2),
+              ),
+            ),
+          ),
           Container(
             width: double.infinity,
             margin: EdgeInsets.only(bottom: 12.s),
             decoration: BoxDecoration(
-              color: _cardDark,
+              gradient: const LinearGradient(colors: [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(16.s),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(color: _teal.withValues(alpha: 0.25)),
             ),
-            child: SwitchListTile.adaptive(
+            child: CheckboxListTile(
               value: _shareDiagnostics,
               onChanged: (value) async {
+                if (value == null) return;
                 setState(() => _shareDiagnostics = value);
                 await TelemetryConsentService.setConsent(value);
               },
-              contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 4.s),
+              controlAffinity: ListTileControlAffinity.leading,
               activeColor: _orange,
+              checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
               title: const Text('Помочь улучшить приложение', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
               subtitle: const Text(
-                'Оставьте включённым, чтобы анонимно отправлять отчёты об ошибках и сбоях.',
-                style: TextStyle(color: _textMute, height: 1.35, fontWeight: FontWeight.w600),
+                'Анонимные отчёты об ошибках. Можно отключить в настройках.',
+                style: TextStyle(color: _textMute, height: 1.3, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -862,7 +958,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isRequestingNotifications ? null : (_notificationsGranted ? _finishOnboarding : _requestNotificationPermission),
+            onPressed: _isRequestingNotifications ? null : (_notificationsGranted ? () => _goToPage(2) : _requestNotificationPermission),
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
@@ -872,13 +968,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             child: _isRequestingNotifications
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
-                : Text(_notificationsGranted ? 'Перейти в приложение' : 'Разрешить уведомления'),
+                : Text(_notificationsGranted ? 'Далее' : 'Разрешить уведомления'),
           ),
         ),
         const SizedBox(height: 12),
         Center(
           child: TextButton(
-            onPressed: _finishOnboarding,
+            onPressed: () => _goToPage(2),
             style: TextButton.styleFrom(foregroundColor: _textMute),
             child: const Text('Включить позже'),
           ),
@@ -920,7 +1016,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             child: PageView(
                               controller: _pageController,
                               physics: const NeverScrollableScrollPhysics(),
-                              children: [_buildCityStep(), _buildLocationStep(), _buildNotificationStep()],
+                              children: [_buildCityStep(), _buildNotificationStep(), _buildLocationStep()],
                             ),
                           ),
                         ],

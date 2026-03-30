@@ -11,7 +11,8 @@ class TelemetryConsentService {
   static Future<bool> loadConsent() async {
     final prefs = await SharedPreferences.getInstance();
     _hasStoredConsent = prefs.containsKey(_consentKey);
-    _cachedConsent = prefs.getBool(_consentKey) ?? false;
+    // Default to enabled when no prior choice was stored.
+    _cachedConsent = prefs.getBool(_consentKey) ?? true;
     return _cachedConsent;
   }
 

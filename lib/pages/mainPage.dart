@@ -343,13 +343,7 @@ class _MainPageState extends State<MainPage> {
         'point': {'lat': selectedAddress['lat'], 'lon': selectedAddress['lon']},
       });
       setState(() => _selectedAddress = selectedAddress);
-      if (!hadSelectedAddress) {
-        _selectNearestBusinessIfNeeded(replaceCurrent: true);
-      } else if (widget.selectedBusiness == null) {
-        _autoSelectNearestBusiness();
-      } else {
-        _maybePromptNearestSwitch();
-      }
+      _selectNearestBusinessIfNeeded(replaceCurrent: true);
     }
   }
 

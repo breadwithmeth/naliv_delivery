@@ -136,7 +136,7 @@ class CartPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(16.s),
-        border: Border.all(color: hasFreeBonus ? AppColors.orange.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.08)),
+        border: Border.all(color: hasFreeBonus ? AppColors.orange.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 10)),
         ],
@@ -303,7 +303,7 @@ class CartPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(18.s),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.32), blurRadius: 20, offset: const Offset(0, 12)),
         ],

@@ -716,6 +716,9 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                     onChanged: (_) {
                       if (mounted) setState(() {});
+                      if (!_isLoading && _codeController.text.trim().length == 6) {
+                        _verifyCode();
+                      }
                     },
                     onFieldSubmitted: (_) {
                       if (!_isLoading && _codeController.text.trim().length == 6) {

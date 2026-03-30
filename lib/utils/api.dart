@@ -1812,6 +1812,7 @@ class ApiService {
     int? businessId,
     String? deliveryType,
     int page = 1,
+    int? pageSize,
   }) async {
     final token = await getAuthToken();
     if (token == null) {
@@ -1827,6 +1828,9 @@ class ApiService {
       queryParams['delivery_type'] = deliveryType;
     }
     queryParams['page'] = page.toString();
+    if (pageSize != null) {
+      queryParams['per_page'] = pageSize.toString();
+    }
 
     final uri = Uri.parse('$baseUrl/orders/my-orders').replace(
       queryParameters: queryParams.isEmpty ? null : queryParams,
@@ -1863,11 +1867,13 @@ class ApiService {
     int? businessId,
     String? deliveryType,
     int page = 1,
+    int? pageSize,
   }) async {
     final response = await getMyOrdersHistory(
       businessId: businessId,
       deliveryType: deliveryType,
       page: page,
+      pageSize: pageSize,
     );
     return _extractOrderList(
       response,

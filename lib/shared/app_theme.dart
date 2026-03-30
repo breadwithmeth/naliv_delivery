@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color bgDeep = Color(0xFF0B0D14);
-  static const Color bgTop = Color(0xFF0E1119);
-  static const Color card = Color(0xFF111A2D);
-  static const Color cardDark = Color(0xFF0F1726);
-  static const Color blue = Color(0xFF1C273A);
-  static const Color orange = Color(0xFFF38B2A);
-  static const Color red = Color(0xFFC22624);
+  static const Color bgDeep = Color(0xFF121212);
+  static const Color bgTop = Color(0xFF161616);
+  static const Color card = Color(0xFF1E1E1E);
+  static const Color cardDark = Color(0xFF181818);
+  static const Color blue = Color(0xFF242A32);
+  static const Color orange = Color(0xFFF6A10C);
+  static const Color red = Color(0xFFC23B30);
   static const Color text = Colors.white;
   static const Color textMute = Color(0xFF9FB0C8);
 }

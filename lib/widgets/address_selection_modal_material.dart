@@ -5,9 +5,9 @@ import '../services/onboarding_service.dart';
 import '../utils/address_storage_service.dart';
 
 class AddressSelectionModalHelper {
-  static Future<Map<String, dynamic>?> show(BuildContext context) async {
-    final initialCenter = await _resolveInitialCenter();
-    final initialAddress = await AddressStorageService.getSelectedAddress();
+  static Future<Map<String, dynamic>?> show(BuildContext context, {Map<String, dynamic>? initialAddress}) async {
+    final initialCenter = await _resolveInitialCenter(initialAddress: initialAddress);
+    final prefillAddress = initialAddress ?? await AddressStorageService.getSelectedAddress();
     if (!context.mounted) return null;
 
     return Navigator.of(context).push<Map<String, dynamic>>(
@@ -15,14 +15,21 @@ class AddressSelectionModalHelper {
         builder: (_) => MapAddressPage(
           initialLat: initialCenter.lat,
           initialLon: initialCenter.lon,
-          initialAddress: initialAddress,
+          initialAddress: prefillAddress,
         ),
       ),
     );
   }
 
-  static Future<CityMapCenter> _resolveInitialCenter() async {
+  static Future<CityMapCenter> _resolveInitialCenter({Map<String, dynamic>? initialAddress}) async {
     try {
+      if (initialAddress != null && initialAddress['lat'] != null && initialAddress['lon'] != null) {
+        return CityMapCenter(
+          lat: (initialAddress['lat'] as num).toDouble(),
+          lon: (initialAddress['lon'] as num).toDouble(),
+        );
+      }
+
       final selected = await AddressStorageService.getSelectedAddress();
       if (selected != null && selected['lat'] != null && selected['lon'] != null) {
         return CityMapCenter(

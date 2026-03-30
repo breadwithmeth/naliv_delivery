@@ -532,6 +532,7 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: _bgDeep,
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -610,26 +611,26 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                         _detailsField(
                           controller: _entranceController,
                           label: 'Подъезд',
-                          hint: 'Например, 2',
+                          hint: 'Например, 2 или 2А',
                           icon: Icons.stairs_rounded,
                         ),
                         SizedBox(height: 12.s),
                         _detailsField(
                           controller: _floorController,
                           label: 'Этаж',
-                          hint: 'Например, 7',
+                          hint: 'Например, 7 или м',
                           icon: Icons.layers_rounded,
                         ),
                         SizedBox(height: 12.s),
                         _detailsField(
                           controller: _apartmentController,
                           label: 'Квартира',
-                          hint: 'Например, 45',
+                          hint: 'Например, 45 или 45Б',
                           icon: Icons.door_front_door_rounded,
                         ),
                         SizedBox(height: 12.s),
                         Text(
-                          'Можно заполнить сейчас или позже на этапе оформления заказа.',
+                          'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
                           style: TextStyle(color: _textMute, fontSize: 12.sp, height: 1.4),
                         ),
                       ],
@@ -675,7 +676,8 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
         SizedBox(height: 7.s),
         TextField(
           controller: controller,
-          keyboardType: TextInputType.number,
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.characters,
           style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
           decoration: InputDecoration(
             hintText: hint,
