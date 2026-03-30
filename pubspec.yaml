@@ -87,6 +87,8 @@ dependencies:
   firebase_core: ^3.12.1
   firebase_messaging: ^15.1.7
   flutter_local_notifications: ^19.4.0
+  sentry_flutter: ^7.18.0
+  package_info_plus: ^4.2.0
   connectivity_plus: ^6.1.4
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.6

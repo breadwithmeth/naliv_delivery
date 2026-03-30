@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
 import '../utils/api.dart';
-import '../services/agreement_service.dart';
 import '../services/auth_service.dart';
+import '../services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import '../utils/responsive.dart';
@@ -19,12 +19,22 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late final Future<Map<String, dynamic>?> _profileFuture;
+  bool _telemetryAllowed = false;
 
   @override
   void initState() {
     super.initState();
     _profileFuture = ApiService.getFullInfo();
     _checkAuth();
+    _loadTelemetryConsent();
+  }
+
+  Future<void> _loadTelemetryConsent() async {
+    final allowed = await TelemetryConsentService.loadConsent();
+    if (!mounted) return;
+    setState(() {
+      _telemetryAllowed = allowed;
+    });
   }
 
   Future<void> _checkAuth() async {
@@ -121,6 +131,13 @@ class _ProfilePageState extends State<ProfilePage> {
               final addresses = (data['addresses'] as List<dynamic>).cast<Map<String, dynamic>>();
               final cards = (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
 
+              // Update Sentry user context when consent is granted and data is available.
+              TelemetryConsentService.applyUserContext(
+                id: (user['id'] ?? user['user_id'])?.toString(),
+                username: user['login'] as String?,
+                email: user['email'] as String?,
+              );
+
               return SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 110.s),
@@ -155,7 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       _ordersCard(),
                       _addressesCard(addresses),
                       _cardsCard(cards),
-                      _devSettingsCard(),
+                      _telemetryCard(),
                       SizedBox(height: 14.s),
                     ],
                   ),
@@ -315,48 +332,27 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _devSettingsCard() {
+  Widget _telemetryCard() {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 7.s),
       decoration: AppDecorations.card(radius: 14.s),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
-        child: ExpansionTile(
-          leading: const Icon(Icons.settings, color: AppColors.orange),
-          title: const Text('Настройки разработчика', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-          children: [
-            ListTile(
-              leading: const Icon(Icons.description, color: AppColors.textMute),
-              title: const Text('Сбросить согласие с офертой', style: TextStyle(color: AppColors.text)),
-              subtitle: Text('Для тестирования экрана оферты', style: TextStyle(color: AppColors.textMute)),
-              onTap: () async {
-                await AgreementService.resetAllAgreements();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Согласия сброшены. Перезапустите приложение.'),
-                      backgroundColor: AppColors.orange,
-                    ),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.info, color: AppColors.textMute),
-              title: const Text('Проверить статус согласий', style: TextStyle(color: AppColors.text)),
-              onTap: () async {
-                final isAccepted = await AgreementService.isOfferAccepted();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Оферта ${isAccepted ? "принята" : "не принята"}'),
-                      backgroundColor: isAccepted ? Colors.green : Colors.red,
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
+        child: SwitchListTile(
+          contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
+          secondary: const Icon(Icons.analytics_outlined, color: AppColors.orange),
+          title: const Text('Сбор информации', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+          subtitle: const Text(
+            'Помогает собирать ошибки и аналитические данные для улучшения приложения. Личные данные отправляются только с вашего согласия.',
+            style: TextStyle(color: AppColors.textMute),
+          ),
+          value: _telemetryAllowed,
+          onChanged: (value) async {
+            setState(() {
+              _telemetryAllowed = value;
+            });
+            await TelemetryConsentService.setConsent(value);
+          },
         ),
       ),
     );
