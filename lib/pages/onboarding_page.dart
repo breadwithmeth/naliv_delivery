@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
+import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import '../utils/responsive.dart';
 
@@ -31,6 +32,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _pageIndex = 0;
   List<_CityOption> _cities = const <_CityOption>[];
   String? _selectedCity;
+  String? _guessedCity;
   bool _isLoadingCities = true;
   String? _citiesError;
   bool _isRequestingLocation = false;
@@ -39,12 +41,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
   bool _notificationsGranted = false;
   String? _locationMessage;
   String? _notificationMessage;
+  bool _shareDiagnostics = true;
 
   @override
   void initState() {
     super.initState();
     _selectedCity = widget.initialCity;
     _loadCities();
+    _setupDiagnosticsToggle();
+  }
+
+  void _setupDiagnosticsToggle() {
+    final hasStored = TelemetryConsentService.hasStoredConsent;
+    final cached = TelemetryConsentService.cachedConsent;
+    setState(() {
+      _shareDiagnostics = hasStored ? cached : true; // Pre-check for first-time users
+    });
   }
 
   @override
@@ -91,6 +103,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (_selectedCity != null && !_cities.any((city) => city.name == _selectedCity)) {
         _selectedCity = null;
       }
+    });
+
+    if (_selectedCity == null) {
+      _guessCityFromIp();
+    }
+  }
+
+  Future<void> _guessCityFromIp() async {
+    final guess = await OnboardingService.guessCityByIp();
+    if (!mounted || guess == null) return;
+    if (!_cities.any((c) => c.name.toLowerCase() == guess.toLowerCase())) return;
+    setState(() {
+      _guessedCity = guess;
+      _selectedCity ??= guess;
     });
   }
 
@@ -145,15 +171,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  Future<void> _openLocationSettings() async {
-    final serviceEnabled = await _locationService.isLocationServiceEnabled();
-    if (serviceEnabled) {
-      await _locationService.openAppSettings();
-      return;
-    }
-    await _locationService.openLocationSettings();
-  }
-
   Future<void> _requestNotificationPermission() async {
     if (_isRequestingNotifications) return;
     setState(() {
@@ -163,6 +180,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     final granted = await NotificationService.instance.enablePushNotifications();
     await OnboardingService.markNotificationPromptSeen();
+    await TelemetryConsentService.setConsent(_shareDiagnostics);
 
     if (!mounted) return;
     setState(() {
@@ -181,6 +199,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _finishOnboarding() async {
     final city = _selectedCity;
     if (city == null) return;
+    await TelemetryConsentService.setConsent(_shareDiagnostics);
     await OnboardingService.complete(city: city);
     widget.onCompleted();
   }
@@ -577,10 +596,55 @@ class _OnboardingPageState extends State<OnboardingPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_guessedCity != null)
+            Container(
+              margin: EdgeInsets.only(bottom: 12.s),
+              padding: EdgeInsets.all(14.s),
+              decoration: BoxDecoration(
+                color: _cardDark,
+                borderRadius: BorderRadius.circular(16.s),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.location_searching_rounded, color: _orange),
+                  ),
+                  SizedBox(width: 12.s),
+                  Expanded(
+                    child: Text(
+                      'Похоже, вы в городе $_guessedCity. Подтвердите, чтобы не искать в списке.',
+                      style: const TextStyle(color: _text, height: 1.35, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _buildCityGrid(),
         ],
       ),
       actions: [
+        if (_guessedCity != null)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() => _selectedCity = _guessedCity);
+                _continueFromCity();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _orange,
+                foregroundColor: Colors.black,
+                padding: EdgeInsets.symmetric(vertical: 14.s),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
+                textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
+              ),
+              child: Text('Да, я в городе $_guessedCity'),
+            ),
+          ),
+        if (_guessedCity != null) SizedBox(height: 10.s),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -667,7 +731,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isRequestingLocation ? null : (_locationGranted ? () => _goToPage(2) : _requestLocationPermission),
+            onPressed: () async {
+              await OnboardingService.markLocationPromptSeen();
+              await _goToPage(2);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
@@ -675,29 +742,32 @@ class _OnboardingPageState extends State<OnboardingPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
               textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
-            child: _isRequestingLocation
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
-                : Text(_locationGranted ? 'Продолжить' : 'Разрешить доступ'),
+            child: const Text('Продолжить без геолокации'),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: _locationGranted ? null : _openLocationSettings,
+            onPressed: _isRequestingLocation ? null : _requestLocationPermission,
             style: OutlinedButton.styleFrom(
               foregroundColor: _text,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               padding: EdgeInsets.symmetric(vertical: 14.s),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
             ),
-            child: const Text('Открыть настройки'),
+            child: _isRequestingLocation
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white))
+                : const Text('Включить геолокацию сейчас'),
           ),
         ),
         const SizedBox(height: 12),
         Center(
           child: TextButton(
-            onPressed: () => _goToPage(2),
+            onPressed: () async {
+              await OnboardingService.markLocationPromptSeen();
+              await _goToPage(2);
+            },
             style: TextButton.styleFrom(foregroundColor: _textMute),
             child: const Text('Пока пропустить'),
           ),
@@ -759,6 +829,29 @@ class _OnboardingPageState extends State<OnboardingPage> {
         children: [
           _buildNotificationStatusCard(),
           const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            margin: EdgeInsets.only(bottom: 12.s),
+            decoration: BoxDecoration(
+              color: _cardDark,
+              borderRadius: BorderRadius.circular(16.s),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: SwitchListTile.adaptive(
+              value: _shareDiagnostics,
+              onChanged: (value) async {
+                setState(() => _shareDiagnostics = value);
+                await TelemetryConsentService.setConsent(value);
+              },
+              contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 4.s),
+              activeColor: _orange,
+              title: const Text('Помочь улучшить приложение', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+              subtitle: const Text(
+                'Оставьте включённым, чтобы анонимно отправлять отчёты об ошибках и сбоях.',
+                style: TextStyle(color: _textMute, height: 1.35, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
           _buildBenefitWrap(const [
             _BenefitItem(icon: Icons.local_offer_rounded, label: 'Новые акции'),
             _BenefitItem(icon: Icons.receipt_long_rounded, label: 'Статус заказа'),

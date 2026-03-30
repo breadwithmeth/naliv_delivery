@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:naliv_delivery/utils/api.dart';
@@ -156,6 +157,30 @@ class OnboardingService {
     );
 
     return cachedCities;
+  }
+
+  /// Best-effort IP geolocation to preselect a city. Returns a city name if it matches available cities.
+  static Future<String?> guessCityByIp() async {
+    try {
+      if (_citiesCache.isEmpty) return null;
+      final resp = await http.get(Uri.parse('https://ipapi.co/json/')).timeout(const Duration(seconds: 4));
+      if (resp.statusCode != 200) return null;
+      final data = json.decode(resp.body);
+      final cityName = data['city']?.toString();
+      if (cityName == null || cityName.isEmpty) return null;
+
+      final match = _citiesCache.firstWhere(
+        (c) => c.name.toLowerCase() == cityName.toLowerCase(),
+        orElse: () => _citiesCache.firstWhere(
+          (c) => c.name.toLowerCase().contains(cityName.toLowerCase()),
+          orElse: () => const OnboardingCity(id: -1, name: ''),
+        ),
+      );
+
+      return match.name.isEmpty ? null : match.name;
+    } catch (_) {
+      return null;
+    }
   }
 
   static CityMapCenter? getCityCenter(String? city) {
