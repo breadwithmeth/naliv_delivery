@@ -5,7 +5,7 @@ import '../shared/app_theme.dart';
 import '../utils/responsive.dart';
 
 // ignore: avoid_web_libraries_in_flutter
-import 'app_loading_screen_web_stub.dart' if (dart.library.html) 'app_loading_screen_web_real.dart' as web_splash;
+import 'app_loading_screen_web_stub.dart' if (dart.library.js_interop) 'app_loading_screen_web_real.dart' as web_splash;
 
 /// Styled loading screen – no logo, animated text + progress bar.
 class AppLoadingScreen extends StatefulWidget {

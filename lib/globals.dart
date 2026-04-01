@@ -2,8 +2,6 @@ library my_prj.globals;
 
 import "dart:math";
 
-import "dart:io" show Platform;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -27,15 +25,9 @@ bool addressSelectPopUpDone = false;
 // );
 
 Route getPlatformSpecialRoute(Widget route) {
-  if (Platform.isIOS) {
-    return CupertinoPageRoute(
-      builder: (context) => route,
-    );
-  } else {
-    return CupertinoPageRoute(
-      builder: (context) => route,
-    );
-  }
+  return CupertinoPageRoute(
+    builder: (context) => route,
+  );
 }
 
 // class UnifiedPageRoute {

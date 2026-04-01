@@ -32,10 +32,12 @@ Future<void> main() async {
       options.tracesSampleRate = 1.0;
       options.enableAutoSessionTracking = true;
       options.sendDefaultPii = true;
-      options.beforeSend = (event, {hint}) {
+      options.beforeSend = (event, hint) {
         if (!TelemetryConsentService.cachedConsent) {
           // Strip user-identifiable data when consent is off.
-          return event.copyWith(user: null, request: null);
+          event
+            ..user = null
+            ..request = null;
         }
         return event;
       };
