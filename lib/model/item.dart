@@ -519,6 +519,25 @@ class ItemPromotion {
     }
   }
 
+  double calculateSavings(double originalPrice) {
+    final savings = originalPrice - calculateDiscountedPrice(originalPrice);
+    return savings.clamp(0, originalPrice).toDouble();
+  }
+
+  int calculateEffectiveDiscountPercent(double originalPrice) {
+    if (!isActive || originalPrice <= 0) return 0;
+
+    switch (discountType) {
+      case 'PERCENT':
+        return discountValue.round();
+      case 'FIXED':
+        final discountedPrice = calculateDiscountedPrice(originalPrice);
+        return ((1 - discountedPrice / originalPrice) * 100).round();
+      default:
+        return 0;
+    }
+  }
+
   @override
   String toString() {
     return 'ItemPromotion(id: $promotionId, name: $name, discount: $discountValue $discountType)';

@@ -146,6 +146,17 @@ class CartItem {
       }
     }
 
+    // Денежные скидки по позиции.
+    for (final promo in promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'FIXED') {
+        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
+        if (disc > 0) {
+          total = (total - (disc * quantity)).clamp(0, double.infinity).toDouble();
+        }
+      }
+    }
+
     // DISCOUNT акции (учитываем ключи discount и discount_value)
     for (final promo in promotions) {
       final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);

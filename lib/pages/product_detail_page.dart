@@ -35,8 +35,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ── promotion helpers ─────────────────────────────────────────
 
+  List<item_model.ItemPromotion> get _activePromotions {
+    return (widget.item.promotions ?? const <item_model.ItemPromotion>[]).where((promotion) => promotion.isActive).toList(growable: false);
+  }
+
   item_model.ItemPromotion? get _subtractPromo {
-    final promos = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    final promos = _activePromotions;
     for (final p in promos) {
       if (p.discountType == 'SUBTRACT' && p.baseAmount > 0 && p.addAmount > 0) {
         return p;
@@ -46,7 +50,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   item_model.ItemPromotion? get _discountPromo {
-    final promos = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    final promos = _activePromotions;
     for (final p in promos) {
       if (p.discountType == 'PERCENT' && p.discountValue > 0) return p;
       if (p.discountType == 'FIXED' && p.discountValue > 0) return p;
@@ -257,6 +261,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return double.parse(value.toStringAsFixed(2));
   }
 
+  String _discountBadgeLabel(item_model.ItemPromotion promo) {
+    final percent = promo.calculateEffectiveDiscountPercent(widget.item.price);
+    if (percent > 0) {
+      return '-$percent%';
+    }
+    return '-${_money(promo.discountValue)}';
+  }
+
   Map<int, int> _autoBottleBreakdown(double targetLiters) {
     final target = (targetLiters * 100).round();
     if (target <= 0 || _filteredBottles.isEmpty) {
@@ -398,7 +410,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   List<Map<String, dynamic>> _promotionMaps() {
-    return (widget.item.promotions ?? const <item_model.ItemPromotion>[])
+    return _activePromotions
         .map(
           (promotion) => <String, dynamic>{
             'promotion_id': promotion.promotionId,
@@ -413,8 +425,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         .toList(growable: false);
   }
 
-  double _previewTotal() {
-    final promos = _promotionMaps();
+  double _previewTotal({bool includePromotions = true}) {
+    final promos = includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[];
 
     if (_usesPourFlow) {
       final counts = _activeBottleCounts();
@@ -599,6 +611,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget build(BuildContext context) {
     final pad = MediaQuery.of(context).padding;
     final total = _previewTotal();
+    final rawTotal = _previewTotal(includePromotions: false);
     final amount = _configuredAmount();
     final cart = context.watch<CartProvider>();
     final cartQuantity = cart.getTotalQuantityForItem(widget.item.itemId);
@@ -648,7 +661,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           _optionsBlock(),
                           SizedBox(height: 22.s),
                         ],
-                        if (widget.item.hasPromotions) ...[
+                        if (_activePromotions.isNotEmpty) ...[
                           _promoBlock(),
                           SizedBox(height: 22.s),
                         ],
@@ -680,7 +693,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _bottomBar(total, amount, cartQuantity, pad),
+            child: _bottomBar(total, rawTotal, amount, cartQuantity, pad),
           ),
         ],
       ),
@@ -787,9 +800,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   List<Widget> _priceDisplay() {
     final promo = _discountPromo;
-    if (promo != null && promo.isActive) {
+    if (promo != null) {
       final discounted = promo.calculateDiscountedPrice(widget.item.price);
-      final savings = widget.item.price - discounted;
+      final savings = promo.calculateSavings(widget.item.price);
       return [
         Text(
           _money(widget.item.price),
@@ -822,7 +835,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 borderRadius: BorderRadius.circular(6.s),
               ),
               child: Text(
-                '-${promo.discountValue.round()}%',
+                _discountBadgeLabel(promo),
                 style: TextStyle(
                   color: AppColors.text,
                   fontSize: 11.sp,
@@ -1199,7 +1212,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── promotions ─────────────────────────────────────────────────
 
   Widget _promoBlock() {
-    var promotions = widget.item.promotions ?? const <item_model.ItemPromotion>[];
+    var promotions = _activePromotions;
     // SUBTRACT promos shown near price + inline in pour controls — skip here
     promotions = promotions.where((p) => p.discountType != 'SUBTRACT').toList();
     if (promotions.isEmpty) return const SizedBox.shrink();
@@ -1298,7 +1311,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ── bottom bar ─────────────────────────────────────────────────
 
-  Widget _bottomBar(double total, double amount, double cartQuantity, EdgeInsets pad) {
+  Widget _bottomBar(double total, double rawTotal, double amount, double cartQuantity, EdgeInsets pad) {
     final ready = amount > 0;
     final free = _freeFromPromo(amount);
     final plannedTotal = _normalizeDouble(cartQuantity + amount);
@@ -1316,8 +1329,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       subtitle = _quantityLabel(amount);
     }
 
-    // Show strikethrough when promo gives savings
-    final rawTotal = widget.item.price * amount;
     final hasSavings = total < rawTotal - 1;
 
     return Container(
