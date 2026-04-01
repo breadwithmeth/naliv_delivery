@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/bonus_info_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/bonus_rules.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +36,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
 
-  Future<bool> _handleBack() async {
+  int get _itemCount => Provider.of<CartProvider>(context, listen: false).items.length;
+
+  void _handleBack() {
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
       navigator.pop();
@@ -42,7 +46,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // Safeguard: if this is the last route, return to cart instead of a blank screen.
       navigator.pushReplacement(MaterialPageRoute(builder: (_) => const CartPage()));
     }
-    return false;
   }
 
   @override
@@ -67,13 +70,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         _selectedAddress = address;
       });
       _syncAddressDetailControllers(address);
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (mounted) {
-          await Future.delayed(const Duration(milliseconds: 100));
-          if (mounted) _showAddressSelectionModal();
-        }
-      });
     }
     await _calculateDelivery();
   }
@@ -397,25 +393,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return [availableBonuses, maxBonusUsage, itemsTotal].reduce((a, b) => a < b ? a : b);
   }
 
-  /// Форматировать дату бонуса
-  String _formatBonusDate(String timestamp) {
-    try {
-      final date = DateTime.parse(timestamp);
-      final now = DateTime.now();
-      final difference = now.difference(date);
-
-      if (difference.inDays == 0) {
-        return '(сегодня)';
-      } else if (difference.inDays == 1) {
-        return '(вчера)';
-      } else if (difference.inDays < 7) {
-        return '(${difference.inDays} дн. назад)';
-      } else {
-        return '(${date.day}.${date.month.toString().padLeft(2, '0')})';
-      }
-    } catch (e) {
-      return '';
-    }
+  int _getEarnedBonuses() {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    return BonusRules.calculateEarnedBonusesForCartItems(cartProvider.items);
   }
 
   @override
@@ -425,9 +405,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
     final itemsTotal = cartProvider.getTotalPrice();
     final totalWithDelivery = _getTotalWithDelivery();
+    final earnedBonuses = _getEarnedBonuses();
+    final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
+    final double bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
 
-    return WillPopScope(
-      onWillPop: _handleBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handleBack();
+        }
+      },
       child: Scaffold(
         backgroundColor: AppColors.bgDeep,
         extendBodyBehindAppBar: true,
@@ -441,67 +429,123 @@ class _CheckoutPageState extends State<CheckoutPage> {
             icon: const Icon(Icons.arrow_back_ios_new, size: 18),
             onPressed: _handleBack,
           ),
-          title: const Text('Оформление заказа', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: Text('Оформление', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.sp)),
         ),
+        bottomNavigationBar: _bottomCheckoutBar(total: totalWithDelivery),
         body: Stack(
           children: [
             const AppBackground(),
             SafeArea(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 24.s),
+                padding: EdgeInsets.fromLTRB(16.s, 4.s, 16.s, 100.s),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 10.s),
                     _deliveryTabs(),
-                    SizedBox(height: 10.s),
-                    _infoCard(
+                    SizedBox(height: 14.s),
+                    _tapRow(
                       icon: Icons.store,
-                      title: businessProvider.selectedBusinessName ?? 'Магазин не выбран',
-                      subtitle: businessProvider.selectedBusiness != null
-                          ? businessProvider.selectedBusiness!['address'] ?? ''
-                          : 'Выберите магазин на предыдущем экране',
+                      title: businessProvider.selectedBusinessName ?? 'Магазин',
+                      value: businessProvider.selectedBusiness?['address'],
                       onTap: () => Navigator.pop(context),
                     ),
                     if (_deliveryType == 'DELIVERY') ...[
-                      SizedBox(height: 9.s),
-                      _infoCard(
+                      _tapRow(
                         icon: Icons.location_on_outlined,
-                        title: 'Адрес доставки',
-                        subtitle: _addressText(),
-                        trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
+                        title: _addressText(),
+                        value: _selectedAddress == null
+                            ? 'Можно выбрать позже, но перед подтверждением заказа адрес обязателен'
+                            : 'Нажмите, чтобы уточнить или изменить адрес',
                         onTap: _showAddressSelectionModal,
                       ),
-                      SizedBox(height: 9.s),
-                      _addressDetailsCard(),
-                      SizedBox(height: 9.s),
-                      _infoCard(
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 4.s),
+                        child: Row(
+                          children: [
+                            Expanded(child: _compactField(_entranceController, 'Подъезд')),
+                            SizedBox(width: 8.s),
+                            Expanded(child: _compactField(_floorController, 'Этаж')),
+                            SizedBox(width: 8.s),
+                            Expanded(child: _compactField(_apartmentController, 'Квартира')),
+                          ],
+                        ),
+                      ),
+                      _tapRow(
                         icon: Icons.local_shipping_outlined,
                         title: 'Стоимость доставки',
-                        subtitle: _isCalculatingDelivery ? 'Рассчитываем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                        value: _isCalculatingDelivery ? 'считаем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
                         onTap: _calculateDelivery,
                       ),
-                      SizedBox(height: 9.s),
-                      _infoCard(
-                        icon: Icons.access_time,
-                        title: 'Время доставки',
-                        subtitle: _getDeliveryTimeText(),
-                        trailing: const Icon(Icons.chevron_right, color: AppColors.textMute),
-                        onTap: _showDeliveryTimeSelection,
-                      ),
                     ],
-                    SizedBox(height: 12.s),
-                    _sectionHeader('Товары в корзине'),
-                    SizedBox(height: 9.s),
-                    ...cartProvider.items.map((item) => _itemTile(item)).toList(),
-                    SizedBox(height: 12.s),
-                    _bonusCard(),
-                    SizedBox(height: 12.s),
-                    _totalCard(itemsTotal: itemsTotal, deliveryCost: _deliveryType == 'DELIVERY' ? deliveryCost : 0, total: totalWithDelivery),
-                    SizedBox(height: 18.s),
-                    _primaryButton(
-                      label: _isSubmitting ? 'Отправка…' : 'Подтвердить заказ',
-                      onTap: _isSubmitting ? null : _submitOrder,
+                    _tapRow(
+                      icon: Icons.access_time,
+                      title: 'Когда доставить',
+                      value: _getDeliveryTimeText(),
+                      onTap: _showDeliveryTimeSelection,
+                    ),
+                    _thinDivider(),
+                    Row(
+                      children: [
+                        Icon(Icons.stars_rounded, color: AppColors.orange, size: 18.s),
+                        SizedBox(width: 10.s),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Списать бонусы', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+                              if (canUseBonus)
+                                _buildBonusSubtitle()
+                              else
+                                const Text('Проверяем баланс…', style: TextStyle(color: AppColors.textMute, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _useBonus,
+                          activeThumbColor: Colors.black,
+                          activeTrackColor: AppColors.orange,
+                          inactiveThumbColor: AppColors.text,
+                          inactiveTrackColor: AppColors.blue,
+                          onChanged: canUseBonus ? (v) => setState(() => _useBonus = v) : null,
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BonusInfoPage())),
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 28.s, top: 2.s),
+                        child: Text('Как работают бонусы →', style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    _thinDivider(),
+                    _sectionTitle('Ваш заказ · $_itemCount поз.'),
+                    SizedBox(height: 8.s),
+                    for (int i = 0; i < cartProvider.items.length; i++) ...[
+                      if (i > 0) Divider(color: Colors.white.withValues(alpha: 0.05), height: 16.s),
+                      _itemTile(cartProvider.items[i]),
+                    ],
+                    _thinDivider(),
+                    _summaryRow('Товары', _money(itemsTotal)),
+                    SizedBox(height: 6.s),
+                    if (_deliveryType == 'DELIVERY') ...[
+                      _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                      SizedBox(height: 6.s),
+                    ],
+                    if (bonusUsed > 0) ...[
+                      _summaryRow('Списание бонусов', '-${_money(bonusUsed)}', valueColor: Colors.greenAccent),
+                      SizedBox(height: 6.s),
+                    ],
+                    if (earnedBonuses > 0) ...[
+                      _summaryRow('Бонусы за заказ', '+$earnedBonuses ₸', valueColor: Colors.greenAccent),
+                      SizedBox(height: 6.s),
+                    ],
+                    Divider(color: Colors.white.withValues(alpha: 0.08), height: 20.s),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Итого', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                        Text(_money(totalWithDelivery), style: TextStyle(color: AppColors.orange, fontSize: 18.sp, fontWeight: FontWeight.w900)),
+                      ],
                     ),
                   ],
                 ),
@@ -522,6 +566,52 @@ class _CheckoutPageState extends State<CheckoutPage> {
           _deliveryTab('Доставка', 'DELIVERY'),
           _deliveryTab('Самовывоз', 'PICKUP'),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Padding(
+      padding: EdgeInsets.only(top: 2.s),
+      child: Text(text, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+    );
+  }
+
+  Widget _thinDivider() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 14.s),
+      child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+    );
+  }
+
+  Widget _tapRow({
+    required IconData icon,
+    required String title,
+    String? value,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 10.s),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.orange, size: 18.s),
+            SizedBox(width: 10.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14.sp)),
+                  if (value != null)
+                    Text(value, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            if (onTap != null) Icon(Icons.chevron_right, color: AppColors.textMute, size: 18.s),
+          ],
+        ),
       ),
     );
   }
@@ -561,60 +651,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _infoCard({required IconData icon, required String title, String? subtitle, Widget? trailing, VoidCallback? onTap}) {
-    return Container(
-      padding: EdgeInsets.all(12.s),
-      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.95)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(9.s),
-            decoration: BoxDecoration(
-              color: AppColors.orange.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12.s),
-            ),
-            child: Icon(icon, color: AppColors.orange, size: 18.s),
-          ),
-          SizedBox(width: 10.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 14.sp)),
-                if (subtitle != null) ...[
-                  SizedBox(height: 3.s),
-                  Text(subtitle, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-                ],
-              ],
-            ),
-          ),
-          if (trailing != null)
-            InkWell(onTap: onTap, child: trailing)
-          else if (onTap != null)
-            IconButton(
-              icon: const Icon(Icons.chevron_right, color: AppColors.textMute),
-              onPressed: onTap,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String text) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(5.s),
-          decoration: BoxDecoration(color: AppColors.orange.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: Icon(Icons.shopping_bag, color: AppColors.orange, size: 14.s),
-        ),
-        SizedBox(width: 7.s),
-        Text(text, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 15.sp)),
-      ],
-    );
-  }
-
   static double _freeAmount(item) {
     for (final promo in item.promotions) {
       final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
@@ -640,126 +676,48 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final bool hasFree = freeQty > 0;
     final double rawTotal = item.price * item.quantity;
 
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 5.s),
-      padding: EdgeInsets.all(12.s),
-      decoration: AppDecorations.card(radius: 14, color: AppColors.cardDark.withValues(alpha: 0.9)),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Text('x${_fmtQty(item.quantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
-                    if (hasFree) ...[
-                      SizedBox(width: 6.s),
-                      Text(
-                        '(${_fmtQty(freeQty)} бесплатно)',
-                        style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
-                      ),
-                    ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Text('x${_fmtQty(item.quantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                  if (hasFree) ...[
+                    SizedBox(width: 6.s),
+                    Text(
+                      '+ ${_fmtQty(freeQty)} в подарок',
+                      style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                    ),
                   ],
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: 12.s),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (hasFree)
+              Text(
+                _money(rawTotal),
+                style: TextStyle(
+                  color: AppColors.textMute.withValues(alpha: 0.5),
+                  fontSize: 11.sp,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: AppColors.textMute.withValues(alpha: 0.5),
                 ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (hasFree)
-                Text(
-                  _money(rawTotal),
-                  style: TextStyle(
-                    color: AppColors.textMute.withValues(alpha: 0.5),
-                    fontSize: 11.sp,
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: AppColors.textMute.withValues(alpha: 0.5),
-                  ),
-                ),
-              Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bonusCard() {
-    final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
-    final subtitle = canUseBonus ? _buildBonusSubtitle() : const Text('Загрузка...', style: TextStyle(color: AppColors.textMute));
-    return Container(
-      padding: EdgeInsets.all(12.s),
-      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.95)),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Использовать бонусы', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-                SizedBox(height: 5.s),
-                subtitle,
-              ],
-            ),
-          ),
-          Switch(
-            value: _useBonus,
-            activeColor: Colors.black,
-            activeTrackColor: AppColors.orange,
-            inactiveThumbColor: AppColors.text,
-            inactiveTrackColor: AppColors.blue,
-            onChanged: canUseBonus
-                ? (value) {
-                    setState(() {
-                      _useBonus = value;
-                    });
-                  }
-                : null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _totalCard({required double itemsTotal, required double deliveryCost, required double total}) {
-    final bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
-    return Container(
-      padding: EdgeInsets.all(14.s),
-      decoration: AppDecorations.card(radius: 18, color: AppColors.cardDark.withValues(alpha: 0.96)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.receipt_long, color: AppColors.orange, size: 20.s),
-              SizedBox(width: 7.s),
-              Text('Итоги', style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w800)),
-            ],
-          ),
-          SizedBox(height: 10.s),
-          _summaryRow('Товары', _money(itemsTotal)),
-          if (_deliveryType == 'DELIVERY') ...[
-            SizedBox(height: 7.s),
-            _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
+              ),
+            Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
           ],
-          if (bonusUsed > 0) ...[
-            SizedBox(height: 7.s),
-            _summaryRow('Бонусы', '-${_money(bonusUsed)}', valueColor: Colors.greenAccent),
-          ],
-          Divider(color: const Color(0x229FB0C8), height: 16.s),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Итого', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
-              Text(_money(total), style: TextStyle(color: AppColors.orange, fontSize: 18.sp, fontWeight: FontWeight.w900)),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -770,6 +728,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
         Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
         Text(value, style: TextStyle(color: valueColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+
+  Widget _bottomCheckoutBar({required double total}) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 10.s),
+      decoration: BoxDecoration(
+        color: AppColors.bgDeep,
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Text(_money(total), style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900)),
+            SizedBox(width: 14.s),
+            Expanded(
+              child: _primaryButton(
+                label: _isSubmitting ? 'Отправка…' : 'Подтвердить',
+                onTap: _isSubmitting ? null : _submitOrder,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -829,7 +812,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (missing.isEmpty) return true;
 
-    _showNotice('Незаполненный адрес', 'Укажите ${missing.join(', ')} для адреса доставки.');
+    _showNotice('Незаполненный адрес', 'Добавьте ${missing.join(', ')} перед подтверждением заказа.');
     return false;
   }
 
@@ -841,72 +824,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _addressDetailsCard() {
-    return Container(
-      padding: EdgeInsets.all(12.s),
-      decoration: AppDecorations.card(radius: 16, color: AppColors.cardDark.withValues(alpha: 0.95)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.apartment_rounded, color: AppColors.orange),
-              SizedBox(width: 8),
-              Text('Детали адреса', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Подъезд, этаж и квартира обязательны для оформления доставки.',
-            style: TextStyle(color: AppColors.textMute, fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _detailField(controller: _entranceController, label: 'Подъезд')),
-              const SizedBox(width: 8),
-              Expanded(child: _detailField(controller: _floorController, label: 'Этаж')),
-              const SizedBox(width: 8),
-              Expanded(child: _detailField(controller: _apartmentController, label: 'Квартира')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailField({required TextEditingController controller, required String label}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
-          decoration: InputDecoration(
-            hintText: 'Обязательно',
-            hintStyle: const TextStyle(color: AppColors.textMute, fontSize: 12),
-            isDense: true,
-            filled: true,
-            fillColor: AppColors.card,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(14)),
-              borderSide: BorderSide(color: AppColors.orange),
-            ),
-          ),
+  Widget _compactField(TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+        isDense: true,
+        filled: true,
+        fillColor: AppColors.card,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 10.s),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
-      ],
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.orange, width: 1),
+        ),
+      ),
     );
   }
 
@@ -917,11 +859,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     final bonusData = _bonusData!['data'];
     final totalBonuses = bonusData['totalBonuses'] ?? 0;
-    final bonusHistory = bonusData['bonusHistory'] as List?;
-    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['amount'] ?? 0 : 0;
-    final latestBonusDate = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['timestamp'] ?? '' : '';
 
-    // Рассчитываем максимальную сумму для использования бонусов (30% от суммы товаров, без доставки)
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final itemsTotal = cartProvider.getTotalPrice();
     final maxBonusUsage = itemsTotal * 0.30;
@@ -930,19 +868,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Доступно: $totalBonuses ₸', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w800)),
+        Text('На балансе: $totalBonuses ₸', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w800)),
         Text(
-          'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸ (30% от товаров, доставка не списывается).',
+          'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸',
           style: const TextStyle(color: AppColors.textMute, fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
         ),
-        if (latestBonusAmount != 0)
-          Padding(
-            padding: EdgeInsets.only(top: 4.s),
-            child: Text(
-              'Последнее изменение: ${latestBonusAmount > 0 ? '+' : ''}$latestBonusAmount ₸ ${_formatBonusDate(latestBonusDate)}',
-              style: const TextStyle(color: AppColors.textMute, fontSize: 11, fontWeight: FontWeight.w600),
-            ),
-          ),
       ],
     );
   }

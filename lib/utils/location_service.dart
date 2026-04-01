@@ -65,7 +65,7 @@ class LocationService {
       if (!serviceEnabled) {
         return LocationPermissionResult(
           success: false,
-          message: 'Сервисы геолокации отключены. Включите GPS в настройках устройства.',
+          message: 'Геолокация сейчас выключена. Если хотите, можно включить её в настройках устройства. Без неё тоже можно продолжить.',
           permissionStatus: LocationPermission.denied,
         );
       }
@@ -77,14 +77,15 @@ class LocationService {
         case LocationPermission.denied:
           return LocationPermissionResult(
             success: false,
-            message: 'Разрешение на использование геолокации отклонено.',
+            message: 'Без доступа к геолокации тоже можно продолжить. Город можно выбрать вручную, а адрес указать позже при оформлении заказа.',
             permissionStatus: permission,
           );
 
         case LocationPermission.deniedForever:
           return LocationPermissionResult(
             success: false,
-            message: 'Разрешение на геолокацию отклонено навсегда. Разрешите доступ в настройках приложения.',
+            message:
+                'Доступ к геолокации отключён для приложения. Если захотите, его можно вернуть в настройках. Сейчас можно продолжить и без него.',
             permissionStatus: permission,
             needsSettingsRedirect: true,
           );
@@ -93,7 +94,7 @@ class LocationService {
         case LocationPermission.always:
           return LocationPermissionResult(
             success: true,
-            message: 'Разрешение на геолокацию получено.',
+            message: 'Геолокация включена. Попробуем определить ваш город автоматически.',
             permissionStatus: permission,
           );
 
@@ -107,7 +108,7 @@ class LocationService {
     } catch (e) {
       return LocationPermissionResult(
         success: false,
-        message: 'Ошибка при запросе разрешения: $e',
+        message: 'Не получилось получить доступ к геолокации. Можно продолжить без неё и выбрать данные вручную.',
         permissionStatus: LocationPermission.denied,
       );
     }

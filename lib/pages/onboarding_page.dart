@@ -4,10 +4,8 @@ import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
-import '../utils/address_storage_service.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
-import '../widgets/address_selection_modal_material.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key, required this.onCompleted, this.initialCity});
@@ -35,14 +33,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final LocationService _locationService = LocationService.instance;
 
   int _pageIndex = 0;
+  int get _totalSteps => 2;
   List<_CityOption> _cities = const <_CityOption>[];
   String? _selectedCity;
   String? _guessedCity;
   bool _isLoadingCities = true;
   String? _citiesError;
+  bool _isDeterminingCity = false;
   bool _isRequestingLocation = false;
   bool _isRequestingNotifications = false;
-  bool _isOpeningMap = false;
   bool _locationGranted = false;
   bool _notificationsGranted = false;
   String? _locationMessage;
@@ -72,6 +71,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _goToPage(int index) async {
+    if (index >= _totalSteps) return;
     await _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 320),
@@ -82,48 +82,71 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _loadCities() async {
-    final cachedCities = OnboardingService.cachedCities.map(_mapCityOption).toList();
-    if (mounted && cachedCities.isNotEmpty) {
-      setState(() {
-        _cities = cachedCities;
-        _citiesError = null;
-        if (_selectedCity != null && !_cities.any((city) => city.name == _selectedCity)) {
-          _selectedCity = null;
-        }
-      });
-    }
-
     setState(() {
       _isLoadingCities = true;
       _citiesError = null;
     });
 
-    final cities = await OnboardingService.fetchAvailableCities(forceRefresh: true);
-    if (!mounted) return;
+    try {
+      final cities = await OnboardingService.fetchAvailableCities(forceRefresh: false);
+      if (!mounted) return;
 
-    final mappedCities = cities.map(_mapCityOption).toList();
-    setState(() {
-      _cities = mappedCities;
-      _isLoadingCities = false;
-      _citiesError = mappedCities.isEmpty ? 'Не удалось получить список городов.' : null;
-      if (_selectedCity != null && !_cities.any((city) => city.name == _selectedCity)) {
-        _selectedCity = null;
-      }
-    });
+      setState(() {
+        _cities = cities.map(_mapCityOption).toList();
+        _isLoadingCities = false;
+        if (_cities.isEmpty) {
+          _citiesError = 'Не удалось загрузить список городов.';
+        }
+      });
 
-    if (_selectedCity == null) {
-      _guessCityFromIp();
+      await _autoResolveCity();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCities = false;
+        _citiesError = 'Не удалось загрузить список городов.';
+      });
     }
   }
 
-  Future<void> _guessCityFromIp() async {
+  bool _isCityAvailable(String city) {
+    return _cities.any((c) => c.name.toLowerCase() == city.toLowerCase());
+  }
+
+  Future<bool> _autoResolveCity() async {
+    if (_cities.isEmpty) {
+      final cached = OnboardingService.cachedCities.map(_mapCityOption).toList();
+      if (cached.isNotEmpty) {
+        setState(() => _cities = cached);
+      } else {
+        final fetched = await OnboardingService.fetchAvailableCities(forceRefresh: false);
+        if (fetched.isNotEmpty) {
+          setState(() => _cities = fetched.map(_mapCityOption).toList());
+        }
+      }
+    }
+
+    if (_selectedCity != null && _isCityAvailable(_selectedCity!)) {
+      return true;
+    }
+
+    if (_guessedCity != null && _isCityAvailable(_guessedCity!)) {
+      setState(() => _selectedCity = _guessedCity);
+      await OnboardingService.setSelectedCity(_guessedCity!);
+      return true;
+    }
+
     final guess = await OnboardingService.guessCityByIp();
-    if (!mounted || guess == null) return;
-    if (!_cities.any((c) => c.name.toLowerCase() == guess.toLowerCase())) return;
-    setState(() {
-      _guessedCity = guess;
-      _selectedCity ??= guess;
-    });
+    if (guess != null && _isCityAvailable(guess)) {
+      setState(() {
+        _guessedCity = guess;
+        _selectedCity = guess;
+      });
+      await OnboardingService.setSelectedCity(guess);
+      return true;
+    }
+
+    return false;
   }
 
   _CityOption _mapCityOption(OnboardingCity city) {
@@ -145,11 +168,100 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  Future<void> _continueFromCity() async {
-    final city = _selectedCity;
-    if (city == null) return;
+  Future<void> _selectCity(String city) async {
+    setState(() {
+      _selectedCity = city;
+      _guessedCity ??= city;
+    });
     await OnboardingService.setSelectedCity(city);
-    await _goToPage(1);
+  }
+
+  Future<void> _showCityChooser() async {
+    final selectedCity = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.6,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24.s)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              ),
+              padding: EdgeInsets.fromLTRB(16.s, 12.s, 16.s, 24.s),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Выберите город',
+                      style: TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Не получилось определить автоматически. Выберите вручную.',
+                      style: TextStyle(color: _textMute, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_guessedCity != null)
+                      Container(
+                        margin: EdgeInsets.only(bottom: 12.s),
+                        padding: EdgeInsets.all(14.s),
+                        decoration: BoxDecoration(
+                          color: _cardDark,
+                          borderRadius: BorderRadius.circular(16.s),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
+                              child: const Icon(Icons.location_searching_rounded, color: _orange),
+                            ),
+                            SizedBox(width: 12.s),
+                            Expanded(
+                              child: Text(
+                                'Похоже, вы в городе $_guessedCity. Подтвердите, чтобы не искать в списке.',
+                                style: const TextStyle(color: _text, height: 1.35, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(_guessedCity),
+                              child: const Text('Выбрать'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    _buildCityGrid(closeOnSelect: true),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selectedCity == null || selectedCity.isEmpty) return;
+    await _selectCity(selectedCity);
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -173,12 +285,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
 
     if (granted) {
-      await _goToPage(2);
+      await _goToPage(1);
     }
   }
 
   Future<void> _handleLocationFlow() async {
-    if (_isRequestingLocation || _isOpeningMap) return;
+    if (_isRequestingLocation || _isDeterminingCity) return;
     setState(() {
       _isRequestingLocation = true;
       _locationMessage = null;
@@ -196,87 +308,70 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     if (!result.success) return;
 
-    await Future<void>.delayed(const Duration(milliseconds: 140));
-    if (!mounted) return;
-    await _launchMapFlow();
+    await _startDeterminingCity();
   }
 
-  Future<void> _launchMapFlow() async {
-    if (_isOpeningMap) return;
-    setState(() => _isOpeningMap = true);
+  Future<void> _startDeterminingCity() async {
+    if (_isDeterminingCity) return;
+    setState(() => _isDeterminingCity = true);
+
     try {
-      final picked = await AddressSelectionModalHelper.show(context);
-      if (picked != null) {
-        await _persistAddress(picked);
-        await _finishOnboarding();
-        return;
+      final position = await _locationService.getCurrentPosition(
+        accuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 2),
+      );
+
+      var autoResolved = await _autoResolveCity();
+
+      if (!autoResolved && position != null) {
+        final reverse = await ApiService.searchAddresses(
+          lat: position.latitude,
+          lon: position.longitude,
+          city: _selectedCity,
+        );
+
+        final resolvedCity = reverse != null && reverse.isNotEmpty ? ApiService.extractCityName(reverse.first) : null;
+
+        final canUseResolved = resolvedCity != null && (_isCityAvailable(resolvedCity) || _cities.isEmpty);
+
+        if (canUseResolved) {
+          setState(() {
+            _selectedCity = resolvedCity;
+            _guessedCity = resolvedCity;
+          });
+          await OnboardingService.setSelectedCity(resolvedCity);
+          autoResolved = true;
+        }
       }
 
-      final detected = await _autoDetectAddressFromGps();
-      if (detected) {
-        await _finishOnboarding();
-        return;
+      if (!mounted) return;
+
+      if (_selectedCity == null && !autoResolved) {
+        await _showCityChooser();
+        if (_selectedCity == null) return;
       }
 
       await _finishOnboarding();
     } finally {
       if (mounted) {
-        setState(() => _isOpeningMap = false);
+        setState(() => _isDeterminingCity = false);
       }
     }
   }
 
-  Future<bool> _autoDetectAddressFromGps() async {
-    try {
-      final pos = await _locationService.getCurrentPosition(
-        accuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 8),
-      );
-      if (pos == null) return false;
-      if (!_locationService.isAccurateEnoughForAutoSelection(pos)) return false;
+  Future<void> _continueWithoutLocation() async {
+    await OnboardingService.markLocationPromptSeen();
 
-      final reverse = await ApiService.searchAddresses(
-        lat: pos.latitude,
-        lon: pos.longitude,
-        city: _selectedCity,
-      );
-
-      final resolved = (reverse?.isNotEmpty ?? false)
-          ? ApiService.extractAddressLabel(
-                reverse!.first,
-                lat: pos.latitude,
-                lon: pos.longitude,
-                preferredCity: _selectedCity,
-              ) ??
-              'Определённый адрес'
-          : 'Определённый адрес';
-
-      final address = {
-        'address': resolved,
-        'lat': pos.latitude,
-        'lon': pos.longitude,
-        'accuracy': pos.accuracy,
-        'source': 'onboarding_gps',
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-
-      await _persistAddress(address);
-      return true;
-    } catch (_) {
-      return false;
+    if (_selectedCity == null) {
+      await _autoResolveCity();
     }
-  }
 
-  Future<void> _persistAddress(Map<String, dynamic> address) async {
-    await AddressStorageService.saveSelectedAddress(address);
-    final lat = (address['lat'] ?? address['latitude']) as num?;
-    final lon = (address['lon'] ?? address['lng'] ?? address['longitude']) as num?;
-    if (lat != null && lon != null) {
-      await AddressStorageService.addToAddressHistory({
-        'name': address['address'] ?? address['name'] ?? 'Выбранный адрес',
-        'point': {'lat': lat.toDouble(), 'lon': lon.toDouble()},
-      });
+    if (_selectedCity == null) {
+      await _showCityChooser();
+      if (_selectedCity == null) return;
     }
+
+    await _finishOnboarding();
   }
 
   Future<void> _finishOnboarding() async {
@@ -351,7 +446,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Text(
-            '${_pageIndex + 1}/3',
+            '${_pageIndex + 1}/$_totalSteps',
             style: const TextStyle(color: _textMute, fontWeight: FontWeight.w700),
           ),
         ),
@@ -362,12 +457,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget _buildProgress() {
     return Row(
       children: List.generate(
-        3,
+        _totalSteps,
         (index) => Expanded(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
-            margin: EdgeInsets.only(right: index == 2 ? 0 : 7.s),
+            margin: EdgeInsets.only(right: index == _totalSteps - 1 ? 0 : 7.s),
             height: 4.s,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
@@ -474,7 +569,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _buildCityGrid() {
+  Widget _buildCityGrid({bool closeOnSelect = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (_isLoadingCities && _cities.isEmpty) {
@@ -536,7 +631,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             final isSelected = _selectedCity == city.name;
             return InkWell(
               borderRadius: BorderRadius.circular(20.s),
-              onTap: () => setState(() => _selectedCity = city.name),
+              onTap: () {
+                if (closeOnSelect) {
+                  Navigator.of(context).pop(city.name);
+                  return;
+                }
+
+                setState(() => _selectedCity = city.name);
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 padding: EdgeInsets.all(14.s),
@@ -669,83 +771,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _buildCityStep() {
-    return _buildShell(
-      eyebrow: 'ШАГ 1',
-      title: 'Выберите ваш город',
-      description: 'Покажем доступные магазины и доставку для вашего города.',
-      icon: Icons.location_city_rounded,
-      artGradient: const [_orange, _teal],
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_guessedCity != null)
-            Container(
-              margin: EdgeInsets.only(bottom: 12.s),
-              padding: EdgeInsets.all(14.s),
-              decoration: BoxDecoration(
-                color: _cardDark,
-                borderRadius: BorderRadius.circular(16.s),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.location_searching_rounded, color: _orange),
-                  ),
-                  SizedBox(width: 12.s),
-                  Expanded(
-                    child: Text(
-                      'Похоже, вы в городе $_guessedCity. Подтвердите, чтобы не искать в списке.',
-                      style: const TextStyle(color: _text, height: 1.35, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          _buildCityGrid(),
-        ],
-      ),
-      actions: [
-        if (_guessedCity != null)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                setState(() => _selectedCity = _guessedCity);
-                _continueFromCity();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _orange,
-                foregroundColor: Colors.black,
-                padding: EdgeInsets.symmetric(vertical: 14.s),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
-                textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
-              ),
-              child: Text('Да, я в городе $_guessedCity'),
-            ),
-          ),
-        if (_guessedCity != null) SizedBox(height: 10.s),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _selectedCity == null ? null : _continueFromCity,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _orange,
-              foregroundColor: Colors.black,
-              padding: EdgeInsets.symmetric(vertical: 16.s),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-              textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
-            ),
-            child: const Text('Продолжить'),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildLocationStatusCard() {
     if (_locationMessage == null) {
       return Container(
@@ -766,7 +791,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             SizedBox(width: 10.s),
             const Expanded(
               child: Text(
-                'Дадим доступ только для поиска ближайшего магазина и ускорения выбора адреса.',
+                'Найдём ваш город и ближайший магазин. Точный адрес можно будет указать позже, при оформлении заказа.',
                 style: TextStyle(color: _textMute, height: 1.4, fontWeight: FontWeight.w600),
               ),
             ),
@@ -795,9 +820,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildLocationStep() {
     return _buildShell(
-      eyebrow: 'ШАГ 3',
+      eyebrow: 'ШАГ 2',
       title: 'Разрешите геолокацию',
-      description: 'Найдём ближайший магазин и быстрее подставим адрес.',
+      description: 'Поможем быстрее определить ваш город. Точный адрес добавите уже при оформлении заказа.',
       icon: Icons.near_me_rounded,
       artGradient: const [_blue, _teal],
       body: Column(
@@ -806,7 +831,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           const SizedBox(height: 16),
           _buildBenefitWrap(const [
             _BenefitItem(icon: Icons.storefront_rounded, label: 'Ближайший магазин'),
-            _BenefitItem(icon: Icons.bolt_rounded, label: 'Быстрее адрес'),
+            _BenefitItem(icon: Icons.pin_drop_outlined, label: 'Точный адрес позже'),
           ]),
         ],
       ),
@@ -814,7 +839,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isRequestingLocation ? null : _handleLocationFlow,
+            onPressed: (_isRequestingLocation || _isDeterminingCity) ? null : _handleLocationFlow,
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
@@ -822,37 +847,31 @@ class _OnboardingPageState extends State<OnboardingPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
               textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
-            child: (_isRequestingLocation || _isOpeningMap)
+            child: (_isRequestingLocation || _isDeterminingCity)
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
-                : const Text('Включить геолокацию'),
+                : const Text('Разрешить геолокацию'),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: () async {
-              await OnboardingService.markLocationPromptSeen();
-              await _finishOnboarding();
-            },
+            onPressed: _isDeterminingCity ? null : _continueWithoutLocation,
             style: OutlinedButton.styleFrom(
               foregroundColor: _text,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               padding: EdgeInsets.symmetric(vertical: 14.s),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
             ),
-            child: const Text('Продолжить без геолокации'),
+            child: const Text('Выбрать город вручную'),
           ),
         ),
         const SizedBox(height: 12),
         Center(
           child: TextButton(
-            onPressed: () async {
-              await OnboardingService.markLocationPromptSeen();
-              await _finishOnboarding();
-            },
+            onPressed: _isDeterminingCity ? null : _continueWithoutLocation,
             style: TextButton.styleFrom(foregroundColor: _textMute),
-            child: const Text('Пока пропустить'),
+            child: const Text('Пока без геолокации'),
           ),
         ),
       ],
@@ -874,7 +893,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Уведомления — про статус заказа и акции без задержек.',
+                'Найдём ваш город и ближайший магазин. Точный адрес можно будет указать позже, при оформлении заказа.',
                 style: TextStyle(color: _textMute, height: 1.35, fontWeight: FontWeight.w600),
               ),
             ),
@@ -903,7 +922,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildNotificationStep() {
     return _buildShell(
-      eyebrow: 'ШАГ 2',
+      eyebrow: 'ШАГ 1',
       title: 'Включите уведомления',
       description: 'Статусы заказа и персональные акции вовремя.',
       icon: Icons.notifications_active_rounded,
@@ -958,7 +977,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isRequestingNotifications ? null : (_notificationsGranted ? () => _goToPage(2) : _requestNotificationPermission),
+            onPressed: _isRequestingNotifications ? null : (_notificationsGranted ? () => _goToPage(1) : _requestNotificationPermission),
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
@@ -974,7 +993,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         const SizedBox(height: 12),
         Center(
           child: TextButton(
-            onPressed: () => _goToPage(2),
+            onPressed: () => _goToPage(1),
             style: TextButton.styleFrom(foregroundColor: _textMute),
             child: const Text('Включить позже'),
           ),
@@ -1016,7 +1035,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             child: PageView(
                               controller: _pageController,
                               physics: const NeverScrollableScrollPhysics(),
-                              children: [_buildCityStep(), _buildNotificationStep(), _buildLocationStep()],
+                              children: [
+                                _buildNotificationStep(),
+                                _buildLocationStep(),
+                              ],
                             ),
                           ),
                         ],

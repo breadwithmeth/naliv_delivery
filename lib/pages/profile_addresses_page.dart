@@ -27,6 +27,7 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
   Set<String> _hiddenIds = <String>{};
   int _revealedCount = 0;
   String? _hidingId;
+  final Set<String> _animatedIds = <String>{};
 
   @override
   void initState() {
@@ -215,28 +216,41 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
   }
 
   Widget _animatedAddressTile(Map<String, dynamic> addr) {
-    final isHiding = _hidingId == _idOf(addr);
-    return ClipRect(
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        heightFactor: isHiding ? 0.0 : 1.0,
-        alignment: Alignment.topCenter,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: isHiding ? 0.0 : 1.0,
-          child: TweenAnimationBuilder<double>(
-            key: ValueKey('addr_${_idOf(addr)}'),
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset(0, 20 * (1 - value)),
-                child: Opacity(opacity: value, child: child),
-              );
-            },
-            child: _addressTile(addr),
+    final id = _idOf(addr);
+    final isHiding = _hidingId == id;
+    final shouldAnimate = !_animatedIds.contains(id);
+    _animatedIds.add(id);
+
+    Widget child = _addressTile(addr);
+
+    if (shouldAnimate) {
+      child = TweenAnimationBuilder<double>(
+        key: ValueKey('addr_$id'),
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, animatedChild) {
+          return Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: Opacity(opacity: value, child: animatedChild),
+          );
+        },
+        child: child,
+      );
+    }
+
+    return KeyedSubtree(
+      key: ValueKey(id),
+      child: ClipRect(
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          heightFactor: isHiding ? 0.0 : 1.0,
+          alignment: Alignment.topCenter,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: isHiding ? 0.0 : 1.0,
+            child: child,
           ),
         ),
       ),

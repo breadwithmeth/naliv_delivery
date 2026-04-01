@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import '../model/item.dart' as ItemModel;
 import '../utils/cart_provider.dart';
 import '../models/cart_item.dart';
+import '../globals.dart' as globals;
 import '../pages/product_detail_page.dart';
 import '../utils/api.dart';
+import '../utils/bonus_rules.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/business_provider.dart';
 import '../utils/liked_items_provider.dart';
@@ -94,6 +96,8 @@ class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final isWeightItem = _isWeightUnit(item.unit);
+    final portionWeight = _resolvePortionWeight(item);
 
     // Promotion calculations
     final promo = item.hasPromotions ? item.promotions!.first : null;
@@ -109,8 +113,9 @@ class _ProductCardState extends State<ProductCard> {
                 : 0)
         : 0;
     final isLowStock = item.amount != null && item.amount! > 0 && item.amount! <= 5;
-    final savingsAmount = hasDiscount ? (item.price - discountedPrice) : 0.0;
-    final bonusPoints = (discountedPrice * 0.03).round();
+    final savingsAmount = hasDiscount ? (item.price - discountedPrice) * (isWeightItem && portionWeight > 0 ? portionWeight : 1) : 0.0;
+    final bonusPoints = _calculateBonusPoints(item, discountedPrice);
+    final portionPrice = isWeightItem && portionWeight > 0 ? discountedPrice * portionWeight : null;
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
@@ -151,66 +156,16 @@ class _ProductCardState extends State<ProductCard> {
                     const Spacer(),
 
                     // ── Price ──
-                    if (hasDiscount) ...[
-                      // Old price strikethrough
-                      Text(
-                        '${_formatPrice(item.price)} ₸',
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          color: _textMute.withValues(alpha: 0.45),
-                          decoration: TextDecoration.lineThrough,
-                          decorationColor: _textMute.withValues(alpha: 0.45),
-                          height: 1.1,
-                        ),
-                      ),
-                      SizedBox(height: 2.s),
-                      // New price + savings row
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              '${_formatPrice(discountedPrice)} ₸',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w900,
-                                color: _text,
-                                height: 1.1,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (savingsAmount >= 1) ...[
-                        SizedBox(height: 2.s),
-                        Text(
-                          'Выгода ${_formatPrice(savingsAmount)} ₸',
-                          style: TextStyle(
-                            fontSize: 9.sp,
-                            fontWeight: FontWeight.w700,
-                            color: _orange,
-                            height: 1.1,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ] else ...[
-                      Text(
-                        '${_formatPrice(item.price)} ₸',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w900,
-                          color: _text,
-                          height: 1.1,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                    ..._priceBlock(
+                      basePrice: item.price,
+                      discountedPrice: discountedPrice,
+                      hasDiscount: hasDiscount,
+                      savingsAmount: savingsAmount,
+                      isWeightItem: isWeightItem,
+                      portionWeight: portionWeight,
+                      portionPrice: portionPrice,
+                      unit: item.unit,
+                    ),
 
                     SizedBox(height: 7.s),
 
@@ -290,72 +245,88 @@ class _ProductCardState extends State<ProductCard> {
 
           // ── Top-left badges column ──
           Positioned(
-            top: 7.s,
-            left: 7.s,
-            right: 36.s,
+            top: 8.s,
+            left: 8.s,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Discount % badge
-                if (hasDiscount && discountPercent > 0)
-                  Container(
-                    margin: EdgeInsets.only(bottom: 3.s),
-                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
-                    decoration: BoxDecoration(
-                      color: _red,
-                      borderRadius: BorderRadius.circular(7.s),
-                    ),
-                    child: Text(
-                      '-$discountPercent%',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _text,
-                      ),
-                    ),
-                  ),
-                // Low stock badge
                 if (isLowStock)
                   Container(
-                    margin: EdgeInsets.only(bottom: 3.s),
-                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
+                    padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
                     decoration: BoxDecoration(
-                      color: _red.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(6.s),
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(8.s),
                     ),
                     child: Text(
-                      'Осталось мало',
+                      'Мало',
                       style: TextStyle(
-                        fontSize: 9.sp,
-                        fontWeight: FontWeight.w700,
-                        color: _text,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _orange,
+                        height: 1.1,
                       ),
                     ),
                   ),
+                if (hasDiscount) ...[
+                  if (isLowStock) SizedBox(height: 6.s),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
+                    decoration: BoxDecoration(
+                      color: _red,
+                      borderRadius: BorderRadius.circular(9.s),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _red.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.local_fire_department_rounded, size: 12.s, color: Colors.white),
+                        SizedBox(width: 5.s),
+                        Text(
+                          '-$discountPercent%',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
 
-          // Heart button (top-right)
+          // ── Top-right like button ──
           Positioned(
-            top: 7.s,
-            right: 7.s,
+            top: 8.s,
+            right: 8.s,
             child: GestureDetector(
               onTap: _toggleLike,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _likeInProgress ? 0.5 : 1,
-                child: Container(
-                  padding: EdgeInsets.all(5.s),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    _isLiked ? Icons.favorite : Icons.favorite_border,
-                    size: 16.s,
-                    color: _isLiked ? _red : Colors.white.withValues(alpha: 0.8),
-                  ),
+              child: Container(
+                padding: EdgeInsets.all(8.s),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  size: 16.s,
+                  color: _isLiked ? _red : Colors.white.withValues(alpha: 0.85),
                 ),
               ),
             ),
@@ -489,6 +460,131 @@ class _ProductCardState extends State<ProductCard> {
         ],
       ),
     );
+  }
+
+  // ─── Bonus calculation helpers ──────────────────────────
+  int _calculateBonusPoints(ItemModel.Item item, double price) {
+    if (BonusRules.isBonusExcludedText(
+      name: item.name,
+      description: item.description,
+      categoryName: item.category?.name,
+      code: item.code,
+    )) {
+      return 0;
+    }
+
+    return BonusRules.calculateEarnedBonuses(price);
+  }
+
+  // ─── Price helpers ───────────────────────────────────────
+  List<Widget> _priceBlock({
+    required double basePrice,
+    required double discountedPrice,
+    required bool hasDiscount,
+    required double savingsAmount,
+    required bool isWeightItem,
+    required double portionWeight,
+    required double? portionPrice,
+    required String? unit,
+  }) {
+    final portionLabel = isWeightItem && portionWeight > 0 ? globals.formatQuantity(portionWeight, unit ?? 'кг') : null;
+
+    final mainPrice = portionPrice ?? discountedPrice;
+    final oldPrice = hasDiscount ? (portionPrice != null ? basePrice * portionWeight : basePrice) : null;
+
+    return [
+      if (hasDiscount && oldPrice != null) ...[
+        Text(
+          '${_formatPrice(oldPrice)} ₸',
+          style: TextStyle(
+            fontSize: 10.sp,
+            color: _textMute.withValues(alpha: 0.45),
+            decoration: TextDecoration.lineThrough,
+            decorationColor: _textMute.withValues(alpha: 0.45),
+            height: 1.1,
+          ),
+        ),
+        SizedBox(height: 2.s),
+      ],
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Flexible(
+            child: Text(
+              '${_formatPrice(mainPrice)} ₸',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w900,
+                color: _text,
+                height: 1.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (portionLabel != null) ...[
+            SizedBox(width: 6.s),
+            Text(
+              'за $portionLabel',
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w700,
+                color: _textMute,
+                height: 1.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+      if (hasDiscount && savingsAmount >= 1) ...[
+        SizedBox(height: 2.s),
+        Text(
+          'Выгода ${_formatPrice(savingsAmount)} ₸',
+          style: TextStyle(
+            fontSize: 9.sp,
+            fontWeight: FontWeight.w700,
+            color: _orange,
+            height: 1.1,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+      if (isWeightItem) ...[
+        SizedBox(height: 3.s),
+        Text(
+          '${_formatPrice(discountedPrice)} ₸/кг',
+          style: TextStyle(
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w600,
+            color: _textMute.withValues(alpha: 0.8),
+            height: 1.1,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    ];
+  }
+
+  bool _isWeightUnit(String? unit) {
+    final u = unit?.toLowerCase().trim();
+    if (u == null) return false;
+    if (u.contains('кг') || u.contains('kg')) return true;
+    // Exclude common piece/liquid units
+    if (u.contains('шт') || u.contains('л')) return false;
+    return false;
+  }
+
+  double _resolvePortionWeight(ItemModel.Item item) {
+    if (item.quantity != null && item.quantity! > 0) return item.quantity!;
+    if (item.stepQuantity != null && item.stepQuantity! > 0) {
+      return item.stepQuantity!;
+    }
+    return item.effectiveStepQuantity;
   }
 
   // ─── Cart section ────────────────────────────────────────

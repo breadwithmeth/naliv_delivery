@@ -19,16 +19,6 @@ class ProductDetailPage extends StatefulWidget {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
-  // ── MainPage palette ──────────────────────────────────────────
-  static const _bg = Color(0xFF121212);
-  static const _surface = Color(0xFF1E1E1E);
-  static const _surfDim = Color(0xFF181818);
-  static const _accent = Color(0xFF242A32);
-  static const _orange = Color(0xFFF6A10C);
-  static const _red = Color(0xFFC23B30);
-  static const _tx = Colors.white;
-  static const _dim = Color(0xFF9FB0C8);
-
   // ── state ─────────────────────────────────────────────────────
   late final item_model.ItemOption? _containerOption;
   late final List<item_model.ItemOptionItem> _bottleVariants;
@@ -562,9 +552,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF2A8C3E),
                     borderRadius: BorderRadius.circular(12.s),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4)),
-                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -613,9 +600,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final pad = MediaQuery.of(context).padding;
     final total = _previewTotal();
     final amount = _configuredAmount();
+    final cart = context.watch<CartProvider>();
+    final cartQuantity = cart.getTotalQuantityForItem(widget.item.itemId);
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bgDeep,
       body: Stack(
         children: [
           // ─ scrollable content ─
@@ -628,7 +617,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   offset: const Offset(0, -24),
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: _bg,
+                      color: AppColors.bgDeep,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                     ),
                     padding: EdgeInsets.fromLTRB(18.s, 24.s, 18.s, 0),
@@ -691,7 +680,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _bottomBar(total, amount, pad),
+            child: _bottomBar(total, amount, cartQuantity, pad),
           ),
         ],
       ),
@@ -702,23 +691,45 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _imageArea(EdgeInsets pad) {
     final hasImage = (widget.item.image ?? '').trim().isNotEmpty;
-    return Container(
-      height: 260.s + pad.top,
-      color: _surfDim,
-      alignment: Alignment.center,
-      padding: EdgeInsets.fromLTRB(36.s, pad.top + 36.s, 36.s, 36.s),
-      child: hasImage
-          ? Image.network(
-              widget.item.image!,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _placeholder(),
-            )
-          : _placeholder(),
+    final promo = _subtractPromo;
+
+    return Stack(
+      children: [
+        Container(
+          height: 260.s + pad.top,
+          color: AppColors.cardDark,
+          alignment: Alignment.center,
+          padding: EdgeInsets.fromLTRB(36.s, pad.top + 36.s, 36.s, 36.s),
+          child: hasImage
+              ? Image.network(
+                  widget.item.image!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => _placeholder(),
+                )
+              : _placeholder(),
+        ),
+        if (promo != null)
+          Positioned(
+            left: 18.s,
+            bottom: 18.s,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
+              decoration: BoxDecoration(
+                color: AppColors.orange.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10.s),
+              ),
+              child: Text(
+                '${promo.baseAmount}+${promo.addAmount}',
+                style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _placeholder() {
-    return const Icon(Icons.inventory_2_outlined, color: _dim, size: 58);
+    return const Icon(Icons.inventory_2_outlined, color: AppColors.textMute, size: 58);
   }
 
   // ── product info ──────────────────────────────────────────────
@@ -731,12 +742,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
             decoration: BoxDecoration(
-              color: _accent,
+              color: AppColors.blue,
               borderRadius: BorderRadius.circular(7.s),
             ),
             child: Text(
               widget.item.category!.name,
-              style: TextStyle(color: _dim, fontSize: 11.sp, fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
             ),
           ),
           SizedBox(height: 10.s),
@@ -744,7 +755,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         Text(
           widget.item.name,
           style: TextStyle(
-            color: _tx,
+            color: AppColors.text,
             fontSize: 20.sp,
             fontWeight: FontWeight.w800,
             height: 1.2,
@@ -753,7 +764,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         if ((widget.item.code ?? '').trim().isNotEmpty)
           Text(
             'Арт. ${widget.item.code}',
-            style: TextStyle(color: _dim.withValues(alpha: 0.45), fontSize: 11.sp),
+            style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.45), fontSize: 11.sp),
           ),
         SizedBox(height: 14.s),
         ..._priceDisplay(),
@@ -761,7 +772,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           SizedBox(height: 3.s),
           Text(
             '${_money(widget.item.price)} за 1 л',
-            style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
           ),
         ],
         if (widget.item.amount != null && widget.item.amount! > 0) ...[
@@ -783,11 +794,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         Text(
           _money(widget.item.price),
           style: TextStyle(
-            color: _dim.withValues(alpha: 0.5),
+            color: AppColors.textMute.withValues(alpha: 0.5),
             fontSize: 15.sp,
             fontWeight: FontWeight.w600,
             decoration: TextDecoration.lineThrough,
-            decorationColor: _dim.withValues(alpha: 0.5),
+            decorationColor: AppColors.textMute.withValues(alpha: 0.5),
           ),
         ),
         SizedBox(height: 4.s),
@@ -798,7 +809,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             Text(
               _money(discounted),
               style: TextStyle(
-                color: _orange,
+                color: AppColors.orange,
                 fontSize: 25.sp,
                 fontWeight: FontWeight.w900,
               ),
@@ -807,13 +818,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
               decoration: BoxDecoration(
-                color: _red,
+                color: AppColors.red,
                 borderRadius: BorderRadius.circular(6.s),
               ),
               child: Text(
                 '-${promo.discountValue.round()}%',
                 style: TextStyle(
-                  color: _tx,
+                  color: AppColors.text,
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w800,
                 ),
@@ -826,7 +837,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           Text(
             'Выгода ${_money(savings)}',
             style: TextStyle(
-              color: _orange,
+              color: AppColors.orange,
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
             ),
@@ -840,7 +851,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       Text(
         _money(widget.item.price),
         style: TextStyle(
-          color: _orange,
+          color: AppColors.orange,
           fontSize: 25.sp,
           fontWeight: FontWeight.w900,
         ),
@@ -857,7 +868,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     if (amount <= 2) {
       label = 'Заканчивается';
-      color = _red;
+      color = AppColors.red;
       urgent = true;
     } else if (amount <= 5) {
       label = 'Мало';
@@ -865,7 +876,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       urgent = false;
     } else if (amount <= 15) {
       label = 'В наличии';
-      color = _dim;
+      color = AppColors.textMute;
       urgent = false;
     } else {
       label = 'Много';
@@ -877,7 +888,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 3.s),
         decoration: BoxDecoration(
-          color: _red.withValues(alpha: 0.15),
+          color: AppColors.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(6.s),
         ),
         child: Row(
@@ -886,12 +897,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             Container(
               width: 6.s,
               height: 6.s,
-              decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
             ),
             SizedBox(width: 5.s),
             Text(
               label,
-              style: TextStyle(color: _red, fontSize: 11.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(color: AppColors.red, fontSize: 11.sp, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -949,17 +960,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               padding: EdgeInsets.only(bottom: 4.s),
               child: Row(
                 children: [
-                  Icon(Icons.wine_bar_outlined, size: 13.s, color: _dim),
+                  Icon(Icons.wine_bar_outlined, size: 13.s, color: AppColors.textMute),
                   SizedBox(width: 6.s),
                   Expanded(
                     child: Text(
                       '${entry.value}× $name (${_volumeLabel(vol)})',
-                      style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
                     ),
                   ),
                   Text(
                     _money(cost),
-                    style: TextStyle(color: _tx, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -986,33 +997,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final litersToNext = _normalizeDouble(nextThreshold - amount);
 
     if (free > 0) {
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 8.s),
-        decoration: BoxDecoration(
-          color: _orange.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10.s),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.card_giftcard_rounded, size: 15.s, color: _orange),
-            SizedBox(width: 7.s),
-            Text(
-              '${_volumeLabel(free)} бесплатно 🎁',
-              style: TextStyle(color: _orange, fontSize: 13.sp, fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
+      return Row(
+        children: [
+          Icon(Icons.card_giftcard_rounded, size: 14.s, color: AppColors.orange),
+          SizedBox(width: 6.s),
+          Text(
+            '${_volumeLabel(free)} бесплатно',
+            style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w700),
+          ),
+        ],
       );
     }
 
     return Row(
       children: [
-        Icon(Icons.info_outline_rounded, size: 14.s, color: _dim),
+        Icon(Icons.info_outline_rounded, size: 14.s, color: AppColors.textMute),
         SizedBox(width: 6.s),
         Text(
           'Ещё ${_volumeLabel(litersToNext)} до ${promo.addAmount} л бесплатно',
-          style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -1021,56 +1024,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// Full-width promo banner — shown between product info and controls.
   Widget _subtractPromoBanner() {
     final promo = _subtractPromo!;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_orange.withValues(alpha: 0.15), _orange.withValues(alpha: 0.06)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Row(
+      children: [
+        Icon(Icons.card_giftcard_rounded, size: 16.s, color: AppColors.orange),
+        SizedBox(width: 8.s),
+        Expanded(
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(
+                text: '${promo.baseAmount}+${promo.addAmount}  ',
+                style: TextStyle(color: AppColors.orange, fontSize: 13.sp, fontWeight: FontWeight.w900),
+              ),
+              TextSpan(
+                text: 'Купите ${promo.baseAmount} — ${promo.addAmount} в подарок',
+                style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
+              ),
+            ]),
+          ),
         ),
-        borderRadius: BorderRadius.circular(14.s),
-        border: Border.all(color: _orange.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36.s,
-            height: 36.s,
-            decoration: BoxDecoration(
-              color: _orange.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(10.s),
-            ),
-            child: Icon(Icons.card_giftcard_rounded, size: 18.s, color: _orange),
-          ),
-          SizedBox(width: 12.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Акция ${promo.baseAmount}+${promo.addAmount}',
-                  style: TextStyle(
-                    color: _orange,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 2.s),
-                Text(
-                  'Купите ${promo.baseAmount} л \u2014 ${promo.addAmount} л в подарок. Скидка автоматически.',
-                  style: TextStyle(
-                    color: _tx.withValues(alpha: 0.8),
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -1088,13 +1060,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 12.s),
         decoration: BoxDecoration(
-          color: _surfDim,
+          color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(12.s),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Row(
           children: [
-            Icon(Icons.wine_bar_outlined, color: _dim, size: 16.s),
+            Icon(Icons.wine_bar_outlined, color: AppColors.textMute, size: 16.s),
             SizedBox(width: 9.s),
             Expanded(
               child: Column(
@@ -1102,19 +1073,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 children: [
                   Text(
                     'Настроить тару',
-                    style: TextStyle(color: _tx, fontSize: 13.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w600),
                   ),
                   if (detail != null) ...[
                     SizedBox(height: 2.s),
                     Text(
                       detail,
-                      style: TextStyle(color: _dim, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: _dim, size: 18.s),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textMute, size: 18.s),
           ],
         ),
       ),
@@ -1184,7 +1155,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     Flexible(
                       child: Text(
                         option.name,
-                        style: TextStyle(color: _tx, fontSize: 14.sp, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                     if (option.required == 1) ...[
@@ -1192,12 +1163,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
                         decoration: BoxDecoration(
-                          color: _orange.withValues(alpha: 0.12),
+                          color: AppColors.orange.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(5.s),
                         ),
                         child: Text(
                           'обяз.',
-                          style: TextStyle(color: _orange, fontSize: 10.sp, fontWeight: FontWeight.w700),
+                          style: TextStyle(color: AppColors.orange, fontSize: 10.sp, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -1239,7 +1210,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         SizedBox(height: 10.s),
         ...promotions.map((promotion) {
           final icon = promotion.discountType == 'SUBTRACT' ? Icons.card_giftcard_rounded : Icons.local_offer_outlined;
-          final color = promotion.discountType == 'SUBTRACT' ? _orange : _red;
+          final color = promotion.discountType == 'SUBTRACT' ? AppColors.orange : AppColors.red;
           final label = _promoLabel(promotion);
           final detail = _promoDetail(promotion);
 
@@ -1250,7 +1221,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10.s),
-                border: Border.all(color: color.withValues(alpha: 0.25)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1269,7 +1239,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           SizedBox(height: 3.s),
                           Text(
                             detail,
-                            style: TextStyle(color: _dim, fontSize: 11.sp, height: 1.3),
+                            style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, height: 1.3),
                           ),
                         ],
                       ],
@@ -1320,7 +1290,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         SizedBox(height: 10.s),
         Text(
           widget.item.description!,
-          style: TextStyle(color: _dim, fontSize: 13.sp, height: 1.6),
+          style: TextStyle(color: AppColors.textMute, fontSize: 13.sp, height: 1.6),
         ),
       ],
     );
@@ -1328,9 +1298,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ── bottom bar ─────────────────────────────────────────────────
 
-  Widget _bottomBar(double total, double amount, EdgeInsets pad) {
+  Widget _bottomBar(double total, double amount, double cartQuantity, EdgeInsets pad) {
     final ready = amount > 0;
     final free = _freeFromPromo(amount);
+    final plannedTotal = _normalizeDouble(cartQuantity + amount);
 
     // Build subtitle
     String subtitle;
@@ -1352,7 +1323,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Container(
       padding: EdgeInsets.fromLTRB(18.s, 12.s, 18.s, 12.s + pad.bottom),
       decoration: BoxDecoration(
-        color: _surface,
+        color: AppColors.card,
         border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Row(
@@ -1362,32 +1333,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (_subtractPromo != null) ...[
+                  _subtractProgressBar(cartQuantity, plannedTotal),
+                  SizedBox(height: 10.s),
+                ],
                 if (hasSavings)
                   Text(
                     _money(rawTotal),
                     style: TextStyle(
-                      color: _dim.withValues(alpha: 0.5),
+                      color: AppColors.textMute.withValues(alpha: 0.5),
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
                       decoration: TextDecoration.lineThrough,
-                      decorationColor: _dim.withValues(alpha: 0.5),
+                      decorationColor: AppColors.textMute.withValues(alpha: 0.5),
                     ),
                   ),
                 Text(
                   _money(total),
-                  style: TextStyle(color: _tx, fontSize: 20.sp, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900),
                 ),
                 if (hasSavings) ...[
                   SizedBox(height: 1.s),
                   Text(
                     'Выгода ${_money(rawTotal - total)}',
-                    style: TextStyle(color: _orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
+                    style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
                   ),
                 ],
                 SizedBox(height: 2.s),
                 Text(
                   subtitle,
-                  style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -1398,10 +1373,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             child: ElevatedButton(
               onPressed: !_submitting && ready ? _submit : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _orange,
+                backgroundColor: AppColors.orange,
                 foregroundColor: Colors.black,
-                disabledBackgroundColor: _accent,
-                disabledForegroundColor: _dim,
+                disabledBackgroundColor: AppColors.blue,
+                disabledForegroundColor: AppColors.textMute,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
                 padding: EdgeInsets.symmetric(horizontal: 24.s),
@@ -1423,6 +1398,63 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  Widget _subtractProgressBar(double cartQuantity, double plannedQuantity) {
+    final promo = _subtractPromo;
+    if (promo == null) return const SizedBox.shrink();
+
+    final base = promo.baseAmount.toDouble();
+    final add = promo.addAmount.toDouble();
+    final group = base + add;
+    if (group <= 0) return const SizedBox.shrink();
+
+    final total = _normalizeDouble(plannedQuantity);
+    final remainderRaw = total <= 0 ? 0 : total % group;
+    final remainder = remainderRaw == 0 && total > 0 ? group : remainderRaw;
+    final progress = total <= 0 ? 0.0 : (remainder / group).clamp(0.0, 1.0);
+
+    final claimLeft = math.max(0.0, group - remainder);
+    final success = claimLeft <= 0.001;
+
+    String label;
+    Color barColor;
+
+    if (total <= 0.001) {
+      label = 'Доб. ${_promoAmountLabel(base)} для подарка';
+      barColor = AppColors.orange;
+    } else if (success) {
+      label = '${_promoAmountLabel(add)} бесплатно ✔';
+      barColor = const Color(0xFF3AC779);
+    } else {
+      label = 'Ещё ${_promoAmountLabel(claimLeft)} до подарка';
+      barColor = AppColors.orange;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3.s),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 4.s,
+            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            valueColor: AlwaysStoppedAnimation(barColor),
+          ),
+        ),
+        SizedBox(height: 4.s),
+        Text(
+          label,
+          style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  String _promoAmountLabel(double value) {
+    return _usesPourFlow ? _volumeLabel(value) : _quantityLabel(value);
+  }
+
   // ════════════════════════════════════════════════════════════════
   //  Reusable parts
   // ════════════════════════════════════════════════════════════════
@@ -1435,7 +1467,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Text(
       text.toUpperCase(),
       style: TextStyle(
-        color: _dim,
+        color: AppColors.textMute,
         fontSize: 12.sp,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
@@ -1455,9 +1487,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         duration: const Duration(milliseconds: 150),
         padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 9.s),
         decoration: BoxDecoration(
-          color: active ? _orange : _surfDim,
+          color: active ? AppColors.orange : AppColors.cardDark,
           borderRadius: BorderRadius.circular(11.s),
-          border: active ? null : Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1466,7 +1497,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             Text(
               label,
               style: TextStyle(
-                color: active ? Colors.black : _tx,
+                color: active ? Colors.black : AppColors.text,
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -1476,7 +1507,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: active ? Colors.black54 : _dim,
+                  color: active ? Colors.black54 : AppColors.textMute,
                   fontSize: 10.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1499,7 +1530,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Container(
       padding: EdgeInsets.all(5.s),
       decoration: BoxDecoration(
-        color: _surfDim,
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14.s),
       ),
       child: Row(
@@ -1511,14 +1542,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 Text(
                   value,
-                  style: TextStyle(color: _tx, fontSize: 22.sp, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: AppColors.text, fontSize: 22.sp, fontWeight: FontWeight.w900),
                 ),
                 if (subtitle != null)
                   Padding(
                     padding: EdgeInsets.only(top: 2.s),
                     child: Text(
                       subtitle,
-                      style: TextStyle(color: _dim, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
                     ),
                   ),
               ],
@@ -1532,7 +1563,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _stepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
-      color: onTap != null ? _accent : _accent.withValues(alpha: 0.4),
+      color: onTap != null ? AppColors.blue : AppColors.blue.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
@@ -1542,7 +1573,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           height: 40.s,
           child: Icon(
             icon,
-            color: onTap != null ? _tx : _dim.withValues(alpha: 0.4),
+            color: onTap != null ? AppColors.text : AppColors.textMute.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -1556,10 +1587,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         width: 36.s,
         height: 36.s,
         decoration: BoxDecoration(
-          color: _surface.withValues(alpha: 0.85),
+          color: AppColors.card.withValues(alpha: 0.85),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: _tx, size: 16.s),
+        child: Icon(icon, color: AppColors.text, size: 16.s),
       ),
     );
   }
@@ -1593,14 +1624,6 @@ class _BottleSheet extends StatefulWidget {
 }
 
 class _BottleSheetState extends State<_BottleSheet> {
-  static const _bg = Color(0xFF121212);
-  static const _surface = Color(0xFF1E1E1E);
-  static const _surfDim = Color(0xFF181818);
-  static const _accent = Color(0xFF242A32);
-  static const _orange = Color(0xFFF6A10C);
-  static const _tx = Colors.white;
-  static const _dim = Color(0xFF9FB0C8);
-
   late final Map<int, int> _counts;
 
   @override
@@ -1642,7 +1665,7 @@ class _BottleSheetState extends State<_BottleSheet> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: _surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(18.s, 10.s, 18.s, 14.s + pad.bottom),
@@ -1664,12 +1687,12 @@ class _BottleSheetState extends State<_BottleSheet> {
             children: [
               Text(
                 'Тара',
-                style: TextStyle(color: _tx, fontSize: 16.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               Text(
                 '${widget.volumeLabel(liters)} · $bottleCount бут.',
-                style: TextStyle(color: _dim, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -1684,16 +1707,15 @@ class _BottleSheetState extends State<_BottleSheet> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 10.s),
                 decoration: BoxDecoration(
-                  color: count > 0 ? _accent : _surfDim,
+                  color: count > 0 ? AppColors.blue : AppColors.cardDark,
                   borderRadius: BorderRadius.circular(12.s),
-                  border: count > 0 ? Border.all(color: _orange.withValues(alpha: 0.2)) : null,
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         widget.shortName(bottle),
-                        style: TextStyle(color: _tx, fontSize: 14.sp, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                     _sheetStepBtn(
@@ -1705,7 +1727,7 @@ class _BottleSheetState extends State<_BottleSheet> {
                       child: Center(
                         child: Text(
                           '$count',
-                          style: TextStyle(color: _tx, fontSize: 15.sp, fontWeight: FontWeight.w900),
+                          style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
@@ -1726,7 +1748,7 @@ class _BottleSheetState extends State<_BottleSheet> {
             child: ElevatedButton(
               onPressed: _apply,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _orange,
+                backgroundColor: AppColors.orange,
                 foregroundColor: Colors.black,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
@@ -1744,7 +1766,7 @@ class _BottleSheetState extends State<_BottleSheet> {
 
   Widget _sheetStepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
-      color: onTap != null ? _accent : _accent.withValues(alpha: 0.4),
+      color: onTap != null ? AppColors.blue : AppColors.blue.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
@@ -1755,7 +1777,7 @@ class _BottleSheetState extends State<_BottleSheet> {
           child: Icon(
             icon,
             size: 18.s,
-            color: onTap != null ? _tx : _dim.withValues(alpha: 0.4),
+            color: onTap != null ? AppColors.text : AppColors.textMute.withValues(alpha: 0.4),
           ),
         ),
       ),

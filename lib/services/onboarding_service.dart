@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -161,6 +162,8 @@ class OnboardingService {
 
   /// Best-effort IP geolocation to preselect a city. Returns a city name if it matches available cities.
   static Future<String?> guessCityByIp() async {
+    // Skip IP lookup on web to avoid CORS failures in browsers; rely on city list/location instead.
+    if (kIsWeb) return null;
     try {
       if (_citiesCache.isEmpty) return null;
       final resp = await http.get(Uri.parse('https://ipapi.co/json/')).timeout(const Duration(seconds: 4));

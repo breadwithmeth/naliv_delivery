@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/api.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import '../utils/responsive.dart';
 
@@ -29,23 +31,19 @@ class PhoneTextInputFormatter extends TextInputFormatter {
 
     if (localDigits.isNotEmpty) {
       buffer.write(' ');
-      final first = localDigits.substring(0, localDigits.length.clamp(0, 3));
-      buffer.write(first);
+      buffer.write(localDigits.substring(0, localDigits.length.clamp(0, 3)));
     }
     if (localDigits.length > 3) {
       buffer.write(' ');
-      final second = localDigits.substring(3, localDigits.length.clamp(3, 6));
-      buffer.write(second);
+      buffer.write(localDigits.substring(3, localDigits.length.clamp(3, 6)));
     }
     if (localDigits.length > 6) {
       buffer.write(' ');
-      final third = localDigits.substring(6, localDigits.length.clamp(6, 8));
-      buffer.write(third);
+      buffer.write(localDigits.substring(6, localDigits.length.clamp(6, 8)));
     }
     if (localDigits.length > 8) {
       buffer.write(' ');
-      final fourth = localDigits.substring(8, localDigits.length.clamp(8, 10));
-      buffer.write(fourth);
+      buffer.write(localDigits.substring(8, localDigits.length.clamp(8, 10)));
     }
 
     return buffer.toString();
@@ -67,59 +65,71 @@ class PhoneTextInputFormatter extends TextInputFormatter {
 
 class LoginPage extends StatefulWidget {
   final int? redirectTabIndex;
-  const LoginPage({Key? key, this.redirectTabIndex}) : super(key: key);
+  const LoginPage({super.key, this.redirectTabIndex});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  // ─── Palette (mainPage) ──────────────────────────────────
-  static const Color _bgDeep = Color(0xFF121212);
-  static const Color _bgTop = Color(0xFF161616);
-  static const Color _card = Color(0xFF1E1E1E);
-  static const Color _cardDark = Color(0xFF181818);
-  static const Color _orange = Color(0xFFF6A10C);
-  static const Color _text = Colors.white;
-  static const Color _textMute = Color(0xFF9FB0C8);
-
+class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   final _phoneFocusNode = FocusNode();
   final _codeFocusNode = FocusNode();
   final _pageController = PageController();
+
   bool _codeSent = false;
   bool _isLoading = false;
   bool _showAuthForm = false;
   int _currentPage = 0;
 
-  // Onboarding slides data
+  late final AnimationController _iconPulse;
+
+  Timer? _autoSlideTimer;
+  Timer? _resumeTimer;
+  bool _userInteracting = false;
+
   static const _slides = [
     _SlideData(
       icon: Icons.local_offer_rounded,
-      title: 'Персональные\nакции и скидки',
-      subtitle: 'Уникальные предложения\nтолько для вас',
+      title: 'Персональные акции',
+      subtitle: 'Уникальные скидки только для вас',
     ),
     _SlideData(
       icon: Icons.flash_on_rounded,
-      title: 'Быстрое\nоформление заказа',
-      subtitle: 'Заказ в пару нажатий\nс сохранением адресов',
+      title: 'Быстрый заказ',
+      subtitle: 'Оформление в пару нажатий',
     ),
     _SlideData(
       icon: Icons.history_rounded,
-      title: 'История заказов\nи повтор покупок',
-      subtitle: 'Легко найти и повторить\nлюбой прошлый заказ',
+      title: 'История покупок',
+      subtitle: 'Повторите любой прошлый заказ',
     ),
     _SlideData(
       icon: Icons.star_rounded,
-      title: 'Программа\nлояльности',
-      subtitle: 'Накапливайте бонусы\nс каждой покупки',
+      title: 'Бонусы',
+      subtitle: 'Копите с каждой покупки',
     ),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _iconPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+    _startAutoSlide();
+  }
+
+  @override
   void dispose() {
+    _iconPulse.dispose();
+    _autoSlideTimer?.cancel();
+    _resumeTimer?.cancel();
     _phoneController.dispose();
     _codeController.dispose();
     _phoneFocusNode.dispose();
@@ -128,9 +138,36 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // ── Auto-slide carousel ───────────────────────────────────
+
+  void _startAutoSlide() {
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_showAuthForm && _pageController.hasClients) {
+        final next = (_currentPage + 1) % _slides.length;
+        _pageController.animateToPage(next, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+      }
+    });
+  }
+
+  void _onCarouselInteractionStart() {
+    _userInteracting = true;
+    _autoSlideTimer?.cancel();
+    _resumeTimer?.cancel();
+  }
+
+  void _onCarouselInteractionEnd() {
+    _userInteracting = false;
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted && !_userInteracting) _startAutoSlide();
+    });
+  }
+
+  // ── Phone helpers ─────────────────────────────────────────
+
   void _ensurePhonePrefix() {
     if (_phoneController.text.trim().isNotEmpty) return;
-
     final value = PhoneTextInputFormatter.formatDigits('7');
     _phoneController.value = TextEditingValue(
       text: value,
@@ -144,37 +181,29 @@ class _LoginPageState extends State<LoginPage> {
     return '+$digits';
   }
 
+  // ── API calls ─────────────────────────────────────────────
+
   Future<void> _sendCode() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     final phone = _normalizedPhone();
     try {
       final sent = await ApiService.sendAuthCode(phone);
-      if (sent) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Код отправлен на $phone'),
-              backgroundColor: _card,
-            ),
-          );
-          setState(() => _codeSent = true);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Не удалось отправить код'),
-              backgroundColor: _card,
-            ),
-          );
-        }
+      if (mounted && sent) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Код отправлен на $phone'),
+          backgroundColor: AppColors.card,
+        ));
+        setState(() => _codeSent = true);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Не удалось отправить код'),
+          backgroundColor: AppColors.card,
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: _card),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -190,26 +219,18 @@ class _LoginPageState extends State<LoginPage> {
       final data = await ApiService.verifyAuthCode(phone, code);
       if (data != null && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => AuthenticationWrapper(
-              initialTabIndex: widget.redirectTabIndex,
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => AuthenticationWrapper(initialTabIndex: widget.redirectTabIndex)),
           (route) => false,
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Неверный код или ошибка'),
-            backgroundColor: _card,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Неверный код или ошибка'),
+          backgroundColor: AppColors.card,
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: _card),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -219,25 +240,25 @@ class _LoginPageState extends State<LoginPage> {
   // ═══════════════════════════════════════════════════════════
   //  BUILD
   // ═══════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgDeep,
+      backgroundColor: AppColors.bgDeep,
       body: Stack(
         children: [
-          // Background
-          _background(),
-
-          // Content
+          const AppBackground(),
           SafeArea(
             child: Column(
               children: [
-                // Top bar
                 _topBar(),
-
-                // Main content
                 Expanded(
-                  child: _showAuthForm ? _authFormView() : _onboardingView(),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: _showAuthForm ? _authFormView() : _onboardingView(),
+                  ),
                 ),
               ],
             ),
@@ -247,119 +268,62 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ─── Background ──────────────────────────────────────────
-  Widget _background() {
-    return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_bgTop, _bgDeep],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Top-left orange glow
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.8, -0.6),
-                    radius: 1.0,
-                    colors: [
-                      _orange.withValues(alpha: 0.06),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Bottom-right subtle glow
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(0.6, 0.8),
-                    radius: 1.4,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.02),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ── Top bar ───────────────────────────────────────────────
 
-  // ─── Top bar ─────────────────────────────────────────────
   Widget _topBar() {
     return Padding(
       padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 0),
       child: Row(
         children: [
           if (_showAuthForm)
-            GestureDetector(
-              onTap: () => setState(() {
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+              color: AppColors.text,
+              onPressed: () => setState(() {
                 _showAuthForm = false;
                 _codeSent = false;
                 _codeController.clear();
               }),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _card,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                ),
-                child: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
-              ),
             )
           else if (Navigator.of(context).canPop())
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _card,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                ),
-                child: Icon(Icons.close_rounded, color: _text, size: 16.s),
-              ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              color: AppColors.text,
+              onPressed: () => Navigator.of(context).pop(),
             ),
           const Spacer(),
-          // Logo
           SvgPicture.asset('assets/logo_new.svg', height: 25.s),
           const Spacer(),
-          // Invisible balance for centering logo
-          const SizedBox(width: 34),
+          const SizedBox(width: 48), // balance for logo centering
         ],
       ),
     );
   }
 
-  // ─── Onboarding view ─────────────────────────────────────
+  // ── Onboarding view ───────────────────────────────────────
+
   Widget _onboardingView() {
     return Column(
+      key: const ValueKey('onboarding'),
       children: [
-        // Carousel
         Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: _slides.length,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (_, i) => _slidePage(_slides[i]),
+          child: Listener(
+            onPointerDown: (_) => _onCarouselInteractionStart(),
+            onPointerUp: (_) => _onCarouselInteractionEnd(),
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _slides.length,
+              onPageChanged: (i) {
+                setState(() => _currentPage = i);
+                _iconPulse.forward(from: 0.0);
+              },
+              itemBuilder: (_, i) => _slidePage(_slides[i]),
+            ),
           ),
         ),
-
         // Dots
         Padding(
-          padding: EdgeInsets.only(bottom: 22.s),
+          padding: EdgeInsets.only(bottom: 20.s),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(_slides.length, (i) {
@@ -367,272 +331,134 @@ class _LoginPageState extends State<LoginPage> {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: EdgeInsets.symmetric(horizontal: 4.s),
-                width: active ? 22.s : 7.s,
-                height: 7.s,
+                width: active ? 20.s : 6.s,
+                height: 6.s,
                 decoration: BoxDecoration(
-                  color: active ? _orange : _textMute.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
+                  color: active ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(3),
                 ),
               );
             }),
           ),
         ),
-
-        // Subtitle
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 28.s),
-          child: Text(
-            'Войдите в аккаунт, чтобы не упустить выгоду',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: _textMute.withValues(alpha: 0.7),
-              height: 1.3,
-            ),
-          ),
+        Text(
+          'Войдите, чтобы не упустить выгоду',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 13.sp, height: 1.3),
         ),
-        SizedBox(height: 18.s),
-
-        // CTA button
+        SizedBox(height: 16.s),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 22.s),
-          child: SizedBox(
-            width: double.infinity,
-            height: 48.s,
-            child: Material(
-              color: _orange,
-              borderRadius: BorderRadius.circular(14.s),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14.s),
-                onTap: () => setState(() {
-                  _showAuthForm = true;
-                  _ensurePhonePrefix();
-                }),
-                child: Center(
-                  child: Text(
-                    'Войти или зарегистрироваться',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          child: _primaryButton(
+            label: 'Войти или зарегистрироваться',
+            onPressed: () => setState(() {
+              _showAuthForm = true;
+              _ensurePhonePrefix();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _phoneFocusNode.requestFocus();
+              });
+            }),
           ),
         ),
-        SizedBox(height: 14.s),
-
-        // Chevron hint
-        Icon(
-          Icons.keyboard_arrow_down_rounded,
-          size: 25.s,
-          color: _textMute.withValues(alpha: 0.3),
-        ),
-        SizedBox(height: 22.s),
+        SizedBox(height: 26.s),
       ],
     );
   }
 
-  // ─── Slide page ──────────────────────────────────────────────────
+  // ── Slide page ────────────────────────────────────────────
+
   Widget _slidePage(_SlideData slide) {
     return Padding(
       padding: EdgeInsets.fromLTRB(28.s, 22.s, 28.s, 0),
       child: Column(
         children: [
           const Spacer(flex: 1),
-          // Icon card
-          _slideIllustration(slide.icon),
-          SizedBox(height: 36.s),
-          // Title
-          Text(
-            slide.title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 25.sp,
-              fontWeight: FontWeight.w900,
-              color: _text,
-              height: 1.15,
-              letterSpacing: -0.5,
-            ),
-          ),
-          SizedBox(height: 10.s),
-          Text(
-            slide.subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: _textMute.withValues(alpha: 0.6),
-              height: 1.4,
-            ),
-          ),
+          _glowIcon(slide.icon),
+          SizedBox(height: 28.s),
+          Text(slide.title,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w900, color: AppColors.text, height: 1.15, letterSpacing: -0.5)),
+          SizedBox(height: 8.s),
+          Text(slide.subtitle,
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 13.sp, color: AppColors.textMute.withValues(alpha: 0.6), height: 1.4)),
           const Spacer(flex: 2),
         ],
       ),
     );
   }
 
-  // ─── Slide illustration ──────────────────────────────────
-  Widget _slideIllustration(IconData icon) {
-    return SizedBox(
-      height: 144.s,
-      width: 180.s,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Glow circle
-          Container(
-            width: 126.s,
-            height: 126.s,
+  // ── Auth form view ────────────────────────────────────────
+
+  Widget _glowIcon(IconData icon) {
+    return AnimatedBuilder(
+      animation: _iconPulse,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(_iconPulse.value);
+        final scale = 0.85 + 0.15 * t;
+        final glowOpacity = 0.18 + 0.12 * t;
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 88.s,
+            height: 88.s,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  _orange.withValues(alpha: 0.15),
-                  _orange.withValues(alpha: 0.02),
-                  Colors.transparent,
+                  AppColors.orange.withValues(alpha: glowOpacity),
+                  AppColors.orange.withValues(alpha: 0.0),
                 ],
-                stops: const [0.0, 0.6, 1.0],
               ),
             ),
-          ),
-          // Icon container
-          Container(
-            width: 78.s,
-            height: 78.s,
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(25.s),
-              border: Border.all(color: _orange.withValues(alpha: 0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: _orange.withValues(alpha: 0.1),
-                  blurRadius: 28.s,
-                  spreadRadius: 4.s,
-                ),
-              ],
-            ),
-            child: Icon(icon, size: 36.s, color: _orange),
-          ),
-          // Decorative accent dots
-          Positioned(
-            top: 12,
-            right: 24,
-            child: Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: _orange.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
+            child: Center(
+              child: Icon(icon, size: 52.s, color: AppColors.orange),
             ),
           ),
-          Positioned(
-            bottom: 20,
-            left: 20,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: _orange.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // ─── Auth form view ──────────────────────────────────────
   Widget _authFormView() {
     return SingleChildScrollView(
+      key: const ValueKey('auth'),
       padding: EdgeInsets.fromLTRB(22.s, 14.s, 22.s, 28.s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 22.s),
-
-          // Illustration
-          Center(child: _slideIllustration(Icons.phone_iphone_rounded)),
           SizedBox(height: 28.s),
-
-          // Title
+          Icon(Icons.phone_iphone_rounded, size: 40.s, color: AppColors.orange),
+          SizedBox(height: 18.s),
           Text(
-            _codeSent ? 'Введите код' : 'Вход по номеру\nтелефона',
-            style: TextStyle(
-              fontSize: 25.sp,
-              fontWeight: FontWeight.w900,
-              color: _text,
-              height: 1.15,
-              letterSpacing: -0.5,
-            ),
+            _codeSent ? 'Введите код' : 'Вход по номеру телефона',
+            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w900, color: AppColors.text, height: 1.15),
           ),
-          SizedBox(height: 7.s),
+          SizedBox(height: 6.s),
           Text(
-            _codeSent ? 'Мы отправили СМС на ${_phoneController.text}' : 'Мы отправим короткий код подтверждения',
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: _textMute.withValues(alpha: 0.6),
-              height: 1.4,
-            ),
+            _codeSent ? 'СМС отправлено на ${_phoneController.text}' : 'Отправим короткий код подтверждения',
+            style: TextStyle(fontSize: 13.sp, color: AppColors.textMute.withValues(alpha: 0.6), height: 1.4),
           ),
-          SizedBox(height: 25.s),
-
-          // Form
+          SizedBox(height: 24.s),
           Form(
             key: _formKey,
             child: Column(
               children: [
                 if (!_codeSent) ...[
-                  // Phone input
-                  _inputField(
-                    controller: _phoneController,
-                    focusNode: _phoneFocusNode,
-                    label: 'Номер телефона',
-                    hint: '+7 700 123 45 67',
-                    icon: Icons.phone_iphone_rounded,
-                    keyboardType: TextInputType.phone,
-                    formatters: [PhoneTextInputFormatter()],
-                    onTap: _ensurePhonePrefix,
-                    validator: (value) {
-                      final normalized = PhoneTextInputFormatter.normalize(value ?? '');
-                      if (normalized.isEmpty || normalized == '7') return 'Введите номер телефона';
-                      if (normalized.length != 11) return 'Неверный формат номера';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  _primaryButton(
-                    label: 'Получить код',
-                    onPressed: _isLoading ? null : _sendCode,
-                  ),
+                  _phoneInput(),
+                  SizedBox(height: 18.s),
+                  _primaryButton(label: 'Получить код', onPressed: _isLoading ? null : _sendCode),
                 ] else ...[
-                  // Code input
                   _otpInput(),
-                  const SizedBox(height: 20),
-                  _primaryButton(
-                    label: 'Подтвердить',
-                    onPressed: _isLoading || _codeController.text.trim().length != 6 ? null : _verifyCode,
-                  ),
+                  SizedBox(height: 18.s),
+                  _primaryButton(label: 'Подтвердить', onPressed: _isLoading || _codeController.text.trim().length != 6 ? null : _verifyCode),
                   SizedBox(height: 14.s),
-                  // Resend / change number
                   Center(
                     child: GestureDetector(
                       onTap: () => setState(() {
                         _codeSent = false;
                         _codeController.clear();
-                        _codeFocusNode.unfocus();
                       }),
-                      child: Text(
-                        'Изменить номер',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: _orange,
-                        ),
-                      ),
+                      child: Text('Изменить номер', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: AppColors.orange)),
                     ),
                   ),
                 ],
@@ -644,206 +470,142 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _otpInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Код из СМС',
-          style: TextStyle(
-            color: _textMute.withValues(alpha: 0.7),
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: 10.s),
-        GestureDetector(
-          onTap: () => _codeFocusNode.requestFocus(),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Row(
-                children: List.generate(6, (index) {
-                  final code = _codeController.text;
-                  final hasValue = index < code.length;
-                  final isActive = _codeFocusNode.hasFocus && code.length == index;
-                  final isFilled = hasValue;
+  // ── Phone input ───────────────────────────────────────────
 
-                  return Expanded(
-                    child: Container(
-                      margin: EdgeInsets.only(right: index == 5 ? 0 : 8.s),
-                      height: 58.s,
-                      decoration: BoxDecoration(
-                        color: _card,
-                        borderRadius: BorderRadius.circular(14.s),
-                        border: Border.all(
-                          color: isActive
-                              ? _orange
-                              : isFilled
-                                  ? _orange.withValues(alpha: 0.55)
-                                  : Colors.white.withValues(alpha: 0.06),
-                          width: isActive ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          hasValue ? code[index] : '',
-                          style: TextStyle(
-                            color: _text,
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.0,
-                  child: TextFormField(
-                    controller: _codeController,
-                    focusNode: _codeFocusNode,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
-                    ],
-                    onChanged: (_) {
-                      if (mounted) setState(() {});
-                      if (!_isLoading && _codeController.text.trim().length == 6) {
-                        _verifyCode();
-                      }
-                    },
-                    onFieldSubmitted: (_) {
-                      if (!_isLoading && _codeController.text.trim().length == 6) {
-                        _verifyCode();
-                      }
-                    },
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      counterText: '',
-                    ),
-                    style: const TextStyle(color: Colors.transparent),
-                    cursorColor: Colors.transparent,
-                    maxLength: 6,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 8.s),
-        Text(
-          'Можно вставить код целиком',
-          style: TextStyle(
-            color: _textMute.withValues(alpha: 0.45),
-            fontSize: 11.sp,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── Input field ─────────────────────────────────────────
-  Widget _inputField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    FocusNode? focusNode,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? formatters,
-    String? Function(String?)? validator,
-    VoidCallback? onTap,
-    bool autofocus = false,
-  }) {
+  Widget _phoneInput() {
     return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      keyboardType: keyboardType,
-      inputFormatters: formatters,
-      validator: validator,
-      autofocus: autofocus,
-      onTap: onTap,
-      style: TextStyle(
-        color: _text,
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w600,
-      ),
-      cursorColor: _orange,
+      controller: _phoneController,
+      focusNode: _phoneFocusNode,
+      autofocus: true,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [PhoneTextInputFormatter()],
+      onTap: _ensurePhonePrefix,
+      validator: (value) {
+        final normalized = PhoneTextInputFormatter.normalize(value ?? '');
+        if (normalized.isEmpty || normalized == '7') {
+          return 'Введите номер телефона';
+        }
+        if (normalized.length != 11) return 'Неверный формат номера';
+        return null;
+      },
+      style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w600),
+      cursorColor: AppColors.orange,
       decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Container(
-          margin: EdgeInsets.only(left: 12.s, right: 9.s),
-          child: Icon(icon, color: _orange, size: 20.s),
+        hintText: '+7 700 123 45 67',
+        hintStyle: TextStyle(color: AppColors.textMute.withValues(alpha: 0.3)),
+        prefixIcon: Padding(
+          padding: EdgeInsets.only(left: 12.s, right: 8.s),
+          child: Icon(Icons.phone_iphone_rounded, color: AppColors.orange, size: 20.s),
         ),
         prefixIconConstraints: BoxConstraints(minWidth: 42.s),
         filled: true,
-        fillColor: _card,
-        labelStyle: TextStyle(color: _textMute.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-        hintStyle: TextStyle(color: _textMute.withValues(alpha: 0.3)),
-        contentPadding: EdgeInsets.symmetric(horizontal: 18.s, vertical: 16.s),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.s),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.s),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.s),
-          borderSide: BorderSide(color: _orange, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.s),
-          borderSide: const BorderSide(color: Color(0xFFC23B30)),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.s),
-          borderSide: const BorderSide(color: Color(0xFFC23B30), width: 1.5),
-        ),
-        errorStyle: TextStyle(color: const Color(0xFFC23B30), fontSize: 11.sp),
+        fillColor: AppColors.card,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 14.s),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: const BorderSide(color: AppColors.orange, width: 1)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: const BorderSide(color: AppColors.red)),
+        focusedErrorBorder:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: const BorderSide(color: AppColors.red, width: 1)),
+        errorStyle: TextStyle(color: AppColors.red, fontSize: 11.sp),
       ),
     );
   }
 
-  // ─── Primary button ──────────────────────────────────────
-  Widget _primaryButton({
-    required String label,
-    VoidCallback? onPressed,
-  }) {
+  // ── OTP input ─────────────────────────────────────────────
+
+  Widget _otpInput() {
+    return GestureDetector(
+      onTap: () => _codeFocusNode.requestFocus(),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Row(
+            children: List.generate(6, (index) {
+              final code = _codeController.text;
+              final hasValue = index < code.length;
+              final isActive = _codeFocusNode.hasFocus && code.length == index;
+
+              return Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: index == 5 ? 0 : 8.s),
+                  height: 54.s,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(12.s),
+                    border: Border.all(
+                      color: isActive
+                          ? AppColors.orange
+                          : hasValue
+                              ? AppColors.orange.withValues(alpha: 0.4)
+                              : Colors.transparent,
+                      width: isActive ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      hasValue ? code[index] : '',
+                      style: TextStyle(color: AppColors.text, fontSize: 22.sp, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.0,
+              child: TextFormField(
+                controller: _codeController,
+                focusNode: _codeFocusNode,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                enableSuggestions: false,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
+                onChanged: (_) {
+                  if (mounted) setState(() {});
+                  if (!_isLoading && _codeController.text.trim().length == 6) {
+                    _verifyCode();
+                  }
+                },
+                onFieldSubmitted: (_) {
+                  if (!_isLoading && _codeController.text.trim().length == 6) {
+                    _verifyCode();
+                  }
+                },
+                decoration: const InputDecoration(border: InputBorder.none, counterText: ''),
+                style: const TextStyle(color: Colors.transparent),
+                cursorColor: Colors.transparent,
+                maxLength: 6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Primary button ────────────────────────────────────────
+
+  Widget _primaryButton({required String label, VoidCallback? onPressed}) {
     return SizedBox(
       width: double.infinity,
       height: 48.s,
       child: Material(
-        color: onPressed != null ? _orange : _orange.withValues(alpha: 0.5),
+        color: onPressed != null ? AppColors.orange : AppColors.orange.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14.s),
         child: InkWell(
           borderRadius: BorderRadius.circular(14.s),
           onTap: onPressed,
           child: Center(
             child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
-                  )
-                : Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                    ),
-                  ),
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+                : Text(label, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800, color: Colors.black)),
           ),
         ),
       ),
@@ -851,7 +613,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-// ─── Slide data ────────────────────────────────────────────
 class _SlideData {
   final IconData icon;
   final String title;

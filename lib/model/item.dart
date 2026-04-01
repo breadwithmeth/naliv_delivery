@@ -13,6 +13,8 @@ class Item {
   final double price;
   final String? image; // Унифицированное поле для img/image
   final String? code;
+  final String? unit; // Единица измерения (шт, л, кг и т.д.)
+  final double? quantity; // Базовое количество/вес одной порции
 
   // Категория
   final int? categoryId; // Простой ID категории
@@ -21,7 +23,7 @@ class Item {
   // Бизнес и видимость
   final int? businessId;
   final int? visible;
-  final int? amount;
+  final double? amount;
 
   // Шаг изменения количества (для товаров без опций)
   final double? stepQuantity;
@@ -37,6 +39,8 @@ class Item {
     required this.price,
     this.image,
     this.code,
+    this.unit,
+    this.quantity,
     this.categoryId,
     this.category,
     this.businessId,
@@ -50,6 +54,7 @@ class Item {
   /// Создание из JSON API
   factory Item.fromJson(Map<String, dynamic> json) {
     final stepQuantityValue = _parseDouble(json['step_quantity']) ?? _parseDouble(json['quantity_step']) ?? _parseDouble(json['parent_item_amount']);
+    final quantityValue = _parseDouble(json['quantity']) ?? _parseDouble(json['parent_item_amount']);
 
     return Item(
       itemId: _parseInt(json['item_id']),
@@ -58,11 +63,13 @@ class Item {
       price: _parseDouble(json['price']) ?? 0.0,
       image: json['image'] ?? json['img'], // Поддержка обоих вариантов
       code: json['code'],
+      unit: json['unit'] ?? json['unit_name'] ?? json['measure'],
+      quantity: quantityValue,
       categoryId: _parseInt(json['category_id']),
       category: json['category'] != null ? ItemCategory.fromJson(json['category']) : null,
       businessId: _parseInt(json['business_id']),
       visible: _parseInt(json['visible']),
-      amount: _parseInt(json['amount']),
+      amount: _parseDouble(json['amount']),
       stepQuantity: stepQuantityValue,
       options: json['options'] != null ? (json['options'] as List).map((option) => ItemOption.fromJson(option)).toList() : null,
       promotions: json['promotions'] != null ? (json['promotions'] as List).map((promotion) => ItemPromotion.fromJson(promotion)).toList() : null,
@@ -101,6 +108,8 @@ class Item {
       categoryId: categoryItem.category?.categoryId,
       category: categoryItem.category != null ? ItemCategory.fromApiCategory(categoryItem.category) : null,
       visible: categoryItem.visible,
+      unit: categoryItem.unit,
+      quantity: categoryItem.quantity ?? stepQuantity,
       stepQuantity: stepQuantity,
       options: categoryItem.options != null ? (categoryItem.options as List?)?.map((opt) => ItemOption.fromCategoryItemOption(opt)).toList() : null,
       promotions: categoryItem.promotions != null
@@ -118,6 +127,8 @@ class Item {
       'price': price,
       if (image != null) 'image': image,
       if (code != null) 'code': code,
+      if (unit != null) 'unit': unit,
+      if (quantity != null) 'quantity': quantity,
       if (categoryId != null) 'category_id': categoryId,
       if (category != null) 'category': category!.toJson(),
       if (businessId != null) 'business_id': businessId,
@@ -137,11 +148,13 @@ class Item {
     double? price,
     String? image,
     String? code,
+    String? unit,
+    double? quantity,
     int? categoryId,
     ItemCategory? category,
     int? businessId,
     int? visible,
-    int? amount,
+    double? amount,
     List<ItemOption>? options,
     List<ItemPromotion>? promotions,
   }) {
@@ -152,6 +165,8 @@ class Item {
       price: price ?? this.price,
       image: image ?? this.image,
       code: code ?? this.code,
+      unit: unit ?? this.unit,
+      quantity: quantity ?? this.quantity,
       categoryId: categoryId ?? this.categoryId,
       category: category ?? this.category,
       businessId: businessId ?? this.businessId,
@@ -179,6 +194,9 @@ class Item {
   /// Если есть опции, используем parent_item_amount из первой опции
   /// По умолчанию возвращает 1.0
   double get effectiveStepQuantity {
+    if (quantity != null && quantity! > 0) {
+      return quantity!;
+    }
     // Если у товара есть опции, используем parent_item_amount из первой опции
     if (hasOptions) {
       final firstOption = options!.first;
@@ -242,7 +260,7 @@ class ItemCategory {
     return ItemCategory(
       categoryId: Item._parseInt(json['category_id']),
       name: json['name'] ?? '',
-      parentId: Item._parseInt(json['parent_id']),
+      parentId: Item._parseInt(json['parent_id'] ?? json['parent_category']),
       itemsCount: Item._parseInt(json['items_count']),
       subcategories: json['subcategories'] != null ? (json['subcategories'] as List).map((cat) => ItemCategory.fromJson(cat)).toList() : null,
     );

@@ -460,6 +460,27 @@ class ApiService {
     return null;
   }
 
+  static String? extractCityName(Map<String, dynamic>? rawAddress) {
+    if (rawAddress == null) return null;
+
+    final geocoding = _extractGeocoding(rawAddress);
+    final city = _firstNonEmptyString([
+      geocoding?['city'],
+      geocoding?['town'],
+      geocoding?['municipality'],
+      geocoding?['county'],
+      geocoding?['state'],
+      rawAddress['city'],
+      rawAddress['town'],
+      rawAddress['municipality'],
+      rawAddress['region'],
+      rawAddress['state'],
+    ]);
+
+    final normalized = city?.trim();
+    return (normalized == null || normalized.isEmpty) ? null : normalized;
+  }
+
   static String formatAddressSummary(
     Map<String, dynamic>? address, {
     String emptyText = 'Адрес не указан',
@@ -2767,6 +2788,8 @@ class CategoryItem {
   final String? code;
   final ItemCategory category;
   final int visible;
+  final String? unit;
+  final double? quantity;
   final double? stepQuantity;
   final List<CategoryItemOption>? options;
   final List<CategoryItemPromotion>? promotions;
@@ -2781,6 +2804,8 @@ class CategoryItem {
     this.code,
     required this.category,
     required this.visible,
+    this.unit,
+    this.quantity,
     this.stepQuantity,
     this.options,
     this.promotions,
@@ -2797,6 +2822,8 @@ class CategoryItem {
       code: json['code'],
       category: ItemCategory.fromJson(json['category'] ?? {}),
       visible: ApiService._parseInt(json['visible']),
+      unit: json['unit'] ?? json['unit_name'] ?? json['measure'],
+      quantity: ApiService._parseDouble(json['quantity']) ?? ApiService._parseDouble(json['parent_item_amount']),
       stepQuantity: ApiService._parseDouble(json['quantity_step']) ??
           ApiService._parseDouble(json['step_quantity']) ??
           ApiService._parseDouble(json['parent_item_amount']),
@@ -2817,6 +2844,8 @@ class CategoryItem {
       if (code != null) 'code': code,
       'category': category.toJson(),
       'visible': visible,
+      if (unit != null) 'unit': unit,
+      if (quantity != null) 'quantity': quantity,
       if (stepQuantity != null) 'quantity_step': stepQuantity,
       if (amount != null) 'amount': amount,
       if (options != null) 'options': options!.map((option) => option.toJson()).toList(),

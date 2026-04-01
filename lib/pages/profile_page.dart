@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
@@ -20,17 +21,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
-  // ─── Palette (mirrors mainPage) ──────────────────────────
-  static const Color _bgDeep = Color(0xFF121212);
-  static const Color _bgTop = Color(0xFF161616);
-  static const Color _card = Color(0xFF1E1E1E);
-  static const Color _cardDark = Color(0xFF181818);
-  static const Color _blue = Color(0xFF242A32);
-  static const Color _orange = Color(0xFFF6A10C);
-  static const Color _red = Color(0xFFC23B30);
-  static const Color _text = Colors.white;
-  static const Color _textMute = Color(0xFF9FB0C8);
+class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   static const String _hiddenAddressesKey = 'profile_hidden_addresses';
 
   late final Future<Map<String, dynamic>?> _profileFuture;
@@ -73,9 +64,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   Future<void> _loadTelemetryConsent() async {
     final allowed = await TelemetryConsentService.loadConsent();
     if (!mounted) return;
-    setState(() {
-      _telemetryAllowed = allowed;
-    });
+    setState(() => _telemetryAllowed = allowed);
   }
 
   Future<void> _checkAuth() async {
@@ -87,47 +76,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     if (data == null) return;
   }
 
-  // ─── Background ──────────────────────────────────────────
-  Widget _background() {
-    return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_bgTop, _bgDeep],
-          ),
-        ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(-0.5, -0.8),
-              radius: 1.6,
-              colors: [Colors.white.withValues(alpha: 0.03), Colors.transparent],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─── Card decoration (matches mainPage) ──────────────────
-  BoxDecoration _cardBox({double radius = 18, Color? color, bool accent = false}) {
-    return BoxDecoration(
-      color: color ?? _card,
-      borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: accent ? _orange.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.05)),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 16, offset: const Offset(0, 10))],
-    );
-  }
-
-  BoxDecoration _pillBox({Color? color}) {
-    return BoxDecoration(
-      color: color ?? _blue,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-    );
-  }
+  // ── Stagger animation ────────────────────────────────────
 
   Widget _staggered(int index, int total, Widget child) {
     final begin = (index / total).clamp(0.0, 1.0);
@@ -149,45 +98,72 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ── Helpers ───────────────────────────────────────────────
+
+  Widget _thinDivider() => Divider(height: 1, thickness: 0.5, color: AppColors.textMute.withValues(alpha: 0.12));
+
+  Widget _tapRow({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 18.s, vertical: 14.s),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.orange, size: 22.s),
+            SizedBox(width: 14.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
+                  if (subtitle != null) ...[
+                    SizedBox(height: 2.s),
+                    Text(subtitle,
+                        maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.3)),
+                  ],
+                ],
+              ),
+            ),
+            trailing ?? Icon(Icons.chevron_right, color: AppColors.textMute.withValues(alpha: 0.5), size: 20.s),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════
-  //  B U I L D
+  //  BUILD
   // ═══════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgDeep,
+      backgroundColor: AppColors.bgDeep,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        foregroundColor: _text,
+        foregroundColor: AppColors.text,
         title: const Text('Профиль', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Stack(
         children: [
-          _background(),
+          const AppBackground(),
           FutureBuilder<Map<String, dynamic>?>(
             future: _profileFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator(color: _orange));
+                return const Center(child: CircularProgressIndicator(color: AppColors.orange));
               }
               if (snapshot.hasError || snapshot.data == null) {
-                return Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage(redirectTabIndex: 4)));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _orange,
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 10.s),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
-                    ),
-                    child: const Text('Войти', style: TextStyle(fontWeight: FontWeight.w800)),
-                  ),
-                );
+                return _loginPrompt();
               }
               final data = snapshot.data!;
               final user = data['user'] as Map<String, dynamic>;
@@ -209,41 +185,33 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
 
               return SafeArea(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 110.s),
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 110.s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── User header ──
+                      _staggered(0, 7, _userHeader(user)),
+                      _staggered(1, 7, _thinDivider()),
+                      // ── Navigation rows ──
                       _staggered(
-                          0,
-                          6,
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                await AuthService.clearToken();
-                                if (!mounted) return;
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (_) => const AuthenticationWrapper(initialTabIndex: 0)),
-                                  (route) => false,
-                                );
-                              },
-                              icon: const Icon(Icons.logout),
-                              label: const Text('Выйти'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _orange,
-                                foregroundColor: Colors.black,
-                                padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
-                              ),
-                            ),
+                          2,
+                          7,
+                          _tapRow(
+                            icon: Icons.receipt_long_rounded,
+                            title: 'История заказов',
+                            subtitle: 'Активные и завершённые заказы',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OrdersHistoryPage())),
                           )),
-                      SizedBox(height: 10.s),
-                      _staggered(1, 6, _infoCard(user)),
-                      _staggered(2, 6, _ordersCard()),
-                      _staggered(3, 6, _addressesCard(addresses)),
-                      _staggered(4, 6, _cardsCard(cards)),
-                      _staggered(5, 6, _telemetryCard()),
-                      SizedBox(height: 14.s),
+                      _staggered(3, 7, _thinDivider()),
+                      _staggered(4, 7, _addressRow(addresses)),
+                      _staggered(5, 7, _thinDivider()),
+                      _staggered(6, 7, _cardsRow(cards)),
+                      _thinDivider(),
+                      _telemetryRow(),
+                      _thinDivider(),
+                      SizedBox(height: 22.s),
+                      // ── Logout ──
+                      _logoutRow(),
                     ],
                   ),
                 ),
@@ -255,148 +223,164 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  // ─── User info ───────────────────────────────────────────
-  Widget _infoCard(Map<String, dynamic> user) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 14.s),
-      padding: EdgeInsets.all(14.s),
-      decoration: _cardBox(radius: 16.s),
+  // ── Login prompt (not logged in) ─────────────────────────
+
+  Widget _loginPrompt() {
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(9.s),
-                decoration: _pillBox(color: _blue),
-                child: Icon(Icons.person, color: _orange, size: 25.s),
+          Icon(Icons.person_outline_rounded, size: 48.s, color: AppColors.textMute.withValues(alpha: 0.5)),
+          SizedBox(height: 12.s),
+          Text('Войдите в аккаунт', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w700)),
+          SizedBox(height: 4.s),
+          Text('Для просмотра профиля', style: TextStyle(color: AppColors.textMute, fontSize: 13.sp)),
+          SizedBox(height: 18.s),
+          SizedBox(
+            width: 180.s,
+            height: 44.s,
+            child: Material(
+              color: AppColors.orange,
+              borderRadius: BorderRadius.circular(14.s),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14.s),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage(redirectTabIndex: 4))),
+                child: Center(
+                  child: Text('Войти', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800, color: Colors.black)),
+                ),
               ),
-              SizedBox(width: 10.s),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(user['name'] ?? '', style: TextStyle(color: _text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
-                  Text(user['login'] ?? '', style: TextStyle(color: _textMute, fontSize: 12.sp)),
-                ],
-              ),
-            ],
+            ),
           ),
-          if (user['date_of_birth'] != null) ...[
-            SizedBox(height: 7.s),
-            Text('Дата рождения: ${user['date_of_birth']}', style: TextStyle(color: _textMute, fontSize: 12.sp)),
-          ],
-          if (user['sex'] != null) ...[
-            SizedBox(height: 4.s),
-            Text('Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}', style: TextStyle(color: _textMute, fontSize: 12.sp)),
-          ],
         ],
       ),
     );
   }
 
-  // ─── Orders ──────────────────────────────────────────────
-  Widget _ordersCard() {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 7.s),
-      decoration: _cardBox(radius: 14.s),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 5.s),
-        leading: Container(
-          padding: EdgeInsets.all(9.s),
-          decoration: _pillBox(color: _blue),
-          child: const Icon(Icons.receipt_long, color: _orange),
-        ),
-        title: const Text('История заказов', style: TextStyle(color: _text, fontWeight: FontWeight.w900)),
-        subtitle: const Text('Открыть все активные и завершённые заказы', style: TextStyle(color: _textMute)),
-        trailing: const Icon(Icons.chevron_right, color: _textMute),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OrdersHistoryPage())),
+  // ── User header ──────────────────────────────────────────
+
+  Widget _userHeader(Map<String, dynamic> user) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18.s, 8.s, 18.s, 14.s),
+      child: Row(
+        children: [
+          Container(
+            width: 48.s,
+            height: 48.s,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.orange.withValues(alpha: 0.15),
+            ),
+            child: Icon(Icons.person_rounded, color: AppColors.orange, size: 26.s),
+          ),
+          SizedBox(width: 14.s),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(user['name'] ?? '', style: TextStyle(color: AppColors.text, fontSize: 17.sp, fontWeight: FontWeight.w800)),
+                SizedBox(height: 2.s),
+                Text(user['login'] ?? '', style: TextStyle(color: AppColors.textMute, fontSize: 13.sp)),
+                if (user['date_of_birth'] != null) ...[
+                  SizedBox(height: 2.s),
+                  Text(user['date_of_birth'], style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 12.sp)),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── Addresses ───────────────────────────────────────────
-  Widget _addressesCard(List<Map<String, dynamic>> addresses) {
-    final visible = addresses.where((addr) => !_hiddenAddressIds.contains(_addressId(addr))).toList();
+  // ── Address row ──────────────────────────────────────────
+
+  Widget _addressRow(List<Map<String, dynamic>> addresses) {
+    final visible = addresses.where((a) => !_hiddenAddressIds.contains(_addressId(a))).toList();
     final count = visible.length;
-    final preview = count > 0 ? (visible.first['address']?.toString() ?? '') : 'Адресов нет';
+    final preview = count > 0 ? (visible.first['address']?.toString() ?? '') : 'Нет сохранённых адресов';
 
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 7.s),
-      decoration: _cardBox(radius: 14.s),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
-        leading: Container(
-          padding: EdgeInsets.all(9.s),
-          decoration: _pillBox(color: _blue),
-          child: const Icon(Icons.location_on, color: _orange),
-        ),
-        title: const Text('Адреса', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
-        subtitle: Text(
-          count == 0 ? 'Нет сохранённых адресов' : '$count адрес(ов) • $preview',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: _textMute),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: _textMute),
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileAddressesPage())).then((_) => _loadHiddenAddresses());
-        },
-      ),
+    return _tapRow(
+      icon: Icons.location_on_rounded,
+      title: 'Адреса',
+      subtitle: count == 0 ? 'Нет сохранённых адресов' : '$count адрес(ов) · $preview',
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileAddressesPage())).then((_) => _loadHiddenAddresses());
+      },
     );
   }
 
-  // ─── Saved cards ─────────────────────────────────────────
-  Widget _cardsCard(List<Map<String, dynamic>> cards) {
+  // ── Cards row ────────────────────────────────────────────
+
+  Widget _cardsRow(List<Map<String, dynamic>> cards) {
     final count = cards.length;
     final preview = count > 0 ? (cards.first['mask']?.toString() ?? '••••') : 'Добавленных карт нет';
 
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 7.s),
-      decoration: _cardBox(radius: 14.s),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
-        leading: Container(
-          padding: EdgeInsets.all(9.s),
-          decoration: _pillBox(color: _blue),
-          child: const Icon(Icons.credit_card, color: _orange),
+    return _tapRow(
+      icon: Icons.credit_card_rounded,
+      title: 'Карты',
+      subtitle: count == 0 ? 'Добавленных карт нет' : '$count карт(ы) · $preview',
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCardsPage())),
+    );
+  }
+
+  // ── Telemetry toggle ─────────────────────────────────────
+
+  Widget _telemetryRow() {
+    return InkWell(
+      onTap: () async {
+        final value = !_telemetryAllowed;
+        setState(() => _telemetryAllowed = value);
+        await TelemetryConsentService.setConsent(value);
+      },
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 18.s, vertical: 14.s),
+        child: Row(
+          children: [
+            Icon(Icons.analytics_outlined, color: AppColors.orange, size: 22.s),
+            SizedBox(width: 14.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Сбор информации', style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 2.s),
+                  Text('Анонимные отчёты об ошибках', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.3)),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 28,
+              child: Switch(
+                value: _telemetryAllowed,
+                activeTrackColor: AppColors.orange,
+                activeThumbColor: Colors.white,
+                onChanged: (value) async {
+                  setState(() => _telemetryAllowed = value);
+                  await TelemetryConsentService.setConsent(value);
+                },
+              ),
+            ),
+          ],
         ),
-        title: const Text('Карты', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
-        subtitle: Text(
-          count == 0 ? 'Добавленных карт нет' : '$count карт(ы) • $preview',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: _textMute),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: _textMute),
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCardsPage()));
-        },
       ),
     );
   }
 
-  // ─── Telemetry toggle ────────────────────────────────────
-  Widget _telemetryCard() {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 7.s),
-      decoration: _cardBox(radius: 14.s, accent: true),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.white.withValues(alpha: 0.06)),
-        child: SwitchListTile(
-          contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
-          secondary: const Icon(Icons.analytics_outlined, color: _orange),
-          title: const Text('Сбор информации', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
-          subtitle: const Text(
-            'Анонимные отчёты об ошибках. Можно отключить в любой момент.',
-            style: TextStyle(color: _textMute, height: 1.35),
-          ),
-          activeColor: _orange,
-          value: _telemetryAllowed,
-          onChanged: (value) async {
-            setState(() => _telemetryAllowed = value);
-            await TelemetryConsentService.setConsent(value);
-          },
-        ),
+  // ── Logout ───────────────────────────────────────────────
+
+  Widget _logoutRow() {
+    return Center(
+      child: TextButton.icon(
+        onPressed: () async {
+          await AuthService.clearToken();
+          if (!mounted) return;
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const AuthenticationWrapper(initialTabIndex: 0)),
+            (route) => false,
+          );
+        },
+        icon: Icon(Icons.logout_rounded, size: 18.s, color: AppColors.red),
+        label: Text('Выйти', style: TextStyle(color: AppColors.red, fontSize: 14.sp, fontWeight: FontWeight.w600)),
       ),
     );
   }
