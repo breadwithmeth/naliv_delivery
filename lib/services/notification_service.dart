@@ -104,62 +104,77 @@ class NotificationService {
 
   /// Запрос разрешений на уведомления
   Future<bool> _requestPermissions() async {
-    if (_isWeb) {
-      final settings = await _firebaseMessaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
+    try {
+      if (_isWeb) {
+        final settings = await _firebaseMessaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          provisional: false,
+        );
 
-      return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+      }
+
+      if (_isIOS) {
+        final settings = await _firebaseMessaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          provisional: false,
+        );
+
+        await _localNotifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            );
+
+        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+      }
+
+      if (_isAndroid) {
+        final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+        final granted = await androidImplementation?.requestNotificationsPermission();
+        return granted ?? true;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ Ошибка запроса разрешений на уведомления: $e');
+      return false;
     }
-
-    if (_isIOS) {
-      final settings = await _firebaseMessaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
-
-      await _localNotifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-
-      return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
-    }
-
-    if (_isAndroid) {
-      final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-
-      final granted = await androidImplementation?.requestNotificationsPermission();
-      return granted ?? true;
-    }
-
-    return true;
   }
 
   Future<bool> enablePushNotifications() async {
-    await initialize();
+    try {
+      await initialize();
 
-    if (_isWeb) {
-      final supported = await FirebaseMessaging.instance.isSupported();
-      if (!supported) {
-        debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
+      if (_isWeb) {
+        if (_webVapidKey.trim().isEmpty) {
+          debugPrint('🔕 Web push временно пропущен: не задан FIREBASE_WEB_VAPID_KEY');
+          return false;
+        }
+
+        final supported = await FirebaseMessaging.instance.isSupported();
+        if (!supported) {
+          debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
+          return false;
+        }
+      }
+
+      final granted = await _requestPermissions();
+      if (!granted) {
+        debugPrint('🔕 Разрешение на уведомления не выдано');
         return false;
       }
-    }
 
-    final granted = await _requestPermissions();
-    if (!granted) {
-      debugPrint('🔕 Разрешение на уведомления не выдано');
+      return await _getFCMToken();
+    } catch (e) {
+      debugPrint('❌ Ошибка включения push-уведомлений: $e');
       return false;
     }
-
-    return await _getFCMToken();
   }
 
   /// Получение FCM токена

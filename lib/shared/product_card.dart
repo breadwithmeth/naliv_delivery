@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../model/item.dart' as ItemModel;
+import '../model/item.dart' as item_model;
 import '../utils/cart_provider.dart';
 import '../models/cart_item.dart';
 import '../globals.dart' as globals;
@@ -14,7 +14,7 @@ import '../utils/liked_items_provider.dart';
 import '../utils/responsive.dart';
 
 class ProductCard extends StatefulWidget {
-  final ItemModel.Item item;
+  final item_model.Item item;
 
   const ProductCard({super.key, required this.item});
 
@@ -72,9 +72,10 @@ class _ProductCardState extends State<ProductCard> {
   Future<void> _toggleLike() async {
     if (_likeInProgress) return;
     setState(() => _likeInProgress = true);
+    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
     try {
       final newValue = await ApiService.toggleLikeItem(widget.item.itemId);
-      if (newValue != null) {
+      if (newValue != null && mounted) {
         setState(() => _isLikedOverride = newValue);
         if (_businessId != null) {
           LikedStorageService.setLiked(
@@ -82,7 +83,6 @@ class _ProductCardState extends State<ProductCard> {
             itemId: widget.item.itemId,
             liked: newValue,
           );
-          final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
           likedProvider.updateLike(_businessId!, widget.item.itemId, newValue);
         }
       }
@@ -145,54 +145,48 @@ class _ProductCardState extends State<ProductCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name
-                    if (itemTitle.type != null || itemTitle.packagingType != null) ...[
+                    if (itemTitle.type != null || itemTitle.countryName != null) ...[
                       Row(
                         children: [
-                          if (itemTitle.packagingType != null) ...[
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 1.5.s),
-                              decoration: BoxDecoration(
-                                color: _orange.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4.s),
-                              ),
-                              child: Text(
-                                itemTitle.packagingType!,
-                                style: TextStyle(
-                                  fontSize: 8.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: _orange,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 5.s),
-                          ],
                           if (itemTitle.type != null)
-                            Flexible(
+                            Expanded(
                               child: Text(
                                 itemTitle.type!,
                                 style: TextStyle(
                                   fontSize: 9.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: _textMute,
-                                  height: 1.2,
+                                  fontWeight: FontWeight.w700,
+                                  color: _textMute.withValues(alpha: 0.92),
+                                  height: 1.15,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                            )
+                          else
+                            const Spacer(),
+                          if (itemTitle.countryName != null)
+                            Text(
+                              itemTitle.countryName!,
+                              style: TextStyle(
+                                fontSize: 9.sp,
+                                fontWeight: FontWeight.w800,
+                                color: _orange.withValues(alpha: 0.92),
+                                height: 1.15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                         ],
                       ),
-                      SizedBox(height: 3.s),
+                      SizedBox(height: 4.s),
                     ],
                     Text(
                       itemTitle.name,
                       style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w800,
                         color: _text,
-                        height: 1.25,
+                        height: 1.22,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -210,6 +204,7 @@ class _ProductCardState extends State<ProductCard> {
                       portionWeight: portionWeight,
                       portionPrice: portionPrice,
                       unit: item.unit,
+                      pricingAttributes: itemTitle.pricingAttributes,
                     ),
 
                     SizedBox(height: 7.s),
@@ -228,7 +223,7 @@ class _ProductCardState extends State<ProductCard> {
 
   // ─── Image section ───────────────────────────────────────
   Widget _imageSection(
-    ItemModel.Item item,
+    item_model.Item item,
     bool hasDiscount,
     int discountPercent,
     bool isLowStock,
@@ -246,7 +241,7 @@ class _ProductCardState extends State<ProductCard> {
                 topRight: Radius.circular(14.s),
               ),
               child: Container(
-                color: _cardDark,
+                color: item.hasImage ? Colors.white : _cardDark,
                 child: item.hasImage
                     ? Image.network(
                         item.image!,
@@ -441,7 +436,7 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   // ─── Option badge (shows option names) ───────────────────
-  Widget _optionBadge(ItemModel.Item item) {
+  Widget _optionBadge(item_model.Item item) {
     // Show first option names like "Объём • Крепость" instead of generic count
     final optionNames = item.options!.take(2).map((o) => o.name).join(' • ');
     final extra = item.options!.length > 2 ? ' +${item.options!.length - 2}' : '';
@@ -508,7 +503,7 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   // ─── Bonus calculation helpers ──────────────────────────
-  int _calculateBonusPoints(ItemModel.Item item, double price) {
+  int _calculateBonusPoints(item_model.Item item, double price) {
     if (BonusRules.isBonusExcludedText(
       name: item.name,
       description: item.description,
@@ -531,6 +526,7 @@ class _ProductCardState extends State<ProductCard> {
     required double portionWeight,
     required double? portionPrice,
     required String? unit,
+    required List<String> pricingAttributes,
   }) {
     final portionLabel = isWeightItem && portionWeight > 0 ? globals.formatQuantity(portionWeight, unit ?? 'кг') : null;
 
@@ -552,35 +548,44 @@ class _ProductCardState extends State<ProductCard> {
         SizedBox(height: 2.s),
       ],
       Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
-            child: Text(
-              '${_formatPrice(mainPrice)} ₸',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w900,
-                color: _text,
-                height: 1.1,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${_formatPrice(mainPrice)} ₸',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _text,
+                    height: 1.05,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (portionLabel != null) ...[
+                  SizedBox(height: 2.s),
+                  Text(
+                    'за $portionLabel',
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w700,
+                      color: _textMute,
+                      height: 1.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
             ),
           ),
-          if (portionLabel != null) ...[
-            SizedBox(width: 6.s),
-            Text(
-              'за $portionLabel',
-              style: TextStyle(
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w700,
-                color: _textMute,
-                height: 1.1,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          if (pricingAttributes.isNotEmpty) ...[
+            SizedBox(width: 10.s),
+            _pricingAccentBlock(pricingAttributes),
           ],
         ],
       ),
@@ -615,6 +620,49 @@ class _ProductCardState extends State<ProductCard> {
     ];
   }
 
+  Widget _pricingAccentBlock(List<String> facts) {
+    final shown = facts.take(2).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: shown
+          .map(
+            (fact) => Padding(
+              padding: EdgeInsets.only(bottom: 1.5.s),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: _pricingFactLabel(fact),
+                      style: TextStyle(
+                        fontSize: 8.sp,
+                        fontWeight: FontWeight.w700,
+                        color: _textMute.withValues(alpha: 0.7),
+                        letterSpacing: 0.35,
+                      ),
+                    ),
+                    TextSpan(
+                      text: fact,
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w900,
+                        color: _orange,
+                        height: 1.05,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  String _pricingFactLabel(String fact) {
+    return fact.contains('%') ? 'КРЕП. ' : 'ОБЪЕМ ';
+  }
+
   bool _isWeightUnit(String? unit) {
     final u = unit?.toLowerCase().trim();
     if (u == null) return false;
@@ -624,7 +672,7 @@ class _ProductCardState extends State<ProductCard> {
     return false;
   }
 
-  double _resolvePortionWeight(ItemModel.Item item) {
+  double _resolvePortionWeight(item_model.Item item) {
     if (item.quantity != null && item.quantity! > 0) return item.quantity!;
     if (item.stepQuantity != null && item.stepQuantity! > 0) {
       return item.stepQuantity!;
@@ -633,7 +681,7 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   // ─── Cart section ────────────────────────────────────────
-  Widget _cartSection(ItemModel.Item item) {
+  Widget _cartSection(item_model.Item item) {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, _) {
         final totalQuantity = cartProvider.getTotalQuantityForItem(item.itemId);
@@ -652,7 +700,7 @@ class _ProductCardState extends State<ProductCard> {
 
   // ─── Quantity controls (in-cart) ─────────────────────────
   Widget _quantityControls(
-    ItemModel.Item item,
+    item_model.Item item,
     CartProvider cartProvider,
     double totalQuantity,
     num? maxAmount,
@@ -755,7 +803,7 @@ class _ProductCardState extends State<ProductCard> {
 
   // ─── Add-to-cart button ──────────────────────────────────
   Widget _addToCartButton(
-    ItemModel.Item item,
+    item_model.Item item,
     CartProvider cartProvider,
     num? maxAmount,
   ) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gradusy24/services/notification_service.dart';
@@ -271,20 +272,57 @@ class _OnboardingPageState extends State<OnboardingPage> {
       _notificationMessage = null;
     });
 
-    final granted = await NotificationService.instance.enablePushNotifications();
+    final webVapidMissing = kIsWeb && !NotificationService.instance.isWebVapidKeyConfigured;
+    if (webVapidMissing) {
+      await OnboardingService.markNotificationPromptSeen();
+      await TelemetryConsentService.setConsent(_shareDiagnostics);
+
+      if (!mounted) return;
+      setState(() {
+        _isRequestingNotifications = false;
+        _notificationsGranted = false;
+        _notificationMessage = 'Веб-уведомления временно отключены. Продолжаем без них.';
+      });
+
+      await _goToPage(1);
+      return;
+    }
+
+    bool granted = false;
+    String? messageOverride;
+
+    try {
+      granted = await NotificationService.instance.enablePushNotifications();
+    } catch (_) {
+      granted = false;
+      messageOverride = kIsWeb
+          ? 'Браузер не дал включить уведомления. Продолжаем без них.'
+          : 'Не удалось запросить уведомления. Можно включить позже в настройках устройства.';
+    }
+
     await OnboardingService.markNotificationPromptSeen();
     await TelemetryConsentService.setConsent(_shareDiagnostics);
+
+    final shouldAdvance = granted || kIsWeb;
+    final webPushUnavailable = kIsWeb && !NotificationService.instance.isWebVapidKeyConfigured;
+
+    final notificationMessage = messageOverride ??
+        (granted
+            ? 'Уведомления включены. Вы будете получать статус заказа и акции.'
+            : webPushUnavailable
+                ? 'Веб-пуш пока не настроен на сервере. Продолжаем без уведомлений.'
+                : kIsWeb
+                    ? 'Разрешение не получено. Продолжаем без уведомлений, их можно включить позже.'
+                    : 'Разрешение не получено. Его можно включить позже в настройках устройства.');
 
     if (!mounted) return;
     setState(() {
       _isRequestingNotifications = false;
       _notificationsGranted = granted;
-      _notificationMessage = granted
-          ? 'Уведомления включены. Вы будете получать статус заказа и акции.'
-          : 'Разрешение не получено. Его можно включить позже в настройках устройства.';
+      _notificationMessage = notificationMessage;
     });
 
-    if (granted) {
+    if (shouldAdvance) {
       await _goToPage(1);
     }
   }
