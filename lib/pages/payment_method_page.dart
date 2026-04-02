@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/app_navigator.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/utils/app_navigator.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/utils/cart_provider.dart';
+import 'package:gradusy24/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 

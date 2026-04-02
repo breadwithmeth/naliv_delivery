@@ -1,23 +1,23 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/cart_page.dart';
-import 'package:naliv_delivery/pages/catalog.dart';
-import 'package:naliv_delivery/pages/likedPage.dart';
-import 'package:naliv_delivery/pages/mainPage.dart';
-import 'package:naliv_delivery/pages/profile_page.dart';
-import 'package:naliv_delivery/services/onboarding_service.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
-import 'package:naliv_delivery/utils/liked_items_provider.dart';
-import 'package:naliv_delivery/utils/location_service.dart';
+import 'package:gradusy24/pages/cart_page.dart';
+import 'package:gradusy24/pages/catalog.dart';
+import 'package:gradusy24/pages/likedPage.dart';
+import 'package:gradusy24/pages/mainPage.dart';
+import 'package:gradusy24/pages/profile_page.dart';
+import 'package:gradusy24/services/onboarding_service.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/liked_items_provider.dart';
+import 'package:gradusy24/utils/location_service.dart';
 import 'package:provider/provider.dart';
-import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'package:gradusy24/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../utils/responsive.dart';
-import 'package:naliv_delivery/utils/address_storage_service.dart';
-import 'package:naliv_delivery/pages/login_page.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:gradusy24/utils/address_storage_service.dart';
+import 'package:gradusy24/pages/login_page.dart';
+import 'package:gradusy24/utils/cart_provider.dart';
+import 'package:gradusy24/shared/app_theme.dart';
 
 class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;

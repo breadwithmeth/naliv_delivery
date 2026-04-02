@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:naliv_delivery/model/item.dart';
-import 'package:naliv_delivery/models/cart_item.dart';
+import 'package:gradusy24/model/item.dart';
+import 'package:gradusy24/models/cart_item.dart';
 
 void main() {
   group('ItemPromotion', () {

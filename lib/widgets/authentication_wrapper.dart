@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/pages/bottomMenu.dart';
-import 'package:naliv_delivery/services/auth_service.dart';
-import 'package:naliv_delivery/widgets/app_loading_screen.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/pages/bottomMenu.dart';
+import 'package:gradusy24/services/auth_service.dart';
+import 'package:gradusy24/widgets/app_loading_screen.dart';
 
 class AuthenticationWrapper extends StatefulWidget {
   final int? initialTabIndex;

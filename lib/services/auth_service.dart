@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:naliv_delivery/utils/api.dart';
+import 'package:gradusy24/utils/api.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';

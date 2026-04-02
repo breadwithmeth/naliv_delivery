@@ -1,11 +1,11 @@
 {
-    "name": "Налив/Градусы24",
+    "name": "Градусы24",
     "short_name": "Градусы24",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#121212",
     "theme_color": "#121212",
-    "description": "Доставка напитков Налив/Градусы24.",
+    "description": "Доставка напитков Градусы24.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/model/item.dart' as ItemModel;
-import 'package:naliv_delivery/shared/product_card.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/model/item.dart' as ItemModel;
+import 'package:gradusy24/shared/product_card.dart';
 import '../utils/responsive.dart';
 
 /// Страница с товарами конкретной акции

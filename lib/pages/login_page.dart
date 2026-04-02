@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/api.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/widgets/authentication_wrapper.dart';
 import '../utils/responsive.dart';
 
 // Форматирует ввод номера в +7 700 123 45 67

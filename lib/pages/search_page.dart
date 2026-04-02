@@ -6,7 +6,7 @@ import '../utils/responsive.dart';
 import '../utils/cartFloatingButton.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
-import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:gradusy24/shared/app_theme.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});

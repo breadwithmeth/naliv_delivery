@@ -1,4 +1,4 @@
-import 'package:naliv_delivery/models/cart_item.dart';
+import 'package:gradusy24/models/cart_item.dart';
 
 class BonusRules {
   static const double earnRate = 0.03;

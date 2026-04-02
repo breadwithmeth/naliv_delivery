@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:naliv_delivery/utils/api.dart';
+import 'package:gradusy24/utils/api.dart';
 
 class CityMapCenter {
   const CityMapCenter({required this.lat, required this.lon});

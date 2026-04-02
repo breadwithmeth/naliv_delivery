@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api.dart';
-import 'package:naliv_delivery/utils/app_navigator.dart';
+import 'package:gradusy24/utils/app_navigator.dart';
 
 /// Глобальная функция для обработки фоновых сообщений
 @pragma('vm:entry-point')
@@ -90,8 +90,8 @@ class NotificationService {
     // Создание канала уведомлений для Android
     if (_isAndroid) {
       const channel = AndroidNotificationChannel(
-        'naliv_orders',
-        'Заказы Naliv',
+        'gradusy24_orders',
+        'Заказы Градусы24',
         description: 'Уведомления о статусе заказов',
         importance: Importance.high,
         playSound: true,
@@ -263,8 +263,8 @@ class NotificationService {
 
       if (notification != null) {
         final androidDetails = AndroidNotificationDetails(
-          'naliv_orders',
-          'Заказы Naliv',
+          'gradusy24_orders',
+          'Заказы Градусы24',
           channelDescription: 'Уведомления о статусе заказов',
           importance: Importance.high,
           priority: Priority.high,
@@ -286,7 +286,7 @@ class NotificationService {
 
         await _localNotifications.show(
           message.hashCode,
-          notification.title ?? 'Naliv',
+          notification.title ?? 'Градусы24',
           notification.body ?? 'У вас новое уведомление',
           details,
           payload: json.encode(message.data),

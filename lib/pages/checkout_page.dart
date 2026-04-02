@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/bonus_info_page.dart';
-import 'package:naliv_delivery/pages/payment_method_page.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/address_storage_service.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/bonus_rules.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:gradusy24/pages/bonus_info_page.dart';
+import 'package:gradusy24/pages/payment_method_page.dart';
+import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/utils/address_storage_service.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/utils/bonus_rules.dart';
+import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
-import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'package:gradusy24/widgets/address_selection_modal_material.dart';
 import 'cart_page.dart';
 
 class CheckoutPage extends StatefulWidget {

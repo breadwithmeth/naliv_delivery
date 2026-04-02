@@ -15,7 +15,7 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   const notification = payload.notification || {};
-  const title = notification.title || 'Налив/Градусы24';
+  const title = notification.title || 'Градусы24';
   const options = {
     body: notification.body || 'У вас новое уведомление',
     icon: '/icons/Icon-192.png',

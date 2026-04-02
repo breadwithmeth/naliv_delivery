@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/models/cart_item.dart';
-import 'package:naliv_delivery/pages/bonus_info_page.dart';
-import 'package:naliv_delivery/pages/checkout_page.dart';
-import 'package:naliv_delivery/pages/login_page.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
-import 'package:naliv_delivery/utils/bonus_rules.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:gradusy24/models/cart_item.dart';
+import 'package:gradusy24/pages/bonus_info_page.dart';
+import 'package:gradusy24/pages/checkout_page.dart';
+import 'package:gradusy24/pages/login_page.dart';
+import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/bonus_rules.dart';
+import 'package:gradusy24/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 

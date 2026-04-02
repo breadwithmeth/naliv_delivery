@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
-import 'package:naliv_delivery/models/cart_item.dart';
+import 'package:gradusy24/models/cart_item.dart';
 
 /// Провайдер управления корзиной
 class CartProvider extends ChangeNotifier {

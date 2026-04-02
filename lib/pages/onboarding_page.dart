@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:naliv_delivery/services/notification_service.dart';
-import 'package:naliv_delivery/services/onboarding_service.dart';
-import 'package:naliv_delivery/services/telemetry_consent_service.dart';
-import 'package:naliv_delivery/utils/location_service.dart';
+import 'package:gradusy24/services/notification_service.dart';
+import 'package:gradusy24/services/onboarding_service.dart';
+import 'package:gradusy24/services/telemetry_consent_service.dart';
+import 'package:gradusy24/utils/location_service.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
 

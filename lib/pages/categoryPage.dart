@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/utils/cartFloatingButton.dart';
+import 'package:gradusy24/utils/cartFloatingButton.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
 import '../shared/product_card.dart';

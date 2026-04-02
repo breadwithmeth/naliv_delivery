@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/utils/responsive.dart';
 
 class BonusInfoPage extends StatelessWidget {
   const BonusInfoPage({super.key});

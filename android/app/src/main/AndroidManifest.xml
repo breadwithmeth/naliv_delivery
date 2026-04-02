@@ -1,5 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.naliv.delivery">
-	<application android:label="delivery" android:name="${applicationName}" android:icon="@mipmap/launcher_icon" android:usesCleartextTraffic="true">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.gradusy24.app">
+	<application android:label="Градусы24" android:name="${applicationName}" android:icon="@mipmap/launcher_icon" android:usesCleartextTraffic="true">
 		<activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:theme="@style/LaunchTheme" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize" android:showWhenLocked="true" android:turnScreenOn="true">
 			<!--
 			Specifies an Android theme to apply to this Activity as soon as
@@ -17,7 +17,7 @@
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
-				<data android:scheme="naliv" />
+				<data android:scheme="gradusy24" />
 			</intent-filter>
 		</activity>
 		
@@ -39,7 +39,7 @@
 			android:resource="@color/notification_color" />
 		<meta-data
 			android:name="com.google.firebase.messaging.default_notification_channel_id"
-			android:value="naliv_orders" />
+			android:value="gradusy24_orders" />
 		
 		<!--
 		Don't delete the meta-data below.
@@ -53,8 +53,6 @@
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 	<uses-permission android:name="android.permission.INTERNET" />
-	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 	<uses-permission android:name="android.permission.VIBRATE" />
 	<!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
 	<!-- <uses-permission android:name="android.permission.USE_EXACT_ALARM" /> -->
@@ -67,16 +65,6 @@
 	<!-- foregroundServiceType: remoteMessaging -->
 	<!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" /> -->
 	<queries>
-  <!-- If your app checks for SMS support -->
-  <intent>
-    <action android:name="android.intent.action.VIEW" />
-    <data android:scheme="sms" />
-  </intent>
-  <!-- If your app checks for call support -->
-  <intent>
-    <action android:name="android.intent.action.VIEW" />
-    <data android:scheme="tel" />
-  </intent>
   <!-- If your application checks for inAppBrowserView launch mode support -->
   <intent>
     <action android:name="android.support.customtabs.action.CustomTabsService" />

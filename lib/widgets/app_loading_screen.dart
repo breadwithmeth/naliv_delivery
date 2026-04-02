@@ -131,7 +131,7 @@ class _AppLoadingScreenState extends State<AppLoadingScreen> with TickerProvider
                           child: FadeTransition(
                             opacity: _titleFade,
                             child: Text(
-                              'Налив / Градусы24',
+                              'Градусы24',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: AppColors.text,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:naliv_delivery/model/item.dart';
-import 'package:naliv_delivery/pages/product_detail_page.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:gradusy24/model/item.dart';
+import 'package:gradusy24/pages/product_detail_page.dart';
+import 'package:gradusy24/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() {

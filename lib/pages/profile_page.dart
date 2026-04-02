@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/login_page.dart';
-import 'package:naliv_delivery/pages/orders_history_page.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:gradusy24/pages/login_page.dart';
+import 'package:gradusy24/pages/orders_history_page.dart';
+import 'package:gradusy24/shared/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
