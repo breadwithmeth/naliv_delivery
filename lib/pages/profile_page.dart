@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/services/diagnostics_consent_service.dart';
 import '../utils/api.dart';
 import '../services/agreement_service.dart';
 import '../services/auth_service.dart';
+import '../services/sentry_service.dart';
+import '../widgets/diagnostics_consent_dialog.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -15,11 +18,85 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  bool? _diagnosticsConsent;
+  bool _isUpdatingDiagnostics = false;
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _checkAuth();
+    _loadDiagnosticsConsent();
+  }
+
+  Future<void> _loadDiagnosticsConsent() async {
+    final consent = await DiagnosticsConsentService.getDiagnosticsConsent();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _diagnosticsConsent = consent;
+    });
+  }
+
+  Future<void> _toggleDiagnostics(bool enabled) async {
+    if (_isUpdatingDiagnostics) {
+      return;
+    }
+
+    if (enabled) {
+      final accepted = await showDiagnosticsConsentDialog(context);
+      if (!accepted) {
+        await SentryService.updateConsent(false, source: 'settings_declined');
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _diagnosticsConsent = false;
+        });
+        return;
+      }
+    }
+
+    setState(() {
+      _isUpdatingDiagnostics = true;
+    });
+
+    final sentryActive = await SentryService.updateConsent(enabled, source: 'settings_toggle');
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _diagnosticsConsent = enabled;
+      _isUpdatingDiagnostics = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          enabled
+              ? sentryActive
+                    ? 'Анонимная диагностика включена.'
+                    : 'Анонимная диагностика включена. Сбор данных начнёт работать чуть позже.'
+              : 'Анонимная диагностика отключена.',
+        ),
+      ),
+    );
+  }
+
+  String _diagnosticsSubtitle() {
+    if (_diagnosticsConsent == null) {
+      return 'Ещё не настроено. Ошибки и метрики отправляются только после вашего согласия.';
+    }
+
+    if (_diagnosticsConsent == true && !SentryService.hasConfiguredDsn) {
+      return 'Согласие получено. Личные данные не отправляются. Сбор технических данных будет доступен позже.';
+    }
+
+    return 'Ошибки и метрики производительности без имени, телефона, email, адреса и координат.';
   }
 
   void _checkAuth() async {
@@ -32,9 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Пожалуйста, авторизуйтесь')),
-          );
+          ..showSnackBar(const SnackBar(content: Text('Пожалуйста, авторизуйтесь')));
       });
       return;
     }
@@ -47,9 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Ошибка получения данных профиля')),
-          );
+          ..showSnackBar(const SnackBar(content: Text('Ошибка получения данных профиля')));
       });
       return;
     }
@@ -59,18 +132,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Данные профиля успешно получены')),
-        );
+        ..showSnackBar(const SnackBar(content: Text('Данные профиля успешно получены')));
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Профиль'),
-      ),
+      appBar: AppBar(title: const Text('Профиль')),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: ApiService.getFullInfo(),
         builder: (context, snapshot) {
@@ -79,24 +148,18 @@ class _ProfilePageState extends State<ProfilePage> {
           }
           if (snapshot.hasError || snapshot.data == null) {
             return Center(
-                child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const LoginPage(
-                                  redirectTabIndex: 4,
-                                )),
-                      );
-                    },
-                    child: Text('Войти')));
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage(redirectTabIndex: 4)));
+                },
+                child: Text('Войти'),
+              ),
+            );
           }
           final data = snapshot.data!;
           final user = data['user'] as Map<String, dynamic>;
-          final addresses =
-              (data['addresses'] as List<dynamic>).cast<Map<String, dynamic>>();
-          final cards =
-              (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
+          final addresses = (data['addresses'] as List<dynamic>).cast<Map<String, dynamic>>();
+          final cards = (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -110,27 +173,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPressed: () async {
                       await AuthService.clearToken();
                       if (!mounted) return;
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                            builder: (_) => const AuthenticationWrapper(
-                                  initialTabIndex: 0,
-                                )),
-                        (route) => false,
-                      );
+                      Navigator.of(
+                        context,
+                      ).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const AuthenticationWrapper(initialTabIndex: 0)), (route) => false);
                     },
                     icon: const Icon(Icons.logout),
                     label: const Text('Выйти'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Card(
                   margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -139,34 +194,24 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         Row(
                           children: [
-                            Icon(
-                              Icons.person,
-                              size: 40,
-                            ),
+                            Icon(Icons.person, size: 40),
                             const SizedBox(width: 12),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(user['name'] ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge),
-                                Text(user['login'] ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall),
+                                Text(user['name'] ?? '', style: Theme.of(context).textTheme.titleLarge),
+                                Text(user['login'] ?? '', style: Theme.of(context).textTheme.bodySmall),
                               ],
                             ),
                           ],
                         ),
                         if (user['date_of_birth'] != null) ...[
                           const SizedBox(height: 8),
-                          Text('Дата рождения: ${user['date_of_birth']}',
-                              style: Theme.of(context).textTheme.bodyMedium),
+                          Text('Дата рождения: ${user['date_of_birth']}', style: Theme.of(context).textTheme.bodyMedium),
                         ],
                         if (user['sex'] != null) ...[
                           const SizedBox(height: 4),
-                          Text(
-                              'Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}',
-                              style: Theme.of(context).textTheme.bodyMedium),
+                          Text('Пол: ${user['sex'] == 1 ? 'Мужской' : 'Женский'}', style: Theme.of(context).textTheme.bodyMedium),
                         ],
                       ],
                     ),
@@ -175,97 +220,96 @@ class _ProfilePageState extends State<ProfilePage> {
                 // Addresses
                 Card(
                   margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 1,
                   child: ExpansionTile(
-                    leading: Icon(
-                      Icons.location_on,
-                    ),
-                    title: Text('Адреса',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    leading: Icon(Icons.location_on),
+                    title: Text('Адреса', style: Theme.of(context).textTheme.titleMedium),
                     children: addresses
-                        .map((addr) => Card(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                              elevation: 1,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.home,
-                                ),
-                                title: Text(addr['address'] ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if ((addr['name'] as String).isNotEmpty)
-                                      Text('Имя: ${addr['name']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['apartment'] as String)
-                                        .isNotEmpty)
-                                      Text('Кв.: ${addr['apartment']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['entrance'] as String).isNotEmpty)
-                                      Text('Под.: ${addr['entrance']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['floor'] as String).isNotEmpty)
-                                      Text('Эт.: ${addr['floor']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                    if ((addr['other'] as String).isNotEmpty)
-                                      Text('Прим.: ${addr['other']}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall),
-                                  ],
-                                ),
+                        .map(
+                          (addr) => Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 1,
+                            child: ListTile(
+                              leading: Icon(Icons.home),
+                              title: Text(addr['address'] ?? '', style: Theme.of(context).textTheme.bodyLarge),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if ((addr['name'] as String).isNotEmpty) Text('Имя: ${addr['name']}', style: Theme.of(context).textTheme.bodySmall),
+                                  if ((addr['apartment'] as String).isNotEmpty)
+                                    Text('Кв.: ${addr['apartment']}', style: Theme.of(context).textTheme.bodySmall),
+                                  if ((addr['entrance'] as String).isNotEmpty)
+                                    Text('Под.: ${addr['entrance']}', style: Theme.of(context).textTheme.bodySmall),
+                                  if ((addr['floor'] as String).isNotEmpty)
+                                    Text('Эт.: ${addr['floor']}', style: Theme.of(context).textTheme.bodySmall),
+                                  if ((addr['other'] as String).isNotEmpty)
+                                    Text('Прим.: ${addr['other']}', style: Theme.of(context).textTheme.bodySmall),
+                                ],
                               ),
-                            ))
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ),
                 // Cards
                 Card(
                   margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 1,
                   child: ExpansionTile(
-                    leading: Icon(
-                      Icons.credit_card,
-                    ),
-                    title: Text('Карты',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    children: cards
-                        .map((card) => ListTile(
-                              leading: const Icon(Icons.credit_card),
-                              title: Text(card['mask'] ?? ''),
-                            ))
-                        .toList(),
+                    leading: Icon(Icons.credit_card),
+                    title: Text('Карты', style: Theme.of(context).textTheme.titleMedium),
+                    children: cards.map((card) => ListTile(leading: const Icon(Icons.credit_card), title: Text(card['mask'] ?? ''))).toList(),
+                  ),
+                ),
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 1,
+                  child: SwitchListTile.adaptive(
+                    secondary: _isUpdatingDiagnostics
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.health_and_safety_outlined),
+                    value: _diagnosticsConsent ?? false,
+                    title: const Text('Анонимная диагностика'),
+                    subtitle: Text(_diagnosticsSubtitle()),
+                    onChanged: _isUpdatingDiagnostics ? null : _toggleDiagnostics,
                   ),
                 ),
 
                 // Раздел настроек (только для разработки/отладки)
                 Card(
                   margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 1,
                   child: ExpansionTile(
                     leading: const Icon(Icons.settings),
-                    title: Text('Настройки разработчика',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    title: Text('Настройки разработчика', style: Theme.of(context).textTheme.titleMedium),
                     children: [
+                      ListTile(
+                        leading: const Icon(Icons.bug_report_outlined),
+                        title: const Text('Сбросить выбор диагностики'),
+                        subtitle: const Text('Для повторного показа запроса на главной странице'),
+                        onTap: () async {
+                          await DiagnosticsConsentService.clearDiagnosticsConsent();
+                          await SentryService.updateConsent(false, source: 'developer_reset', persistChoice: false);
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _diagnosticsConsent = null;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Выбор диагностики сброшен. Запрос снова появится на главной странице.'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        },
+                      ),
                       ListTile(
                         leading: const Icon(Icons.description),
                         title: const Text('Сбросить согласие с офертой'),
@@ -274,11 +318,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           await AgreementService.resetAllAgreements();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Согласия сброшены. Перезапустите приложение.'),
-                                backgroundColor: Colors.orange,
-                              ),
+                              const SnackBar(content: Text('Согласия сброшены. Перезапустите приложение.'), backgroundColor: Colors.orange),
                             );
                           }
                         },
@@ -287,16 +327,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         leading: const Icon(Icons.info),
                         title: const Text('Проверить статус согласий'),
                         onTap: () async {
-                          final isAccepted =
-                              await AgreementService.isOfferAccepted();
+                          final isAccepted = await AgreementService.isOfferAccepted();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  'Оферта ${isAccepted ? "принята" : "не принята"}',
-                                ),
-                                backgroundColor:
-                                    isAccepted ? Colors.green : Colors.red,
+                                content: Text('Оферта ${isAccepted ? "принята" : "не принята"}'),
+                                backgroundColor: isAccepted ? Colors.green : Colors.red,
                               ),
                             );
                           }

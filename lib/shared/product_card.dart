@@ -419,7 +419,7 @@ class _ProductCardState extends State<ProductCard> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      '${item.effectiveStepQuantity == 1.0 ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2)}',
+                                      item.effectiveStepQuantity == 1.0 ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -494,7 +494,7 @@ class _ProductCardState extends State<ProductCard> {
                                         ? Theme.of(context).colorScheme.primary
                                         : Theme.of(context)
                                             .colorScheme
-                                            .surfaceVariant,
+                                            .surfaceContainerHighest,
                                     foregroundColor: canIncrease
                                         ? Theme.of(context)
                                             .colorScheme
@@ -541,7 +541,7 @@ class _ProductCardState extends State<ProductCard> {
                                         ? Theme.of(context).colorScheme.primary
                                         : Theme.of(context)
                                             .colorScheme
-                                            .surfaceVariant,
+                                            .surfaceContainerHighest,
                                     foregroundColor: canAdd
                                         ? Theme.of(context)
                                             .colorScheme

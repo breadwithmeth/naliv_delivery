@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:naliv_delivery/services/diagnostics_consent_service.dart';
+import 'package:naliv_delivery/services/sentry_service.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'package:naliv_delivery/widgets/diagnostics_consent_dialog.dart';
 import 'package:naliv_delivery/pages/map_address_page.dart';
 import 'package:provider/provider.dart';
 import '../utils/location_service.dart';
@@ -46,8 +50,8 @@ class _MainPageState extends State<MainPage> {
   int _currentPromoPage = 0;
   final LocationService locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
-  String?
-      _lastPromptKey; // чтобы не спамить диалогами при одной и той же комбинации
+  String? _lastPromptKey; // чтобы не спамить диалогами при одной и той же комбинации
+  bool _diagnosticsPromptScheduled = false;
 
   // Состояние для акций
   List<Promotion> _promotions = [];
@@ -69,9 +73,7 @@ class _MainPageState extends State<MainPage> {
 
   /// Вычисляет расстояние до магазина если доступна геолокация
   double? _calculateDistance(Map<String, dynamic> business) {
-    if (widget.userPosition != null &&
-        business['lat'] != null &&
-        business['lon'] != null) {
+    if (widget.userPosition != null && business['lat'] != null && business['lon'] != null) {
       return locationService.calculateDistance(
         widget.userPosition!.latitude,
         widget.userPosition!.longitude,
@@ -83,8 +85,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   /// Вычисляет расстояние до магазина по заданным координатам
-  double? _calculateDistanceFromCoords(
-      Map<String, dynamic> business, double lat, double lon) {
+  double? _calculateDistanceFromCoords(Map<String, dynamic> business, double lat, double lon) {
     if (business['lat'] != null && business['lon'] != null) {
       try {
         final businessLat = business['lat'].toDouble();
@@ -94,12 +95,7 @@ class _MainPageState extends State<MainPage> {
         print('   От: $lat, $lon');
         print('   До: ${business['name']} ($businessLat, $businessLon)');
 
-        final distance = locationService.calculateDistance(
-          lat,
-          lon,
-          businessLat,
-          businessLon,
-        );
+        final distance = locationService.calculateDistance(lat, lon, businessLat, businessLon);
 
         print('   Результат: ${(distance / 1000).toStringAsFixed(2)} км');
         return distance;
@@ -108,8 +104,7 @@ class _MainPageState extends State<MainPage> {
         return null;
       }
     } else {
-      print(
-          '❌ У магазина ${business['name']} отсутствуют координаты: lat=${business['lat']}, lon=${business['lon']}');
+      print('❌ У магазина ${business['name']} отсутствуют координаты: lat=${business['lat']}, lon=${business['lon']}');
     }
     return null;
   }
@@ -127,14 +122,10 @@ class _MainPageState extends State<MainPage> {
     for (var business in widget.businesses) {
       final distance = _calculateDistanceFromCoords(business, lat, lon);
       if (distance != null) {
-        print(
-            '🏪 ${business['name']}: ${(distance / 1000).toStringAsFixed(2)} км');
+        print('🏪 ${business['name']}: ${(distance / 1000).toStringAsFixed(2)} км');
         if (distance < minDistance) {
           minDistance = distance;
-          nearestBusiness = {
-            ...business,
-            'distance': distance,
-          };
+          nearestBusiness = {...business, 'distance': distance};
         }
       } else {
         print('❌ Не удалось рассчитать расстояние до ${business['name']}');
@@ -142,8 +133,7 @@ class _MainPageState extends State<MainPage> {
     }
 
     if (nearestBusiness != null) {
-      print(
-          '🎯 Ближайший магазин: ${nearestBusiness['name']} (${(minDistance / 1000).toStringAsFixed(2)} км)');
+      print('🎯 Ближайший магазин: ${nearestBusiness['name']} (${(minDistance / 1000).toStringAsFixed(2)} км)');
     } else {
       print('❌ Ближайший магазин не найден');
     }
@@ -155,14 +145,11 @@ class _MainPageState extends State<MainPage> {
   void _autoSelectNearestBusiness() {
     // Если уже есть выбранный магазин, не меняем его автоматически
     if (widget.selectedBusiness != null) {
-      print(
-          '✅ Магазин уже выбран: ${widget.selectedBusiness!['name']}, автоматический выбор пропущен');
+      print('✅ Магазин уже выбран: ${widget.selectedBusiness!['name']}, автоматический выбор пропущен');
       return;
     }
 
-    if (_selectedAddress != null &&
-        _selectedAddress!['lat'] != null &&
-        _selectedAddress!['lon'] != null) {
+    if (_selectedAddress != null && _selectedAddress!['lat'] != null && _selectedAddress!['lon'] != null) {
       final currentLat = _selectedAddress!['lat'].toDouble();
       final currentLon = _selectedAddress!['lon'].toDouble();
 
@@ -173,10 +160,8 @@ class _MainPageState extends State<MainPage> {
       final nearestBusiness = _findNearestBusiness(currentLat, currentLon);
 
       if (nearestBusiness != null) {
-        print(
-            '🏪 Автоматически выбран ближайший магазин: ${nearestBusiness['name']}');
-        print(
-            '   Расстояние: ${(nearestBusiness['distance'] / 1000).toStringAsFixed(2)} км');
+        print('🏪 Автоматически выбран ближайший магазин: ${nearestBusiness['name']}');
+        print('   Расстояние: ${(nearestBusiness['distance'] / 1000).toStringAsFixed(2)} км');
 
         // Важно: вызываем onBusinessSelected для обновления состояния в родительском виджете
         widget.onBusinessSelected(nearestBusiness);
@@ -198,39 +183,25 @@ class _MainPageState extends State<MainPage> {
   /// Показывает уведомление о выборе ближайшего магазина
   void _showNearestBusinessNotification(Map<String, dynamic> business) {
     final distance = business['distance'];
-    final distanceText =
-        distance != null ? ' (${(distance / 1000).toStringAsFixed(1)} км)' : '';
+    final distanceText = distance != null ? ' (${(distance / 1000).toStringAsFixed(1)} км)' : '';
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              Icons.store,
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(Icons.store, color: Colors.white, size: 20),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                'Выбран ближайший магазин: ${business['name']}$distanceText',
-                style: const TextStyle(color: Colors.white),
-              ),
+              child: Text('Выбран ближайший магазин: ${business['name']}$distanceText', style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        action: SnackBarAction(
-          label: 'Изменить',
-          textColor: Colors.white,
-          onPressed: _showBusinessSelector,
-        ),
+        action: SnackBarAction(label: 'Изменить', textColor: Colors.white, onPressed: _showBusinessSelector),
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -242,11 +213,8 @@ class _MainPageState extends State<MainPage> {
     // Проверяем, есть ли товары в корзине
     if (cartProvider.items.isNotEmpty) {
       // Проверяем, отличается ли выбранный магазин от текущего
-      final currentBusinessId = widget.selectedBusiness?['id'] ??
-          widget.selectedBusiness?['business_id'] ??
-          widget.selectedBusiness?['businessId'];
-      final newBusinessId =
-          business['id'] ?? business['business_id'] ?? business['businessId'];
+      final currentBusinessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
+      final newBusinessId = business['id'] ?? business['business_id'] ?? business['businessId'];
 
       if (currentBusinessId != newBusinessId) {
         // Показываем предупреждение
@@ -256,18 +224,12 @@ class _MainPageState extends State<MainPage> {
           builder: (BuildContext dialogContext) {
             return AlertDialog(
               title: const Text('Смена магазина'),
-              content: const Text(
-                  'При смене магазина все товары из корзины будут удалены. Продолжить?'),
+              content: const Text('При смене магазина все товары из корзины будут удалены. Продолжить?'),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Отмена'),
-                ),
+                TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Отмена')),
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
                   child: const Text('Очистить корзину'),
                 ),
               ],
@@ -320,19 +282,14 @@ class _MainPageState extends State<MainPage> {
       int? businessId;
       if (widget.selectedBusiness != null) {
         // Проверяем различные варианты поля ID
-        businessId = widget.selectedBusiness!['id'] ??
-            widget.selectedBusiness!['business_id'] ??
-            widget.selectedBusiness!['businessId'];
+        businessId = widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId'];
 
         print('🔄 Загружаем акции для магазина ID: $businessId');
         print('📊 Данные магазина: ${widget.selectedBusiness}');
       }
 
       // Загружаем акции
-      final promotions = await ApiService.getActivePromotionsTyped(
-        businessId: businessId,
-        limit: 10,
-      );
+      final promotions = await ApiService.getActivePromotionsTyped(businessId: businessId, limit: 10);
 
       if (mounted) {
         setState(() {
@@ -404,8 +361,7 @@ class _MainPageState extends State<MainPage> {
         final now = DateTime.now();
         final cutoffTime = now.subtract(const Duration(hours: 36));
 
-        final filteredOrders =
-            activeOrdersList.cast<Map<String, dynamic>>().where((order) {
+        final filteredOrders = activeOrdersList.cast<Map<String, dynamic>>().where((order) {
           try {
             final createdAt = order['log_timestamp'];
             if (createdAt == null) return true; // Показываем если нет даты
@@ -423,8 +379,7 @@ class _MainPageState extends State<MainPage> {
           _isLoadingActiveOrders = false;
         });
 
-        print(
-            '✅ Загружено активных заказов за последние 36 часов: ${_activeOrders.length} из ${activeOrdersList.length}');
+        print('✅ Загружено активных заказов за последние 36 часов: ${_activeOrders.length} из ${activeOrdersList.length}');
       } else {
         setState(() {
           _activeOrders = [];
@@ -455,17 +410,13 @@ class _MainPageState extends State<MainPage> {
       // Получаем ID выбранного магазина
       int? businessId;
       if (widget.selectedBusiness != null) {
-        businessId = widget.selectedBusiness!['id'] ??
-            widget.selectedBusiness!['business_id'] ??
-            widget.selectedBusiness!['businessId'];
+        businessId = widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId'];
 
         print('🔄 Загружаем категории для магазина ID: $businessId');
       }
 
       // Загружаем категории из API
-      final categoriesData = await ApiService.getCategories(
-        businessId: businessId,
-      );
+      final categoriesData = await ApiService.getCategories(businessId: businessId);
 
       if (mounted) {
         if (categoriesData != null) {
@@ -499,8 +450,7 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     // Подписка на изменение сохраненного адреса
-    _addressSubscription =
-        AddressStorageService.selectedAddressStream.listen((address) {
+    _addressSubscription = AddressStorageService.selectedAddressStream.listen((address) {
       if (mounted) {
         setState(() {
           _selectedAddress = address;
@@ -522,6 +472,7 @@ class _MainPageState extends State<MainPage> {
 
     // Инициализируем адрес из widget или загружаем из хранилища
     _selectedAddress = widget.selectedAddress;
+    _scheduleDiagnosticsConsentPrompt();
     if (_selectedAddress == null) {
       _initAddressSelection();
     } else {
@@ -546,32 +497,70 @@ class _MainPageState extends State<MainPage> {
     _loadActiveOrders();
   }
 
+  void _scheduleDiagnosticsConsentPrompt([Duration delay = const Duration(seconds: 2)]) {
+    if (_diagnosticsPromptScheduled) {
+      return;
+    }
+
+    _diagnosticsPromptScheduled = true;
+    Future.delayed(delay, () async {
+      _diagnosticsPromptScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      await _maybeAskDiagnosticsConsent();
+    });
+  }
+
+  Future<void> _maybeAskDiagnosticsConsent() async {
+    final consent = await DiagnosticsConsentService.getDiagnosticsConsent();
+    if (consent != null || !mounted) {
+      return;
+    }
+
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) {
+      _scheduleDiagnosticsConsentPrompt();
+      return;
+    }
+
+    final accepted = await showDiagnosticsConsentDialog(context);
+    final sentryActive = await SentryService.updateConsent(accepted, source: 'main_page_prompt');
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          accepted
+              ? sentryActive
+                    ? 'Анонимная диагностика включена.'
+                    : 'Анонимная диагностика включена. Сбор данных начнёт работать чуть позже.'
+              : 'Анонимная диагностика отключена.',
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   /// Проверяет, далеко ли сохраненный адрес от текущей геопозиции и предлагает более близкий из истории
   Future<void> _maybeSuggestCloserAddress() async {
     if (_selectedAddress == null) return;
-    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null)
-      return;
+    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null) return;
 
     // Пытаемся получить текущее местоположение быстро (низкая точность достаточна)
     Position? pos;
     try {
-      pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 4),
-      );
+      pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low, timeLimit: const Duration(seconds: 4));
     } catch (e) {
-      print(
-          '⚠️ Не удалось получить позицию для проверки более близкого адреса: $e');
+      print('⚠️ Не удалось получить позицию для проверки более близкого адреса: $e');
       return;
     }
     final savedLat = (_selectedAddress!['lat'] as num).toDouble();
     final savedLon = (_selectedAddress!['lon'] as num).toDouble();
-    final currentDistance = locationService.calculateDistance(
-      pos.latitude,
-      pos.longitude,
-      savedLat,
-      savedLon,
-    );
+    final currentDistance = locationService.calculateDistance(pos.latitude, pos.longitude, savedLat, savedLon);
 
     // Порог (метры), после которого считаем адрес "не актуальным" (например 1500 м)
     const staleThresholdMeters = 1500.0;
@@ -589,12 +578,7 @@ class _MainPageState extends State<MainPage> {
       final lat = (point['lat'] as num?)?.toDouble();
       final lon = (point['lon'] as num?)?.toDouble();
       if (lat == null || lon == null) continue;
-      final d = locationService.calculateDistance(
-        pos.latitude,
-        pos.longitude,
-        lat,
-        lon,
-      );
+      final d = locationService.calculateDistance(pos.latitude, pos.longitude, lat, lon);
       if (d < bestDistance) {
         bestDistance = d;
         bestEntry = entry;
@@ -627,26 +611,15 @@ class _MainPageState extends State<MainPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  'Текущий выбранный адрес находится примерно в $currentKm км от вашего текущего местоположения.'),
+              Text('Текущий выбранный адрес находится примерно в $currentKm км от вашего текущего местоположения.'),
               const SizedBox(height: 8),
-              Text(
-                  'В истории есть более близкий адрес (~$bestKm км). Заменить?'),
+              Text('В истории есть более близкий адрес (~$bestKm км). Заменить?'),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop('keep'),
-              child: const Text('Оставить'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop('switch'),
-              child: const Text('Заменить'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop('dontask'),
-              child: const Text('Не спрашивать'),
-            ),
+            TextButton(onPressed: () => Navigator.of(ctx).pop('keep'), child: const Text('Оставить')),
+            TextButton(onPressed: () => Navigator.of(ctx).pop('switch'), child: const Text('Заменить')),
+            TextButton(onPressed: () => Navigator.of(ctx).pop('dontask'), child: const Text('Не спрашивать')),
           ],
         );
       },
@@ -673,13 +646,9 @@ class _MainPageState extends State<MainPage> {
       } else {
         _maybePromptNearestSwitch();
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Адрес обновлён на более близкий: ${newAddress['address']}'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Адрес обновлён на более близкий: ${newAddress['address']}'), duration: const Duration(seconds: 3)));
     } else if (decision == 'dontask') {
       // Сохраняем специальный ключ, чтобы не спрашивать до смены координат/адреса заметно
       await AddressStorageService.setLastReaddressPromptKey(promptKey);
@@ -699,12 +668,9 @@ class _MainPageState extends State<MainPage> {
     super.didUpdateWidget(oldWidget);
 
     print('🔄 MainPage didUpdateWidget:');
-    print(
-        '   Магазины изменились: ${widget.businesses.length} vs ${oldWidget.businesses.length}');
-    print(
-        '   Адрес изменился: ${widget.selectedAddress != oldWidget.selectedAddress}');
-    print(
-        '   Магазин изменился: ${widget.selectedBusiness != oldWidget.selectedBusiness}');
+    print('   Магазины изменились: ${widget.businesses.length} vs ${oldWidget.businesses.length}');
+    print('   Адрес изменился: ${widget.selectedAddress != oldWidget.selectedAddress}');
+    print('   Магазин изменился: ${widget.selectedBusiness != oldWidget.selectedBusiness}');
 
     // Обновляем локальный адрес при изменении widget.selectedAddress
     if (widget.selectedAddress != oldWidget.selectedAddress) {
@@ -739,10 +705,7 @@ class _MainPageState extends State<MainPage> {
     }
 
     // Если магазины загрузились, а адрес уже есть - выбираем ближайший
-    if (oldWidget.businesses.isEmpty &&
-        widget.businesses.isNotEmpty &&
-        _selectedAddress != null &&
-        widget.selectedBusiness == null) {
+    if (oldWidget.businesses.isEmpty && widget.businesses.isNotEmpty && _selectedAddress != null && widget.selectedBusiness == null) {
       print('🏪 Магазины загрузились, выбираем ближайший');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -786,13 +749,9 @@ class _MainPageState extends State<MainPage> {
             // Получаем текущую позицию (быстрая попытка, без сложной многоступенчатой логики)
             Position? pos;
             try {
-              pos = await Geolocator.getCurrentPosition(
-                desiredAccuracy: LocationAccuracy.low,
-                timeLimit: const Duration(seconds: 5),
-              );
+              pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low, timeLimit: const Duration(seconds: 5));
             } catch (e) {
-              print(
-                  '⚠️ Не удалось получить текущую позицию для выбора ближайшего адреса из истории: $e');
+              print('⚠️ Не удалось получить текущую позицию для выбора ближайшего адреса из истории: $e');
             }
 
             if (pos != null) {
@@ -804,12 +763,7 @@ class _MainPageState extends State<MainPage> {
                 final lat = (point['lat'] as num?)?.toDouble();
                 final lon = (point['lon'] as num?)?.toDouble();
                 if (lat == null || lon == null) continue;
-                final d = locationService.calculateDistance(
-                  pos.latitude,
-                  pos.longitude,
-                  lat,
-                  lon,
-                );
+                final d = locationService.calculateDistance(pos.latitude, pos.longitude, lat, lon);
                 if (d < bestDistance) {
                   bestDistance = d;
                   bestEntry = entry;
@@ -823,20 +777,15 @@ class _MainPageState extends State<MainPage> {
                     'address': bestEntry['name'],
                     'lat': bestEntry['point']['lat'],
                     'lon': bestEntry['point']['lon'],
-                    if (bestEntry['apartment'] != null)
-                      'apartment': bestEntry['apartment'],
-                    if (bestEntry['entrance'] != null)
-                      'entrance': bestEntry['entrance'],
+                    if (bestEntry['apartment'] != null) 'apartment': bestEntry['apartment'],
+                    if (bestEntry['entrance'] != null) 'entrance': bestEntry['entrance'],
                     if (bestEntry['floor'] != null) 'floor': bestEntry['floor'],
-                    if (bestEntry['comment'] != null)
-                      'comment': bestEntry['comment'],
+                    if (bestEntry['comment'] != null) 'comment': bestEntry['comment'],
                     'source': 'history_nearest_auto',
                     'timestamp': DateTime.now().toIso8601String(),
                   };
-                  print(
-                      '📌 Автовыбор адреса из истории: ${reconstructed['address']} (~${(bestDistance / 1000).toStringAsFixed(2)} км)');
-                  await AddressStorageService.saveSelectedAddress(
-                      reconstructed);
+                  print('📌 Автовыбор адреса из истории: ${reconstructed['address']} (~${(bestDistance / 1000).toStringAsFixed(2)} км)');
+                  await AddressStorageService.saveSelectedAddress(reconstructed);
                   if (!mounted) return;
                   setState(() => _selectedAddress = reconstructed);
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -853,17 +802,11 @@ class _MainPageState extends State<MainPage> {
                     builder: (ctx) => AlertDialog(
                       title: const Text('Создать новый адрес?'),
                       content: Text(
-                        'Ближайший сохранённый адрес находится в ~${distanceKm} км от вас. Хотите создать новый ближе или использовать существующий?',
+                        'Ближайший сохранённый адрес находится в ~$distanceKm км от вас. Хотите создать новый ближе или использовать существующий?',
                       ),
                       actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop('use_old'),
-                          child: const Text('Использовать'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop('new'),
-                          child: const Text('Создать новый'),
-                        ),
+                        TextButton(onPressed: () => Navigator.of(ctx).pop('use_old'), child: const Text('Использовать')),
+                        TextButton(onPressed: () => Navigator.of(ctx).pop('new'), child: const Text('Создать новый')),
                       ],
                     ),
                   );
@@ -873,19 +816,14 @@ class _MainPageState extends State<MainPage> {
                       'address': bestEntry['name'],
                       'lat': bestEntry['point']['lat'],
                       'lon': bestEntry['point']['lon'],
-                      if (bestEntry['apartment'] != null)
-                        'apartment': bestEntry['apartment'],
-                      if (bestEntry['entrance'] != null)
-                        'entrance': bestEntry['entrance'],
-                      if (bestEntry['floor'] != null)
-                        'floor': bestEntry['floor'],
-                      if (bestEntry['comment'] != null)
-                        'comment': bestEntry['comment'],
+                      if (bestEntry['apartment'] != null) 'apartment': bestEntry['apartment'],
+                      if (bestEntry['entrance'] != null) 'entrance': bestEntry['entrance'],
+                      if (bestEntry['floor'] != null) 'floor': bestEntry['floor'],
+                      if (bestEntry['comment'] != null) 'comment': bestEntry['comment'],
                       'source': 'history_far_confirmed',
                       'timestamp': DateTime.now().toIso8601String(),
                     };
-                    await AddressStorageService.saveSelectedAddress(
-                        reconstructed);
+                    await AddressStorageService.saveSelectedAddress(reconstructed);
                     if (!mounted) return;
                     setState(() => _selectedAddress = reconstructed);
                     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -930,12 +868,16 @@ class _MainPageState extends State<MainPage> {
   /// Пытается автоматически определить текущий адрес пользователя и выбрать ближайший магазин
   Future<void> _attemptAutoDetectAddress() async {
     try {
+      await SentryService.addBreadcrumb(
+        category: 'address.resolution',
+        message: 'Automatic address detection started',
+        data: const {'source': 'geolocation_auto'},
+      );
       // Проверяем и запрашиваем разрешения
       final locationService = LocationService.instance;
       final permission = await locationService.checkAndRequestPermissions();
       if (!permission.success) {
-        print(
-            '❌ Автоопределение адреса: нет разрешений (${permission.message})');
+        print('❌ Автоопределение адреса: нет разрешений (${permission.message})');
         // Фоллбек — показать модальное окно выбора
         _fallbackShowAddressModal();
         return;
@@ -951,18 +893,9 @@ class _MainPageState extends State<MainPage> {
       // Многоступенчатая стратегия точности (упрощённая относительно модалки)
       Position? position;
       final attempts = [
-        {
-          'accuracy': LocationAccuracy.high,
-          'timeout': const Duration(seconds: 8)
-        },
-        {
-          'accuracy': LocationAccuracy.medium,
-          'timeout': const Duration(seconds: 10)
-        },
-        {
-          'accuracy': LocationAccuracy.low,
-          'timeout': const Duration(seconds: 12)
-        },
+        {'accuracy': LocationAccuracy.high, 'timeout': const Duration(seconds: 8)},
+        {'accuracy': LocationAccuracy.medium, 'timeout': const Duration(seconds: 10)},
+        {'accuracy': LocationAccuracy.low, 'timeout': const Duration(seconds: 12)},
       ];
       for (final attempt in attempts) {
         try {
@@ -982,32 +915,36 @@ class _MainPageState extends State<MainPage> {
         return;
       }
 
-      print(
-          '📍 Координаты auto-detect: ${position.latitude}, ${position.longitude} (accuracy ${position.accuracy})');
+      print('📍 Координаты auto-detect: ${position.latitude}, ${position.longitude} (accuracy ${position.accuracy})');
 
       // Обратное геокодирование через API
-      final reverse = await ApiService.searchAddresses(
-        lat: position.latitude,
-        lon: position.longitude,
-      );
+      final reverse = await ApiService.searchAddresses(lat: position.latitude, lon: position.longitude);
 
       if (reverse == null || reverse.isEmpty) {
-        print(
-            '⚠️ API не вернул человекочитаемый адрес, открываем карту для уточнения');
+        await SentryService.addBreadcrumb(
+          category: 'address.resolution',
+          message: 'Automatic address reverse lookup returned no results',
+          data: const {'source': 'geolocation_auto'},
+          level: SentryLevel.warning,
+          type: 'error',
+        );
+        print('⚠️ API не вернул человекочитаемый адрес, открываем карту для уточнения');
         if (!mounted) return;
         final lat = position.latitude;
         final lon = position.longitude;
         // Переходим сразу на карту с текущими координатами для уточнения и обратного вызова
-        await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => MapAddressPage(
-            initialLat: lat,
-            initialLon: lon,
-            onAddressSelected: (data) async {
-              _selectedAddress = data;
-              _autoSelectNearestBusiness();
-            },
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MapAddressPage(
+              initialLat: lat,
+              initialLon: lon,
+              onAddressSelected: (data) async {
+                _selectedAddress = data;
+                _autoSelectNearestBusiness();
+              },
+            ),
           ),
-        ));
+        );
         await AddressStorageService.markAsLaunched();
         return;
       }
@@ -1029,6 +966,12 @@ class _MainPageState extends State<MainPage> {
         'point': {'lat': autoAddress['lat'], 'lon': autoAddress['lon']},
       });
       await AddressStorageService.markAsLaunched();
+
+      await SentryService.addBreadcrumb(
+        category: 'address.resolution',
+        message: 'Automatic address detection succeeded',
+        data: const {'source': 'geolocation_auto', 'result': 'resolved'},
+      );
 
       if (!mounted) return;
       setState(() => _selectedAddress = autoAddress);
@@ -1057,15 +1000,17 @@ class _MainPageState extends State<MainPage> {
 
       // Отобразим ненавязчивый snackbar
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Адрес определён автоматически: ${autoAddress['address']}'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Адрес определён автоматически: ${autoAddress['address']}'), duration: const Duration(seconds: 3)));
       }
     } catch (e) {
+      await SentryService.captureBusinessFailure(
+        message: 'Automatic address detection failed',
+        category: 'address.resolution',
+        level: SentryLevel.warning,
+        tags: const {'flow': 'address_resolution', 'mode': 'geolocation_auto'},
+      );
       print('❌ Ошибка автоопределения адреса: $e');
       _fallbackShowAddressModal();
     }
@@ -1081,6 +1026,11 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> _showAddressSelectionModal() async {
     print('🔥 _showAddressSelectionModal вызван');
+    await SentryService.addBreadcrumb(
+      category: 'address.resolution',
+      message: 'Main page address selection modal opened',
+      data: const {'source': 'main_page_modal'},
+    );
 
     // Проверяем, что контекст доступен и виджет mounted
     if (!mounted) {
@@ -1109,20 +1059,12 @@ class _MainPageState extends State<MainPage> {
         // Сохраняем в историю с полными данными адреса
         await AddressStorageService.addToAddressHistory({
           'name': selectedAddress['address'],
-          'point': {
-            'lat': selectedAddress['lat'],
-            'lon': selectedAddress['lon']
-          },
-          if (selectedAddress['apartment']?.toString().isNotEmpty == true)
-            'apartment': selectedAddress['apartment'],
-          if (selectedAddress['entrance']?.toString().isNotEmpty == true)
-            'entrance': selectedAddress['entrance'],
-          if (selectedAddress['floor']?.toString().isNotEmpty == true)
-            'floor': selectedAddress['floor'],
-          if (selectedAddress['other']?.toString().isNotEmpty == true)
-            'other': selectedAddress['other'],
-          if (selectedAddress['comment']?.toString().isNotEmpty == true)
-            'comment': selectedAddress['comment'],
+          'point': {'lat': selectedAddress['lat'], 'lon': selectedAddress['lon']},
+          if (selectedAddress['apartment']?.toString().isNotEmpty == true) 'apartment': selectedAddress['apartment'],
+          if (selectedAddress['entrance']?.toString().isNotEmpty == true) 'entrance': selectedAddress['entrance'],
+          if (selectedAddress['floor']?.toString().isNotEmpty == true) 'floor': selectedAddress['floor'],
+          if (selectedAddress['other']?.toString().isNotEmpty == true) 'other': selectedAddress['other'],
+          if (selectedAddress['comment']?.toString().isNotEmpty == true) 'comment': selectedAddress['comment'],
         });
         setState(() {
           _selectedAddress = selectedAddress;
@@ -1141,7 +1083,18 @@ class _MainPageState extends State<MainPage> {
         } else {
           _maybePromptNearestSwitch();
         }
+
+        await SentryService.addBreadcrumb(
+          category: 'address.resolution',
+          message: 'Main page address selected from modal',
+          data: const {'source': 'main_page_modal', 'result': 'selected'},
+        );
       } else {
+        await SentryService.addBreadcrumb(
+          category: 'address.resolution',
+          message: 'Main page address modal dismissed',
+          data: const {'source': 'main_page_modal', 'result': 'dismissed'},
+        );
         print('ℹ️ Адрес не выбран или виджет не mounted');
       }
     } catch (e) {
@@ -1152,11 +1105,9 @@ class _MainPageState extends State<MainPage> {
   /// Предлагает переключиться на ближайший магазин, если текущий не ближайший
   Future<void> _maybePromptNearestSwitch() async {
     if (_selectedAddress == null) return;
-    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null)
-      return;
+    if (_selectedAddress!['lat'] == null || _selectedAddress!['lon'] == null) return;
     if (widget.businesses.isEmpty) return;
-    if (widget.selectedBusiness == null)
-      return; // тогда пусть авто выбор сделает другая логика
+    if (widget.selectedBusiness == null) return; // тогда пусть авто выбор сделает другая логика
 
     final lat = (_selectedAddress!['lat'] as num).toDouble();
     final lon = (_selectedAddress!['lon'] as num).toDouble();
@@ -1164,28 +1115,21 @@ class _MainPageState extends State<MainPage> {
     if (nearest == null) return;
 
     // ID текущего и ближайшего магазина
-    final currentBusinessId = widget.selectedBusiness!['id'] ??
-        widget.selectedBusiness!['business_id'] ??
-        widget.selectedBusiness!['businessId'];
-    final nearestBusinessId =
-        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    final currentBusinessId = widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId'];
+    final nearestBusinessId = nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
     if (currentBusinessId == null || nearestBusinessId == null) return;
 
     // Уже и так ближайший
     if (currentBusinessId == nearestBusinessId) return;
 
     // Ключ для предотвращения повторных диалогов
-    final promptKey =
-        '${lat.toStringAsFixed(5)}_${lon.toStringAsFixed(5)}_${currentBusinessId}_${nearestBusinessId}';
+    final promptKey = '${lat.toStringAsFixed(5)}_${lon.toStringAsFixed(5)}_${currentBusinessId}_$nearestBusinessId';
     if (_lastPromptKey == promptKey) return; // уже показывали
     _lastPromptKey = promptKey;
 
     // Расстояния
-    final nearestDistanceM = (nearest['distance'] as num?)?.toDouble() ??
-        _calculateDistanceFromCoords(nearest, lat, lon) ??
-        0;
-    final currentDistanceM =
-        _calculateDistanceFromCoords(widget.selectedBusiness!, lat, lon) ?? 0;
+    final nearestDistanceM = (nearest['distance'] as num?)?.toDouble() ?? _calculateDistanceFromCoords(nearest, lat, lon) ?? 0;
+    final currentDistanceM = _calculateDistanceFromCoords(widget.selectedBusiness!, lat, lon) ?? 0;
 
     final nearestKm = (nearestDistanceM / 1000).toStringAsFixed(2);
     final currentKm = (currentDistanceM / 1000).toStringAsFixed(2);
@@ -1204,31 +1148,16 @@ class _MainPageState extends State<MainPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Текущий магазин находится на ~${currentKm} км от выбранного адреса.',
-              ),
+              Text('Текущий магазин находится на ~$currentKm км от выбранного адреса.'),
               const SizedBox(height: 8),
-              Text(
-                'Ближайший магазин: ${nearest['name']} (~${nearestKm} км).',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+              Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).', style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
-              Text(
-                hasCartItems
-                    ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
-                    : 'Переключить на ближайший магазин?',
-              ),
+              Text(hasCartItems ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?' : 'Переключить на ближайший магазин?'),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Оставить'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Переключить'),
-            ),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Оставить')),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Переключить')),
           ],
         );
       },
@@ -1251,13 +1180,9 @@ class _MainPageState extends State<MainPage> {
       widget.onBusinessSelected(nearest);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Вы переключились на ближайший магазин: ${nearest['name']}'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Вы переключились на ближайший магазин: ${nearest['name']}'), duration: const Duration(seconds: 3)));
       }
     }
   }
@@ -1267,9 +1192,7 @@ class _MainPageState extends State<MainPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
         color: Theme.of(context).colorScheme.surfaceDim,
@@ -1278,55 +1201,29 @@ class _MainPageState extends State<MainPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade300,
-                    width: 0.5,
-                  ),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 0.5)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Отмена'),
-                  ),
-                  const Text(
-                    'Выберите магазин',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Отмена')),
+                  const Text('Выберите магазин', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                   const SizedBox(width: 80), // Балансировка кнопки
                 ],
               ),
             ),
             Expanded(
               child: widget.isLoadingBusinesses
-                  ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
+                  ? const Center(child: CircularProgressIndicator())
                   : Builder(
                       builder: (context) {
                         // Создаем список магазинов с расстояниями для сортировки
-                        List<Map<String, dynamic>> businessesWithDistance =
-                            widget.businesses.map((business) {
-                          final distance = _selectedAddress != null &&
-                                  _selectedAddress!['lat'] != null &&
-                                  _selectedAddress!['lon'] != null
-                              ? _calculateDistanceFromCoords(
-                                  business,
-                                  _selectedAddress!['lat'].toDouble(),
-                                  _selectedAddress!['lon'].toDouble(),
-                                )
+                        List<Map<String, dynamic>> businessesWithDistance = widget.businesses.map((business) {
+                          final distance = _selectedAddress != null && _selectedAddress!['lat'] != null && _selectedAddress!['lon'] != null
+                              ? _calculateDistanceFromCoords(business, _selectedAddress!['lat'].toDouble(), _selectedAddress!['lon'].toDouble())
                               : _calculateDistance(business);
 
-                          return {
-                            ...business,
-                            'calculatedDistance': distance,
-                          };
+                          return {...business, 'calculatedDistance': distance};
                         }).toList();
 
                         // Сортируем по расстоянию (ближайшие сверху)
@@ -1348,17 +1245,11 @@ class _MainPageState extends State<MainPage> {
                           itemBuilder: (context, index) {
                             final business = businessesWithDistance[index];
                             final distance = business['calculatedDistance'];
-                            final isSelected = widget.selectedBusiness?['id'] ==
-                                business['id'];
+                            final isSelected = widget.selectedBusiness?['id'] == business['id'];
 
                             return Container(
                               decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey.shade300,
-                                    width: 0.5,
-                                  ),
-                                ),
+                                border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 0.5)),
                               ),
                               child: TextButton(
                                 onPressed: () {
@@ -1366,90 +1257,56 @@ class _MainPageState extends State<MainPage> {
                                 },
                                 child: Container(
                                   width: double.infinity,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Row(
                                     children: [
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    business['name'] ??
-                                                        'Без названия',
+                                                    business['name'] ?? 'Без названия',
                                                     style: TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                      fontWeight: FontWeight.w600,
                                                       color: isSelected
-                                                          ? Theme.of(context)
-                                                              .colorScheme
-                                                              .primary
-                                                          : Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface,
+                                                          ? Theme.of(context).colorScheme.primary
+                                                          : Theme.of(context).colorScheme.onSurface,
                                                     ),
                                                   ),
                                                 ),
-                                                if (distance != null &&
-                                                    _selectedAddress != null &&
-                                                    _selectedAddress!['lat'] !=
-                                                        null)
+                                                if (distance != null && _selectedAddress != null && _selectedAddress!['lat'] != null)
                                                   Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            left: 8),
-                                                    child: Icon(
-                                                      Icons.near_me,
-                                                      size: 16,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .primary,
-                                                    ),
+                                                    margin: const EdgeInsets.only(left: 8),
+                                                    child: Icon(Icons.near_me, size: 16, color: Theme.of(context).colorScheme.primary),
                                                   ),
                                               ],
                                             ),
                                             if (business['address'] != null)
                                               Text(
                                                 business['address'],
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
+                                                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                               ),
                                           ],
                                         ),
                                       ),
                                       Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                        crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
                                           if (distance != null)
                                             Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                    .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
+                                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Text(
                                                 '${(distance / 1000).toStringAsFixed(1)} км',
                                                 style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .primary,
+                                                  color: Theme.of(context).colorScheme.primary,
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w500,
                                                 ),
@@ -1457,14 +1314,8 @@ class _MainPageState extends State<MainPage> {
                                             ),
                                           if (isSelected)
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.only(top: 4),
-                                              child: Icon(
-                                                Icons.check_circle,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                              ),
+                                              padding: const EdgeInsets.only(top: 4),
+                                              child: Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
                                             ),
                                         ],
                                       ),
@@ -1488,14 +1339,8 @@ class _MainPageState extends State<MainPage> {
     if (widget.selectedBusiness == null) return const SizedBox.shrink();
 
     double? distance;
-    if (_selectedAddress != null &&
-        _selectedAddress!['lat'] != null &&
-        _selectedAddress!['lon'] != null) {
-      distance = _calculateDistanceFromCoords(
-        widget.selectedBusiness!,
-        _selectedAddress!['lat'].toDouble(),
-        _selectedAddress!['lon'].toDouble(),
-      );
+    if (_selectedAddress != null && _selectedAddress!['lat'] != null && _selectedAddress!['lon'] != null) {
+      distance = _calculateDistanceFromCoords(widget.selectedBusiness!, _selectedAddress!['lat'].toDouble(), _selectedAddress!['lon'].toDouble());
     } else {
       distance = _calculateDistance(widget.selectedBusiness!);
     }
@@ -1504,26 +1349,15 @@ class _MainPageState extends State<MainPage> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.near_me,
-            size: 14,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(Icons.near_me, size: 14, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 4),
           Text(
             '${(distance / 1000).toStringAsFixed(1)} км',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -1590,11 +1424,7 @@ class _MainPageState extends State<MainPage> {
           //     ),
           //   ),
           // ),
-          SliverToBoxAdapter(
-            child: widget.selectedBusiness != null
-                ? _buildPromotionsHeroCarousel()
-                : const SizedBox.shrink(),
-          ),
+          SliverToBoxAdapter(child: widget.selectedBusiness != null ? _buildPromotionsHeroCarousel() : const SizedBox.shrink()),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -1602,48 +1432,27 @@ class _MainPageState extends State<MainPage> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SearchPage(),
-                        ),
-                      );
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage()));
                     },
                     child: Container(
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withOpacity(0.2),
-                        ),
+                        border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       alignment: Alignment.centerLeft,
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.search,
-                            size: 20,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          Icon(Icons.search, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Поиск товаров',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontSize: 14,
-                              ),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
                             ),
                           ),
                         ],
@@ -1660,8 +1469,7 @@ class _MainPageState extends State<MainPage> {
                           onTap: _showAddressSelectionModal,
                           child: Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               // border: Border.all(
@@ -1677,28 +1485,14 @@ class _MainPageState extends State<MainPage> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        'Доставка по адресу',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
+                                      Text('Доставка по адресу', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.2)),
                                       const SizedBox(height: 2),
                                       Text(
-                                        _selectedAddress != null
-                                            ? _selectedAddress!['address']
-                                            : 'Выберите адрес доставки',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          height: 1.15,
-                                        ),
+                                        _selectedAddress != null ? _selectedAddress!['address'] : 'Выберите адрес доставки',
+                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, height: 1.15),
                                         overflow: TextOverflow.ellipsis,
                                         maxLines: 3,
                                       ),
@@ -1728,18 +1522,12 @@ class _MainPageState extends State<MainPage> {
                       // Магазин
                       Expanded(
                         child: GestureDetector(
-                          onTap: widget.businesses.isNotEmpty &&
-                                  !widget.isLoadingBusinesses
-                              ? _showBusinessSelector
-                              : null,
+                          onTap: widget.businesses.isNotEmpty && !widget.isLoadingBusinesses ? _showBusinessSelector : null,
                           child: Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(12),
                               // border: Border.all(
                               //   color: Theme.of(context)
@@ -1769,18 +1557,14 @@ class _MainPageState extends State<MainPage> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       if (widget.isLoadingBusinesses)
                                         Text(
                                           'Загрузка магазинов...',
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .secondary
-                                                .withOpacity(0.8),
+                                            color: Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                             letterSpacing: 0.2,
@@ -1790,10 +1574,7 @@ class _MainPageState extends State<MainPage> {
                                         Text(
                                           'Магазин',
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .secondary
-                                                .withOpacity(0.8),
+                                            color: Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                             letterSpacing: 0.2,
@@ -1804,12 +1585,9 @@ class _MainPageState extends State<MainPage> {
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                selectedBusiness['name'] ??
-                                                    'Магазин',
+                                                selectedBusiness['name'] ?? 'Магазин',
                                                 style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface,
+                                                  color: Theme.of(context).colorScheme.onSurface,
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
                                                   height: 1.15,
@@ -1821,15 +1599,12 @@ class _MainPageState extends State<MainPage> {
                                             _buildDistanceInfo(),
                                           ],
                                         ),
-                                        if (selectedBusiness['address'] !=
-                                            null) ...[
+                                        if (selectedBusiness['address'] != null) ...[
                                           const SizedBox(height: 3),
                                           Text(
                                             selectedBusiness['address'],
                                             style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                                               fontSize: 11.5,
                                               fontWeight: FontWeight.w500,
                                               height: 1.25,
@@ -1840,17 +1615,13 @@ class _MainPageState extends State<MainPage> {
                                         ],
                                       ] else
                                         Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
                                               'Магазин для заказа',
                                               style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .secondary
-                                                    .withOpacity(0.8),
+                                                color: Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
                                                 letterSpacing: 0.2,
@@ -1860,9 +1631,7 @@ class _MainPageState extends State<MainPage> {
                                             Text(
                                               'Выберите магазин',
                                               style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700,
                                                 height: 1.15,
@@ -1876,18 +1645,10 @@ class _MainPageState extends State<MainPage> {
                                 Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondary
-                                        .withOpacity(0.1),
+                                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Icon(
-                                    Icons.keyboard_arrow_down,
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                    size: 18,
-                                  ),
+                                  child: Icon(Icons.keyboard_arrow_down, color: Theme.of(context).colorScheme.secondary, size: 18),
                                 ),
                               ],
                             ),
@@ -1900,23 +1661,16 @@ class _MainPageState extends State<MainPage> {
                   // Hero карусель акций
 
                   // Бонусная карта
-                  if (_bonusData != null && _bonusData!['success'] == true) ...[
-                    const SizedBox(height: 12),
-                    _buildBonusCard(),
-                  ],
+                  if (_bonusData != null && _bonusData!['success'] == true) ...[const SizedBox(height: 12), _buildBonusCard()],
 
                   // Категории товаров
-                  if (_categories.isNotEmpty ||
-                      _isLoadingCategories ||
-                      _categoriesError != null) ...[
+                  if (_categories.isNotEmpty || _isLoadingCategories || _categoriesError != null) ...[
                     const SizedBox(height: 12),
                     _buildCategoriesSection(),
                   ],
 
                   // Активные заказы
-                  if (_activeOrders.isNotEmpty ||
-                      _isLoadingActiveOrders ||
-                      _activeOrdersError != null) ...[
+                  if (_activeOrders.isNotEmpty || _isLoadingActiveOrders || _activeOrdersError != null) ...[
                     const SizedBox(height: 12),
                     _buildActiveOrdersSection(),
                   ],
@@ -1924,9 +1678,7 @@ class _MainPageState extends State<MainPage> {
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: const SizedBox(height: 500),
-          ),
+          SliverToBoxAdapter(child: const SizedBox(height: 500)),
         ],
       ),
     );
@@ -1936,10 +1688,7 @@ class _MainPageState extends State<MainPage> {
   Widget _buildActiveOrdersSection() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1947,19 +1696,9 @@ class _MainPageState extends State<MainPage> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.receipt_long,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
+                Icon(Icons.receipt_long, color: Theme.of(context).colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
-                const Text(
-                  "Активные заказы",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                const Text("Активные заказы", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 12),
@@ -1969,11 +1708,7 @@ class _MainPageState extends State<MainPage> {
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(width: 12),
-                      Text('Загрузка заказов...'),
-                    ],
+                    children: [CircularProgressIndicator(), SizedBox(width: 12), Text('Загрузка заказов...')],
                   ),
                 ),
               )
@@ -1983,25 +1718,15 @@ class _MainPageState extends State<MainPage> {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 24,
-                      ),
+                      Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 24),
                       const SizedBox(height: 8),
                       Text(
                         _activeOrdersError!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 14),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _loadActiveOrders,
-                        child: const Text('Повторить'),
-                      ),
+                      TextButton(onPressed: _loadActiveOrders, child: const Text('Повторить')),
                     ],
                   ),
                 ),
@@ -2012,30 +1737,15 @@ class _MainPageState extends State<MainPage> {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        size: 32,
-                      ),
+                      Icon(Icons.receipt_long_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 32),
                       const SizedBox(height: 8),
-                      Text(
-                        'У вас нет активных заказов',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 14,
-                        ),
-                      ),
+                      Text('У вас нет активных заказов', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
                     ],
                   ),
                 ),
               )
             else
-              Column(
-                children: [
-                  for (int i = 0; i < _activeOrders.length; i++)
-                    _buildActiveOrderCard(_activeOrders[i], i),
-                ],
-              ),
+              Column(children: [for (int i = 0; i < _activeOrders.length; i++) _buildActiveOrderCard(_activeOrders[i], i)]),
           ],
         ),
       ),
@@ -2051,24 +1761,15 @@ class _MainPageState extends State<MainPage> {
 
     return InkWell(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => OrderDetailPage(
-              order: order,
-            ),
-          ),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => OrderDetailPage(order: order)));
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        margin:
-            EdgeInsets.only(bottom: index < _activeOrders.length - 1 ? 12 : 0),
+        margin: EdgeInsets.only(bottom: index < _activeOrders.length - 1 ? 12 : 0),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          ),
+          border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -2082,44 +1783,25 @@ class _MainPageState extends State<MainPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Заказ #${order['order_id']}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('Заказ #${order['order_id']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       if (business != null)
                         Text(
                           business['name'] ?? 'Неизвестный магазин',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                     ],
                   ),
                   if (currentStatus != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _parseColor(currentStatus['status_color'])
-                            .withOpacity(0.1),
+                        color: _parseColor(currentStatus['status_color']).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _parseColor(currentStatus['status_color']),
-                          width: 1,
-                        ),
+                        border: Border.all(color: _parseColor(currentStatus['status_color']), width: 1),
                       ),
                       child: Text(
                         currentStatus['status_description'] ?? 'Неизвестно',
-                        style: TextStyle(
-                          color: _parseColor(currentStatus['status_color']),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(color: _parseColor(currentStatus['status_color']), fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                 ],
@@ -2131,21 +1813,12 @@ class _MainPageState extends State<MainPage> {
               if (deliveryAddress != null) ...[
                 Row(
                   children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    Icon(Icons.location_on, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        deliveryAddress["address_id"] == 1
-                            ? 'Самовывоз'
-                            : (deliveryAddress['address'] ?? 'Адрес не указан'),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        deliveryAddress["address_id"] == 1 ? 'Самовывоз' : (deliveryAddress['address'] ?? 'Адрес не указан'),
+                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                   ],
@@ -2157,18 +1830,11 @@ class _MainPageState extends State<MainPage> {
               if (itemsSummary != null) ...[
                 Row(
                   children: [
-                    Icon(
-                      Icons.shopping_bag,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    Icon(Icons.shopping_bag, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       'Товаров: ${itemsSummary['items_count'] ?? 0} (${itemsSummary['total_amount'] ?? 0} шт.)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -2205,18 +1871,10 @@ class _MainPageState extends State<MainPage> {
                 children: [
                   Text(
                     'Нажмите для подробностей',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary, fontStyle: FontStyle.italic),
                   ),
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  Icon(Icons.arrow_forward_ios, size: 12, color: Theme.of(context).colorScheme.primary),
                 ],
               ),
             ],
@@ -2254,11 +1912,7 @@ class _MainPageState extends State<MainPage> {
       return const Center(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 12),
-            Text('Загрузка акций...'),
-          ],
+          children: [CircularProgressIndicator(), SizedBox(width: 12), Text('Загрузка акций...')],
         ),
       );
     }
@@ -2268,24 +1922,11 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 24,
-            ),
+            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 24),
             const SizedBox(height: 8),
-            Text(
-              'Ошибка загрузки акций',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 14,
-              ),
-            ),
+            Text('Ошибка загрузки акций', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 14)),
             const SizedBox(height: 8),
-            TextButton(
-              onPressed: _loadPromotions,
-              child: const Text('Повторить'),
-            ),
+            TextButton(onPressed: _loadPromotions, child: const Text('Повторить')),
           ],
         ),
       );
@@ -2296,19 +1937,9 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.local_offer_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 32,
-            ),
+            Icon(Icons.local_offer_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 32),
             const SizedBox(height: 8),
-            Text(
-              'В данный момент нет активных акций',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
-            ),
+            Text('В данный момент нет активных акций', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
           ],
         ),
       );
@@ -2320,8 +1951,7 @@ class _MainPageState extends State<MainPage> {
           controller: _promoPageController,
           itemCount: _promotions.length,
           onPageChanged: (i) => setState(() => _currentPromoPage = i),
-          itemBuilder: (context, index) =>
-              _buildPromotionPage(_promotions[index], size),
+          itemBuilder: (context, index) => _buildPromotionPage(_promotions[index], size),
         ),
         // Индикаторы
         Positioned(
@@ -2338,9 +1968,7 @@ class _MainPageState extends State<MainPage> {
                 height: 6,
                 width: active ? 18 : 6,
                 decoration: BoxDecoration(
-                  color: active
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               );
@@ -2354,82 +1982,63 @@ class _MainPageState extends State<MainPage> {
   /// Страница промо (квадрат)
   Widget _buildPromotionPage(Promotion promotion, double size) {
     final bizId = widget.selectedBusiness != null
-        ? (widget.selectedBusiness!['id'] as int?) ??
-            (widget.selectedBusiness!['businessId'] as int?)
+        ? (widget.selectedBusiness!['id'] as int?) ?? (widget.selectedBusiness!['businessId'] as int?)
         : null;
     return GestureDetector(
       onTap: () {
         if (bizId != null) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => PromotionItemsPage(
-                promotionId: promotion.marketingPromotionId,
-                promotionName: promotion.name,
-                businessId: bizId,
-              ),
+              builder: (_) => PromotionItemsPage(promotionId: promotion.marketingPromotionId, promotionName: promotion.name, businessId: bizId),
             ),
           );
         }
       },
       child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(0),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(0)),
+        clipBehavior: Clip.hardEdge,
+        // borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 3 / 2,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Фото
+              Image.network(
+                promotion.cover ?? '',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Theme.of(context).colorScheme.surface,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.broken_image, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 48),
+                ),
+              ),
+              // Градиент снизу
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.55)],
+                    ),
+                  ),
+                  child: Text(
+                    promotion.name ?? 'Акция без названия',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, height: 1.2),
+                  ),
+                ),
+              ),
+            ],
           ),
-          clipBehavior: Clip.hardEdge,
-          // borderRadius: BorderRadius.circular(16),
-          child: AspectRatio(
-            aspectRatio: 3 / 2,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Фото
-                Image.network(
-                  promotion.cover ?? '',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.broken_image,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      size: 48,
-                    ),
-                  ),
-                ),
-                // Градиент снизу
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.0),
-                          Colors.black.withOpacity(0.55),
-                        ],
-                      ),
-                    ),
-                    child: Text(
-                      promotion.name ?? 'Акция без названия',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )),
+        ),
+      ),
     );
   }
 
@@ -2439,11 +2048,7 @@ class _MainPageState extends State<MainPage> {
     _promoAutoScrollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted) return;
       final next = (_currentPromoPage + 1) % _promotions.length;
-      _promoPageController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      _promoPageController.animateToPage(next, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
       _currentPromoPage = next;
       if (mounted) setState(() {});
     });
@@ -2454,44 +2059,22 @@ class _MainPageState extends State<MainPage> {
       context: context,
       builder: (BuildContext context) {
         return CupertinoActionSheet(
-          title: Text(
-            'Бонусная карта',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          title: Text('Бонусная карта', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           message: Container(
             padding: EdgeInsets.all(20),
             child: Column(
               children: [
-                Text(
-                  'Номер карты: $cardUuid',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
+                Text('Номер карты: $cardUuid', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                 SizedBox(height: 20),
                 Container(
                   color: Colors.white,
                   padding: EdgeInsets.all(16),
-                  child: BarcodeWidget(
-                    barcode: Barcode.code128(),
-                    data: cardUuid,
-                    width: 250,
-                    height: 80,
-                    drawText: false,
-                  ),
+                  child: BarcodeWidget(barcode: Barcode.code128(), data: cardUuid, width: 250, height: 80, drawText: false),
                 ),
                 SizedBox(height: 10),
                 Text(
                   cardUuid,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'monospace',
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'monospace'),
                 ),
               ],
             ),
@@ -2515,9 +2098,7 @@ class _MainPageState extends State<MainPage> {
 
     // Получаем последнее значение из истории бонусов
     final bonusHistory = bonusData['bonusHistory'] as List?;
-    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty
-        ? bonusHistory.first['amount'] ?? 0
-        : 0;
+    final latestBonusAmount = bonusHistory != null && bonusHistory.isNotEmpty ? bonusHistory.first['amount'] ?? 0 : 0;
 
     return GestureDetector(
       onTap: () {
@@ -2531,24 +2112,15 @@ class _MainPageState extends State<MainPage> {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          ),
+          border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
         ),
         child: Row(
           children: [
             // Иконка и название
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.card_giftcard,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 20,
-              ),
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(8)),
+              child: Icon(Icons.card_giftcard, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
             ),
             const SizedBox(width: 12),
 
@@ -2559,20 +2131,10 @@ class _MainPageState extends State<MainPage> {
                 children: [
                   Text(
                     'Бонусная карта',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'Нажмите для показа штрихкода',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
-                  ),
+                  Text('Нажмите для показа штрихкода', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
                 ],
               ),
             ),
@@ -2583,31 +2145,19 @@ class _MainPageState extends State<MainPage> {
               children: [
                 Text(
                   '$totalBonuses ₸',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 if (latestBonusAmount > 0)
                   Text(
                     '+$latestBonusAmount ₸',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w500),
                   ),
               ],
             ),
 
             // Стрелка
             const SizedBox(width: 8),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 16,
-            ),
+            Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 16),
           ],
         ),
       ),
@@ -2624,25 +2174,13 @@ class _MainPageState extends State<MainPage> {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             children: [
-              Icon(
-                Icons.category,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
-              ),
+              Icon(Icons.category, color: Theme.of(context).colorScheme.primary, size: 20),
               const SizedBox(width: 8),
-              const Text(
-                "Категории",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              const Text("Категории", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
-        SizedBox(
-          height: 8,
-        ),
+        SizedBox(height: 8),
 
         // Горизонтальная сетка категорий
         SizedBox(
@@ -2659,11 +2197,7 @@ class _MainPageState extends State<MainPage> {
       return const Center(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 12),
-            Text('Загрузка категорий...'),
-          ],
+          children: [CircularProgressIndicator(), SizedBox(width: 12), Text('Загрузка категорий...')],
         ),
       );
     }
@@ -2673,24 +2207,11 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 24,
-            ),
+            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 24),
             const SizedBox(height: 8),
-            Text(
-              'Ошибка загрузки категорий',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 14,
-              ),
-            ),
+            Text('Ошибка загрузки категорий', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 14)),
             const SizedBox(height: 8),
-            TextButton(
-              onPressed: _loadCategories,
-              child: const Text('Повторить'),
-            ),
+            TextButton(onPressed: _loadCategories, child: const Text('Повторить')),
           ],
         ),
       );
@@ -2701,19 +2222,9 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.category_outlined,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 32,
-            ),
+            Icon(Icons.category_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 32),
             const SizedBox(height: 8),
-            Text(
-              'Категории не найдены',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
-            ),
+            Text('Категории не найдены', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
           ],
         ),
       );
@@ -2758,72 +2269,59 @@ class _MainPageState extends State<MainPage> {
     return InkWell(
       onTap: () {
         // Получаем ID выбранного магазина
-        final businessId = widget.selectedBusiness?['id'] ??
-            widget.selectedBusiness?['business_id'] ??
-            widget.selectedBusiness?['businessId'];
+        final businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
 
         if (businessId != null) {
           // Создаем объект Category из данных
           final categoryObj = Category.fromJson(category);
 
           // Навигация в CategoryPage
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => CategoryPage(
-              category: categoryObj,
-              allCategories:
-                  _categories.map((cat) => Category.fromJson(cat)).toList(),
-              businessId: businessId,
-            ),
-          ));
-        } else {
-          // Показываем сообщение если магазин не выбран
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Сначала выберите магазин'),
-              backgroundColor: Theme.of(context).colorScheme.error,
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => CategoryPage(
+                category: categoryObj,
+                allCategories: _categories.map((cat) => Category.fromJson(cat)).toList(),
+                businessId: businessId,
+              ),
             ),
           );
+        } else {
+          // Показываем сообщение если магазин не выбран
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: const Text('Сначала выберите магазин'), backgroundColor: Theme.of(context).colorScheme.error));
         }
       },
       borderRadius: BorderRadius.circular(12),
-      child: Container(
+      child: SizedBox(
         height: 120,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             // Иконка категории
             Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                  ),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
+              ),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: Image.network(
+                  category["img"] ?? '',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(iconAndColor['icon'], color: iconAndColor['color'], size: 24);
+                  },
                 ),
-                child: AspectRatio(
-                  aspectRatio: 4 / 3,
-                  child: Image.network(
-                    category["img"] ?? '',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        iconAndColor['icon'],
-                        color: iconAndColor['color'],
-                        size: 24,
-                      );
-                    },
-                  ),
-                )),
+              ),
+            ),
 
             // Название категории
             Text(
               categoryName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -2855,20 +2353,12 @@ class _MainPageState extends State<MainPage> {
         lowerName.contains('водка') ||
         lowerName.contains('виски') ||
         lowerName.contains('коньяк')) {
-      return {
-        'icon': Icons.wine_bar,
-        'color': const Color(0xFFE91E63),
-      };
+      return {'icon': Icons.wine_bar, 'color': const Color(0xFFE91E63)};
     }
 
     // Сигареты
-    if (lowerName.contains('сигарет') ||
-        lowerName.contains('табак') ||
-        lowerName.contains('курение')) {
-      return {
-        'icon': Icons.smoking_rooms,
-        'color': const Color(0xFF9C27B0),
-      };
+    if (lowerName.contains('сигарет') || lowerName.contains('табак') || lowerName.contains('курение')) {
+      return {'icon': Icons.smoking_rooms, 'color': const Color(0xFF9C27B0)};
     }
 
     // Сладости
@@ -2877,10 +2367,7 @@ class _MainPageState extends State<MainPage> {
         lowerName.contains('шоколад') ||
         lowerName.contains('торт') ||
         lowerName.contains('печенье')) {
-      return {
-        'icon': Icons.cake,
-        'color': const Color(0xFF795548),
-      };
+      return {'icon': Icons.cake, 'color': const Color(0xFF795548)};
     }
 
     // Напитки
@@ -2889,32 +2376,17 @@ class _MainPageState extends State<MainPage> {
         lowerName.contains('вода') ||
         lowerName.contains('газировка') ||
         lowerName.contains('лимонад')) {
-      return {
-        'icon': Icons.local_drink,
-        'color': const Color(0xFF2196F3),
-      };
+      return {'icon': Icons.local_drink, 'color': const Color(0xFF2196F3)};
     }
 
     // Фрукты и овощи
-    if (lowerName.contains('фрукт') ||
-        lowerName.contains('овощ') ||
-        lowerName.contains('ягод') ||
-        lowerName.contains('зелен')) {
-      return {
-        'icon': Icons.eco,
-        'color': const Color(0xFF4CAF50),
-      };
+    if (lowerName.contains('фрукт') || lowerName.contains('овощ') || lowerName.contains('ягод') || lowerName.contains('зелен')) {
+      return {'icon': Icons.eco, 'color': const Color(0xFF4CAF50)};
     }
 
     // Снеки
-    if (lowerName.contains('снек') ||
-        lowerName.contains('чипс') ||
-        lowerName.contains('сухарик') ||
-        lowerName.contains('орех')) {
-      return {
-        'icon': Icons.lunch_dining,
-        'color': const Color(0xFFFF9800),
-      };
+    if (lowerName.contains('снек') || lowerName.contains('чипс') || lowerName.contains('сухарик') || lowerName.contains('орех')) {
+      return {'icon': Icons.lunch_dining, 'color': const Color(0xFFFF9800)};
     }
 
     // Молочные продукты
@@ -2923,38 +2395,20 @@ class _MainPageState extends State<MainPage> {
         lowerName.contains('кефир') ||
         lowerName.contains('йогурт') ||
         lowerName.contains('сыр')) {
-      return {
-        'icon': Icons.local_cafe,
-        'color': const Color(0xFF00BCD4),
-      };
+      return {'icon': Icons.local_cafe, 'color': const Color(0xFF00BCD4)};
     }
 
     // Мясо и рыба
-    if (lowerName.contains('мясо') ||
-        lowerName.contains('рыба') ||
-        lowerName.contains('колбас') ||
-        lowerName.contains('сосиск')) {
-      return {
-        'icon': Icons.restaurant,
-        'color': const Color(0xFFFF5722),
-      };
+    if (lowerName.contains('мясо') || lowerName.contains('рыба') || lowerName.contains('колбас') || lowerName.contains('сосиск')) {
+      return {'icon': Icons.restaurant, 'color': const Color(0xFFFF5722)};
     }
 
     // Хлеб и выпечка
-    if (lowerName.contains('хлеб') ||
-        lowerName.contains('выпечк') ||
-        lowerName.contains('булочк') ||
-        lowerName.contains('батон')) {
-      return {
-        'icon': Icons.bakery_dining,
-        'color': const Color(0xFF8BC34A),
-      };
+    if (lowerName.contains('хлеб') || lowerName.contains('выпечк') || lowerName.contains('булочк') || lowerName.contains('батон')) {
+      return {'icon': Icons.bakery_dining, 'color': const Color(0xFF8BC34A)};
     }
 
     // По умолчанию
-    return {
-      'icon': Icons.category,
-      'color': Theme.of(context).colorScheme.primary,
-    };
+    return {'icon': Icons.category, 'color': Theme.of(context).colorScheme.primary};
   }
 }

@@ -10,11 +10,11 @@ class PromotionItemsPage extends StatefulWidget {
   final int businessId;
 
   const PromotionItemsPage({
-    Key? key,
+    super.key,
     required this.promotionId,
     this.promotionName,
     required this.businessId,
-  }) : super(key: key);
+  });
 
   @override
   State<PromotionItemsPage> createState() => _PromotionItemsPageState();

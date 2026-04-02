@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../pages/cart_page.dart';
 
 class CartFloatingButton extends StatelessWidget {
-  const CartFloatingButton({Key? key}) : super(key: key);
+  const CartFloatingButton({super.key});
 
   @override
   Widget build(BuildContext context) {

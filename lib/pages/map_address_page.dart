@@ -12,11 +12,11 @@ class MapAddressPage extends StatefulWidget {
   final Function(Map<String, dynamic>) onAddressSelected;
 
   const MapAddressPage({
-    Key? key,
+    super.key,
     required this.initialLat,
     required this.initialLon,
     required this.onAddressSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<MapAddressPage> createState() => _MapAddressPageState();

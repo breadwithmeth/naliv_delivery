@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
-		<key>NSMicrophoneUsageDescription</key>
-		<string>Для корректной работы приложения</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>CFBundleDevelopmentRegion</key>
@@ -38,14 +36,8 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
-		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-		<string>Приложение использует данные глобальной системы позиционирования (GPS) для вычисления стоимости доставки и ближайших к вам магазинов.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Приложение использует данные глобальной системы позиционирования (GPS) для вычисления стоимости доставки и ближайших к вам магазинов.</string>
-		<key>LSApplicationQueriesSchemes</key>
-		<array>
-			<string>tel</string>
-		</array>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIBackgroundModes</key>

@@ -216,7 +216,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     // Горизонтальный список подкатегорий
                     if (_selectedCategory != null &&
                         _selectedCategory!.hasSubcategories)
-                      Container(
+                      SizedBox(
                         height: 60,
                         // color:
                         //     Theme.of(context).colorScheme.surfaceContainerLow,

@@ -9,7 +9,7 @@ import '../utils/cart_provider.dart';
 class CartPage extends StatelessWidget {
   static const routeName = '/cart';
 
-  const CartPage({Key? key}) : super(key: key);
+  const CartPage({super.key});
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
@@ -92,7 +92,7 @@ class CartPage extends StatelessWidget {
                                                 promo['base_amount'];
                                             final add = promo['addAmount'] ??
                                                 promo['add_amount'];
-                                            label = 'Акция: ${base}+${add}';
+                                            label = 'Акция: $base+$add';
                                           } else if (type == 'DISCOUNT') {
                                             final disc =
                                                 (promo['discount'] as num?)

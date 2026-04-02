@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../model/item.dart' as ItemModel;
+import '../services/sentry_service.dart';
 
 /// Класс для работы с API
 class ApiService {
@@ -24,11 +26,7 @@ class ApiService {
 
   /// Получить понравившиеся пользователю товары
   /// GET /api/users/liked-items?business_id=&page=&limit=
-  static Future<Map<String, dynamic>?> getLikedItems({
-    required int businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  static Future<Map<String, dynamic>?> getLikedItems({required int businessId, int page = 1, int limit = 20}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString(_authTokenKey);
@@ -37,21 +35,13 @@ class ApiService {
         return null;
       }
 
-      final uri = Uri.parse('$baseUrl/users/liked-items').replace(
-        queryParameters: {
-          'business_id': businessId.toString(),
-          'page': page.toString(),
-          'limit': limit.toString(),
-        },
-      );
+      final uri = Uri.parse(
+        '$baseUrl/users/liked-items',
+      ).replace(queryParameters: {'business_id': businessId.toString(), 'page': page.toString(), 'limit': limit.toString()});
 
       final response = await http.get(
         uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
       print(response.body);
 
@@ -87,11 +77,7 @@ class ApiService {
       final uri = Uri.parse('$baseUrl/users/liked-items/toggle');
       final response = await http.post(
         uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({'item_id': itemId}),
       );
       print('toggleLikeItem response: ${response.statusCode} ${response.body}');
@@ -100,8 +86,7 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           // Ожидаем, что в data будет новое значение is_liked или сам liked_item
-          if (jsonResponse['data'] is Map &&
-              jsonResponse['data']['is_liked'] != null) {
+          if (jsonResponse['data'] is Map && jsonResponse['data']['is_liked'] != null) {
             return jsonResponse['data']['is_liked'] == true;
           }
           // fallback: возможно success=true означает теперь лайк стоит
@@ -131,27 +116,13 @@ class ApiService {
     return defaultValue;
   }
 
-  static Future<Map<String, dynamic>?> getBusinesses({
-    int page = 1,
-    int limit = 10,
-  }) async {
+  static Future<Map<String, dynamic>?> getBusinesses({int page = 1, int limit = 10}) async {
     try {
       // Формируем URL с query параметрами
-      final uri = Uri.parse('$baseUrl/businesses').replace(
-        queryParameters: {
-          'page': page.toString(),
-          'limit': limit.toString(),
-        },
-      );
+      final uri = Uri.parse('$baseUrl/businesses').replace(queryParameters: {'page': page.toString(), 'limit': limit.toString()});
 
       // Выполняем GET запрос
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -180,8 +151,7 @@ class ApiService {
   /// Возвращает только массив бизнесов
   static Future<List<Map<String, dynamic>>?> getAllBusinesses() async {
     try {
-      final data = await getBusinesses(
-          page: 1, limit: 1000); // Получаем большое количество
+      final data = await getBusinesses(page: 1, limit: 1000); // Получаем большое количество
       return data?['businesses']?.cast<Map<String, dynamic>>();
     } catch (e) {
       print('Error getting all businesses: $e');
@@ -198,13 +168,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$baseUrl/businesses/$businessId');
 
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -230,50 +194,67 @@ class ApiService {
   /// [query] - строка поиска (например, "улица Пушкина 12")
   ///
   /// Возвращает список найденных адресов
-  static Future<List<Map<String, dynamic>>?> searchAddressByText(
-      String query) async {
-    try {
-      // Формируем URL с query параметрами
-      final uri = Uri.parse('$baseUrl/addresses/search').replace(
-        queryParameters: {
-          'query': query,
-        },
-      );
+  static Future<List<Map<String, dynamic>>?> searchAddressByText(String query) async {
+    return SentryService.traceOperation<List<Map<String, dynamic>>?>(
+      name: 'address.search_text',
+      operation: 'address.resolve',
+      tags: const {'flow': 'address_resolution', 'mode': 'text'},
+      data: {'query_length': query.trim().length},
+      action: (span) async {
+        try {
+          final uri = Uri.parse('$baseUrl/addresses/search').replace(queryParameters: {'query': query});
 
-      // Выполняем GET запрос
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+          final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
+          span.setData('http_status_code', response.statusCode);
 
-      // Проверяем статус ответа
-      if (response.statusCode == 200) {
-        // Декодируем JSON ответ
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+          if (response.statusCode == 200) {
+            final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
-        // Проверяем успешность запроса
-        if (jsonResponse['success'] == true) {
-          // Extract features array or use empty list
-          final List<dynamic> features = jsonResponse['data']['features'] ?? [];
-          final List<Map<String, dynamic>> addresses =
-              features.cast<Map<String, dynamic>>();
-          print('Found addresses: $addresses');
-          return addresses;
-        } else {
-          print('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+            if (jsonResponse['success'] == true) {
+              final List<dynamic> features = jsonResponse['data']['features'] ?? [];
+              final List<Map<String, dynamic>> addresses = features.cast<Map<String, dynamic>>();
+              span.status = const SpanStatus.ok();
+              span.setData('results_count', addresses.length);
+              print('Found addresses: $addresses');
+              return addresses;
+            } else {
+              span.status = const SpanStatus.notFound();
+              await SentryService.captureBusinessFailure(
+                message: 'Address text search returned unsuccessful response',
+                category: 'address.resolve',
+                level: SentryLevel.warning,
+                tags: const {'flow': 'address_resolution', 'mode': 'text'},
+                extra: {'query_length': query.trim().length, 'http_status_code': response.statusCode},
+              );
+              print('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+              return null;
+            }
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Address text search request failed',
+              category: 'address.resolve',
+              tags: const {'flow': 'address_resolution', 'mode': 'text'},
+              extra: {'query_length': query.trim().length, 'http_status_code': response.statusCode},
+            );
+            print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+            return null;
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(
+            e,
+            stackTrace,
+            message: 'Address text search failed',
+            category: 'address.resolve',
+            tags: const {'flow': 'address_resolution', 'mode': 'text'},
+            extra: {'query_length': query.trim().length},
+          );
+          print('Network Error: $e');
           return null;
         }
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        return null;
-      }
-    } catch (e) {
-      print('Network Error: $e');
-      return null;
-    }
+      },
+    );
   }
 
   /// Поиск адреса по координатам (обратное геокодирование)
@@ -282,65 +263,81 @@ class ApiService {
   /// [lon] - долгота (от -180 до 180)
   ///
   /// Возвращает список найденных адресов (обычно один)
-  static Future<List<Map<String, dynamic>>?> searchAddressByCoordinates(
-    double lat,
-    double lon,
-  ) async {
-    try {
-      // Проверяем корректность координат
-      if (lat < -90 || lat > 90) {
-        print('Invalid latitude: $lat. Must be between -90 and 90');
-        return null;
-      }
-      if (lon < -180 || lon > 180) {
-        print('Invalid longitude: $lon. Must be between -180 and 180');
-        return null;
-      }
-
-      // Формируем URL с query параметрами
-      final uri = Uri.parse('$baseUrl/addresses/reverse').replace(
-        queryParameters: {
-          'lat': lat.toString(),
-          'lon': lon.toString(),
-        },
-      );
-
-      // Выполняем GET запрос
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      // Проверяем статус ответа
-      if (response.statusCode == 200) {
-        // Декодируем JSON ответ
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-        // Проверяем успешность запроса
-        if (jsonResponse['success'] == true) {
-          final dynamic data = jsonResponse['data'];
-          if (data is List) {
-            return data.cast<Map<String, dynamic>>();
-          } else if (data is Map<String, dynamic>) {
-            return <Map<String, dynamic>>[data];
-          } else {
-            return <Map<String, dynamic>>[];
+  static Future<List<Map<String, dynamic>>?> searchAddressByCoordinates(double lat, double lon) async {
+    return SentryService.traceOperation<List<Map<String, dynamic>>?>(
+      name: 'address.search_reverse',
+      operation: 'address.resolve',
+      tags: const {'flow': 'address_resolution', 'mode': 'reverse'},
+      data: const {'has_coordinates': true},
+      action: (span) async {
+        try {
+          if (lat < -90 || lat > 90) {
+            span.status = const SpanStatus.invalidArgument();
+            print('Invalid latitude: $lat. Must be between -90 and 90');
+            return null;
           }
-        } else {
-          print('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          if (lon < -180 || lon > 180) {
+            span.status = const SpanStatus.invalidArgument();
+            print('Invalid longitude: $lon. Must be between -180 and 180');
+            return null;
+          }
+
+          final uri = Uri.parse('$baseUrl/addresses/reverse').replace(queryParameters: {'lat': lat.toString(), 'lon': lon.toString()});
+
+          final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
+          span.setData('http_status_code', response.statusCode);
+
+          if (response.statusCode == 200) {
+            final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+            if (jsonResponse['success'] == true) {
+              final dynamic data = jsonResponse['data'];
+              final results = data is List
+                  ? data.cast<Map<String, dynamic>>()
+                  : data is Map<String, dynamic>
+                  ? <Map<String, dynamic>>[data]
+                  : <Map<String, dynamic>>[];
+
+              span.status = const SpanStatus.ok();
+              span.setData('results_count', results.length);
+              return results;
+            } else {
+              span.status = const SpanStatus.notFound();
+              await SentryService.captureBusinessFailure(
+                message: 'Reverse geocoding returned unsuccessful response',
+                category: 'address.resolve',
+                level: SentryLevel.warning,
+                tags: const {'flow': 'address_resolution', 'mode': 'reverse'},
+                extra: {'http_status_code': response.statusCode},
+              );
+              print('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+              return null;
+            }
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Reverse geocoding request failed',
+              category: 'address.resolve',
+              tags: const {'flow': 'address_resolution', 'mode': 'reverse'},
+              extra: {'http_status_code': response.statusCode},
+            );
+            print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+            return null;
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(
+            e,
+            stackTrace,
+            message: 'Reverse geocoding failed',
+            category: 'address.resolve',
+            tags: const {'flow': 'address_resolution', 'mode': 'reverse'},
+          );
+          print('Network Error: $e');
           return null;
         }
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        return null;
-      }
-    } catch (e) {
-      print('Network Error: $e');
-      return null;
-    }
+      },
+    );
   }
 
   /// Универсальный метод поиска адресов
@@ -352,11 +349,7 @@ class ApiService {
   /// [lon] - долгота для поиска по координатам
   ///
   /// Возвращает список найденных адресов
-  static Future<List<Map<String, dynamic>>?> searchAddresses({
-    String? query,
-    double? lat,
-    double? lon,
-  }) async {
+  static Future<List<Map<String, dynamic>>?> searchAddresses({String? query, double? lat, double? lon}) async {
     // Если указан текстовый запрос
     if (query != null && query.isNotEmpty) {
       return await searchAddressByText(query);
@@ -376,11 +369,7 @@ class ApiService {
   static Future<bool> sendAuthCode(String phoneNumber) async {
     final uri = Uri.parse('$baseUrl/auth/send-code');
     try {
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone_number': phoneNumber}),
-      );
+      final response = await http.post(uri, headers: {'Content-Type': 'application/json'}, body: jsonEncode({'phone_number': phoneNumber}));
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         return jsonResponse['success'] == true;
@@ -393,17 +382,13 @@ class ApiService {
 
   /// Проверка одноразового кода для аутентификации
   /// Возвращает данные пользователя при успешной верификации или null
-  static Future<Map<String, dynamic>?> verifyAuthCode(
-      String phoneNumber, String oneTimeCode) async {
+  static Future<Map<String, dynamic>?> verifyAuthCode(String phoneNumber, String oneTimeCode) async {
     final uri = Uri.parse('$baseUrl/auth/verify-code');
     try {
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phone_number': phoneNumber,
-          'onetime_code': oneTimeCode,
-        }),
+        body: jsonEncode({'phone_number': phoneNumber, 'onetime_code': oneTimeCode}),
       );
       if (response.statusCode == 202) {
         // Сохраняем токен при успешной верификации
@@ -437,13 +422,7 @@ class ApiService {
     }
     final uri = Uri.parse('$baseUrl/auth/full-info');
     try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
@@ -478,80 +457,89 @@ class ApiService {
   /// Создать новый заказ для авторизованного пользователя (без оплаты)
   /// [body] - тело запроса в формате JSON
   /// Возвращает карту с результатом операции
-  static Future<Map<String, dynamic>> createUserOrder(
-    Map<String, dynamic> body,
-  ) async {
-    final token = await getAuthToken();
-    if (token == null) {
-      print('API createUserOrder: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
-    }
-    final uri = Uri.parse('$baseUrl/orders/create-order-no-payment');
-    try {
-      print('Creating order with body: ${json.encode(body)}');
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(body),
-      );
-      print(body);
+  static Future<Map<String, dynamic>> createUserOrder(Map<String, dynamic> body) async {
+    final items = body['items'] as List<dynamic>?;
+    final tags = const {'flow': 'checkout', 'step': 'create_order'};
+    final data = {
+      'items_count': items?.length ?? 0,
+      'delivery_type': body['delivery_type']?.toString() ?? 'unknown',
+      'delivery_time': body['delivery_time']?.toString() ?? 'unknown',
+      'use_bonuses': body['use_bonuses'] == true,
+      'has_scheduled_time': body['scheduled_time'] != null,
+    };
 
-      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+    return SentryService.traceOperation<Map<String, dynamic>>(
+      name: 'checkout.create_order',
+      operation: 'checkout.submit',
+      tags: tags,
+      data: data,
+      action: (span) async {
+        final token = await getAuthToken();
+        if (token == null) {
+          span.status = const SpanStatus.unauthenticated();
+          print('API createUserOrder: auth token not found');
+          return {'success': false, 'error': 'Требуется авторизация'};
+        }
 
-      if (response.statusCode == 201) {
-        // Успешный ответ, возвращаем все тело ответа,
-        // так как оно может содержать и data, и message
-        return jsonResponse;
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        print('Error body: ${response.body}');
-        // Возвращаем ответ с ошибкой, чтобы UI мог ее обработать
-        return {
-          'success': false,
-          'error': jsonResponse['error'] ?? 'Ошибка сервера',
-          'statusCode': response.statusCode
-        };
-      }
-    } catch (e) {
-      print('Network Error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
-    }
+        final uri = Uri.parse('$baseUrl/orders/create-order-no-payment');
+        try {
+          print('Creating order with body: ${json.encode(body)}');
+          final response = await http.post(
+            uri,
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+            body: json.encode(body),
+          );
+          print(body);
+
+          final Map<String, dynamic> jsonResponse = json.decode(response.body);
+          span.setData('http_status_code', response.statusCode);
+
+          if (response.statusCode == 201) {
+            span.status = const SpanStatus.ok();
+            span.setData('response_success', jsonResponse['success'] == true);
+            return jsonResponse;
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Checkout order creation failed',
+              category: 'checkout.submit',
+              tags: tags,
+              extra: {...data, 'http_status_code': response.statusCode},
+            );
+            print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+            print('Error body: ${response.body}');
+            return {'success': false, 'error': jsonResponse['error'] ?? 'Ошибка сервера', 'statusCode': response.statusCode};
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(
+            e,
+            stackTrace,
+            message: 'Checkout order creation request failed',
+            category: 'checkout.submit',
+            tags: tags,
+            extra: data,
+          );
+          print('Network Error: $e');
+          return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+        }
+      },
+    );
   }
 
   /// Поиск товаров по имени
   /// Поиск товаров по имени (сырой ответ API)
   /// Поддерживает пагинацию как на /categories/:id/items
-  static Future<Map<String, dynamic>?> searchItems(
-    String name, {
-    int? businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  static Future<Map<String, dynamic>?> searchItems(String name, {int? businessId, int page = 1, int limit = 20}) async {
     try {
-      final queryParams = <String, String>{
-        'name': name,
-        'page': page.toString(),
-        'limit': limit.toString(),
-      };
+      final queryParams = <String, String>{'name': name, 'page': page.toString(), 'limit': limit.toString()};
       if (businessId != null) {
         queryParams['business_id'] = businessId.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/items/search').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse('$baseUrl/items/search').replace(queryParameters: queryParams);
 
-      final response = await http.get(
-        uri,
-        headers: const {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'});
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -571,19 +559,9 @@ class ApiService {
 
   /// Поиск товаров по имени (типизированная версия как categoryItemsTyped)
   /// Возвращает CategoryItemsResponse
-  static Future<CategoryItemsResponse?> searchItemsTyped(
-    String name, {
-    int? businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  static Future<CategoryItemsResponse?> searchItemsTyped(String name, {int? businessId, int page = 1, int limit = 20}) async {
     try {
-      final raw = await searchItems(
-        name,
-        businessId: businessId,
-        page: page,
-        limit: limit,
-      );
+      final raw = await searchItems(name, businessId: businessId, page: page, limit: limit);
       if (raw == null) return null;
 
       // Ожидаем структуру вида:
@@ -598,29 +576,16 @@ class ApiService {
       // 2) Pagination -> PaginationInfo
       PaginationInfo pagination;
       if (data['pagination'] is Map) {
-        pagination =
-            PaginationInfo.fromJson(data['pagination'] as Map<String, dynamic>);
+        pagination = PaginationInfo.fromJson(data['pagination'] as Map<String, dynamic>);
       } else {
         // fallback, если бэкенд не вернул pagination
-        final total = ApiService._parseInt(data['total']) == 0
-            ? items.length
-            : ApiService._parseInt(data['total']);
+        final total = ApiService._parseInt(data['total']) == 0 ? items.length : ApiService._parseInt(data['total']);
         final totalPages = (total / limit).ceil().clamp(1, 999999);
-        pagination = PaginationInfo(
-          page: page,
-          limit: limit,
-          total: total,
-          totalPages: totalPages,
-        );
+        pagination = PaginationInfo(page: page, limit: limit, total: total, totalPages: totalPages);
       }
 
       // 3) «Виртуальная» категория: "Поиск: <name>"
-      final categoryInfo = CategoryInfo(
-        categoryId: 0,
-        name: 'Поиск: $name',
-        photo: null,
-        img: null,
-      );
+      final categoryInfo = CategoryInfo(categoryId: 0, name: 'Поиск: $name', photo: null, img: null);
 
       // 4) Бизнес (если задан фильтр)
       final businessInfo = BusinessInfo(
@@ -642,11 +607,7 @@ class ApiService {
         subcategoriesCount: subcategoriesCount,
       );
 
-      return CategoryItemsResponse(
-        success: success,
-        data: typedData,
-        message: raw['message'],
-      );
+      return CategoryItemsResponse(success: success, data: typedData, message: raw['message']);
     } catch (e) {
       print('Error parsing searchItemsTyped: $e');
       return null;
@@ -677,10 +638,7 @@ class ApiService {
   /// [lon] - долгота (от -180 до 180)
   ///
   /// Возвращает список объектов Address
-  static Future<List<Address>?> searchAddressesByCoordinates(
-    double lat,
-    double lon,
-  ) async {
+  static Future<List<Address>?> searchAddressesByCoordinates(double lat, double lon) async {
     try {
       final addressesData = await searchAddressByCoordinates(lat, lon);
       if (addressesData != null) {
@@ -702,11 +660,7 @@ class ApiService {
   /// [lon] - долгота для поиска по координатам
   ///
   /// Возвращает список объектов Address
-  static Future<List<Address>?> searchAddressesTyped({
-    String? query,
-    double? lat,
-    double? lon,
-  }) async {
+  static Future<List<Address>?> searchAddressesTyped({String? query, double? lat, double? lon}) async {
     // Если указан текстовый запрос
     if (query != null && query.isNotEmpty) {
       return await searchAddressesByText(query);
@@ -728,35 +682,20 @@ class ApiService {
   /// [offset] - смещение для пагинации (по умолчанию 0)
   ///
   /// Возвращает данные об активных акциях с метаинформацией
-  static Future<Map<String, dynamic>?> getActivePromotions({
-    int? businessId,
-    int limit = 50,
-    int offset = 0,
-  }) async {
+  static Future<Map<String, dynamic>?> getActivePromotions({int? businessId, int limit = 50, int offset = 0}) async {
     try {
       // Формируем query параметры
-      Map<String, String> queryParams = {
-        'limit': limit.toString(),
-        'offset': offset.toString(),
-      };
+      Map<String, String> queryParams = {'limit': limit.toString(), 'offset': offset.toString()};
 
       if (businessId != null) {
         queryParams['business_id'] = businessId.toString();
       }
 
       // Формируем URL с query параметрами
-      final uri = Uri.parse('$baseUrl/promotions/active').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse('$baseUrl/promotions/active').replace(queryParameters: queryParams);
 
       // Выполняем GET запрос
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -787,17 +726,9 @@ class ApiService {
   /// [offset] - смещение для пагинации (по умолчанию 0)
   ///
   /// Возвращает список акций
-  static Future<List<Map<String, dynamic>>?> getActivePromotionsList({
-    int? businessId,
-    int limit = 50,
-    int offset = 0,
-  }) async {
+  static Future<List<Map<String, dynamic>>?> getActivePromotionsList({int? businessId, int limit = 50, int offset = 0}) async {
     try {
-      final response = await getActivePromotions(
-        businessId: businessId,
-        limit: limit,
-        offset: offset,
-      );
+      final response = await getActivePromotions(businessId: businessId, limit: limit, offset: offset);
       print(response.toString());
 
       if (response != null && response['data'] != null) {
@@ -818,17 +749,9 @@ class ApiService {
   /// [offset] - смещение для пагинации (по умолчанию 0)
   ///
   /// Возвращает список объектов Promotion
-  static Future<List<Promotion>?> getActivePromotionsTyped({
-    int? businessId,
-    int limit = 50,
-    int offset = 0,
-  }) async {
+  static Future<List<Promotion>?> getActivePromotionsTyped({int? businessId, int limit = 50, int offset = 0}) async {
     try {
-      final promotionsData = await getActivePromotionsList(
-        businessId: businessId,
-        limit: limit,
-        offset: offset,
-      );
+      final promotionsData = await getActivePromotionsList(businessId: businessId, limit: limit, offset: offset);
       print(promotionsData.toString());
       if (promotionsData != null) {
         return promotionsData.map((json) => Promotion.fromJson(json)).toList();
@@ -846,29 +769,14 @@ class ApiService {
   /// [businessId] - ID магазина (опционально)
   /// [page] - страница для пагинации
   /// [limit] - количество записей на странице
-  static Future<Map<String, dynamic>?> getPromotionItems({
-    required int promotionId,
-    int? businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  static Future<Map<String, dynamic>?> getPromotionItems({required int promotionId, int? businessId, int page = 1, int limit = 20}) async {
     try {
-      final queryParams = {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      };
+      final queryParams = {'page': page.toString(), 'limit': limit.toString()};
       if (businessId != null) {
         queryParams['business_id'] = businessId.toString();
       }
-      final uri = Uri.parse('$baseUrl/promotions/$promotionId/items')
-          .replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final uri = Uri.parse('$baseUrl/promotions/$promotionId/items').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
@@ -887,18 +795,8 @@ class ApiService {
 
   /// Получить список товаров акции (массив данных)
   /// Получить список товаров акции (массив)
-  static Future<List<Map<String, dynamic>>?> getPromotionItemsList({
-    required int promotionId,
-    int? businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    final result = await getPromotionItems(
-      promotionId: promotionId,
-      businessId: businessId,
-      page: page,
-      limit: limit,
-    );
+  static Future<List<Map<String, dynamic>>?> getPromotionItemsList({required int promotionId, int? businessId, int page = 1, int limit = 20}) async {
+    final result = await getPromotionItems(promotionId: promotionId, businessId: businessId, page: page, limit: limit);
     if (result != null && result['data'] is Map<String, dynamic>) {
       final data = result['data'] as Map<String, dynamic>;
       if (data['items'] is List) {
@@ -910,18 +808,8 @@ class ApiService {
 
   /// Получить товары акции (типизированная версия)
   /// Получить товары акции (типизированная версия)
-  static Future<List<ItemModel.Item>?> getPromotionItemsTyped({
-    required int promotionId,
-    int? businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    final list = await getPromotionItemsList(
-      promotionId: promotionId,
-      businessId: businessId,
-      page: page,
-      limit: limit,
-    );
+  static Future<List<ItemModel.Item>?> getPromotionItemsTyped({required int promotionId, int? businessId, int page = 1, int limit = 20}) async {
+    final list = await getPromotionItemsList(promotionId: promotionId, businessId: businessId, page: page, limit: limit);
     if (list != null) {
       return list.map((json) => ItemModel.Item.fromJson(json)).toList();
     }
@@ -933,9 +821,7 @@ class ApiService {
   /// [businessId] - ID бизнеса для фильтрации (опционально)
   ///
   /// Возвращает список категорий с вложенными подкатегориями
-  static Future<List<Map<String, dynamic>>?> getCategories({
-    int? businessId,
-  }) async {
+  static Future<List<Map<String, dynamic>>?> getCategories({int? businessId}) async {
     try {
       // Формируем query параметры
       Map<String, String> queryParams = {};
@@ -945,20 +831,12 @@ class ApiService {
       }
 
       // Формируем URL с query параметрами
-      final uri = Uri.parse('$baseUrl/categories').replace(
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-      );
+      final uri = Uri.parse('$baseUrl/categories').replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       print('🌐 Загружаем категории: $uri');
 
       // Выполняем GET запрос
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -1007,13 +885,9 @@ class ApiService {
   /// [businessId] - ID бизнеса для фильтрации (опционально)
   ///
   /// Возвращает список объектов Category
-  static Future<List<Category>?> getCategoriesTyped({
-    int? businessId,
-  }) async {
+  static Future<List<Category>?> getCategoriesTyped({int? businessId}) async {
     try {
-      final categoriesData = await getCategories(
-        businessId: businessId,
-      );
+      final categoriesData = await getCategories(businessId: businessId);
 
       if (categoriesData != null) {
         return categoriesData.map((json) => Category.fromJson(json)).toList();
@@ -1034,35 +908,18 @@ class ApiService {
   /// [limit] - количество товаров на странице (по умолчанию 20)
   ///
   /// Возвращает данные о товарах категории с метаинформацией
-  static Future<Map<String, dynamic>?> getCategoryItems(
-    int categoryId, {
-    required int businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  static Future<Map<String, dynamic>?> getCategoryItems(int categoryId, {required int businessId, int page = 1, int limit = 20}) async {
     try {
       // Формируем query параметры
-      Map<String, String> queryParams = {
-        'business_id': businessId.toString(),
-        'page': page.toString(),
-        'limit': limit.toString(),
-      };
+      Map<String, String> queryParams = {'business_id': businessId.toString(), 'page': page.toString(), 'limit': limit.toString()};
 
       // Формируем URL с query параметрами
-      final uri = Uri.parse('$baseUrl/categories/$categoryId/items').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse('$baseUrl/categories/$categoryId/items').replace(queryParameters: queryParams);
 
       print('🛍️ Загружаем товары категории $categoryId: $uri');
 
       // Выполняем GET запрос
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -1096,19 +953,9 @@ class ApiService {
   /// [limit] - количество товаров на странице (по умолчанию 20)
   ///
   /// Возвращает объект CategoryItemsResponse
-  static Future<CategoryItemsResponse?> getCategoryItemsTyped(
-    int categoryId, {
-    required int businessId,
-    int page = 1,
-    int limit = 20,
-  }) async {
+  static Future<CategoryItemsResponse?> getCategoryItemsTyped(int categoryId, {required int businessId, int page = 1, int limit = 20}) async {
     try {
-      final responseData = await getCategoryItems(
-        categoryId,
-        businessId: businessId,
-        page: page,
-        limit: limit,
-      );
+      final responseData = await getCategoryItems(categoryId, businessId: businessId, page: page, limit: limit);
 
       if (responseData != null) {
         return CategoryItemsResponse.fromJson(responseData);
@@ -1127,16 +974,12 @@ class ApiService {
   static Future<List<Map<String, dynamic>>?> getSuperCategories() async {
     final uri = Uri.parse('$baseUrl/categories/supercategories');
     try {
-      final response = await http.get(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-      );
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json'});
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'] as Map<String, dynamic>;
-          return (data['supercategories'] as List?)
-              ?.cast<Map<String, dynamic>>();
+          return (data['supercategories'] as List?)?.cast<Map<String, dynamic>>();
         }
         print('API getSuperCategories error: ${jsonResponse['message']}');
       } else {
@@ -1151,81 +994,121 @@ class ApiService {
   /// Получить список сохранённых карт пользователя
   /// [source] - опциональный параметр для фильтрации по источнику
   /// Возвращает список карт или null
-  static Future<List<Map<String, dynamic>>?> getUserCards(
-      {String? source}) async {
-    final token = await getAuthToken();
-    if (token == null) {
-      print('API getUserCards: no auth token');
-      return null;
-    }
-    var uri = Uri.parse('$baseUrl/user/cards');
-    if (source != null) {
-      uri = uri.replace(queryParameters: {'source': source});
-    }
+  static Future<List<Map<String, dynamic>>?> getUserCards({String? source}) async {
+    final tags = {'flow': 'payment', 'step': 'load_cards', if (source != null) 'source': source};
 
-    try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
-          final data = jsonResponse['data'] as Map<String, dynamic>;
-          final cards = data['cards'] as List<dynamic>?;
-          return cards?.map((e) => (e as Map).cast<String, dynamic>()).toList();
+    return SentryService.traceOperation<List<Map<String, dynamic>>?>(
+      name: 'payment.get_user_cards',
+      operation: 'payment.cards',
+      tags: tags,
+      data: {'has_source_filter': source != null},
+      action: (span) async {
+        final token = await getAuthToken();
+        if (token == null) {
+          span.status = const SpanStatus.unauthenticated();
+          print('API getUserCards: no auth token');
+          return null;
         }
-      } else {
-        print('HTTP Error getUserCards: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Network Error getUserCards: $e');
-    }
-    return null;
+
+        var uri = Uri.parse('$baseUrl/user/cards');
+        if (source != null) {
+          uri = uri.replace(queryParameters: {'source': source});
+        }
+
+        try {
+          final response = await http.get(
+            uri,
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+          );
+          span.setData('http_status_code', response.statusCode);
+          if (response.statusCode == 200) {
+            final Map<String, dynamic> jsonResponse = json.decode(response.body);
+            if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
+              final data = jsonResponse['data'] as Map<String, dynamic>;
+              final cards = data['cards'] as List<dynamic>?;
+              span.status = const SpanStatus.ok();
+              span.setData('cards_count', cards?.length ?? 0);
+              return cards?.map((e) => (e as Map).cast<String, dynamic>()).toList();
+            }
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Loading payment cards failed',
+              category: 'payment.cards',
+              tags: tags,
+              extra: {'http_status_code': response.statusCode},
+            );
+            print('HTTP Error getUserCards: ${response.statusCode}');
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(e, stackTrace, message: 'Loading payment cards failed', category: 'payment.cards', tags: tags);
+          print('Network Error getUserCards: $e');
+        }
+        return null;
+      },
+    );
   }
 
   /// Сгенерировать ссылку для добавления новой карты
   /// Возвращает URL для редиректа или null
   static Future<String?> generateAddCardLink() async {
-    final token = await getAuthToken();
-    if (token == null) {
-      print('API generateAddCardLink: auth token not found');
-      return null;
-    }
-    final uri = Uri.parse('$baseUrl/payments/generate-add-card-link');
-    try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        print('Response from generateAddCardLink: $jsonResponse');
-        if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
-          final data = jsonResponse['data'] as Map<String, dynamic>;
-          // API возвращает addCardLink, а не redirect_url
-          return data['addCardLink'] as String?;
-        } else {
-          print(
-              'API generateAddCardLink error: ${jsonResponse['error']?['message']}');
+    return SentryService.traceOperation<String?>(
+      name: 'payment.generate_add_card_link',
+      operation: 'payment.cards',
+      tags: const {'flow': 'payment', 'step': 'generate_add_card_link'},
+      action: (span) async {
+        final token = await getAuthToken();
+        if (token == null) {
+          span.status = const SpanStatus.unauthenticated();
+          print('API generateAddCardLink: auth token not found');
+          return null;
         }
-      } else {
-        print('HTTP Error generateAddCardLink: ${response.statusCode}');
-        print('Error body: ${response.body}');
-      }
-    } catch (e) {
-      print('Network Error generateAddCardLink: $e');
-    }
-    return null;
+
+        final uri = Uri.parse('$baseUrl/payments/generate-add-card-link');
+        try {
+          final response = await http.post(
+            uri,
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+          );
+          span.setData('http_status_code', response.statusCode);
+
+          if (response.statusCode == 200) {
+            final Map<String, dynamic> jsonResponse = json.decode(response.body);
+            print('Response from generateAddCardLink: $jsonResponse');
+            if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
+              final data = jsonResponse['data'] as Map<String, dynamic>;
+              span.status = const SpanStatus.ok();
+              return data['addCardLink'] as String?;
+            } else {
+              span.status = const SpanStatus.failedPrecondition();
+              print('API generateAddCardLink error: ${jsonResponse['error']?['message']}');
+            }
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Generating add-card link failed',
+              category: 'payment.cards',
+              tags: const {'flow': 'payment', 'step': 'generate_add_card_link'},
+              extra: {'http_status_code': response.statusCode},
+            );
+            print('HTTP Error generateAddCardLink: ${response.statusCode}');
+            print('Error body: ${response.body}');
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(
+            e,
+            stackTrace,
+            message: 'Generating add-card link failed',
+            category: 'payment.cards',
+            tags: const {'flow': 'payment', 'step': 'generate_add_card_link'},
+          );
+          print('Network Error generateAddCardLink: $e');
+        }
+        return null;
+      },
+    );
   }
 
   /// Получить информацию о бонусах пользователя
@@ -1237,13 +1120,7 @@ class ApiService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/bonuses'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await http.get(Uri.parse('$baseUrl/bonuses'), headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -1260,62 +1137,67 @@ class ApiService {
   /// [orderId] - ID заказа
   /// [cardId] - ID сохраненной карты
   /// Возвращает результат операции оплаты
-  static Future<Map<String, dynamic>> payOrder(
-    String orderId,
-    String cardId,
-  ) async {
-    final token = await getAuthToken();
-    if (token == null) {
-      print('API payOrder: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
-    }
+  static Future<Map<String, dynamic>> payOrder(String orderId, String cardId) async {
+    const tags = {'flow': 'payment', 'step': 'pay_order'};
+    return SentryService.traceOperation<Map<String, dynamic>>(
+      name: 'payment.pay_order',
+      operation: 'payment.submit',
+      tags: tags,
+      data: const {'payment_type': 'card', 'has_saved_card': true},
+      action: (span) async {
+        final token = await getAuthToken();
+        if (token == null) {
+          span.status = const SpanStatus.unauthenticated();
+          print('API payOrder: auth token not found');
+          return {'success': false, 'error': 'Требуется авторизация'};
+        }
 
-    final uri = Uri.parse('$baseUrl/orders/$orderId/pay');
-    try {
-      final body = {
-        'payment_type': 'card',
-        'card_id': cardId,
-      };
+        final uri = Uri.parse('$baseUrl/orders/$orderId/pay');
+        try {
+          final body = {'payment_type': 'card', 'card_id': cardId};
 
-      print('Paying order $orderId with card $cardId');
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(body),
-      );
+          print('Paying order $orderId with card $cardId');
+          final response = await http.post(
+            uri,
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+            body: json.encode(body),
+          );
 
-      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+          final Map<String, dynamic> jsonResponse = json.decode(response.body);
+          span.setData('http_status_code', response.statusCode);
 
-      if (response.statusCode == 200) {
-        print('Payment successful: $jsonResponse');
-        return jsonResponse;
-      } else {
-        print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        print('Error body: ${response.body}');
-        return {
-          'success': false,
-          'error': jsonResponse['error'] ?? 'Ошибка оплаты',
-          'statusCode': response.statusCode
-        };
-      }
-    } catch (e) {
-      print('Network Error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
-    }
+          if (response.statusCode == 200) {
+            span.status = const SpanStatus.ok();
+            span.setData('payment_status', jsonResponse['data']?['payment_status']?.toString() ?? 'unknown');
+            print('Payment successful: $jsonResponse');
+            return jsonResponse;
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Payment request failed',
+              category: 'payment.submit',
+              tags: tags,
+              extra: {'http_status_code': response.statusCode},
+            );
+            print('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+            print('Error body: ${response.body}');
+            return {'success': false, 'error': jsonResponse['error'] ?? 'Ошибка оплаты', 'statusCode': response.statusCode};
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(e, stackTrace, message: 'Payment request failed', category: 'payment.submit', tags: tags);
+          print('Network Error: $e');
+          return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+        }
+      },
+    );
   }
 
   /// Получить активные заказы пользователя
   /// [businessId] - фильтр по ID бизнеса (опционально)
   /// [deliveryType] - фильтр по типу доставки (опционально)
   /// Возвращает список активных заказов
-  static Future<Map<String, dynamic>?> getMyActiveOrders({
-    int? businessId,
-    String? deliveryType,
-  }) async {
+  static Future<Map<String, dynamic>?> getMyActiveOrders({int? businessId, String? deliveryType}) async {
     final token = await getAuthToken();
     if (token == null) {
       print('API getMyActiveOrders: no auth token');
@@ -1340,11 +1222,7 @@ class ApiService {
     try {
       final response = await http.get(
         uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -1368,41 +1246,62 @@ class ApiService {
   /// [lat] - широта (от -90 до 90)
   /// [lon] - долгота (от -180 до 180)
   /// Возвращает объект с данными доставки: delivery_type, distance, delivery_cost и т.д.
-  static Future<Map<String, dynamic>?> calculateDeliveryByAddress({
-    required int businessId,
-    required double lat,
-    required double lon,
-  }) async {
-    final uri = Uri.parse('$baseUrl/delivery/calculate-by-address').replace(
-      queryParameters: {
-        'business_id': businessId.toString(),
-        'lat': lat.toString(),
-        'lon': lon.toString(),
+  static Future<Map<String, dynamic>?> calculateDeliveryByAddress({required int businessId, required double lat, required double lon}) async {
+    return SentryService.traceOperation<Map<String, dynamic>?>(
+      name: 'address.calculate_delivery',
+      operation: 'address.resolve',
+      tags: const {'flow': 'address_resolution', 'mode': 'delivery_calculation'},
+      data: const {'has_coordinates': true},
+      action: (span) async {
+        final uri = Uri.parse(
+          '$baseUrl/delivery/calculate-by-address',
+        ).replace(queryParameters: {'business_id': businessId.toString(), 'lat': lat.toString(), 'lon': lon.toString()});
+        try {
+          final response = await http.get(uri, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
+          span.setData('http_status_code', response.statusCode);
+          if (response.statusCode == 200) {
+            final Map<String, dynamic> jsonResponse = json.decode(response.body);
+            if (jsonResponse['success'] == true && jsonResponse['data'] is Map<String, dynamic>) {
+              final delivery = jsonResponse['data'] as Map<String, dynamic>;
+              span.status = const SpanStatus.ok();
+              span.setData('delivery_type', delivery['delivery_type']?.toString() ?? 'unknown');
+              span.setData('delivery_cost', (delivery['delivery_cost'] as num?)?.toDouble() ?? 0.0);
+              return delivery;
+            } else {
+              span.status = const SpanStatus.failedPrecondition();
+              await SentryService.captureBusinessFailure(
+                message: 'Delivery calculation returned unsuccessful response',
+                category: 'address.resolve',
+                level: SentryLevel.warning,
+                tags: const {'flow': 'address_resolution', 'mode': 'delivery_calculation'},
+                extra: {'http_status_code': response.statusCode},
+              );
+              print('API Error calculateDelivery: ${jsonResponse['message']}');
+            }
+          } else {
+            span.status = SpanStatus.fromHttpStatusCode(response.statusCode, fallback: const SpanStatus.internalError());
+            await SentryService.captureBusinessFailure(
+              message: 'Delivery calculation request failed',
+              category: 'address.resolve',
+              tags: const {'flow': 'address_resolution', 'mode': 'delivery_calculation'},
+              extra: {'http_status_code': response.statusCode},
+            );
+            print('HTTP Error calculateDelivery: ${response.statusCode}');
+          }
+        } catch (e, stackTrace) {
+          span.status = const SpanStatus.internalError();
+          await SentryService.captureHandledException(
+            e,
+            stackTrace,
+            message: 'Delivery calculation failed',
+            category: 'address.resolve',
+            tags: const {'flow': 'address_resolution', 'mode': 'delivery_calculation'},
+          );
+          print('Network Error calculateDelivery: $e');
+        }
+        return null;
       },
     );
-    try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse['success'] == true &&
-            jsonResponse['data'] is Map<String, dynamic>) {
-          return jsonResponse['data'] as Map<String, dynamic>;
-        } else {
-          print('API Error calculateDelivery: ${jsonResponse['message']}');
-        }
-      } else {
-        print('HTTP Error calculateDelivery: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Network Error calculateDelivery: $e');
-    }
-    return null;
   }
 
   /// Отправить FCM токен на сервер
@@ -1418,11 +1317,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/users/fcm-token'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
         body: json.encode({'fcmToken': fcmToken}),
       );
 
@@ -1455,11 +1350,7 @@ class ApiService {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/users/fcm-token'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -1484,14 +1375,7 @@ class Address {
   final String precision;
   final double? distance;
 
-  Address({
-    required this.name,
-    required this.point,
-    required this.description,
-    required this.kind,
-    required this.precision,
-    this.distance,
-  });
+  Address({required this.name, required this.point, required this.description, required this.kind, required this.precision, this.distance});
 
   factory Address.fromJson(Map<String, dynamic> json) {
     return Address(
@@ -1526,23 +1410,14 @@ class AddressPoint {
   final double lat;
   final double lon;
 
-  AddressPoint({
-    required this.lat,
-    required this.lon,
-  });
+  AddressPoint({required this.lat, required this.lon});
 
   factory AddressPoint.fromJson(Map<String, dynamic> json) {
-    return AddressPoint(
-      lat: ApiService._parseDouble(json['lat']) ?? 0.0,
-      lon: ApiService._parseDouble(json['lon']) ?? 0.0,
-    );
+    return AddressPoint(lat: ApiService._parseDouble(json['lat']) ?? 0.0, lon: ApiService._parseDouble(json['lon']) ?? 0.0);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'lat': lat,
-      'lon': lon,
-    };
+    return {'lat': lat, 'lon': lon};
   }
 
   @override
@@ -1557,26 +1432,14 @@ class Business {
   final String name;
   final String? description;
 
-  Business({
-    required this.businessId,
-    required this.name,
-    this.description,
-  });
+  Business({required this.businessId, required this.name, this.description});
 
   factory Business.fromJson(Map<String, dynamic> json) {
-    return Business(
-      businessId: ApiService._parseInt(json['business_id']),
-      name: json['name'] ?? '',
-      description: json['description'],
-    );
+    return Business(businessId: ApiService._parseInt(json['business_id']), name: json['name'] ?? '', description: json['description']);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'business_id': businessId,
-      'name': name,
-      if (description != null) 'description': description,
-    };
+    return {'business_id': businessId, 'name': name, if (description != null) 'description': description};
   }
 
   @override
@@ -1619,8 +1482,7 @@ class Promotion {
 
   factory Promotion.fromJson(Map<String, dynamic> json) {
     return Promotion(
-      marketingPromotionId:
-          ApiService._parseInt(json['marketing_promotion_id']),
+      marketingPromotionId: ApiService._parseInt(json['marketing_promotion_id']),
       name: json['name'],
       startPromotionDate: DateTime.parse(json['start_promotion_date']),
       endPromotionDate: DateTime.parse(json['end_promotion_date']),
@@ -1628,16 +1490,9 @@ class Promotion {
       cover: json['cover'],
       visible: ApiService._parseInt(json['visible']),
       isActive: json['is_active'],
-      business:
-          json['business'] != null ? Business.fromJson(json['business']) : null,
-      details: (json['details'] as List? ?? [])
-          .map((detail) => PromotionDetail.fromJson(detail))
-          .toList(),
-      stories: json['stories'] != null
-          ? (json['stories'] as List)
-              .map((story) => PromotionStory.fromJson(story))
-              .toList()
-          : null,
+      business: json['business'] != null ? Business.fromJson(json['business']) : null,
+      details: (json['details'] as List? ?? []).map((detail) => PromotionDetail.fromJson(detail)).toList(),
+      stories: json['stories'] != null ? (json['stories'] as List).map((story) => PromotionStory.fromJson(story)).toList() : null,
       itemsCount: ApiService._parseInt(json['items_count']),
       daysLeft: ApiService._parseInt(json['days_left']),
     );
@@ -1655,8 +1510,7 @@ class Promotion {
       if (isActive != null) 'is_active': isActive,
       if (business != null) 'business': business!.toJson(),
       'details': details.map((detail) => detail.toJson()).toList(),
-      if (stories != null)
-        'stories': stories!.map((story) => story.toJson()).toList(),
+      if (stories != null) 'stories': stories!.map((story) => story.toJson()).toList(),
       'items_count': itemsCount,
       'days_left': daysLeft,
     };
@@ -1694,12 +1548,8 @@ class PromotionDetail {
     return PromotionDetail(
       detailId: ApiService._parseInt(json['detail_id']),
       type: json['type'] ?? '',
-      baseAmount: json['base_amount'] != null
-          ? ApiService._parseInt(json['base_amount'])
-          : null,
-      addAmount: json['add_amount'] != null
-          ? ApiService._parseInt(json['add_amount'])
-          : null,
+      baseAmount: json['base_amount'] != null ? ApiService._parseInt(json['base_amount']) : null,
+      addAmount: json['add_amount'] != null ? ApiService._parseInt(json['add_amount']) : null,
       discount: ApiService._parseDouble(json['discount']),
       itemId: ApiService._parseInt(json['item_id']),
       name: json['name'] ?? '',
@@ -1733,30 +1583,19 @@ class PromotionStory {
   final int marketingPromotionId;
   final String promo;
 
-  PromotionStory({
-    required this.storyId,
-    required this.cover,
-    required this.marketingPromotionId,
-    required this.promo,
-  });
+  PromotionStory({required this.storyId, required this.cover, required this.marketingPromotionId, required this.promo});
 
   factory PromotionStory.fromJson(Map<String, dynamic> json) {
     return PromotionStory(
       storyId: ApiService._parseInt(json['story_id']),
       cover: json['cover'] ?? '',
-      marketingPromotionId:
-          ApiService._parseInt(json['marketing_promotion_id']),
+      marketingPromotionId: ApiService._parseInt(json['marketing_promotion_id']),
       promo: json['promo'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'story_id': storyId,
-      'cover': cover,
-      'marketing_promotion_id': marketingPromotionId,
-      'promo': promo,
-    };
+    return {'story_id': storyId, 'cover': cover, 'marketing_promotion_id': marketingPromotionId, 'promo': promo};
   }
 
   @override
@@ -1802,11 +1641,7 @@ class Item {
       businessId: ApiService._parseInt(json['business_id']),
       amount: ApiService._parseInt(json['amount']),
       is_liked: json['is_liked'] ?? false, // По умолчанию не лайкнут
-      options: json['options'] != null
-          ? (json['options'] as List)
-              .map((option) => ItemOption.fromJson(option))
-              .toList()
-          : null,
+      options: json['options'] != null ? (json['options'] as List).map((option) => ItemOption.fromJson(option)).toList() : null,
     );
   }
 
@@ -1820,8 +1655,7 @@ class Item {
       'category_id': categoryId,
       'business_id': businessId,
       'amount': amount,
-      if (options != null)
-        'options': options!.map((option) => option.toJson()).toList(),
+      if (options != null) 'options': options!.map((option) => option.toJson()).toList(),
     };
   }
 
@@ -1839,13 +1673,7 @@ class ItemOption {
   final String selection; // "SINGLE" | "MULTIPLE"
   final List<ItemOptionItem> optionItems;
 
-  ItemOption({
-    required this.optionId,
-    required this.name,
-    required this.required,
-    required this.selection,
-    required this.optionItems,
-  });
+  ItemOption({required this.optionId, required this.name, required this.required, required this.selection, required this.optionItems});
 
   factory ItemOption.fromJson(Map<String, dynamic> json) {
     return ItemOption(
@@ -1853,9 +1681,7 @@ class ItemOption {
       name: json['name'] ?? '',
       required: ApiService._parseInt(json['required']),
       selection: json['selection'] ?? '',
-      optionItems: (json['option_items'] as List? ?? [])
-          .map((item) => ItemOptionItem.fromJson(item))
-          .toList(),
+      optionItems: (json['option_items'] as List? ?? []).map((item) => ItemOptionItem.fromJson(item)).toList(),
     );
   }
 
@@ -1906,13 +1732,7 @@ class ItemOptionItem {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'relation_id': relationId,
-      'item_id': itemId,
-      'price_type': priceType,
-      'price': price,
-      'parent_item_amount': parentItemAmount,
-    };
+    return {'relation_id': relationId, 'item_id': itemId, 'price_type': priceType, 'price': price, 'parent_item_amount': parentItemAmount};
   }
 
   @override
@@ -1929,25 +1749,15 @@ class Category {
   final int itemsCount;
   final List<Category> subcategories;
 
-  Category({
-    required this.categoryId,
-    required this.name,
-    this.parentId,
-    required this.itemsCount,
-    required this.subcategories,
-  });
+  Category({required this.categoryId, required this.name, this.parentId, required this.itemsCount, required this.subcategories});
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       categoryId: ApiService._parseInt(json['category_id']),
       name: json['name'] ?? '',
-      parentId: json['parent_id'] != null
-          ? ApiService._parseInt(json['parent_id'])
-          : null,
+      parentId: json['parent_id'] != null ? ApiService._parseInt(json['parent_id']) : null,
       itemsCount: ApiService._parseInt(json['items_count']),
-      subcategories: (json['subcategories'] as List? ?? [])
-          .map((subcategory) => Category.fromJson(subcategory))
-          .toList(),
+      subcategories: (json['subcategories'] as List? ?? []).map((subcategory) => Category.fromJson(subcategory)).toList(),
     );
   }
 
@@ -1957,8 +1767,7 @@ class Category {
       'name': name,
       if (parentId != null) 'parent_id': parentId,
       'items_count': itemsCount,
-      'subcategories':
-          subcategories.map((subcategory) => subcategory.toJson()).toList(),
+      'subcategories': subcategories.map((subcategory) => subcategory.toJson()).toList(),
     };
   }
 
@@ -2017,26 +1826,14 @@ class CategoryItemsResponse {
   final CategoryItemsData data;
   final String? message;
 
-  CategoryItemsResponse({
-    required this.success,
-    required this.data,
-    this.message,
-  });
+  CategoryItemsResponse({required this.success, required this.data, this.message});
 
   factory CategoryItemsResponse.fromJson(Map<String, dynamic> json) {
-    return CategoryItemsResponse(
-      success: json['success'] ?? false,
-      data: CategoryItemsData.fromJson(json['data'] ?? {}),
-      message: json['message'],
-    );
+    return CategoryItemsResponse(success: json['success'] ?? false, data: CategoryItemsData.fromJson(json['data'] ?? {}), message: json['message']);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'data': data.toJson(),
-      if (message != null) 'message': message,
-    };
+    return {'success': success, 'data': data.toJson(), if (message != null) 'message': message};
   }
 
   @override
@@ -2067,13 +1864,9 @@ class CategoryItemsData {
     return CategoryItemsData(
       category: CategoryInfo.fromJson(json['category'] ?? {}),
       business: BusinessInfo.fromJson(json['business'] ?? {}),
-      items: (json['items'] as List? ?? [])
-          .map((item) => CategoryItem.fromJson(item))
-          .toList(),
+      items: (json['items'] as List? ?? []).map((item) => CategoryItem.fromJson(item)).toList(),
       pagination: PaginationInfo.fromJson(json['pagination'] ?? {}),
-      categoriesIncluded: (json['categories_included'] as List? ?? [])
-          .map((id) => ApiService._parseInt(id))
-          .toList(),
+      categoriesIncluded: (json['categories_included'] as List? ?? []).map((id) => ApiService._parseInt(id)).toList(),
       subcategoriesCount: ApiService._parseInt(json['subcategories_count']),
     );
   }
@@ -2102,29 +1895,14 @@ class CategoryInfo {
   final String? photo;
   final String? img;
 
-  CategoryInfo({
-    required this.categoryId,
-    required this.name,
-    this.photo,
-    this.img,
-  });
+  CategoryInfo({required this.categoryId, required this.name, this.photo, this.img});
 
   factory CategoryInfo.fromJson(Map<String, dynamic> json) {
-    return CategoryInfo(
-      categoryId: ApiService._parseInt(json['category_id']),
-      name: json['name'] ?? '',
-      photo: json['photo'],
-      img: json['img'],
-    );
+    return CategoryInfo(categoryId: ApiService._parseInt(json['category_id']), name: json['name'] ?? '', photo: json['photo'], img: json['img']);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'category_id': categoryId,
-      'name': name,
-      if (photo != null) 'photo': photo,
-      if (img != null) 'img': img,
-    };
+    return {'category_id': categoryId, 'name': name, if (photo != null) 'photo': photo, if (img != null) 'img': img};
   }
 
   @override
@@ -2139,26 +1917,14 @@ class BusinessInfo {
   final String name;
   final String? address;
 
-  BusinessInfo({
-    required this.businessId,
-    required this.name,
-    this.address,
-  });
+  BusinessInfo({required this.businessId, required this.name, this.address});
 
   factory BusinessInfo.fromJson(Map<String, dynamic> json) {
-    return BusinessInfo(
-      businessId: ApiService._parseInt(json['business_id']),
-      name: json['name'] ?? '',
-      address: json['address'],
-    );
+    return BusinessInfo(businessId: ApiService._parseInt(json['business_id']), name: json['name'] ?? '', address: json['address']);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'business_id': businessId,
-      'name': name,
-      if (address != null) 'address': address,
-    };
+    return {'business_id': businessId, 'name': name, if (address != null) 'address': address};
   }
 
   @override
@@ -2207,21 +1973,15 @@ class CategoryItem {
       code: json['code'],
       category: ItemCategory.fromJson(json['category'] ?? {}),
       visible: ApiService._parseInt(json['visible']),
-      stepQuantity: ApiService._parseDouble(json['quantity_step']) ??
+      stepQuantity:
+          ApiService._parseDouble(json['quantity_step']) ??
           ApiService._parseDouble(json['step_quantity']) ??
           ApiService._parseDouble(json['parent_item_amount']),
-      options: json['options'] != null
-          ? (json['options'] as List)
-              .map((option) => CategoryItemOption.fromJson(option))
-              .toList()
-          : null,
+      options: json['options'] != null ? (json['options'] as List).map((option) => CategoryItemOption.fromJson(option)).toList() : null,
       promotions: json['promotions'] != null
-          ? (json['promotions'] as List)
-              .map((promotion) => CategoryItemPromotion.fromJson(promotion))
-              .toList()
+          ? (json['promotions'] as List).map((promotion) => CategoryItemPromotion.fromJson(promotion)).toList()
           : null,
-      amount:
-          json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
+      amount: json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
     );
   }
 
@@ -2237,10 +1997,8 @@ class CategoryItem {
       'visible': visible,
       if (stepQuantity != null) 'quantity_step': stepQuantity,
       if (amount != null) 'amount': amount,
-      if (options != null)
-        'options': options!.map((option) => option.toJson()).toList(),
-      if (promotions != null)
-        'promotions': promotions!.map((promo) => promo.toJson()).toList(),
+      if (options != null) 'options': options!.map((option) => option.toJson()).toList(),
+      if (promotions != null) 'promotions': promotions!.map((promo) => promo.toJson()).toList(),
     };
   }
 
@@ -2265,28 +2023,18 @@ class ItemCategory {
   final String name;
   final int? parentCategory;
 
-  ItemCategory({
-    required this.categoryId,
-    required this.name,
-    this.parentCategory,
-  });
+  ItemCategory({required this.categoryId, required this.name, this.parentCategory});
 
   factory ItemCategory.fromJson(Map<String, dynamic> json) {
     return ItemCategory(
       categoryId: ApiService._parseInt(json['category_id']),
       name: json['name'] ?? '',
-      parentCategory: json['parent_category'] != null
-          ? ApiService._parseInt(json['parent_category'])
-          : null,
+      parentCategory: json['parent_category'] != null ? ApiService._parseInt(json['parent_category']) : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'category_id': categoryId,
-      'name': name,
-      if (parentCategory != null) 'parent_category': parentCategory,
-    };
+    return {'category_id': categoryId, 'name': name, if (parentCategory != null) 'parent_category': parentCategory};
   }
 
   @override
@@ -2305,12 +2053,7 @@ class PaginationInfo {
   final int total;
   final int totalPages;
 
-  PaginationInfo({
-    required this.page,
-    required this.limit,
-    required this.total,
-    required this.totalPages,
-  });
+  PaginationInfo({required this.page, required this.limit, required this.total, required this.totalPages});
 
   factory PaginationInfo.fromJson(Map<String, dynamic> json) {
     return PaginationInfo(
@@ -2322,12 +2065,7 @@ class PaginationInfo {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'page': page,
-      'limit': limit,
-      'total': total,
-      'totalPages': totalPages,
-    };
+    return {'page': page, 'limit': limit, 'total': total, 'totalPages': totalPages};
   }
 
   @override
@@ -2356,13 +2094,7 @@ class CategoryItemOption {
   final String selection; // "single" | "multiple"
   final List<CategoryItemVariant> variants;
 
-  CategoryItemOption({
-    required this.optionId,
-    required this.name,
-    required this.required,
-    required this.selection,
-    required this.variants,
-  });
+  CategoryItemOption({required this.optionId, required this.name, required this.required, required this.selection, required this.variants});
 
   factory CategoryItemOption.fromJson(Map<String, dynamic> json) {
     return CategoryItemOption(
@@ -2370,9 +2102,7 @@ class CategoryItemOption {
       name: json['name'] ?? '',
       required: json['required'] == true || json['required'] == 1,
       selection: json['selection'] ?? 'single',
-      variants: (json['variants'] as List? ?? [])
-          .map((variant) => CategoryItemVariant.fromJson(variant))
-          .toList(),
+      variants: (json['variants'] as List? ?? []).map((variant) => CategoryItemVariant.fromJson(variant)).toList(),
     );
   }
 
@@ -2422,13 +2152,7 @@ class CategoryItemVariant {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'relation_id': relationId,
-      'item_id': itemId,
-      'price_type': priceType,
-      'price': price,
-      'parent_item_amount': parentItemAmount,
-    };
+    return {'relation_id': relationId, 'item_id': itemId, 'price_type': priceType, 'price': price, 'parent_item_amount': parentItemAmount};
   }
 
   @override
@@ -2445,24 +2169,14 @@ class CategoryItemPromotion {
   final int? addAmount;
   final String name;
 
-  CategoryItemPromotion({
-    required this.detailId,
-    required this.type,
-    this.baseAmount,
-    this.addAmount,
-    required this.name,
-  });
+  CategoryItemPromotion({required this.detailId, required this.type, this.baseAmount, this.addAmount, required this.name});
 
   factory CategoryItemPromotion.fromJson(Map<String, dynamic> json) {
     return CategoryItemPromotion(
       detailId: ApiService._parseInt(json['detail_id']),
       type: json['type'] ?? '',
-      baseAmount: json['base_amount'] != null
-          ? ApiService._parseInt(json['base_amount'])
-          : null,
-      addAmount: json['add_amount'] != null
-          ? ApiService._parseInt(json['add_amount'])
-          : null,
+      baseAmount: json['base_amount'] != null ? ApiService._parseInt(json['base_amount']) : null,
+      addAmount: json['add_amount'] != null ? ApiService._parseInt(json['add_amount']) : null,
       name: json['name'] ?? '',
     );
   }

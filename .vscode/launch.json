@@ -4,10 +4,17 @@
     // Для получения дополнительной информации посетите: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    
         {
             "name": "naliv_delivery",
             "request": "launch",
             "type": "dart"
+        },
+        {
+            "name": "naliv_delivery (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome"
         },
         {
             "name": "naliv_delivery (profile mode)",

@@ -34,9 +34,9 @@ dependencies:
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>Приложение использует данные GPS для определения ближайших магазинов</string>
-<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>Приложение использует данные GPS для определения ближайших магазинов</string>
 ```
+
+Приложение запрашивает доступ к геолокации только во время использования. Фоновый доступ к местоположению не используется.
 
 ## Основные классы
 

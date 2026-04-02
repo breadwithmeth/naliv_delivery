@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/services/sentry_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PaymentMethodPage extends StatefulWidget {
   final Map<String, dynamic> orderData;
 
-  const PaymentMethodPage({Key? key, required this.orderData})
-      : super(key: key);
+  const PaymentMethodPage({super.key, required this.orderData});
 
   @override
-  _PaymentMethodPageState createState() => _PaymentMethodPageState();
+  State<PaymentMethodPage> createState() => _PaymentMethodPageState();
 }
 
-class _PaymentMethodPageState extends State<PaymentMethodPage>
-    with WidgetsBindingObserver {
+class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindingObserver {
   List<Map<String, dynamic>>? _cards;
   bool _isLoading = true;
   String? _selectedCardId;
@@ -22,9 +22,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   @override
   void initState() {
     super.initState();
-    print('Order data received: ${widget.orderData}');
+    debugPrint('Order data received: ${widget.orderData}');
     WidgetsBinding.instance.addObserver(this);
-    _loadCards();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadCards();
+      }
+    });
   }
 
   @override
@@ -48,7 +52,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     });
     try {
       final cards = await ApiService.getUserCards(source: 'halyk');
-      print(cards);
+      if (!mounted) return;
+      debugPrint('Loaded cards: $cards');
       setState(() {
         _cards = cards;
         _isLoading = false;
@@ -57,104 +62,125 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки карт: $e')),
-      );
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Ошибка загрузки карт: $e')));
     }
   }
 
   Future<void> _addCard() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await SentryService.addBreadcrumb(category: 'payment', message: 'Add card flow started', data: const {'source': 'payment_method_page'});
     final link = await ApiService.generateAddCardLink();
-    print('Generated link for adding card: $link');
+    if (!mounted) return;
+    debugPrint('Generated link for adding card: $link');
     if (link != null) {
       final uri = Uri.parse(link);
       if (await canLaunchUrl(uri)) {
+        if (!mounted) return;
         _awaitingCardAdd = true;
+        await SentryService.addBreadcrumb(
+          category: 'payment',
+          message: 'Add card link opened in external browser',
+          data: const {'launch_mode': 'external_application'},
+        );
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Не удалось открыть ссылку для добавления карты')),
+        await SentryService.captureBusinessFailure(
+          message: 'Add card link could not be launched',
+          category: 'payment.cards',
+          level: SentryLevel.warning,
+          tags: const {'flow': 'payment', 'step': 'add_card_browser_launch'},
         );
+        messenger.showSnackBar(const SnackBar(content: Text('Не удалось открыть ссылку для добавления карты')));
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Не удалось получить ссылку для добавления карты')),
+      await SentryService.captureBusinessFailure(
+        message: 'Add card link was not generated',
+        category: 'payment.cards',
+        level: SentryLevel.warning,
+        tags: const {'flow': 'payment', 'step': 'add_card_link_missing'},
       );
+      messenger.showSnackBar(const SnackBar(content: Text('Не удалось получить ссылку для добавления карты')));
     }
   }
 
   Future<void> _pay() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     if (_selectedCardId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, выберите карту для оплаты')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Пожалуйста, выберите карту для оплаты')));
       return;
     }
+
+    await SentryService.addBreadcrumb(
+      category: 'payment',
+      message: 'Payment submission started',
+      data: {'cards_count': _cards?.length ?? 0, 'has_selected_card': _selectedCardId != null},
+    );
+    if (!mounted) return;
 
     // Показываем индикатор загрузки
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      final orderId = widget.orderData['order_id']?.toString() ??
-          widget.orderData['order_uuid']?.toString();
+      final orderId = widget.orderData['order_id']?.toString() ?? widget.orderData['order_uuid']?.toString();
       if (orderId == null) {
-        Navigator.pop(context); // Закрываем диалог загрузки
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка: ID заказа не найден')),
-        );
+        navigator.pop();
+        messenger.showSnackBar(const SnackBar(content: Text('Ошибка: ID заказа не найден')));
         return;
       }
 
       final result = await ApiService.payOrder(orderId, _selectedCardId!);
+      if (!mounted) return;
 
-      Navigator.pop(context); // Закрываем диалог загрузки
+      navigator.pop();
 
       if (result['success'] == true) {
         // Успешная оплата
         final paymentData = result['data'];
         final paymentStatus = paymentData['payment_status'];
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Оплата успешно проведена! Статус: $paymentStatus'),
-            backgroundColor: Colors.green,
-          ),
+        await SentryService.addBreadcrumb(
+          category: 'payment',
+          message: 'Payment completed successfully',
+          data: {'payment_status': paymentStatus?.toString() ?? 'unknown'},
         );
+
+        messenger.showSnackBar(SnackBar(content: Text('Оплата успешно проведена! Статус: $paymentStatus'), backgroundColor: Colors.green));
 
         // Возвращаемся на главную страницу после успешной оплаты
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        navigator.popUntil((route) => route.isFirst);
       } else {
         // Ошибка оплаты
-        final errorMessage = result['error'] is Map
-            ? result['error']['message']
-            : result['error'].toString();
+        final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'].toString();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка оплаты: $errorMessage'),
-            backgroundColor: Colors.red,
-          ),
+        await SentryService.addBreadcrumb(
+          category: 'payment',
+          message: 'Payment returned failure',
+          data: {'status_code': result['statusCode']},
+          level: SentryLevel.warning,
+          type: 'error',
         );
+
+        messenger.showSnackBar(SnackBar(content: Text('Ошибка оплаты: $errorMessage'), backgroundColor: Colors.red));
       }
     } catch (e) {
-      Navigator.pop(context); // Закрываем диалог загрузки
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Произошла ошибка: $e'),
-          backgroundColor: Colors.red,
-        ),
+      if (!mounted) return;
+      navigator.pop();
+      await SentryService.captureBusinessFailure(
+        message: 'Payment flow threw an unexpected UI exception',
+        category: 'payment.submit',
+        tags: const {'flow': 'payment', 'step': 'ui_pay'},
       );
+      messenger.showSnackBar(SnackBar(content: Text('Произошла ошибка: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -163,7 +189,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     final orderData = widget.orderData;
 
     // Проверяем различные возможные поля для суммы
-    final amount = orderData['total_sum'] ??
+    final amount =
+        orderData['total_sum'] ??
         orderData['total_amount'] ??
         orderData['amount'] ??
         orderData['data']?['total_sum'] ??
@@ -179,13 +206,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Способ оплаты'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Обновить',
-            onPressed: _isLoading ? null : () => _loadCards(),
-          ),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.refresh), tooltip: 'Обновить', onPressed: _isLoading ? null : () => _loadCards())],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -196,42 +217,34 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                 children: [
                   Text(
                     'Сумма к оплате: ${_getOrderAmount()} ₸',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
                   if (_cards != null && _cards!.isNotEmpty)
                     ..._cards!.map((card) {
+                      final cardId = card['halyk_id'].toString();
+                      final isSelected = _selectedCardId == cardId;
                       return Card(
-                        child: RadioListTile<String>(
-                          title: Text(card['card_mask'] ?? 'Неизвестная карта'),
-                          subtitle: Text(card['payer_name']?.isNotEmpty == true
-                              ? card['payer_name']
-                              : 'Банковская карта'),
-                          value: card['halyk_id'].toString(),
-                          groupValue: _selectedCardId,
-                          onChanged: (value) {
+                        child: ListTile(
+                          onTap: () {
                             setState(() {
-                              _selectedCardId = value;
+                              _selectedCardId = cardId;
                             });
                           },
+                          leading: Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off),
+                          title: Text(card['card_mask'] ?? 'Неизвестная карта'),
+                          subtitle: Text(card['payer_name']?.isNotEmpty == true ? card['payer_name'] : 'Банковская карта'),
+                          trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
                         ),
                       );
-                    }).toList(),
+                    }),
                   const SizedBox(height: 20),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('Добавить новую карту'),
-                    onPressed: _addCard,
-                  ),
+                  OutlinedButton.icon(icon: const Icon(Icons.add), label: const Text('Добавить новую карту'), onPressed: _addCard),
                   const Spacer(),
                   ElevatedButton(
                     onPressed: _pay,
+                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                     child: const Text('Оплатить'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
                   ),
                 ],
               ),

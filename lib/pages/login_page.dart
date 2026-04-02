@@ -13,11 +13,11 @@ class PhoneTextInputFormatter extends TextInputFormatter {
     String digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     // Замена ведущей 8 на 7
     if (digits.startsWith('8')) {
-      digits = '7' + digits.substring(1);
+      digits = '7${digits.substring(1)}';
     }
     // Добавить ведущую 7, если отсутствует и есть цифры
     if (!digits.startsWith('7') && digits.isNotEmpty) {
-      digits = '7' + digits;
+      digits = '7$digits';
     }
     // Ограничить 11 цифрами (7 + 10 цифр номера)
     if (digits.length > 11) {
@@ -33,7 +33,7 @@ class PhoneTextInputFormatter extends TextInputFormatter {
 
 class LoginPage extends StatefulWidget {
   final int? redirectTabIndex;
-  const LoginPage({Key? key, this.redirectTabIndex}) : super(key: key);
+  const LoginPage({super.key, this.redirectTabIndex});
 
   @override
   State<LoginPage> createState() => _LoginPageState();

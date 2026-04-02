@@ -266,9 +266,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     if (currentId == nearestId) return;
 
     final promptKey =
-        '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
-    if (_lastNearestPromptKey == promptKey)
+        '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_$nearestId';
+    if (_lastNearestPromptKey == promptKey) {
       return; // уже спрашивали в этой конфигурации
+    }
     _lastNearestPromptKey = promptKey;
 
     // Расстояния

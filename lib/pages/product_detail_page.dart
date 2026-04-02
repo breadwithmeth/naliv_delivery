@@ -32,7 +32,7 @@ class ProductDetailPage extends StatelessWidget {
                     item.image!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       child: Icon(Icons.image_not_supported,
                           color: theme.colorScheme.onSurfaceVariant),
                     ),
@@ -262,7 +262,7 @@ class ProductDetailPage extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: canIncrease
                             ? theme.colorScheme.primary
-                            : theme.colorScheme.surfaceVariant,
+                            : theme.colorScheme.surfaceContainerHighest,
                         foregroundColor: canIncrease
                             ? theme.colorScheme.onPrimary
                             : theme.colorScheme.onSurfaceVariant,
