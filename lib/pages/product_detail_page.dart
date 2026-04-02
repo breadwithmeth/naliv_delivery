@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../globals.dart' as globals;
 import '../model/item.dart' as item_model;
 import '../models/cart_item.dart';
 import '../shared/app_theme.dart';
@@ -30,6 +31,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   double _manualQuantity = 0;
   bool _submitting = false;
+
+  double get _minBottleVolume {
+    if (_filteredBottles.isEmpty) {
+      return 0;
+    }
+    return _filteredBottles.map(_volumeForBottle).reduce(math.min);
+  }
 
   bool get _usesPourFlow => _containerOption != null && _filteredBottles.isNotEmpty && _looksPourProduct();
 
@@ -85,7 +93,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _bottleCounts[bottle.relationId] = 0;
     }
     if (_filteredBottles.isNotEmpty) {
-      _bottleCounts[_filteredBottles.first.relationId] = 1;
+      final initial = _defaultBottleCounts();
+      for (final bottle in _filteredBottles) {
+        _bottleCounts[bottle.relationId] = initial[bottle.relationId] ?? 0;
+      }
     }
   }
 
@@ -229,19 +240,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   String _quantityLabel(double quantity) {
-    final isWhole = (quantity - quantity.roundToDouble()).abs() < 0.001;
-    final base = isWhole ? quantity.toStringAsFixed(0) : quantity.toStringAsFixed(2);
-    if (widget.item.effectiveStepQuantity < 1) {
-      return '$base кг';
+    return globals.formatQuantity(quantity, _quantityUnit());
+  }
+
+  String _quantityUnit() {
+    final itemUnit = widget.item.unit?.trim();
+    if (itemUnit != null && itemUnit.isNotEmpty) {
+      return itemUnit;
     }
-    return '$base шт';
+    if (widget.item.effectiveStepQuantity < 1) {
+      return 'кг';
+    }
+    return 'шт.';
   }
 
   void _adjustLiters(int direction) {
     final current = _totalLitersFromBottles();
-    final target = _normalizeDouble((current + direction).clamp(1.0, _maxAmount()));
-    if ((target - current).abs() < 0.001) return;
-    final breakdown = _autoBottleBreakdown(target);
+    final breakdown = _nextBottleBreakdown(direction);
+    final next = _litersForCounts(breakdown);
+    if ((next - current).abs() < 0.001) return;
     setState(() {
       for (final bottle in _filteredBottles) {
         _bottleCounts[bottle.relationId] = breakdown[bottle.relationId] ?? 0;
@@ -261,12 +278,71 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return double.parse(value.toStringAsFixed(2));
   }
 
+  Map<int, int> _defaultBottleCounts() {
+    final maxAmount = _maxAmount();
+    for (final bottle in _filteredBottles) {
+      final volume = _volumeForBottle(bottle);
+      if (volume <= maxAmount + 0.001) {
+        return <int, int>{bottle.relationId: 1};
+      }
+    }
+    return const <int, int>{};
+  }
+
+  double _litersForCounts(Map<int, int> counts) {
+    var total = 0.0;
+    for (final bottle in _filteredBottles) {
+      final count = counts[bottle.relationId] ?? 0;
+      if (count > 0) {
+        total += _volumeForBottle(bottle) * count;
+      }
+    }
+    return _normalizeDouble(total);
+  }
+
+  Map<int, int> _nextBottleBreakdown(int direction) {
+    if (_filteredBottles.isEmpty) {
+      return const <int, int>{};
+    }
+
+    final current = _totalLitersFromBottles();
+    final maxAmount = _maxAmount();
+    if (maxAmount < _minBottleVolume - 0.001) {
+      return const <int, int>{};
+    }
+
+    if (current <= 0.001 && direction > 0) {
+      return _defaultBottleCounts();
+    }
+
+    final lowerBound = current > 0.001 ? _minBottleVolume : 0.0;
+    final target = _normalizeDouble((current + direction).clamp(lowerBound, maxAmount));
+    return _autoBottleBreakdown(target);
+  }
+
+  bool _canAdjustLiters(int direction) {
+    final current = _totalLitersFromBottles();
+    final next = _litersForCounts(_nextBottleBreakdown(direction));
+    if (direction > 0) {
+      return next > current + 0.001;
+    }
+    return next < current - 0.001;
+  }
+
   String _discountBadgeLabel(item_model.ItemPromotion promo) {
     final percent = promo.calculateEffectiveDiscountPercent(widget.item.price);
     if (percent > 0) {
       return '-$percent%';
     }
     return '-${_money(promo.discountValue)}';
+  }
+
+  double _displayUnitPrice() {
+    final promo = _discountPromo;
+    if (promo == null) {
+      return widget.item.price;
+    }
+    return promo.calculateDiscountedPrice(widget.item.price);
   }
 
   Map<int, int> _autoBottleBreakdown(double targetLiters) {
@@ -322,9 +398,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         remaining = _normalizeDouble(remaining - volume * count);
       }
     }
-    if (remaining > 0.001 && sorted.isNotEmpty) {
+    if (result.isEmpty && sorted.isNotEmpty) {
       final smallest = sorted.last;
-      result[smallest.relationId] = (result[smallest.relationId] ?? 0) + 1;
+      if (_volumeForBottle(smallest) <= _maxAmount() + 0.001) {
+        result[smallest.relationId] = 1;
+      }
     }
     return result;
   }
@@ -425,13 +503,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         .toList(growable: false);
   }
 
-  double _previewTotal({bool includePromotions = true}) {
-    final promos = includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[];
+  CartItem _previewCartItem({
+    required double quantity,
+    item_model.ItemOptionItem? bottle,
+    bool includePromotions = true,
+  }) {
+    return CartItem(
+      itemId: widget.item.itemId,
+      name: widget.item.name,
+      price: widget.item.price,
+      quantity: quantity,
+      stepQuantity: bottle != null ? _volumeForBottle(bottle) : widget.item.effectiveStepQuantity,
+      image: widget.item.image,
+      selectedVariants: _selectedVariantMaps(includeBottle: bottle != null, bottle: bottle),
+      promotions: includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[],
+      maxAmount: widget.item.amount?.toDouble(),
+    );
+  }
 
+  double _previewTotal({bool includePromotions = true}) {
     if (_usesPourFlow) {
       final counts = _activeBottleCounts();
       if (counts.isEmpty) {
-        return widget.item.price;
+        return 0;
       }
 
       var total = 0.0;
@@ -439,31 +533,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         if (entry.value <= 0) continue;
         final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
         final quantity = _volumeForBottle(bottle) * entry.value;
-        total += CartItem(
-          itemId: widget.item.itemId,
-          name: widget.item.name,
-          price: widget.item.price,
+        total += _previewCartItem(
           quantity: quantity,
-          stepQuantity: _volumeForBottle(bottle),
-          image: widget.item.image,
-          selectedVariants: _selectedVariantMaps(includeBottle: true, bottle: bottle),
-          promotions: promos,
-          maxAmount: widget.item.amount?.toDouble(),
+          bottle: bottle,
+          includePromotions: includePromotions,
         ).totalPrice;
       }
       return total;
     }
 
-    return CartItem(
-      itemId: widget.item.itemId,
-      name: widget.item.name,
-      price: widget.item.price,
+    return _previewCartItem(
       quantity: _manualQuantity,
-      stepQuantity: widget.item.effectiveStepQuantity,
-      image: widget.item.image,
-      selectedVariants: _selectedVariantMaps(),
-      promotions: promos,
-      maxAmount: widget.item.amount?.toDouble(),
+      includePromotions: includePromotions,
     ).totalPrice;
   }
 
@@ -784,7 +865,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         if (_usesPourFlow) ...[
           SizedBox(height: 3.s),
           Text(
-            '${_money(widget.item.price)} за 1 л',
+            '${_money(_displayUnitPrice())} за 1 л',
             style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
           ),
         ],
@@ -953,8 +1034,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _stepper(
           value: _volumeLabel(liters),
           subtitle: '$bottles бут.',
-          canDec: liters > 1.0 + 0.001,
-          canInc: liters + 1.0 <= _maxAmount() + 0.001,
+          canDec: _canAdjustLiters(-1),
+          canInc: _canAdjustLiters(1),
           onDec: () => _adjustLiters(-1),
           onInc: () => _adjustLiters(1),
         ),
@@ -968,7 +1049,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             final bottle = _filteredBottles.firstWhere((b) => b.relationId == entry.key);
             final vol = _volumeForBottle(bottle);
             final name = _shortBottleName(bottle);
-            final cost = widget.item.price * vol * entry.value;
+            final quantity = vol * entry.value;
+            final rawItem = _previewCartItem(quantity: quantity, bottle: bottle, includePromotions: false);
+            final pricedItem = _previewCartItem(quantity: quantity, bottle: bottle);
+            final rawCost = rawItem.subtotalBeforePromotions;
+            final cost = pricedItem.totalPrice;
+            final hasSavings = cost < rawCost - 0.001;
             return Padding(
               padding: EdgeInsets.only(bottom: 4.s),
               child: Row(
@@ -981,9 +1067,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  Text(
-                    _money(cost),
-                    style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (hasSavings)
+                        Text(
+                          _money(rawCost),
+                          style: TextStyle(
+                            color: AppColors.textMute.withValues(alpha: 0.5),
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: AppColors.textMute.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      Text(
+                        _money(cost),
+                        style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
                 ],
               ),

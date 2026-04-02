@@ -86,11 +86,9 @@ class CartItem {
     quantity = adjusted;
   }
 
-  /// Вычисляет итоговую цену с учетом акций
-  double get totalPrice {
-    double total = price * quantity;
+  double get optionsTotal {
+    var total = 0.0;
 
-    // Учитываем стоимость опций: price * (quantity / parent_item_amount)
     for (final variant in selectedVariants) {
       double? parentAmt;
       double? varPrice;
@@ -103,11 +101,21 @@ class CartItem {
         varPrice = (v['price'] as num?)?.toDouble();
       }
       if (parentAmt != null && parentAmt > 0 && varPrice != null) {
-        // Стоимость опций считается по полному количеству товара, без учета акции
         final multiplier = quantity / parentAmt;
         total += varPrice * multiplier;
       }
     }
+
+    return total;
+  }
+
+  double get subtotalBeforePromotions => (price * quantity) + optionsTotal;
+
+  /// Вычисляет итоговую цену с учетом акций
+  double get totalPrice {
+    final optionsSubtotal = optionsTotal;
+    double payableQuantity = quantity;
+    double baseTotal = price * quantity;
 
     // SUBTRACT акции (учитываем ключи type/baseAmount/addAmount и discount_type/base_amount/add_amount)
     for (final promo in promotions) {
@@ -119,40 +127,21 @@ class CartItem {
         if (groupSize > 0 && base > 0) {
           // Платим только за полные группы baseAmount, остаток игнорируем
           if (quantity >= groupSize) {
-            // Если quantity меньше группы, то просто умножаем на базу
             final int count = (quantity ~/ groupSize);
-            final payableCount = quantity - (count * add);
-            // Базовая сумма по оплате и учет стоимости опций
-            double subtotal = price * payableCount;
-            for (final variant in selectedVariants) {
-              double? parentAmt;
-              double? varPrice;
-              if (variant.containsKey('parent_item_amount') && variant.containsKey('price')) {
-                parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
-                varPrice = (variant['price'] as num?)?.toDouble();
-              } else if (variant.containsKey('variant') && variant['variant'] is Map) {
-                final v = variant['variant'] as Map;
-                parentAmt = (v['parent_item_amount'] as num?)?.toDouble();
-                varPrice = (v['price'] as num?)?.toDouble();
-              }
-              if (parentAmt != null && parentAmt > 0 && varPrice != null) {
-                final multiplier = quantity / parentAmt;
-                subtotal += varPrice * multiplier;
-              }
-            }
-            total = subtotal;
+            payableQuantity = quantity - (count * add);
+            baseTotal = price * payableQuantity;
           }
         }
       }
     }
 
-    // Денежные скидки по позиции.
+    // Денежные скидки применяются только к базовому товару, не к цене тары/опций.
     for (final promo in promotions) {
       final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'FIXED') {
         final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
         if (disc > 0) {
-          total = (total - (disc * quantity)).clamp(0, double.infinity).toDouble();
+          baseTotal = (baseTotal - (disc * payableQuantity)).clamp(0, double.infinity).toDouble();
         }
       }
     }
@@ -162,10 +151,10 @@ class CartItem {
       final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'DISCOUNT' || type == 'PERCENT') {
         final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        total = total * (1 - disc / 100);
+        baseTotal = baseTotal * (1 - disc / 100);
       }
     }
 
-    return total;
+    return baseTotal + optionsSubtotal;
   }
 }

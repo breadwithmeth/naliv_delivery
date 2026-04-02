@@ -314,12 +314,14 @@ class ItemOption {
   });
 
   factory ItemOption.fromJson(Map<String, dynamic> json) {
+    final optionItemsJson = (json['option_items'] as List?) ?? (json['variants'] as List?) ?? const <dynamic>[];
+
     return ItemOption(
       optionId: Item._parseInt(json['option_id']),
       name: json['name'] ?? '',
       required: Item._parseInt(json['required']),
       selection: json['selection'] ?? '',
-      optionItems: (json['option_items'] as List? ?? []).map((item) => ItemOptionItem.fromJson(item)).toList(),
+      optionItems: optionItemsJson.map((item) => ItemOptionItem.fromJson(item as Map<String, dynamic>)).toList(),
     );
   }
 
@@ -379,7 +381,7 @@ class ItemOptionItem {
       relationId: Item._parseInt(json['relation_id']),
       itemId: Item._parseInt(json['item_id']),
       priceType: json['price_type'] ?? '',
-      item_name: json['item_name'] ?? '', // Добавлено поле для имени товара
+      item_name: json['item_name'] ?? json['name'] ?? '', // Добавлено поле для имени товара
       price: Item._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: Item._parseDouble(json['parent_item_amount']) ?? 0.0,
     );

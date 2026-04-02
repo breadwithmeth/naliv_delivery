@@ -131,7 +131,8 @@ class CartPage extends StatelessWidget {
     final bool canDecrease = item.quantity > 0;
     final double freeQty = _freeAmount(item);
     final bool hasFree = freeQty > 0;
-    final double rawTotal = item.price * item.quantity;
+    final double rawTotal = item.subtotalBeforePromotions;
+    final bool hasSavings = item.totalPrice < rawTotal - 0.001;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -147,7 +148,7 @@ class CartPage extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800)),
               SizedBox(height: 4.s),
-              if (hasFree) ...[
+              if (hasSavings) ...[
                 Row(
                   children: [
                     Text(_money(rawTotal),
@@ -160,8 +161,10 @@ class CartPage extends StatelessWidget {
                     Text(_money(item.totalPrice), style: TextStyle(color: AppColors.orange, fontSize: 13.sp, fontWeight: FontWeight.w800)),
                   ],
                 ),
-                SizedBox(height: 2.s),
-                Text('+ ${_formatQty(freeQty)} в подарок', style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+                if (hasFree) ...[
+                  SizedBox(height: 2.s),
+                  Text('+ ${_formatQty(freeQty)} в подарок', style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+                ],
               ] else
                 Text(_money(item.totalPrice), style: TextStyle(color: AppColors.orange, fontSize: 13.sp, fontWeight: FontWeight.w700)),
             ],

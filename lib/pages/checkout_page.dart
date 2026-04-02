@@ -674,7 +674,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _itemTile(item) {
     final double freeQty = _freeAmount(item);
     final bool hasFree = freeQty > 0;
-    final double rawTotal = item.price * item.quantity;
+    final double rawTotal = item.subtotalBeforePromotions;
+    final bool hasSavings = item.totalPrice < rawTotal - 0.001;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -704,7 +705,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (hasFree)
+            if (hasSavings)
               Text(
                 _money(rawTotal),
                 style: TextStyle(
@@ -715,6 +716,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
             Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
+            if (hasFree)
+              Text(
+                '+ ${_fmtQty(freeQty)} в подарок',
+                style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
+              ),
           ],
         ),
       ],
