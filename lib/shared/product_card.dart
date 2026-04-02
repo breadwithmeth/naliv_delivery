@@ -9,6 +9,7 @@ import '../utils/api.dart';
 import '../utils/bonus_rules.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/business_provider.dart';
+import '../utils/item_name_presentation.dart';
 import '../utils/liked_items_provider.dart';
 import '../utils/responsive.dart';
 
@@ -96,6 +97,10 @@ class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final itemTitle = presentItemName(
+      rawName: item.name,
+      categoryName: item.category?.name,
+    );
     final isWeightItem = _isWeightUnit(item.unit);
     final portionWeight = _resolvePortionWeight(item);
 
@@ -141,8 +146,48 @@ class _ProductCardState extends State<ProductCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name
+                    if (itemTitle.type != null || itemTitle.packagingType != null) ...[
+                      Row(
+                        children: [
+                          if (itemTitle.packagingType != null) ...[
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 1.5.s),
+                              decoration: BoxDecoration(
+                                color: _orange.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4.s),
+                              ),
+                              child: Text(
+                                itemTitle.packagingType!,
+                                style: TextStyle(
+                                  fontSize: 8.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _orange,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 5.s),
+                          ],
+                          if (itemTitle.type != null)
+                            Flexible(
+                              child: Text(
+                                itemTitle.type!,
+                                style: TextStyle(
+                                  fontSize: 9.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: _textMute,
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: 3.s),
+                    ],
                     Text(
-                      item.name,
+                      itemTitle.name,
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w700,
@@ -714,6 +759,10 @@ class _ProductCardState extends State<ProductCard> {
     CartProvider cartProvider,
     num? maxAmount,
   ) {
+    final itemTitle = presentItemName(
+      rawName: item.name,
+      categoryName: item.category?.name,
+    );
     final bool canAdd = maxAmount == null || maxAmount.toDouble() > 0;
     return SizedBox(
       height: 30.s,
@@ -730,11 +779,13 @@ class _ProductCardState extends State<ProductCard> {
                     final stepQuantity = item.effectiveStepQuantity;
                     cartProvider.addItem(CartItem(
                       itemId: item.itemId,
-                      name: item.name,
+                      name: itemTitle.name,
                       price: item.price,
                       quantity: stepQuantity,
                       stepQuantity: stepQuantity,
                       image: item.image,
+                      itemType: itemTitle.type,
+                      packagingType: itemTitle.packagingType,
                       selectedVariants: [],
                       promotions: [],
                       maxAmount: item.amount?.toDouble(),

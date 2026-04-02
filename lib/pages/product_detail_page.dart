@@ -8,6 +8,7 @@ import '../model/item.dart' as item_model;
 import '../models/cart_item.dart';
 import '../shared/app_theme.dart';
 import '../utils/cart_provider.dart';
+import '../utils/item_name_presentation.dart';
 import '../utils/responsive.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -25,6 +26,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late final List<item_model.ItemOptionItem> _bottleVariants;
   late final List<item_model.ItemOptionItem> _filteredBottles;
   late final List<item_model.ItemOption> _visibleOptions;
+  late final ItemTitlePresentation _itemTitle;
 
   final Map<int, List<item_model.ItemOptionItem>> _selectedOptions = {};
   final Map<int, int> _bottleCounts = {};
@@ -81,6 +83,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
+    _itemTitle = presentItemName(
+      rawName: widget.item.name,
+      categoryName: widget.item.category?.name,
+    );
     _containerOption = _resolveContainerOption();
     _bottleVariants = _resolveBottleVariants();
     _filteredBottles = _filterAllowedBottles();
@@ -510,15 +516,78 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }) {
     return CartItem(
       itemId: widget.item.itemId,
-      name: widget.item.name,
+      name: _itemTitle.name,
       price: widget.item.price,
       quantity: quantity,
       stepQuantity: bottle != null ? _volumeForBottle(bottle) : widget.item.effectiveStepQuantity,
       image: widget.item.image,
+      itemType: _itemTitle.type,
+      packagingType: _itemTitle.packagingType,
       selectedVariants: _selectedVariantMaps(includeBottle: bottle != null, bottle: bottle),
       promotions: includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[],
       maxAmount: widget.item.amount?.toDouble(),
     );
+  }
+
+  double _pourFlowOptionsTotal() {
+    final counts = _activeBottleCounts();
+    if (counts.isEmpty) {
+      return 0;
+    }
+
+    var total = 0.0;
+    for (final entry in counts.entries) {
+      if (entry.value <= 0) continue;
+      final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
+      final quantity = _volumeForBottle(bottle) * entry.value;
+      total += _previewCartItem(
+        quantity: quantity,
+        bottle: bottle,
+        includePromotions: false,
+      ).optionsTotal;
+    }
+
+    return total;
+  }
+
+  double _applyPromotionsToBaseTotal(double baseTotal, double quantity) {
+    double payableQuantity = quantity;
+    double result = baseTotal;
+    final promotions = _promotionMaps();
+
+    for (final promo in promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'SUBTRACT') {
+        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
+        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
+        final groupSize = base + add;
+        if (groupSize > 0 && base > 0 && quantity >= groupSize) {
+          final count = quantity ~/ groupSize;
+          payableQuantity = quantity - (count * add);
+          result = widget.item.price * payableQuantity;
+        }
+      }
+    }
+
+    for (final promo in promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'FIXED') {
+        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
+        if (disc > 0) {
+          result = (result - (disc * payableQuantity)).clamp(0, double.infinity).toDouble();
+        }
+      }
+    }
+
+    for (final promo in promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'DISCOUNT' || type == 'PERCENT') {
+        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
+        result = result * (1 - disc / 100);
+      }
+    }
+
+    return result;
   }
 
   double _previewTotal({bool includePromotions = true}) {
@@ -528,18 +597,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return 0;
       }
 
-      var total = 0.0;
-      for (final entry in counts.entries) {
-        if (entry.value <= 0) continue;
-        final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
-        final quantity = _volumeForBottle(bottle) * entry.value;
-        total += _previewCartItem(
-          quantity: quantity,
-          bottle: bottle,
-          includePromotions: includePromotions,
-        ).totalPrice;
-      }
-      return total;
+      final totalLiters = _totalLitersFromBottles();
+      final optionsTotal = _pourFlowOptionsTotal();
+      final baseTotal = widget.item.price * totalLiters;
+      final promotedBase = includePromotions ? _applyPromotionsToBaseTotal(baseTotal, totalLiters) : baseTotal;
+      return promotedBase + optionsTotal;
     }
 
     return _previewCartItem(
@@ -589,34 +651,40 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
           final ok = cart.addItemWithOptions(
             widget.item.itemId,
-            widget.item.name,
+            _itemTitle.name,
             widget.item.image ?? '',
             widget.item.price,
             _volumeForBottle(bottle) * entry.value,
             _selectedVariantMaps(includeBottle: true, bottle: bottle),
             promotions,
+            _itemTitle.type,
+            _itemTitle.packagingType,
           );
           added = added || ok;
         }
       } else if (widget.item.hasOptions) {
         added = cart.addItemWithOptions(
           widget.item.itemId,
-          widget.item.name,
+          _itemTitle.name,
           widget.item.image ?? '',
           widget.item.price,
           _manualQuantity,
           _selectedVariantMaps(),
           promotions,
+          _itemTitle.type,
+          _itemTitle.packagingType,
         );
       } else {
         added = cart.addItem(
           CartItem(
             itemId: widget.item.itemId,
-            name: widget.item.name,
+            name: _itemTitle.name,
             price: widget.item.price,
             quantity: _manualQuantity,
             stepQuantity: widget.item.effectiveStepQuantity,
             image: widget.item.image,
+            itemType: _itemTitle.type,
+            packagingType: _itemTitle.packagingType,
             selectedVariants: const <Map<String, dynamic>>[],
             promotions: promotions,
             maxAmount: widget.item.amount?.toDouble(),
@@ -829,25 +897,33 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── product info ──────────────────────────────────────────────
 
   Widget _productInfo() {
+    final attributes = _itemTitle.attributes;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if ((widget.item.category?.name ?? '').trim().isNotEmpty) ...[
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
-            decoration: BoxDecoration(
-              color: AppColors.blue,
-              borderRadius: BorderRadius.circular(7.s),
-            ),
-            child: Text(
-              widget.item.category!.name,
-              style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
-            ),
+        if (attributes.isNotEmpty) ...[
+          Wrap(
+            spacing: 7.s,
+            runSpacing: 7.s,
+            children: attributes
+                .map((attribute) => Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 5.s),
+                      decoration: BoxDecoration(
+                        color: AppColors.blue,
+                        borderRadius: BorderRadius.circular(8.s),
+                      ),
+                      child: Text(
+                        attribute,
+                        style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                      ),
+                    ))
+                .toList(growable: false),
           ),
           SizedBox(height: 10.s),
         ],
         Text(
-          widget.item.name,
+          _itemTitle.name,
           style: TextStyle(
             color: AppColors.text,
             fontSize: 20.sp,
@@ -1051,10 +1127,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             final name = _shortBottleName(bottle);
             final quantity = vol * entry.value;
             final rawItem = _previewCartItem(quantity: quantity, bottle: bottle, includePromotions: false);
-            final pricedItem = _previewCartItem(quantity: quantity, bottle: bottle);
-            final rawCost = rawItem.subtotalBeforePromotions;
-            final cost = pricedItem.totalPrice;
-            final hasSavings = cost < rawCost - 0.001;
+            final cost = rawItem.subtotalBeforePromotions;
             return Padding(
               padding: EdgeInsets.only(bottom: 4.s),
               child: Row(
@@ -1070,17 +1143,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      if (hasSavings)
-                        Text(
-                          _money(rawCost),
-                          style: TextStyle(
-                            color: AppColors.textMute.withValues(alpha: 0.5),
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.lineThrough,
-                            decorationColor: AppColors.textMute.withValues(alpha: 0.5),
-                          ),
-                        ),
                       Text(
                         _money(cost),
                         style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w600),

@@ -7,6 +7,7 @@ import 'package:gradusy24/shared/app_theme.dart';
 import 'package:gradusy24/utils/api.dart';
 import 'package:gradusy24/utils/business_provider.dart';
 import 'package:gradusy24/utils/bonus_rules.dart';
+import 'package:gradusy24/utils/item_name_presentation.dart';
 import 'package:gradusy24/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
@@ -126,6 +127,11 @@ class CartPage extends StatelessWidget {
   // ── Cart item (flat row) ──────────────────────────────────────────
 
   Widget _cartItemRow(BuildContext context, CartProvider cartProvider, CartItem item) {
+    final itemTitle = presentItemName(
+      rawName: item.name,
+      storedType: item.itemType,
+      storedPackagingType: item.packagingType,
+    );
     final double? maxAmount = item.maxAmount;
     final bool canIncrease = maxAmount == null || item.quantity < maxAmount;
     final bool canDecrease = item.quantity > 0;
@@ -143,7 +149,14 @@ class CartPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.name,
+              if (itemTitle.attributes.isNotEmpty)
+                Text(
+                  itemTitle.attributes.join(' • '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                ),
+              Text(itemTitle.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800)),

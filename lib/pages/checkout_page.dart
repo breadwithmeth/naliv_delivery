@@ -6,6 +6,7 @@ import 'package:gradusy24/utils/address_storage_service.dart';
 import 'package:gradusy24/utils/api.dart';
 import 'package:gradusy24/utils/bonus_rules.dart';
 import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/item_name_presentation.dart';
 import 'package:gradusy24/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
@@ -672,6 +673,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _itemTile(item) {
+    final itemTitle = presentItemName(
+      rawName: item.name,
+      storedType: item.itemType,
+      storedPackagingType: item.packagingType,
+    );
     final double freeQty = _freeAmount(item);
     final bool hasFree = freeQty > 0;
     final double rawTotal = item.subtotalBeforePromotions;
@@ -684,7 +690,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+              if (itemTitle.attributes.isNotEmpty)
+                Text(
+                  itemTitle.attributes.join(' • '),
+                  style: const TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              Text(itemTitle.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Row(
                 children: [

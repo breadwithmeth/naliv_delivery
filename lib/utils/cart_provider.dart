@@ -127,6 +127,8 @@ class CartProvider extends ChangeNotifier {
     double quantity,
     List<Map<String, dynamic>> selectedVariants,
     List<Map<String, dynamic>> promotions,
+    String? itemType,
+    String? packagingType,
   ) {
     // Используем переданные мапы вариантов и акций
     final variantMaps = List<Map<String, dynamic>>.from(selectedVariants);
@@ -142,6 +144,8 @@ class CartProvider extends ChangeNotifier {
       quantity: quantity,
       stepQuantity: step,
       image: img.isNotEmpty ? img : null,
+      itemType: itemType,
+      packagingType: packagingType,
       selectedVariants: variantMaps,
       promotions: promoMaps,
     );
