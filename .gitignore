@@ -34,6 +34,7 @@ local.properties
 .pub-cache/
 .pub/
 /build/*
+!/build/web/*
 !/build/web/
 
 # Symbolication related
