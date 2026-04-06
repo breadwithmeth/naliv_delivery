@@ -103,23 +103,18 @@ class _ProductCardState extends State<ProductCard> {
     );
     final isWeightItem = _isWeightUnit(item.unit);
     final portionWeight = _resolvePortionWeight(item);
+    final activePromotions = _activePromotions(item);
+    final discountPromo = _primaryDiscountPromo(activePromotions);
+    final subtractPromotions = _subtractPromotions(activePromotions);
+    final isOutOfStock = item.amount != null && item.amount! <= 0;
 
     // Promotion calculations
-    final promo = item.hasPromotions ? item.promotions!.first : null;
-    final hasActivePromo = promo != null && promo.isActive;
-    final isSubtractPromo = hasActivePromo && promo.discountType == 'SUBTRACT';
-    final hasDiscount = hasActivePromo && !isSubtractPromo;
-    final discountedPrice = hasDiscount ? promo.calculateDiscountedPrice(item.price) : item.price;
-    final discountPercent = hasDiscount
-        ? (promo.discountType == 'PERCENT'
-            ? promo.discountValue.round()
-            : item.price > 0
-                ? ((1 - discountedPrice / item.price) * 100).round()
-                : 0)
-        : 0;
-    final isLowStock = item.amount != null && item.amount! > 0 && item.amount! <= 5;
+    final hasDiscount = discountPromo != null;
+    final discountedPrice = discountPromo?.calculateDiscountedPrice(item.price) ?? item.price;
+    final discountPercent = discountPromo?.calculateEffectiveDiscountPercent(item.price) ?? 0;
+    final isLowStock = !isOutOfStock && item.amount != null && item.amount! > 0 && item.amount! <= 5;
     final savingsAmount = hasDiscount ? (item.price - discountedPrice) * (isWeightItem && portionWeight > 0 ? portionWeight : 1) : 0.0;
-    final bonusPoints = _calculateBonusPoints(item, discountedPrice);
+    final bonusPoints = isOutOfStock ? 0 : _calculateBonusPoints(item, discountedPrice);
     final portionPrice = isWeightItem && portionWeight > 0 ? discountedPrice * portionWeight : null;
 
     return GestureDetector(
@@ -136,7 +131,15 @@ class _ProductCardState extends State<ProductCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ── Image ──
-            _imageSection(item, hasDiscount, discountPercent, isLowStock, bonusPoints),
+            _imageSection(
+              item,
+              hasDiscount,
+              discountPercent,
+              isLowStock,
+              isOutOfStock,
+              subtractPromotions,
+              bonusPoints,
+            ),
 
             // ── Info ──
             Expanded(
@@ -227,8 +230,11 @@ class _ProductCardState extends State<ProductCard> {
     bool hasDiscount,
     int discountPercent,
     bool isLowStock,
+    bool isOutOfStock,
+    List<item_model.ItemPromotion> subtractPromotions,
     int bonusPoints,
   ) {
+    final hasBottomMeta = item.hasOptions || bonusPoints > 0;
     return AspectRatio(
       aspectRatio: 1.0,
       child: Stack(
@@ -257,31 +263,31 @@ class _ProductCardState extends State<ProductCard> {
             ),
           ),
 
-          // Bottom gradient for badge readability
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 42.s,
-            child: ClipRRect(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(14.s),
-                topRight: Radius.circular(14.s),
-              ),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.5),
-                    ],
+          if (hasBottomMeta)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 42.s,
+              child: ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14.s),
+                  topRight: Radius.circular(14.s),
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.5),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
           // ── Top-left badges column ──
           Positioned(
@@ -290,56 +296,24 @@ class _ProductCardState extends State<ProductCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (isLowStock)
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(8.s),
+                if (hasDiscount && discountPercent > 0) _discountBadge(discountPercent),
+                ...subtractPromotions.map(
+                  (promotion) => Padding(
+                    padding: EdgeInsets.only(top: 6.s),
+                    child: _subtractPromoBadge(promotion),
+                  ),
+                ),
+                if (isOutOfStock || isLowStock)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: (hasDiscount && discountPercent > 0) || subtractPromotions.isNotEmpty ? 6.s : 0,
                     ),
-                    child: Text(
-                      'Мало',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _orange,
-                        height: 1.1,
-                      ),
+                    child: _statusBadge(
+                      isOutOfStock ? 'Нет в наличии' : 'Мало',
+                      background: isOutOfStock ? Colors.black.withValues(alpha: 0.72) : Colors.black.withValues(alpha: 0.68),
+                      foreground: isOutOfStock ? Colors.white.withValues(alpha: 0.92) : _orange,
                     ),
                   ),
-                if (hasDiscount) ...[
-                  if (isLowStock) SizedBox(height: 6.s),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
-                    decoration: BoxDecoration(
-                      color: _red,
-                      borderRadius: BorderRadius.circular(9.s),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _red.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.local_fire_department_rounded, size: 12.s, color: Colors.white),
-                        SizedBox(width: 5.s),
-                        Text(
-                          '-$discountPercent%',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -372,34 +346,86 @@ class _ProductCardState extends State<ProductCard> {
             ),
           ),
 
-          // ── Bottom row: promos/options (left) + bonus (right) ──
-          Positioned(
-            bottom: 7.s,
-            left: 7.s,
-            right: 7.s,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Left: promo + option badges
-                Expanded(
-                  child: Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: [
-                      if (item.hasPromotions)
-                        ...item.promotions!.map((p) => _promoBadge(
-                              p.description ?? p.name,
-                            )),
-                      if (item.hasOptions) _optionBadge(item),
-                    ],
+          if (hasBottomMeta)
+            Positioned(
+              bottom: 7.s,
+              left: 7.s,
+              right: 7.s,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        if (item.hasOptions) _optionBadge(item),
+                      ],
+                    ),
                   ),
-                ),
-                // Right: bonus points badge
-                if (bonusPoints > 0) ...[
-                  const SizedBox(width: 4),
-                  _bonusBadge(bonusPoints),
+                  if (bonusPoints > 0) ...[
+                    const SizedBox(width: 4),
+                    _bonusBadge(bonusPoints),
+                  ],
                 ],
-              ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusBadge(
+    String label, {
+    required Color background,
+    required Color foreground,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8.s),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w800,
+          color: foreground,
+          height: 1.1,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _discountBadge(int discountPercent) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
+      decoration: BoxDecoration(
+        color: _red,
+        borderRadius: BorderRadius.circular(9.s),
+        boxShadow: [
+          BoxShadow(
+            color: _red.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.local_fire_department_rounded, size: 12.s, color: Colors.white),
+          SizedBox(width: 5.s),
+          Text(
+            '-$discountPercent%',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              height: 1.1,
             ),
           ),
         ],
@@ -407,32 +433,65 @@ class _ProductCardState extends State<ProductCard> {
     );
   }
 
-  // ─── Promo badge ─────────────────────────────────────────
-  Widget _promoBadge(String label) {
+  Widget _subtractPromoBadge(item_model.ItemPromotion promotion) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
+      padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
       decoration: BoxDecoration(
         color: _orange,
-        borderRadius: BorderRadius.circular(6.s),
+        borderRadius: BorderRadius.circular(8.s),
         boxShadow: [
           BoxShadow(
-            color: _orange.withValues(alpha: 0.4),
-            blurRadius: 6,
+            color: _orange.withValues(alpha: 0.28),
+            blurRadius: 7,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10.sp,
-          fontWeight: FontWeight.w800,
-          color: Colors.black,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.card_giftcard_rounded, size: 11.s, color: Colors.black),
+          SizedBox(width: 4.s),
+          Text(
+            _subtractPromoLabel(promotion),
+            style: TextStyle(
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+              height: 1.1,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _subtractPromoLabel(item_model.ItemPromotion promotion) {
+    if (promotion.baseAmount > 0 && promotion.addAmount > 0) {
+      return '${promotion.baseAmount}+${promotion.addAmount}';
+    }
+    final fallback = (promotion.description?.trim().isNotEmpty ?? false) ? promotion.description!.trim() : promotion.name.trim();
+    return fallback.isEmpty ? 'Промо' : fallback;
+  }
+
+  List<item_model.ItemPromotion> _activePromotions(item_model.Item item) {
+    return (item.promotions ?? const <item_model.ItemPromotion>[]).where((promotion) => promotion.isActive).toList(growable: false);
+  }
+
+  item_model.ItemPromotion? _primaryDiscountPromo(List<item_model.ItemPromotion> promotions) {
+    for (final promotion in promotions) {
+      final isDiscountType = promotion.discountType == 'PERCENT' || promotion.discountType == 'FIXED';
+      if (isDiscountType && promotion.discountValue > 0) {
+        return promotion;
+      }
+    }
+    return null;
+  }
+
+  List<item_model.ItemPromotion> _subtractPromotions(List<item_model.ItemPromotion> promotions) {
+    return promotions
+        .where((promotion) => promotion.discountType == 'SUBTRACT' && promotion.baseAmount > 0 && promotion.addAmount > 0)
+        .toList(growable: false);
   }
 
   // ─── Option badge (shows option names) ───────────────────
@@ -548,7 +607,7 @@ class _ProductCardState extends State<ProductCard> {
         SizedBox(height: 2.s),
       ],
       Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Column(
@@ -566,14 +625,14 @@ class _ProductCardState extends State<ProductCard> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (portionLabel != null) ...[
+                if (hasDiscount && savingsAmount >= 1) ...[
                   SizedBox(height: 2.s),
                   Text(
-                    'за $portionLabel',
+                    'Выгода ${_formatPrice(savingsAmount)} ₸',
                     style: TextStyle(
-                      fontSize: 10.sp,
+                      fontSize: 9.sp,
                       fontWeight: FontWeight.w700,
-                      color: _textMute,
+                      color: _orange,
                       height: 1.1,
                     ),
                     maxLines: 1,
@@ -589,14 +648,14 @@ class _ProductCardState extends State<ProductCard> {
           ],
         ],
       ),
-      if (hasDiscount && savingsAmount >= 1) ...[
+      if (portionLabel != null) ...[
         SizedBox(height: 2.s),
         Text(
-          'Выгода ${_formatPrice(savingsAmount)} ₸',
+          'за $portionLabel',
           style: TextStyle(
-            fontSize: 9.sp,
+            fontSize: 10.sp,
             fontWeight: FontWeight.w700,
-            color: _orange,
+            color: _textMute,
             height: 1.1,
           ),
           maxLines: 1,
@@ -812,6 +871,8 @@ class _ProductCardState extends State<ProductCard> {
       categoryName: item.category?.name,
     );
     final bool canAdd = maxAmount == null || maxAmount.toDouble() > 0;
+    final buttonLabel = canAdd ? (item.hasOptions ? 'Выбрать опции' : 'В корзину') : 'Нет в наличии';
+    final buttonIcon = canAdd ? (item.hasOptions ? Icons.tune : Icons.shopping_bag_outlined) : Icons.remove_shopping_cart_outlined;
     return SizedBox(
       height: 30.s,
       child: Material(
@@ -845,13 +906,13 @@ class _ProductCardState extends State<ProductCard> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                item.hasOptions ? Icons.tune : Icons.shopping_bag_outlined,
+                buttonIcon,
                 size: 14.s,
                 color: canAdd ? Colors.black : _textMute,
               ),
               SizedBox(width: 5.s),
               Text(
-                item.hasOptions ? 'Выбрать опции' : 'В корзину',
+                buttonLabel,
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w700,

@@ -298,7 +298,7 @@ _MetricExtraction? _extractAlcoholPercent(String text) {
 
   for (final match in pattern.allMatches(text)) {
     final value = _parseMetric(match.group(2));
-    if (value == null || value <= 0 || value > 99.9) {
+    if (value == null || value < 0 || value > 99.9) {
       continue;
     }
 
@@ -315,7 +315,7 @@ _MetricExtraction? _extractAlcoholPercent(String text) {
 
 _MetricExtraction? _extractExplicitVolume(String text) {
   final pattern = RegExp(
-    r'(^|[\s\-\.,:|/()]+)(\d{1,4}(?:[\.,]\d{1,2})?)\s*(л|l|литр|литра|литров|мл|ml|cl|сл)(?=$|[\s\-\.,:|/()]+)',
+    r'(^|[\s\-\.,:|/()]+)(\d{1,4}(?:[\.,]\d{1,3})?)\s*(л|l|литр|литра|литров|мл|ml|cl|сл)(?=$|[\s\-\.,:|/()]+)',
     caseSensitive: false,
   );
 
@@ -344,17 +344,21 @@ _MetricExtraction? _extractExplicitVolume(String text) {
 
 _MetricExtraction? _extractImplicitVolume(String text) {
   final pattern = RegExp(
-    r'(^|[\s\-\.,:|/()]+)(\d{1,2}(?:[\.,]\d{1,2})?)(?=$|[\s\-\.,:|/()]+)',
+    r'(^|[\s\-\.,:|/()]+)(\d{1,2}(?:[\.,]\d{1,3})?)(?=$|[\s\-\.,:|/()]+)',
     caseSensitive: false,
   );
 
   for (final match in pattern.allMatches(text)) {
-    final value = _parseMetric(match.group(2));
+    final rawValue = match.group(2);
+    final value = _parseMetric(rawValue);
     if (value == null) {
       continue;
     }
 
-    final liters = _normalizeImplicitVolume(value);
+    final liters = _normalizeImplicitVolume(
+      value,
+      allowShiftedFraction: rawValue != null && (rawValue.contains('.') || rawValue.contains(',')),
+    );
     if (liters == null) {
       continue;
     }
@@ -394,12 +398,12 @@ double? _normalizeExplicitVolume(double value, String unit) {
   return _normalizeMetric(liters);
 }
 
-double? _normalizeImplicitVolume(double value) {
+double? _normalizeImplicitVolume(double value, {required bool allowShiftedFraction}) {
   if (value >= 0.05 && value <= 2.5) {
     return _normalizeMetric(value);
   }
 
-  if (value > 2.5 && value <= 9.9) {
+  if (allowShiftedFraction && value > 2.5 && value <= 9.9) {
     final shifted = value / 10;
     if (shifted >= 0.2 && shifted <= 1.5) {
       return _normalizeMetric(shifted);
@@ -418,7 +422,7 @@ double? _parseMetric(String? raw) {
 }
 
 double _normalizeMetric(double value) {
-  return double.parse(value.toStringAsFixed(2));
+  return double.parse(value.toStringAsFixed(3));
 }
 
 String _removeMatch(String text, RegExpMatch match) {
@@ -505,7 +509,10 @@ String _formatMetricValue(double value) {
   if ((normalized * 10 - (normalized * 10).roundToDouble()).abs() < 0.001) {
     return normalized.toStringAsFixed(1).replaceAll('.', ',');
   }
-  return normalized.toStringAsFixed(2).replaceAll('.', ',');
+  if ((normalized * 100 - (normalized * 100).roundToDouble()).abs() < 0.001) {
+    return normalized.toStringAsFixed(2).replaceAll('.', ',');
+  }
+  return normalized.toStringAsFixed(3).replaceAll('.', ',');
 }
 
 String? _cleanType(String? value) {

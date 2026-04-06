@@ -20,6 +20,7 @@ import 'login_page.dart';
 import 'orders_history_page.dart';
 import 'promotion_items_page.dart';
 import 'search_page.dart';
+import 'tap_board_page.dart';
 
 class MainPage extends StatefulWidget {
   final List<Map<String, dynamic>> businesses;
@@ -54,6 +55,18 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  static const int _draftBeerSupercategoryId = 4;
+  static const int _beerCategoryId = 36;
+  static const int _draftBeerCategoryId = 53;
+
+  static const List<String> _draftBeerExactMatches = <String>[
+    'разливное пиво',
+    'пиво разлив',
+    'пиво розлив',
+    'сегодня на кране',
+    'на кране сегодня',
+  ];
+
   final CarouselSliderController _promoCarouselController = CarouselSliderController();
   final LocationService _locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
@@ -526,6 +539,170 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  int? _selectedBusinessId() {
+    final raw = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
+    if (raw is int) return raw;
+    return int.tryParse(raw?.toString() ?? '');
+  }
+
+  int _draftBeerMatchScore(String name) {
+    final normalized = name.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty) return 0;
+    if (_draftBeerExactMatches.contains(normalized)) return 180;
+
+    final hasOnTapCue = normalized.contains('на кране');
+    final hasDraftCue = normalized.contains('разлив') || normalized.contains('розлив') || normalized.contains('draft') || normalized.contains('tap');
+
+    if (!hasOnTapCue && !hasDraftCue) return 0;
+
+    var score = 90;
+    if (normalized.contains('пиво') || normalized.contains('beer')) score += 35;
+    if (hasOnTapCue) score += 22;
+    if (normalized.contains('сегодня')) score += 10;
+    if (normalized.startsWith('разлив') || normalized.startsWith('розлив')) score += 8;
+    return score;
+  }
+
+  int? _mapIntValue(Map<String, dynamic> source, List<String> keys) {
+    for (final key in keys) {
+      final value = source[key];
+      if (value is int) return value;
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
+  Category? _findCategoryInRawList(List<Map<String, dynamic>> categories, int targetId) {
+    for (final categoryMap in categories) {
+      final category = Category.fromJson(categoryMap);
+      if (category.categoryId == targetId) {
+        return category;
+      }
+
+      final rawSubcategories = (categoryMap['subcategories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+      for (final subcategoryMap in rawSubcategories) {
+        final subcategory = Category.fromJson(subcategoryMap);
+        if (subcategory.categoryId == targetId) {
+          return subcategory;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  _DraftBeerShortcutData? _resolveExactDraftBeerShortcut() {
+    for (final superCategoryMap in _superCategories) {
+      final superCategoryId = _mapIntValue(superCategoryMap, const <String>['supercategory_id', 'id']);
+      if (superCategoryId != _draftBeerSupercategoryId) {
+        continue;
+      }
+
+      final nestedCategoryMaps = (superCategoryMap['categories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+      for (final categoryMap in nestedCategoryMaps) {
+        final categoryId = _mapIntValue(categoryMap, const <String>['category_id', 'id']);
+        if (categoryId != _beerCategoryId) {
+          continue;
+        }
+
+        final beerCategory = Category.fromJson(categoryMap);
+        final beerBranch = <Category>[beerCategory, ...beerCategory.subcategories];
+        final draftBeerCategory = _findCategoryInRawList(<Map<String, dynamic>>[categoryMap], _draftBeerCategoryId);
+        if (draftBeerCategory == null) {
+          return _DraftBeerShortcutData(
+            target: beerCategory,
+            branchCategories: beerBranch,
+            itemCount: beerCategory.getTotalItemsCount(),
+          );
+        }
+
+        return _DraftBeerShortcutData(
+          target: draftBeerCategory,
+          branchCategories: beerBranch,
+          itemCount: draftBeerCategory.getTotalItemsCount(),
+        );
+      }
+    }
+
+    return null;
+  }
+
+  _DraftBeerShortcutData? _resolveDraftBeerShortcut() {
+    final exactShortcut = _resolveExactDraftBeerShortcut();
+    if (exactShortcut != null) {
+      return exactShortcut;
+    }
+
+    _DraftBeerShortcutData? bestMatch;
+    var bestScore = 0;
+    var bestItemsCount = -1;
+
+    for (final superCategoryMap in _superCategories) {
+      final superCategory = Category.fromJson(superCategoryMap);
+      final nestedCategoryMaps = (superCategoryMap['categories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+      final nestedCategories = nestedCategoryMaps.map(Category.fromJson).toList();
+      final matchingNestedCategories = nestedCategories.where((category) => _draftBeerMatchScore(category.name) > 0).toList();
+
+      void considerCandidate(Category candidate, List<Category> branchCategories) {
+        final score = _draftBeerMatchScore(candidate.name);
+        if (score <= 0) return;
+
+        final uniqueBranch = <Category>[];
+        final seenIds = <int>{};
+        for (final category in branchCategories) {
+          if (seenIds.add(category.categoryId)) {
+            uniqueBranch.add(category);
+          }
+        }
+
+        final candidateItemsCount = candidate.getTotalItemsCount();
+        if (score > bestScore || (score == bestScore && candidateItemsCount > bestItemsCount)) {
+          bestScore = score;
+          bestItemsCount = candidateItemsCount;
+          bestMatch = _DraftBeerShortcutData(
+            target: candidate,
+            branchCategories: uniqueBranch.isEmpty ? <Category>[candidate] : uniqueBranch,
+            itemCount: candidateItemsCount,
+          );
+        }
+      }
+
+      considerCandidate(superCategory, <Category>[superCategory]);
+      for (final nestedCategory in matchingNestedCategories) {
+        considerCandidate(nestedCategory, matchingNestedCategories);
+      }
+    }
+
+    return bestMatch;
+  }
+
+  Future<void> _openDraftBeerShortcut() async {
+    final businessId = _selectedBusinessId();
+    if (businessId == null) {
+      await _showMessageDialog('Магазин не выбран', 'Сначала выберите магазин, чтобы открыть ветку с разливным пивом.');
+      return;
+    }
+
+    final shortcut = _resolveDraftBeerShortcut();
+    if (shortcut == null) {
+      await _showMessageDialog('Разливное пиво недоступно', 'Не удалось найти категорию с разливным пивом для быстрого перехода.');
+      return;
+    }
+
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TapBoardPage(
+          category: shortcut.target,
+          allCategories: shortcut.branchCategories,
+          businessId: businessId,
+          sectionTitle: 'Сегодня на кране',
+        ),
+      ),
+    );
+  }
+
   Future<void> _openLoginPage() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -934,6 +1111,218 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _draftBeerShortcutSection() {
+    final shortcut = _resolveDraftBeerShortcut();
+    final businessId = _selectedBusinessId();
+    final hasBusiness = businessId != null;
+    final isEnabled = hasBusiness && shortcut != null;
+    final actionLabel = !hasBusiness
+        ? 'Выбрать магазин'
+        : isEnabled
+            ? 'Открыть подборку'
+            : 'Скоро подключим';
+    final subtitle = !hasBusiness
+        ? 'Выберите магазин, и мы сразу откроем ветку с разливным пивом.'
+        : shortcut != null
+            ? 'Быстрый вход в ${shortcut.target.name.toLowerCase()} без лишнего поиска по каталогу.'
+            : 'Быстрый вход появится здесь, как только категория будет доступна в магазине.';
+    final metaLabel = shortcut != null
+        ? shortcut.itemCount > 0
+            ? '${shortcut.itemCount} позиций'
+            : shortcut.branchCategories.length > 1
+                ? '${shortcut.branchCategories.length} ветки'
+                : 'Быстрый вход'
+        : hasBusiness
+            ? 'Ожидаем категорию'
+            : 'Нужен магазин';
+    final secondaryLine = !hasBusiness
+        ? 'Сначала выберите точку.'
+        : shortcut != null
+            ? 'Пиво / ${shortcut.target.name}'
+            : 'Подключим автоматически, когда категория появится.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('Сегодня на кране'),
+        SizedBox(height: 10.s),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24.s),
+            onTap: widget.isLoadingBusinesses
+                ? null
+                : isEnabled
+                    ? _openDraftBeerShortcut
+                    : (!hasBusiness ? _showBusinessSelectorSheet : null),
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24.s),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.24),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomCenter,
+                  colors: isEnabled
+                      ? const [Color(0xFF2C241D), Color(0xFF211B17), Color(0xFF161616)]
+                      : const [Color(0xFF24211F), Color(0xFF1D1B1A), Color(0xFF151515)],
+                  stops: const [0.0, 0.45, 1.0],
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(16.s),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -18.s,
+                      top: -34.s,
+                      child: Container(
+                        width: 144.s,
+                        height: 144.s,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.orange.withValues(alpha: isEnabled ? 0.10 : 0.05),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: -30.s,
+                      bottom: -48.s,
+                      child: Container(
+                        width: 132.s,
+                        height: 132.s,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.blue.withValues(alpha: 0.16),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 18.s,
+                      top: 18.s,
+                      child: Transform.rotate(
+                        angle: -0.10,
+                        child: Icon(
+                          Icons.sports_bar_rounded,
+                          size: 54.s,
+                          color: Colors.white.withValues(alpha: isEnabled ? 0.16 : 0.10),
+                        ),
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _draftBeerPill('Быстрый вход', highlighted: true),
+                            const Spacer(),
+                            Text(
+                              metaLabel,
+                              style: TextStyle(
+                                color: AppColors.textMute.withValues(alpha: 0.82),
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.s),
+                        Text(
+                          'Сегодня на кране',
+                          style: TextStyle(color: AppColors.text, fontSize: 23.sp, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -0.3),
+                        ),
+                        SizedBox(height: 7.s),
+                        Padding(
+                          padding: EdgeInsets.only(right: 62.s),
+                          child: Text(
+                            subtitle,
+                            style: TextStyle(color: AppColors.text.withValues(alpha: 0.8), fontSize: 12.sp, fontWeight: FontWeight.w600, height: 1.4),
+                          ),
+                        ),
+                        SizedBox(height: 12.s),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                secondaryLine,
+                                style: TextStyle(
+                                    color: AppColors.textMute.withValues(alpha: 0.78), fontSize: 11.sp, fontWeight: FontWeight.w600, height: 1.35),
+                              ),
+                            ),
+                            SizedBox(width: 12.s),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 10.s),
+                              decoration: BoxDecoration(
+                                color: isEnabled ? AppColors.orange : Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: Colors.white.withValues(alpha: isEnabled ? 0.0 : 0.08)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    actionLabel,
+                                    style: TextStyle(
+                                      color: isEnabled ? Colors.black : AppColors.text,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12.sp,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6.s),
+                                  Icon(
+                                    !hasBusiness ? Icons.storefront_rounded : Icons.arrow_forward_rounded,
+                                    color: isEnabled ? Colors.black : AppColors.text,
+                                    size: 15.s,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _draftBeerPill(String label, {IconData? icon, bool highlighted = false}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
+      decoration: BoxDecoration(
+        color: highlighted ? AppColors.orange.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: highlighted ? 0.04 : 0.07)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12.s, color: highlighted ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.85)),
+            SizedBox(width: 5.s),
+          ],
+          Text(
+            label,
+            style: TextStyle(color: AppColors.text.withValues(alpha: 0.9), fontWeight: FontWeight.w700, fontSize: 10.sp),
+          ),
+        ],
       ),
     );
   }
@@ -1792,6 +2181,10 @@ class _MainPageState extends State<MainPage> {
                     child: _searchBar(),
                   ),
                 ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 10.s),
+                  sliver: SliverToBoxAdapter(child: _draftBeerShortcutSection()),
+                ),
                 // ── Empty city banner ──
                 if (widget.selectedCity != null && widget.businesses.isEmpty)
                   SliverPadding(
@@ -1853,6 +2246,18 @@ class _SlimHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _SlimHeaderDelegate oldDelegate) {
     return oldDelegate.minExtent != minExtent || oldDelegate.maxExtent != maxExtent || oldDelegate.builder != builder;
   }
+}
+
+class _DraftBeerShortcutData {
+  const _DraftBeerShortcutData({
+    required this.target,
+    required this.branchCategories,
+    required this.itemCount,
+  });
+
+  final Category target;
+  final List<Category> branchCategories;
+  final int itemCount;
 }
 
 // ═════════════════════════════════════════════════════════════

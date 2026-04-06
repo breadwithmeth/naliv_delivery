@@ -1302,6 +1302,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
         ],
+        if (_usesPourFlow) ...[
+          SizedBox(height: 8.s),
+          _pourPriceInfoHint(),
+        ],
       ];
     }
 
@@ -1341,7 +1345,53 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ],
         ],
       ),
+      if (_usesPourFlow) ...[
+        SizedBox(height: 8.s),
+        _pourPriceInfoHint(),
+      ],
     ];
+  }
+
+  Widget _pourPriceInfoHint() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8.s),
+      onTap: _showPourPriceExplanation,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 2.s),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 14.s,
+              color: AppColors.textMute,
+            ),
+            SizedBox(width: 6.s),
+            Flexible(
+              child: Text(
+                'Почему цена отличается?',
+                style: TextStyle(
+                  color: AppColors.textMute,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.textMute.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPourPriceExplanation() {
+    return AppDialogs.showMessage(
+      context,
+      title: 'Почему цена отличается?',
+      message:
+          'Цена с пометкой / 1 л показывает стоимость самого напитка за литр. Итоговая сумма может быть выше, потому что при розливе отдельно добавляется стоимость выбранной бутылки или тары.',
+    );
   }
 
   Widget _pricingFactsAccent(List<String> facts) {

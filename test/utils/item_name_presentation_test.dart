@@ -135,6 +135,45 @@ void main() {
       expect(result.pricingAttributes, <String>['0,05 л', '40%']);
     });
 
+    test('preserves three-decimal liters like 0.355', () {
+      final result = presentItemName(
+        rawName: 'Пиво Bud 0.355 4,8%',
+        categoryName: 'Пиво',
+      );
+
+      expect(result.name, 'Bud');
+      expect(result.type, 'Пиво');
+      expect(result.volumeLiters, 0.355);
+      expect(result.alcoholPercent, 4.8);
+      expect(result.pricingAttributes, <String>['0,355 л', '4,8%']);
+    });
+
+    test('does not treat brand ordinal as implicit volume before actual bottle size', () {
+      final result = presentItemName(
+        rawName: 'Пиво бут Балтика экспортное 7 0.475 5.4%',
+        categoryName: 'Пиво',
+      );
+
+      expect(result.name, 'Балтика экспортное 7');
+      expect(result.packagingType, 'Бутылка');
+      expect(result.volumeLiters, 0.475);
+      expect(result.alcoholPercent, 5.4);
+      expect(result.pricingAttributes, <String>['0,475 л', '5,4%']);
+    });
+
+    test('extracts zero alcohol percent', () {
+      final result = presentItemName(
+        rawName: 'Пиво Clausthaler Original 0.5 0%',
+        categoryName: 'Безалкогольное пиво',
+      );
+
+      expect(result.name, 'Clausthaler Original');
+      expect(result.type, 'Безалкогольное пиво');
+      expect(result.volumeLiters, 0.5);
+      expect(result.alcoholPercent, 0);
+      expect(result.pricingAttributes, <String>['0,5 л', '0%']);
+    });
+
     test('removes packaging token when it is not leading', () {
       final result = presentItemName(
         rawName: 'Miller ж/б 0,45 4,7%',
