@@ -6,15 +6,11 @@ Future<bool> showDiagnosticsConsentDialog(BuildContext context) async {
         barrierDismissible: false,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Анонимная диагностика'),
-            content: const Text(
-              'Помочь нам быстрее находить и исправлять ошибки в приложении? '
-              'Мы будем получать только техническую информацию о сбоях и работе приложения, без имени, телефона, email, адреса, координат и других личных данных. '
-              'Настройку можно изменить позже в профиле.',
-            ),
+            title: const Text('Улучшить приложение'),
+            content: const Text('Отправлять анонимные данные о сбоях? Личная информация не собирается.'),
             actions: [
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Не разрешать')),
-              FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Разрешить')),
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Нет')),
+              FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Да')),
             ],
           );
         },
