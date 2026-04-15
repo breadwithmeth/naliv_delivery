@@ -331,7 +331,15 @@ class CartPage extends StatelessWidget {
         if (loggedIn) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutPage()));
         } else {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const LoginPage(
+                redirectTabIndex: 3,
+                openCheckoutOnSuccess: true,
+              ),
+            ),
+          );
         }
       },
       child: Container(

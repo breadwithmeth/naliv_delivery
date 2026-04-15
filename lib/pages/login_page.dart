@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:gradusy24/services/notification_service.dart';
 import '../utils/api.dart';
 import 'package:gradusy24/shared/app_theme.dart';
 import 'package:gradusy24/widgets/authentication_wrapper.dart';
@@ -65,7 +66,9 @@ class PhoneTextInputFormatter extends TextInputFormatter {
 
 class LoginPage extends StatefulWidget {
   final int? redirectTabIndex;
-  const LoginPage({super.key, this.redirectTabIndex});
+  final bool openCheckoutOnSuccess;
+
+  const LoginPage({super.key, this.redirectTabIndex, this.openCheckoutOnSuccess = false});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -218,8 +221,15 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     try {
       final data = await ApiService.verifyAuthCode(phone, code);
       if (data != null && mounted) {
+        await NotificationService.instance.syncTokenWithServerIfNeeded();
+        if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => AuthenticationWrapper(initialTabIndex: widget.redirectTabIndex)),
+          MaterialPageRoute(
+            builder: (_) => AuthenticationWrapper(
+              initialTabIndex: widget.redirectTabIndex,
+              openCheckoutOnStart: widget.openCheckoutOnSuccess,
+            ),
+          ),
           (route) => false,
         );
       } else if (mounted) {

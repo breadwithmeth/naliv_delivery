@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gradusy24/pages/bonus_info_page.dart';
 import 'package:gradusy24/pages/payment_method_page.dart';
+import 'package:gradusy24/services/onboarding_service.dart';
 import 'package:gradusy24/shared/app_theme.dart';
 import 'package:gradusy24/utils/address_storage_service.dart';
 import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/utils/app_navigator.dart';
 import 'package:gradusy24/utils/bonus_rules.dart';
 import 'package:gradusy24/utils/business_provider.dart';
 import 'package:gradusy24/utils/item_name_presentation.dart';
@@ -90,6 +92,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _showAddressSelectionModal() async {
     if (!mounted) return;
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     final selected = await AddressSelectionModalHelper.show(context);
     if (mounted && selected != null) {
       setState(() {
@@ -105,9 +108,89 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
+  Future<void> _showBusinessSelectionSheet() async {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final availableCities = (await OnboardingService.fetchAvailableCities(forceRefresh: true)).map((city) => city.name).toList();
+    final selectedCity = await OnboardingService.getSelectedCity();
+    final businesses = await ApiService.getAllBusinesses();
+
+    if (!mounted) return;
+    if (businesses == null || businesses.isEmpty) {
+      await _showNotice('Магазины не найдены', 'Не удалось загрузить список магазинов. Попробуйте ещё раз.');
+      return;
+    }
+
+    final preparedBusinesses = List<Map<String, dynamic>>.from(businesses).map((business) {
+      return {
+        ...business,
+        '_cityName': _detectBusinessCity(business, availableCities) ?? '',
+      };
+    }).toList();
+
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final selectedBusiness = businessProvider.selectedBusiness;
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      builder: (sheetContext) {
+        return _CheckoutShopCitySheet(
+          allBusinesses: preparedBusinesses,
+          availableCities: availableCities,
+          selectedCity: selectedCity,
+          selectedBusiness: selectedBusiness,
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+
+    final currentBusinessId = _businessIdOf(selectedBusiness);
+    final nextBusinessId = _businessIdOf(result);
+    if (currentBusinessId != null && currentBusinessId == nextBusinessId) {
+      return;
+    }
+
+    final shouldSwitch = await AppDialogs.show<bool>(
+      context,
+      title: 'Сменить магазин?',
+      content: const Text(
+        'Смена магазина очистит текущую корзину и вернёт вас к выбору товаров.',
+        style: TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
+          child: const Text('Отмена'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.orange),
+          child: const Text('Сменить'),
+        ),
+      ],
+    );
+
+    if (shouldSwitch != true || !mounted) return;
+
+    final nextCity = result['_cityName']?.toString();
+    if (nextCity != null && nextCity.isNotEmpty && nextCity != selectedCity) {
+      await OnboardingService.setSelectedCity(nextCity);
+      await AddressStorageService.removeSelectedAddress();
+    }
+
+    cartProvider.clearCart();
+    await businessProvider.setSelectedBusiness(result);
+    if (!mounted) return;
+    await AppNavigator.goToHomeTab(0);
+  }
+
   Future<void> _submitOrder() async {
     // Проверяем авторизацию
     final loggedIn = await ApiService.isUserLoggedIn();
+    if (!mounted) return;
     if (!loggedIn) {
       await _showNotice('Нужна авторизация', 'Пожалуйста, авторизуйтесь, чтобы оформить заказ.');
       return;
@@ -448,7 +531,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       icon: Icons.store,
                       title: businessProvider.selectedBusinessName ?? 'Магазин',
                       value: businessProvider.selectedBusiness?['address'],
-                      onTap: () => Navigator.pop(context),
+                      onTap: _showBusinessSelectionSheet,
                     ),
                     if (_deliveryType == 'DELIVERY') ...[
                       _tapRow(
@@ -841,6 +924,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  dynamic _businessIdOf(Map<String, dynamic>? business) {
+    return business?['id'] ?? business?['business_id'] ?? business?['businessId'];
+  }
+
+  String? _detectBusinessCity(Map<String, dynamic> business, List<String> availableCities) {
+    final rawSources = [
+      business['city'],
+      business['city_name'],
+      business['cityName'],
+      business['city_title'],
+      business['cityTitle'],
+      business['address'],
+      business['description'],
+    ];
+
+    for (final source in rawSources) {
+      if (source == null) continue;
+      final text = source.toString();
+      for (final city in availableCities) {
+        if (_textMatchesCity(text, city)) {
+          return city;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  bool _textMatchesCity(String text, String city) {
+    final normalizedText = _normalizeText(text);
+    final normalizedCity = _normalizeText(city);
+    return normalizedCity.isNotEmpty && normalizedText.contains(normalizedCity);
+  }
+
+  String _normalizeText(String value) {
+    return value.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim();
+  }
+
   Widget _compactField(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
@@ -895,4 +1016,314 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
+}
+
+class _CheckoutShopCitySheet extends StatefulWidget {
+  final List<Map<String, dynamic>> allBusinesses;
+  final List<String> availableCities;
+  final String? selectedCity;
+  final Map<String, dynamic>? selectedBusiness;
+
+  const _CheckoutShopCitySheet({
+    required this.allBusinesses,
+    required this.availableCities,
+    required this.selectedCity,
+    required this.selectedBusiness,
+  });
+
+  @override
+  State<_CheckoutShopCitySheet> createState() => _CheckoutShopCitySheetState();
+}
+
+class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _selectedShopKey = GlobalKey();
+
+  String _compactShopAddress(String rawAddress, String? cityName) {
+    final trimmed = rawAddress.trim();
+    if (trimmed.isEmpty || cityName == null || cityName.trim().isEmpty) {
+      return trimmed;
+    }
+
+    final parts = trimmed.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) return trimmed;
+
+    final lastPart = parts.last.toLowerCase();
+    final normalizedCity = cityName.trim().toLowerCase();
+    if (lastPart == normalizedCity) {
+      parts.removeLast();
+    }
+
+    return parts.join(', ');
+  }
+
+  Map<String, List<Map<String, dynamic>>> _groupedByCity() {
+    final groups = <String, List<Map<String, dynamic>>>{};
+    for (final city in widget.availableCities) {
+      groups[city] = [];
+    }
+    groups['Другое'] = [];
+
+    for (final business in widget.allBusinesses) {
+      final city = business['_cityName']?.toString() ?? '';
+      if (city.isNotEmpty && groups.containsKey(city)) {
+        groups[city]!.add(business);
+      } else if (city.isNotEmpty) {
+        groups.putIfAbsent(city, () => []);
+        groups[city]!.add(business);
+      } else {
+        groups['Другое']!.add(business);
+      }
+    }
+
+    groups.removeWhere((_, shops) => shops.isEmpty);
+    return groups;
+  }
+
+  bool _isSelected(Map<String, dynamic> shop) {
+    if (widget.selectedBusiness == null) return false;
+    return widget.selectedBusiness!['id'] == shop['id'];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectedContext = _selectedShopKey.currentContext;
+      if (selectedContext != null) {
+        Scrollable.ensureVisible(
+          selectedContext,
+          alignment: 0.35,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxH = MediaQuery.of(context).size.height * 0.8;
+    final grouped = _groupedByCity();
+    final items = <_CheckoutSheetItem>[];
+
+    for (final entry in grouped.entries) {
+      items.add(_CheckoutSheetItem.header(entry.key, entry.value.length, entry.key == widget.selectedCity));
+      for (final shop in entry.value) {
+        items.add(_CheckoutSheetItem.shop(shop, _isSelected(shop)));
+      }
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 32.s,
+                height: 4.s,
+                margin: EdgeInsets.only(top: 10.s, bottom: 12.s),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2.s),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 2.s),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Выберите магазин',
+                  style: TextStyle(color: AppColors.text, fontSize: 18.sp, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 12.s),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Смена магазина очистит корзину и вернёт вас к каталогу.',
+                  style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 12.sp),
+                ),
+              ),
+            ),
+            Flexible(
+              child: widget.allBusinesses.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.store_mall_directory, color: AppColors.textMute, size: 32),
+                          SizedBox(height: 10),
+                          Text('Магазины не найдены', style: TextStyle(color: AppColors.text, fontSize: 15)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                      itemCount: items.length,
+                      itemBuilder: (listContext, index) {
+                        final item = items[index];
+                        if (item.isHeader) {
+                          return _cityHeader(item.cityName!, item.shopCount!, item.isCurrentCity!);
+                        }
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 7.s),
+                          child: _shopCard(listContext, item.business!, item.isSelectedShop!),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cityHeader(String city, int count, bool isCurrent) {
+    return Padding(
+      padding: EdgeInsets.only(top: 7.s, bottom: 9.s),
+      child: Row(
+        children: [
+          Icon(
+            isCurrent ? Icons.my_location_rounded : Icons.location_city_rounded,
+            size: 14.s,
+            color: isCurrent ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.5),
+          ),
+          SizedBox(width: 7.s),
+          Text(
+            city,
+            style: TextStyle(
+              color: isCurrent ? AppColors.orange : AppColors.text,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(width: 7.s),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 2.s),
+            decoration: BoxDecoration(
+              color: isCurrent ? AppColors.orange.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(9.s),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                color: isCurrent ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.5),
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (isCurrent) ...[
+            const Spacer(),
+            Text(
+              'текущий город',
+              style: TextStyle(color: AppColors.orange.withValues(alpha: 0.5), fontSize: 10.sp, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _shopCard(BuildContext context, Map<String, dynamic> shop, bool isSelected) {
+    final name = (shop['name'] ?? shop['title'] ?? 'Магазин').toString();
+    final city = shop['_cityName']?.toString();
+    final rawAddress = (shop['address'] ?? shop['subtitle'] ?? '').toString();
+    final addr = _compactShopAddress(rawAddress, city);
+    final primaryLabel = addr.isNotEmpty ? '$name, $addr' : name;
+
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, shop),
+      child: Container(
+        key: isSelected ? _selectedShopKey : null,
+        padding: EdgeInsets.all(12.s),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.orange.withValues(alpha: 0.10) : AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12.s),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.check_circle_rounded : Icons.storefront_rounded,
+              color: AppColors.orange,
+              size: 22.s,
+            ),
+            SizedBox(width: 10.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    primaryLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isSelected ? AppColors.orange : AppColors.text,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                    ),
+                  ),
+                  if (city != null && city.isNotEmpty) ...[
+                    SizedBox(height: 3.s),
+                    Text(
+                      city,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.85), fontSize: 12.sp, height: 1.2),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (isSelected)
+              Padding(
+                padding: EdgeInsets.only(left: 7.s),
+                child: Icon(Icons.check_rounded, color: AppColors.orange, size: 18.s),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CheckoutSheetItem {
+  final bool isHeader;
+  final String? cityName;
+  final int? shopCount;
+  final bool? isCurrentCity;
+  final Map<String, dynamic>? business;
+  final bool? isSelectedShop;
+
+  _CheckoutSheetItem._({
+    required this.isHeader,
+    this.cityName,
+    this.shopCount,
+    this.isCurrentCity,
+    this.business,
+    this.isSelectedShop,
+  });
+
+  factory _CheckoutSheetItem.header(String city, int count, bool isCurrent) {
+    return _CheckoutSheetItem._(isHeader: true, cityName: city, shopCount: count, isCurrentCity: isCurrent);
+  }
+
+  factory _CheckoutSheetItem.shop(Map<String, dynamic> business, bool isSelected) {
+    return _CheckoutSheetItem._(isHeader: false, business: business, isSelectedShop: isSelected);
+  }
 }

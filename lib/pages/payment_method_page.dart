@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gradusy24/pages/add_card_webview_page.dart';
 import 'package:gradusy24/shared/app_theme.dart';
 import 'package:gradusy24/utils/app_navigator.dart';
 import 'package:gradusy24/utils/api.dart';
@@ -74,18 +76,53 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
 
   Future<void> _addCard() async {
     final link = await ApiService.generateAddCardLink();
-    if (link != null) {
-      final uri = Uri.parse(link);
-      if (await canLaunchUrl(uri)) {
-        _awaitingCardAdd = true;
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (!mounted) return;
-        await _showNotice('Ссылка недоступна', 'Не удалось открыть ссылку для добавления карты.');
-      }
-    } else {
+    if (link == null) {
       if (!mounted) return;
       await _showNotice('Ссылка недоступна', 'Не удалось получить ссылку для добавления карты.');
+      return;
+    }
+
+    final uri = Uri.tryParse(link);
+    if (uri == null) {
+      if (!mounted) return;
+      await _showNotice('Ссылка недоступна', 'Получена некорректная ссылка для добавления карты.');
+      return;
+    }
+
+    if (_supportsEmbeddedCardFlow) {
+      final shouldRefresh = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => AddCardWebViewPage(initialUrl: link),
+        ),
+      );
+      if (shouldRefresh == true && mounted) {
+        await _loadCards();
+      }
+      return;
+    }
+
+    if (await canLaunchUrl(uri)) {
+      _awaitingCardAdd = true;
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    if (!mounted) return;
+    await _showNotice('Ссылка недоступна', 'Не удалось открыть ссылку для добавления карты.');
+  }
+
+  bool get _supportsEmbeddedCardFlow {
+    if (kIsWeb) return false;
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return true;
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return false;
     }
   }
 

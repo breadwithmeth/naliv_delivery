@@ -6,8 +6,9 @@ import 'package:gradusy24/widgets/app_loading_screen.dart';
 
 class AuthenticationWrapper extends StatefulWidget {
   final int? initialTabIndex;
+  final bool openCheckoutOnStart;
 
-  const AuthenticationWrapper({super.key, this.initialTabIndex});
+  const AuthenticationWrapper({super.key, this.initialTabIndex, this.openCheckoutOnStart = false});
 
   @override
   State<AuthenticationWrapper> createState() => _AuthenticationWrapperState();
@@ -62,6 +63,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       isAuthenticated: _isAuthenticated,
       userInfo: _userInfo,
       initialTabIndex: widget.initialTabIndex,
+      openCheckoutOnStart: widget.openCheckoutOnStart,
     );
   }
 }

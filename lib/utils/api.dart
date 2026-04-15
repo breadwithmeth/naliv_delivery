@@ -2064,10 +2064,10 @@ class ApiService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({'fcmToken': fcmToken}),
+        body: json.encode({'fcm_token': fcmToken, 'fcmToken': fcmToken}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           debugPrint('✅ FCM токен успешно отправлен на сервер');

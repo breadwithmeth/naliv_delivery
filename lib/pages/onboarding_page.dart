@@ -931,7 +931,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Найдём ваш город и ближайший магазин. Точный адрес можно будет указать позже, при оформлении заказа.',
+                'Разрешите уведомления, чтобы получать статус заказа, важные обновления и персональные акции.',
                 style: TextStyle(color: _textMute, height: 1.35, fontWeight: FontWeight.w600),
               ),
             ),

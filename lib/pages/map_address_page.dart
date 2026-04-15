@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -300,7 +299,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
         TileLayer(
           urlTemplate: 'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
           subdomains: const ['tile0', 'tile1', 'tile2', 'tile3'],
-          tileProvider: CancellableNetworkTileProvider(),
+          tileProvider: NetworkTileProvider(),
         ),
       ],
     );

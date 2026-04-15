@@ -1,14 +1,17 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api.dart';
+import '../firebase_options.dart';
 import 'package:gradusy24/utils/app_navigator.dart';
 
 /// Глобальная функция для обработки фоновых сообщений
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await NotificationService.instance.prepareForBackgroundMessageHandling();
   debugPrint('Обработка фонового сообщения: ${message.messageId}');
   await NotificationService.instance.showNotification(message);
 }
@@ -36,6 +39,8 @@ class NotificationService {
     if (_isInitialized) return;
 
     try {
+      await _ensureFirebaseInitialized();
+
       debugPrint('🔔 Инициализация сервиса уведомлений...');
 
       if (_isWeb) {
@@ -52,6 +57,7 @@ class NotificationService {
 
       // Восстанавливаем ранее полученный токен, если он уже был сохранён.
       await _loadTokenFromStorage();
+      await syncTokenWithServerIfNeeded();
 
       // Настройка обработчиков сообщений
       _setupMessageHandlers();
@@ -64,6 +70,19 @@ class NotificationService {
     } catch (e) {
       debugPrint('❌ Ошибка инициализации уведомлений: $e');
     }
+  }
+
+  Future<void> prepareForBackgroundMessageHandling() async {
+    await _ensureFirebaseInitialized();
+    await _initializeLocalNotifications();
+  }
+
+  Future<void> _ensureFirebaseInitialized() async {
+    if (Firebase.apps.isNotEmpty) return;
+
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 
   /// Инициализация локальных уведомлений
@@ -189,8 +208,10 @@ class NotificationService {
       if (_fcmToken != null) {
         debugPrint('📱 FCM Token: $_fcmToken');
         await _saveTokenToStorage(_fcmToken!);
-        // Здесь можно отправить токен на сервер
-        await _sendTokenToServer(_fcmToken!);
+        final synced = await syncTokenWithServerIfNeeded();
+        if (!synced) {
+          debugPrint('ℹ️ FCM токен сохранён локально и будет повторно отправлен после авторизации');
+        }
       } else {
         debugPrint('❌ FCM token не был получен');
         return false;
@@ -207,7 +228,10 @@ class NotificationService {
         debugPrint('🔄 Новый FCM Token: $newToken');
         _fcmToken = newToken;
         await _saveTokenToStorage(newToken);
-        await _sendTokenToServer(newToken);
+        final synced = await syncTokenWithServerIfNeeded();
+        if (!synced) {
+          debugPrint('ℹ️ Новый FCM токен сохранён локально и будет отправлен позже');
+        }
       });
     }
 
@@ -226,7 +250,22 @@ class NotificationService {
   }
 
   /// Отправка токена на сервер
-  Future<void> _sendTokenToServer(String token) async {
+  Future<bool> syncTokenWithServerIfNeeded() async {
+    final token = _fcmToken;
+    if (token == null || token.isEmpty) {
+      return false;
+    }
+
+    final authToken = await ApiService.getAuthToken();
+    if (authToken == null || authToken.isEmpty) {
+      debugPrint('ℹ️ Пропускаем отправку FCM токена: пользователь ещё не авторизован');
+      return false;
+    }
+
+    return _sendTokenToServer(token);
+  }
+
+  Future<bool> _sendTokenToServer(String token) async {
     try {
       debugPrint('📤 Отправка токена на сервер: $token');
 
@@ -234,12 +273,15 @@ class NotificationService {
 
       if (success) {
         debugPrint('✅ Токен успешно отправлен на сервер');
+        return true;
       } else {
         debugPrint('❌ Ошибка отправки токена на сервер');
       }
     } catch (e) {
       debugPrint('❌ Ошибка отправки токена: $e');
     }
+
+    return false;
   }
 
   /// Настройка обработчиков сообщений

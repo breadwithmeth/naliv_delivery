@@ -67,6 +67,12 @@ class _MainPageState extends State<MainPage> {
     'на кране сегодня',
   ];
 
+  static const List<String> _promotionFallbackAssets = <String>[
+    'assets/s/s1.jpg',
+    'assets/s/s2.jpg',
+    'assets/s/s3.jpg',
+  ];
+
   final CarouselSliderController _promoCarouselController = CarouselSliderController();
   final LocationService _locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
@@ -91,6 +97,8 @@ class _MainPageState extends State<MainPage> {
   List<Map<String, dynamic>> _activeOrders = <Map<String, dynamic>>[];
 
   int _currentPromoIndex = 0;
+
+  double get _contentSidePadding => 16.s;
 
   // ─── Lifecycle ───────────────────────────────────────────
   @override
@@ -815,7 +823,85 @@ class _MainPageState extends State<MainPage> {
     final image = category['image'] ?? category['img'];
     if (image == null) return null;
     final value = image.toString().trim();
-    return value.isEmpty ? null : value;
+    if (value.isEmpty) return null;
+    return value;
+  }
+
+  String _formatCategoryTitle(String rawName) {
+    final normalized = rawName.trim();
+    if (normalized.isEmpty) return 'Раздел';
+
+    final words = normalized.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
+    if (words.length < 2) return normalized;
+    if (words.length == 2 && normalized.length >= 14) {
+      return '${words.first}\n${words.last}';
+    }
+
+    if (normalized.length < 18 || words.length > 4) {
+      return normalized;
+    }
+
+    var bestIndex = 1;
+    var bestDelta = normalized.length;
+    for (var index = 1; index < words.length; index++) {
+      final left = words.take(index).join(' ');
+      final right = words.skip(index).join(' ');
+      final delta = (left.length - right.length).abs();
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIndex = index;
+      }
+    }
+
+    return '${words.take(bestIndex).join(' ')}\n${words.skip(bestIndex).join(' ')}';
+  }
+
+  double _categoryTitleFontSize(String rawName) {
+    final normalized = rawName.trim();
+    if (normalized.length >= 24) return 9.8.sp;
+    if (normalized.length >= 18) return 10.3.sp;
+    return 11.sp;
+  }
+
+  String _promotionTitle(Promotion promo) {
+    final rawName = promo.name?.trim() ?? '';
+    final detailName = promo.details.isNotEmpty ? promo.details.first.name.trim() : '';
+    final normalizedName = rawName.toLowerCase();
+    if (rawName.isEmpty || normalizedName == 'акция' || normalizedName == 'акции') {
+      if (detailName.isNotEmpty) return detailName;
+      return 'Специальное предложение';
+    }
+    return rawName;
+  }
+
+  String _promotionSubtitle(Promotion promo, String title) {
+    final detailName = promo.details.isNotEmpty ? promo.details.first.name.trim() : '';
+    if (detailName.isNotEmpty && detailName != title) {
+      return detailName;
+    }
+    if (promo.itemsCount > 0) {
+      return '${promo.itemsCount} товаров в подборке';
+    }
+    if (promo.daysLeft > 0) {
+      return 'Действует еще ${promo.daysLeft} дн.';
+    }
+    return 'Предложение для выбранного магазина';
+  }
+
+  String _promotionFallbackAsset(Promotion promo) {
+    final index = promo.marketingPromotionId.abs() % _promotionFallbackAssets.length;
+    return _promotionFallbackAssets[index];
+  }
+
+  String? _extractSuperCategoryImage(Map<String, dynamic> superCategory) {
+    final nestedCategories = (superCategory['categories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>();
+    for (final category in nestedCategories) {
+      final imageUrl = _extractCategoryImage(category);
+      if (imageUrl != null) {
+        return imageUrl;
+      }
+    }
+    return _extractCategoryImage(superCategory);
   }
 
   Widget _buildCategoryLeading(String? imageUrl, Map<String, dynamic> style, {double size = 28}) {
@@ -855,6 +941,166 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  String _resolveAddressLine() {
+    final baseText = ApiService.extractAddressLabel(_selectedAddress) ?? _selectedAddress?['address']?.toString();
+    final street = _selectedAddress?['street']?.toString().trim();
+    final house = _selectedAddress?['house']?.toString().trim();
+    if (baseText != null && baseText.trim().isNotEmpty) {
+      return baseText.trim();
+    }
+    if (street != null && street.isNotEmpty) {
+      return house != null && house.isNotEmpty ? '$street, $house' : street;
+    }
+    return 'Укажите адрес';
+  }
+
+  String _resolveDeliveryAddressLine() {
+    final details = <String>[];
+    final entrance = _selectedAddress?['entrance']?.toString().trim();
+    if (entrance != null && entrance.isNotEmpty) details.add('Под. $entrance');
+    final floor = _selectedAddress?['floor']?.toString().trim();
+    if (floor != null && floor.isNotEmpty) details.add('Эт. $floor');
+    final apartment = _selectedAddress?['apartment']?.toString().trim();
+    if (apartment != null && apartment.isNotEmpty) details.add('Кв. $apartment');
+
+    final addressLine = _resolveAddressLine();
+    if (details.isEmpty) {
+      return addressLine;
+    }
+    if (addressLine == 'Укажите адрес') {
+      return addressLine;
+    }
+    return '$addressLine • ${details.join(', ')}';
+  }
+
+  String _resolveShopHeadline() {
+    final cityLabel = widget.selectedCity ?? 'Все города';
+    final selected = widget.selectedBusiness;
+    if (selected == null) {
+      return widget.businesses.isEmpty ? '$cityLabel — Нет магазинов' : '$cityLabel — Выберите магазин';
+    }
+
+    final shopName = (selected['name'] ?? selected['title'] ?? 'Магазин').toString();
+    final rawAddress = (selected['address'] ?? selected['subtitle'] ?? '').toString();
+    final compactAddress = _compactShopAddress(rawAddress, cityLabel);
+    if (compactAddress.isEmpty) {
+      return shopName;
+    }
+    return '$shopName — $compactAddress';
+  }
+
+  Widget _headerInfoLine({
+    required IconData icon,
+    required String text,
+    required bool isPrimary,
+    required int maxLines,
+  }) {
+    return Row(
+      crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: maxLines > 1 ? 1.s : 0),
+          child: Icon(
+            icon,
+            size: isPrimary ? 14.s : 13.s,
+            color: isPrimary ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.82),
+          ),
+        ),
+        SizedBox(width: 6.s),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isPrimary ? AppColors.text : AppColors.textMute.withValues(alpha: 0.86),
+              fontSize: isPrimary ? 11.2.sp : 9.7.sp,
+              fontWeight: isPrimary ? FontWeight.w900 : FontWeight.w700,
+              height: isPrimary ? 1.06 : 1.1,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryArtwork(String? imageUrl, Map<String, dynamic> style) {
+    if (imageUrl == null) {
+      return _categoryFallback(style);
+    }
+
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      errorBuilder: (_, __, ___) => _categoryFallback(style),
+      loadingBuilder: (_, child, progress) {
+        if (progress == null) return child;
+        return _categoryFallback(style, showLoader: true);
+      },
+    );
+  }
+
+  Widget _promotionFallbackBackground(Promotion promo, {bool showLoader = false}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          _promotionFallbackAsset(promo),
+          fit: BoxFit.cover,
+        ),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x22000000), Color(0xAA000000)],
+            ),
+          ),
+        ),
+        Positioned(
+          right: -22.s,
+          top: -30.s,
+          child: Container(
+            width: 132.s,
+            height: 132.s,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+        ),
+        Positioned(
+          left: -18.s,
+          bottom: -44.s,
+          child: Container(
+            width: 118.s,
+            height: 118.s,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.orange.withValues(alpha: 0.14),
+            ),
+          ),
+        ),
+        if (showLoader)
+          Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: EdgeInsets.all(14.s),
+              child: SizedBox(
+                width: 18.s,
+                height: 18.s,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.text),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════
   //  U I   L A Y E R
   // ═══════════════════════════════════════════════════════════
@@ -862,26 +1108,27 @@ class _MainPageState extends State<MainPage> {
   // ─── Header ──────────────────────────────────────────────
   Widget _buildHeader({required bool showLogoBackground}) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.s),
+      padding: EdgeInsets.symmetric(horizontal: _contentSidePadding, vertical: 5.s),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 4.s),
+            padding: EdgeInsets.symmetric(horizontal: 4.s, vertical: 3.s),
             decoration: showLogoBackground
                 ? BoxDecoration(
                     color: AppColors.cardDark,
-                    borderRadius: BorderRadius.circular(16.s),
+                    borderRadius: BorderRadius.circular(14.s),
                   )
                 : null,
             child: SvgPicture.asset(
               'assets/logo_new.svg',
-              height: 42.s,
+              height: 34.s,
             ),
           ),
-          const Spacer(),
-          _shopChip(),
+          SizedBox(width: 10.s),
+          Expanded(child: _shopChip()),
         ],
       ),
     );
@@ -907,88 +1154,80 @@ class _MainPageState extends State<MainPage> {
 
   /// Compact shop chip shown in the header row next to the logo.
   Widget _shopChip() {
-    final selected = widget.selectedBusiness;
-    final cityLabel = widget.selectedCity ?? 'Все города';
-    final chipMaxWidth = MediaQuery.of(context).size.width * 0.48;
-    final String title;
-    final String subtitle;
-    final String? shopAddress;
-    if (selected != null) {
-      final shopName = (selected['name'] ?? selected['title'] ?? 'Магазин').toString();
-      title = '$cityLabel - $shopName';
-      subtitle = cityLabel;
-      final rawAddress = selected['address'] ?? selected['subtitle'];
-      final addressText = rawAddress?.toString().trim() ?? '';
-      final compactAddress = _compactShopAddress(addressText, cityLabel);
-      shopAddress = compactAddress.isEmpty ? null : compactAddress;
-    } else {
-      title = widget.businesses.isEmpty ? '$cityLabel - Нет магазинов' : '$cityLabel - Все магазины';
-      subtitle = cityLabel;
-      shopAddress = null;
-    }
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24.s),
-        onTap: widget.isLoadingBusinesses ? null : _showBusinessSelectorSheet,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: chipMaxWidth),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Container(
-                width: constraints.maxWidth,
-                padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 7.s),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(24.s),
+    return Container(
+      padding: EdgeInsets.all(6.s),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18.s),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14.s),
+                onTap: _showAddressSelectionModal,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.s, vertical: 6.s),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _headerInfoLine(
+                        icon: Icons.storefront_rounded,
+                        text: _resolveShopHeadline(),
+                        isPrimary: true,
+                        maxLines: 2,
+                      ),
+                      SizedBox(height: 4.s),
+                      _headerInfoLine(
+                        icon: Icons.location_on_outlined,
+                        text: _resolveDeliveryAddressLine(),
+                        isPrimary: false,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(Icons.storefront_rounded, color: AppColors.orange, size: 18.s),
-                    SizedBox(width: 7.s),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+          ),
+          SizedBox(width: 6.s),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14.s),
+              onTap: widget.isLoadingBusinesses ? null : _showBusinessSelectorSheet,
+              child: Container(
+                width: 40.s,
+                height: 40.s,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(14.s),
+                ),
+                child: widget.isLoadingBusinesses
+                    ? SizedBox(
+                        width: 16.s,
+                        height: 16.s,
+                        child: CircularProgressIndicator(strokeWidth: 1.6, color: AppColors.orange),
+                      )
+                    : Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.textMute.withValues(alpha: 0.72),
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w700,
-                              height: 1.0,
-                            ),
-                          ),
-                          SizedBox(height: 3.s),
-                          Text(
-                            shopAddress ?? subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w800,
-                              height: 1.0,
-                            ),
+                          Icon(Icons.storefront_outlined, color: AppColors.orange, size: 17.s),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Icon(Icons.expand_more_rounded, color: AppColors.textMute, size: 13.s),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(width: 4.s),
-                    widget.isLoadingBusinesses
-                        ? SizedBox(width: 14.s, height: 14.s, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.orange))
-                        : Icon(Icons.expand_more_rounded, color: AppColors.textMute, size: 16.s),
-                  ],
-                ),
-              );
-            },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -996,98 +1235,22 @@ class _MainPageState extends State<MainPage> {
   // ─── Address + Shop Row ──────────────────────────────────
   Widget _addressShopRow({required bool showLogoBackground}) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(14.s, 5.s, 14.s, 5.s),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Logo + shop chip row
-          Padding(
-            padding: EdgeInsets.only(bottom: 5.s),
-            child: _buildHeader(showLogoBackground: showLogoBackground),
-          ),
-          // Address pill — full width
-          _addressPill(),
-        ],
-      ),
-    );
-  }
-
-  Widget _addressPill() {
-    final baseText = ApiService.extractAddressLabel(_selectedAddress) ?? _selectedAddress?['address']?.toString();
-    final street = _selectedAddress?['street']?.toString().trim();
-    final house = _selectedAddress?['house']?.toString().trim();
-    String addressLine;
-    if (baseText != null && baseText.trim().isNotEmpty) {
-      addressLine = baseText.trim();
-    } else if (street != null && street.isNotEmpty) {
-      addressLine = house != null && house.isNotEmpty ? '$street, $house' : street;
-    } else {
-      addressLine = 'Укажите адрес';
-    }
-
-    final details = <String>[];
-    final entrance = _selectedAddress?['entrance']?.toString().trim();
-    if (entrance != null && entrance.isNotEmpty) details.add('Под. $entrance');
-    final floor = _selectedAddress?['floor']?.toString().trim();
-    if (floor != null && floor.isNotEmpty) details.add('Эт. $floor');
-    final apartment = _selectedAddress?['apartment']?.toString().trim();
-    if (apartment != null && apartment.isNotEmpty) details.add('Кв. $apartment');
-    final detailsLine = details.isNotEmpty ? details.join(', ') : null;
-
-    return GestureDetector(
-      onTap: _showAddressSelectionModal,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 9.s),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(14.s),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.location_on_rounded, color: AppColors.orange, size: 18.s),
-            SizedBox(width: 9.s),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    addressLine,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: AppColors.text, fontSize: 11.sp, fontWeight: FontWeight.w800, height: 1.15),
-                  ),
-                  if (detailsLine != null) ...[
-                    SizedBox(height: 2.s),
-                    Text(
-                      detailsLine,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textMute, fontSize: 10.sp, fontWeight: FontWeight.w600, height: 1.15),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            SizedBox(width: 4.s),
-            Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textMute, size: 18.s),
-          ],
-        ),
-      ),
+      padding: EdgeInsets.symmetric(vertical: 4.s),
+      child: _buildHeader(showLogoBackground: showLogoBackground),
     );
   }
 
   // ─── Search ──────────────────────────────────────────────
   Widget _searchBar() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14.s),
+      padding: EdgeInsets.symmetric(horizontal: _contentSidePadding),
       child: GestureDetector(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 7.s),
+          padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 10.s),
           decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius: BorderRadius.circular(18.s),
+            borderRadius: BorderRadius.circular(12.s),
           ),
           child: Row(
             children: [
@@ -1103,8 +1266,8 @@ class _MainPageState extends State<MainPage> {
                 width: 28.s,
                 height: 28.s,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(9.s),
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(10.s),
                 ),
                 child: Icon(Icons.tune_rounded, color: AppColors.textMute.withValues(alpha: 0.7), size: 16.s),
               ),
@@ -1180,12 +1343,12 @@ class _MainPageState extends State<MainPage> {
                 ),
               ),
               child: Padding(
-                padding: EdgeInsets.all(16.s),
+                padding: EdgeInsets.fromLTRB(20.s, 20.s, 18.s, 18.s),
                 child: Stack(
                   children: [
                     Positioned(
-                      right: -18.s,
-                      top: -34.s,
+                      right: -12.s,
+                      top: -30.s,
                       child: Container(
                         width: 144.s,
                         height: 144.s,
@@ -1196,8 +1359,8 @@ class _MainPageState extends State<MainPage> {
                       ),
                     ),
                     Positioned(
-                      left: -30.s,
-                      bottom: -48.s,
+                      left: -20.s,
+                      bottom: -42.s,
                       child: Container(
                         width: 132.s,
                         height: 132.s,
@@ -1208,8 +1371,8 @@ class _MainPageState extends State<MainPage> {
                       ),
                     ),
                     Positioned(
-                      right: 18.s,
-                      top: 18.s,
+                      right: 16.s,
+                      top: 16.s,
                       child: Transform.rotate(
                         angle: -0.10,
                         child: Icon(
@@ -1241,15 +1404,15 @@ class _MainPageState extends State<MainPage> {
                           'Сегодня на кране',
                           style: TextStyle(color: AppColors.text, fontSize: 23.sp, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -0.3),
                         ),
-                        SizedBox(height: 7.s),
+                        SizedBox(height: 9.s),
                         Padding(
-                          padding: EdgeInsets.only(right: 62.s),
+                          padding: EdgeInsets.only(top: 2.s, right: 72.s),
                           child: Text(
                             subtitle,
                             style: TextStyle(color: AppColors.text.withValues(alpha: 0.8), fontSize: 12.sp, fontWeight: FontWeight.w600, height: 1.4),
                           ),
                         ),
-                        SizedBox(height: 12.s),
+                        SizedBox(height: 14.s),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -1403,6 +1566,8 @@ class _MainPageState extends State<MainPage> {
     final bizId =
         widget.selectedBusiness != null ? (widget.selectedBusiness!['id'] as int?) ?? (widget.selectedBusiness!['businessId'] as int?) : null;
     final hasCover = promo.cover != null && promo.cover!.trim().isNotEmpty;
+    final promoTitle = _promotionTitle(promo);
+    final promoSubtitle = _promotionSubtitle(promo, promoTitle);
 
     return GestureDetector(
       onTap: bizId != null
@@ -1431,14 +1596,14 @@ class _MainPageState extends State<MainPage> {
                 Image.network(
                   promo.cover!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _promotionPlaceholder(promo),
+                  errorBuilder: (_, __, ___) => _promotionFallbackBackground(promo),
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return _promotionPlaceholder(promo, showLoader: true);
+                    return _promotionFallbackBackground(promo, showLoader: true);
                   },
                 )
               else
-                _promotionPlaceholder(promo),
+                _promotionFallbackBackground(promo),
               // Gradient overlay
               const DecoratedBox(
                 decoration: BoxDecoration(
@@ -1465,15 +1630,15 @@ class _MainPageState extends State<MainPage> {
                     ),
                     SizedBox(height: 7.s),
                     Text(
-                      promo.name ?? 'Акция',
+                      promoTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900, height: 1.2),
                     ),
-                    if (promo.details.isNotEmpty) ...[
+                    if (promoSubtitle.isNotEmpty) ...[
                       SizedBox(height: 4.s),
                       Text(
-                        promo.details.first.name,
+                        promoSubtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: AppColors.text.withValues(alpha: 0.85), fontSize: 12.sp, fontWeight: FontWeight.w600),
@@ -1485,50 +1650,6 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _promotionPlaceholder(Promotion promo, {bool showLoader = false}) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.red, AppColors.cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -14.s,
-            top: -8.s,
-            child: Icon(Icons.local_offer_outlined, size: 70.s, color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_size_select_actual_outlined, color: Colors.white.withValues(alpha: 0.6), size: 28.s),
-                SizedBox(height: 7.s),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.s),
-                  child: Text(
-                    promo.name ?? 'Акция',
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                if (showLoader) ...[
-                  SizedBox(height: 10.s),
-                  SizedBox(
-                    width: 16.s,
-                    height: 16.s,
-                    child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.text)),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1556,16 +1677,13 @@ class _MainPageState extends State<MainPage> {
           crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8.s,
-          crossAxisSpacing: 8.s,
-          childAspectRatio: 1.0,
+          mainAxisSpacing: 10.s,
+          crossAxisSpacing: 10.s,
+          childAspectRatio: 0.92,
           children: _superCategories.map((sc) {
             final name = sc['name']?.toString() ?? 'Раздел';
             final style = _getCategoryIconAndColor(name);
-            // Use image from first nested category to represent supercategory
-            final cats = (sc['categories'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
-            final imageUrl =
-                cats.length > 1 ? _extractCategoryImage(cats[1]) : (cats.isNotEmpty ? _extractCategoryImage(cats.first) : _extractCategoryImage(sc));
+            final imageUrl = _extractSuperCategoryImage(sc);
             return _superCategoryTile(sc, style, imageUrl);
           }).toList(),
         ),
@@ -1598,49 +1716,39 @@ class _MainPageState extends State<MainPage> {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.s),
+          borderRadius: BorderRadius.circular(16.s),
           color: AppColors.cardDark,
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageUrl != null)
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _categoryFallback(style),
-                loadingBuilder: (_, child, progress) {
-                  if (progress == null) return child;
-                  return _categoryFallback(style, showLoader: true);
-                },
-              )
-            else
-              _categoryFallback(style),
+            _buildCategoryArtwork(imageUrl, style),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0.0, 0.4, 1.0],
+                  stops: [0.0, 0.48, 0.78, 1.0],
                   colors: [
                     Colors.transparent,
-                    Color(0x18000000),
-                    Color(0xCC000000),
+                    Colors.transparent,
+                    Color(0x52000000),
+                    Color(0xB3000000),
                   ],
                 ),
               ),
             ),
             Positioned(
-              left: 7.s,
-              right: 7.s,
-              bottom: 7.s,
+              left: 9.s,
+              right: 9.s,
+              bottom: 9.s,
               child: Text(
-                name,
+                _formatCategoryTitle(name),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: AppColors.text,
-                  fontSize: 11.sp,
+                  fontSize: _categoryTitleFontSize(name),
                   fontWeight: FontWeight.w800,
                   height: 1.2,
                   shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
@@ -1654,7 +1762,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _categoryTile(Map<String, dynamic> cat, Map<String, dynamic> style, String? imageUrl) {
-    final name = cat['name'] ?? 'Категория';
+    final name = cat['name']?.toString() ?? 'Категория';
     return GestureDetector(
       onTap: () {
         final businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
@@ -1678,52 +1786,39 @@ class _MainPageState extends State<MainPage> {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.s),
+          borderRadius: BorderRadius.circular(16.s),
           color: AppColors.cardDark,
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Full-size image or icon fallback
-            if (imageUrl != null)
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _categoryFallback(style),
-                loadingBuilder: (_, child, progress) {
-                  if (progress == null) return child;
-                  return _categoryFallback(style, showLoader: true);
-                },
-              )
-            else
-              _categoryFallback(style),
-            // Gradient scrim for text readability
+            _buildCategoryArtwork(imageUrl, style),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0.0, 0.4, 1.0],
+                  stops: [0.0, 0.48, 0.78, 1.0],
                   colors: [
                     Colors.transparent,
-                    Color(0x18000000),
-                    Color(0xCC000000),
+                    Colors.transparent,
+                    Color(0x52000000),
+                    Color(0xB3000000),
                   ],
                 ),
               ),
             ),
-            // Category name at bottom
             Positioned(
-              left: 7.s,
-              right: 7.s,
-              bottom: 7.s,
+              left: 9.s,
+              right: 9.s,
+              bottom: 9.s,
               child: Text(
-                name,
+                _formatCategoryTitle(name),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: AppColors.text,
-                  fontSize: 11.sp,
+                  fontSize: _categoryTitleFontSize(name),
                   fontWeight: FontWeight.w800,
                   height: 1.2,
                   shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
@@ -1738,9 +1833,9 @@ class _MainPageState extends State<MainPage> {
 
   Widget _categoryFallback(Map<String, dynamic> style, {bool showLoader = false}) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: (style['gradient'] as List<Color>?) ?? [AppColors.blue, AppColors.cardDark],
+          colors: [Color(0xFF262626), AppColors.cardDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -2153,8 +2248,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final navHeight = 100.s;
-    final bottomPadding = bottomInset + navHeight;
+    final bottomPadding = bottomInset + 118.s;
 
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
@@ -2169,8 +2263,8 @@ class _MainPageState extends State<MainPage> {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _SlimHeaderDelegate(
-                    minExtent: 126.s,
-                    maxExtent: 130.s,
+                    minExtent: 98.s,
+                    maxExtent: 106.s,
                     builder: (context, _, overlapsContent) => _addressShopRow(showLogoBackground: overlapsContent),
                   ),
                 ),
@@ -2182,13 +2276,13 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ),
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 10.s),
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 0, _contentSidePadding, 10.s),
                   sliver: SliverToBoxAdapter(child: _draftBeerShortcutSection()),
                 ),
                 // ── Empty city banner ──
                 if (widget.selectedCity != null && widget.businesses.isEmpty)
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 10.s),
+                    padding: EdgeInsets.fromLTRB(_contentSidePadding, 0, _contentSidePadding, 10.s),
                     sliver: SliverToBoxAdapter(child: _emptyCityBanner()),
                   ),
                 // ── Promotions ──
@@ -2198,17 +2292,17 @@ class _MainPageState extends State<MainPage> {
                 ),
                 // ── Supercategories ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 0),
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 10.s, _contentSidePadding, 0),
                   sliver: SliverToBoxAdapter(child: _superCategoriesSection()),
                 ),
                 // ── Cart discovery row ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(14.s, 16.s, 14.s, 0),
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 16.s, _contentSidePadding, 0),
                   sliver: SliverToBoxAdapter(child: _productDiscoveryRow()),
                 ),
                 // ── Bonuses ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(14.s, 16.s, 14.s, bottomPadding),
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 16.s, _contentSidePadding, bottomPadding),
                   sliver: SliverToBoxAdapter(child: _bonusesSection()),
                 ),
               ],
@@ -2283,6 +2377,24 @@ class _ShopCitySheet extends StatefulWidget {
 class _ShopCitySheetState extends State<_ShopCitySheet> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _selectedShopKey = GlobalKey();
+
+  String _compactShopAddress(String rawAddress, String? cityName) {
+    final trimmed = rawAddress.trim();
+    if (trimmed.isEmpty || cityName == null || cityName.trim().isEmpty) {
+      return trimmed;
+    }
+
+    final parts = trimmed.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) return trimmed;
+
+    final lastPart = parts.last.toLowerCase();
+    final normalizedCity = cityName.trim().toLowerCase();
+    if (lastPart == normalizedCity) {
+      parts.removeLast();
+    }
+
+    return parts.join(', ');
+  }
 
   /// Group businesses by their resolved city name, ordered by availableCities.
   Map<String, List<Map<String, dynamic>>> _groupedByCity() {
@@ -2476,7 +2588,10 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
 
   Widget _shopCard(BuildContext context, Map<String, dynamic> shop, bool isSelected) {
     final name = (shop['name'] ?? shop['title'] ?? 'Магазин').toString();
-    final addr = (shop['address'] ?? shop['subtitle'] ?? '').toString();
+    final city = shop['_cityName']?.toString();
+    final rawAddress = (shop['address'] ?? shop['subtitle'] ?? '').toString();
+    final addr = _compactShopAddress(rawAddress, city);
+    final primaryLabel = addr.isNotEmpty ? '$name, $addr' : name;
 
     return GestureDetector(
       onTap: () => Navigator.pop(context, shop),
@@ -2500,20 +2615,21 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
-                    maxLines: 1,
+                    primaryLabel,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isSelected ? AppColors.orange : AppColors.text,
-                      fontSize: 14.sp,
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.w800,
+                      height: 1.15,
                     ),
                   ),
-                  if (addr.isNotEmpty) ...[
+                  if (city != null && city.isNotEmpty) ...[
                     SizedBox(height: 3.s),
                     Text(
-                      addr,
-                      maxLines: 2,
+                      city,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.85), fontSize: 12.sp, height: 1.2),
                     ),

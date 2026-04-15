@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gradusy24/pages/cart_page.dart';
 import 'package:gradusy24/pages/catalog.dart';
+import 'package:gradusy24/pages/checkout_page.dart';
 import 'package:gradusy24/pages/likedPage.dart';
 import 'package:gradusy24/pages/mainPage.dart';
 import 'package:gradusy24/pages/profile_page.dart';
@@ -23,8 +24,9 @@ class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;
   final Map<String, dynamic>? userInfo;
   final int? initialTabIndex;
+  final bool openCheckoutOnStart;
 
-  const BottomMenu({required this.isAuthenticated, this.userInfo, this.initialTabIndex, super.key});
+  const BottomMenu({required this.isAuthenticated, this.userInfo, this.initialTabIndex, this.openCheckoutOnStart = false, super.key});
 
   @override
   State<BottomMenu> createState() => _BottomMenuState();
@@ -55,6 +57,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   // Данные геолокации
   Position? _userPosition;
+  bool _initialCheckoutHandled = false;
 
   // Акции загружаются в MainPage
 
@@ -76,13 +79,39 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     if (widget.initialTabIndex != null) {
       _currentIndex = widget.initialTabIndex!.clamp(0, 4);
     }
-    // Загружаем сохранённый магазин из storage
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final bp = Provider.of<BusinessProvider>(context, listen: false);
-      bp.loadSavedBusiness();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _restoreSavedBusinessSelection();
+      _openInitialCheckoutIfNeeded();
     });
     _loadCitiesAndSelection();
     _loadSavedAddress();
+  }
+
+  Future<void> _restoreSavedBusinessSelection() async {
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    await businessProvider.loadSavedBusiness();
+    final savedBusiness = businessProvider.selectedBusiness;
+    if (!mounted || savedBusiness == null) return;
+
+    setState(() {
+      _selectedBusiness = savedBusiness;
+    });
+  }
+
+  void _openInitialCheckoutIfNeeded() {
+    if (_initialCheckoutHandled || !widget.openCheckoutOnStart || !mounted) {
+      return;
+    }
+
+    _initialCheckoutHandled = true;
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    if (cartProvider.items.isEmpty) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CheckoutPage()),
+    );
   }
 
   Future<void> _loadCitiesAndSelection() async {
@@ -146,11 +175,12 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   Future<void> _selectBusiness(Map<String, dynamic> business) async {
+    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+
     setState(() {
       _selectedBusiness = business;
     });
     await Provider.of<BusinessProvider>(context, listen: false).setSelectedBusiness(business);
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
     final businessId = business['id'] ?? business['business_id'] ?? business['businessId'];
     if (businessId != null) {
       likedProvider.loadLiked(int.tryParse(businessId.toString()) ?? 0);
@@ -607,13 +637,13 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: 88.s,
+        height: 84.s,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
               child: Container(
-                margin: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 16.s),
+                margin: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 14.s),
                 padding: EdgeInsets.symmetric(horizontal: 16.s),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -628,9 +658,9 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _navItem(icon: Icons.home_rounded, label: 'Главная', index: 0),
-                    _navItem(icon: Icons.grid_view_rounded, label: 'Каталог', index: 1),
-                    SizedBox(width: 64.s),
+                    _navItem(icon: Icons.home_outlined, label: 'Главная', index: 0),
+                    _navItem(icon: Icons.widgets_outlined, label: 'Каталог', index: 1),
+                    SizedBox(width: 58.s),
                     _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
                     _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
                   ],
@@ -638,7 +668,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
               ),
             ),
             Positioned(
-              top: -16.s,
+              top: -12.s,
               left: 0,
               right: 0,
               child: Center(
@@ -657,8 +687,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                             clipBehavior: Clip.none,
                             children: [
                               Container(
-                                width: 70.s,
-                                height: 70.s,
+                                width: 62.s,
+                                height: 62.s,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   gradient: const LinearGradient(
@@ -666,15 +696,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12.s, offset: Offset(0, 8.s))],
                                 ),
                                 child: Center(
-                                  child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 26.s),
+                                  child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 23.s),
                                 ),
                               ),
                               if (hasItems)
                                 Positioned(
-                                  top: -2.s,
-                                  right: -2.s,
+                                  top: -1.s,
+                                  right: -1.s,
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
+                                    padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 3.s),
                                     decoration: BoxDecoration(
                                       color: Colors.black,
                                       borderRadius: BorderRadius.circular(10.s),
@@ -684,7 +714,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                                       '$itemCount',
                                       style: TextStyle(
                                         color: _orange,
-                                        fontSize: 11.sp,
+                                        fontSize: 10.sp,
                                         fontWeight: FontWeight.w900,
                                       ),
                                     ),
@@ -693,9 +723,9 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                             ],
                           ),
                           if (hasItems) ...[
-                            SizedBox(height: 6.s),
+                            SizedBox(height: 5.s),
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 4.s),
+                              padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
                               decoration: BoxDecoration(
                                 color: _orange,
                                 borderRadius: BorderRadius.circular(12.s),
@@ -711,7 +741,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                                 _money(total),
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 11.sp,
+                                  fontSize: 10.sp,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
