@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gradusy24/utils/location_service.dart';
 import 'package:gradusy24/utils/cart_provider.dart';
 import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/browser_history.dart';
 import 'package:gradusy24/utils/browser_route_history_observer.dart';
 import 'package:gradusy24/utils/liked_items_provider.dart';
 import 'package:gradusy24/services/notification_service.dart';
@@ -92,10 +93,17 @@ class _MainState extends State<Main> with LocationMixin {
   @override
   void initState() {
     super.initState();
+    browserHistoryEnableExitWarning();
     // Инициализируем корзину после создания виджета
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CartProvider>(context, listen: false).loadCart();
     });
+  }
+
+  @override
+  void dispose() {
+    browserHistoryDisableExitWarning();
+    super.dispose();
   }
 
   @override

@@ -14,6 +14,10 @@ void browserHistoryReplaceQueryParameters(Map<String, String> queryParameters) {
 
 void browserHistoryBack() {}
 
+void browserHistoryEnableExitWarning() {}
+
+void browserHistoryDisableExitWarning() {}
+
 void browserHistoryListen(BrowserHistoryListener listener) {}
 
 void browserHistoryDispose(BrowserHistoryListener listener) {}

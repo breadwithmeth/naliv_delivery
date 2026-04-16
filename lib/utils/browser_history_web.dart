@@ -5,6 +5,7 @@ typedef BrowserHistoryListener = void Function();
 
 final Map<BrowserHistoryListener, StreamSubscription<html.PopStateEvent>> _listeners =
     <BrowserHistoryListener, StreamSubscription<html.PopStateEvent>>{};
+StreamSubscription<html.Event>? _beforeUnloadSubscription;
 
 void browserHistoryPushFragment(String fragment) {
   final nextUrl = _withFragment(fragment);
@@ -39,6 +40,19 @@ void browserHistoryReplaceQueryParameters(Map<String, String> queryParameters) {
 
 void browserHistoryBack() {
   html.window.history.back();
+}
+
+void browserHistoryEnableExitWarning() {
+  _beforeUnloadSubscription ??= html.window.onBeforeUnload.listen((event) {
+    final unloadEvent = event as html.BeforeUnloadEvent;
+    unloadEvent.preventDefault();
+    unloadEvent.returnValue = '';
+  });
+}
+
+void browserHistoryDisableExitWarning() {
+  _beforeUnloadSubscription?.cancel();
+  _beforeUnloadSubscription = null;
 }
 
 void browserHistoryListen(BrowserHistoryListener listener) {
