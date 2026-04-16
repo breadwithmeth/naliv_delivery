@@ -5,6 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import '../model/item.dart' as item_model;
 
 import '../shared/app_theme.dart';
 import '../utils/address_storage_service.dart';
@@ -77,6 +78,7 @@ class _MainPageState extends State<MainPage> {
   final LocationService _locationService = LocationService.instance;
   StreamSubscription<Map<String, dynamic>?>? _addressSubscription;
   String? _lastPromptKey;
+  final Map<int, List<item_model.Item>> _promotionItemsById = <int, List<item_model.Item>>{};
 
   List<Promotion> _promotions = [];
   bool _isLoadingPromotions = false;
@@ -188,9 +190,16 @@ class _MainPageState extends State<MainPage> {
     try {
       final int? businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
       final promos = await ApiService.getActivePromotionsTyped(businessId: businessId, limit: 12);
+      final resolvedPromos = await _loadResolvedPromotions(promos ?? const <Promotion>[], businessId: businessId);
       if (!mounted) return;
       setState(() {
-        _promotions = promos ?? [];
+        _promotionItemsById
+          ..clear()
+          ..addEntries(
+            resolvedPromos.where((entry) => entry.value.isNotEmpty).map((entry) => MapEntry(entry.key.marketingPromotionId, entry.value)),
+          );
+        _promotions = resolvedPromos.map((entry) => entry.key).toList(growable: false);
+        _currentPromoIndex = 0;
         _isLoadingPromotions = false;
       });
     } catch (e) {
@@ -200,6 +209,48 @@ class _MainPageState extends State<MainPage> {
         _isLoadingPromotions = false;
       });
     }
+  }
+
+  Future<List<MapEntry<Promotion, List<item_model.Item>>>> _loadResolvedPromotions(List<Promotion> promos, {int? businessId}) async {
+    if (promos.isEmpty) {
+      return const <MapEntry<Promotion, List<item_model.Item>>>[];
+    }
+
+    final results = await Future.wait(promos.map((promo) async {
+      if (promo.visible != 1) {
+        return null;
+      }
+
+      try {
+        final items = await ApiService.getAllPromotionItemsTyped(
+          promotionId: promo.marketingPromotionId,
+          businessId: businessId ?? promo.businessId,
+          limit: 50,
+        );
+
+        if (items == null) {
+          return promo.itemsCount > 0 ? MapEntry(promo, const <item_model.Item>[]) : null;
+        }
+
+        final filteredItems = items.where(_isSellablePromotionItem).toList(growable: false);
+        if (filteredItems.isEmpty) {
+          return null;
+        }
+
+        return MapEntry(promo, filteredItems);
+      } catch (_) {
+        return promo.itemsCount > 0 ? MapEntry(promo, const <item_model.Item>[]) : null;
+      }
+    }));
+
+    return results.whereType<MapEntry<Promotion, List<item_model.Item>>>().toList(growable: false);
+  }
+
+  bool _isSellablePromotionItem(item_model.Item item) {
+    final hasStock = (item.amount ?? 0) > 0;
+    final visible = item.visible == null || item.visible == 1;
+    final hasPriceSignal = item.price > 0 || (item.options?.isNotEmpty ?? false);
+    return visible && hasStock && hasPriceSignal;
   }
 
   Future<void> _loadSuperCategories() async {
@@ -866,9 +917,12 @@ class _MainPageState extends State<MainPage> {
   String _promotionTitle(Promotion promo) {
     final rawName = promo.name?.trim() ?? '';
     final detailName = promo.details.isNotEmpty ? promo.details.first.name.trim() : '';
+    final resolvedItems = _promotionItemsById[promo.marketingPromotionId];
+    final firstResolvedName = resolvedItems != null && resolvedItems.isNotEmpty ? resolvedItems.first.name.trim() : '';
     final normalizedName = rawName.toLowerCase();
     if (rawName.isEmpty || normalizedName == 'акция' || normalizedName == 'акции') {
       if (detailName.isNotEmpty) return detailName;
+      if (firstResolvedName.isNotEmpty) return firstResolvedName;
       return 'Специальное предложение';
     }
     return rawName;
@@ -878,6 +932,10 @@ class _MainPageState extends State<MainPage> {
     final detailName = promo.details.isNotEmpty ? promo.details.first.name.trim() : '';
     if (detailName.isNotEmpty && detailName != title) {
       return detailName;
+    }
+    final resolvedCount = _promotionItemsById[promo.marketingPromotionId]?.length ?? 0;
+    if (resolvedCount > 0) {
+      return '$resolvedCount товаров в подборке';
     }
     if (promo.itemsCount > 0) {
       return '${promo.itemsCount} товаров в подборке';
@@ -1508,18 +1566,7 @@ class _MainPageState extends State<MainPage> {
       );
     }
     if (_promotions.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.symmetric(vertical: 10.s),
-        child: Column(
-          children: [
-            Icon(Icons.local_offer_outlined, color: AppColors.textMute.withValues(alpha: 0.5), size: 32.s),
-            SizedBox(height: 8.s),
-            Text('Акции пока не найдены', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14.sp)),
-            SizedBox(height: 4.s),
-            Text('Выберите магазин или обновите страницу', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-          ],
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -1575,8 +1622,9 @@ class _MainPageState extends State<MainPage> {
                 MaterialPageRoute(
                   builder: (_) => PromotionItemsPage(
                     promotionId: promo.marketingPromotionId,
-                    promotionName: promo.name,
+                    promotionName: promoTitle,
                     businessId: bizId,
+                    initialItems: _promotionItemsById[promo.marketingPromotionId],
                   ),
                 ),
               )

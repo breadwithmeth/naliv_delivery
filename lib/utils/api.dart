@@ -481,6 +481,55 @@ class ApiService {
     return (normalized == null || normalized.isEmpty) ? null : normalized;
   }
 
+  static String? extractCountryName(Map<String, dynamic>? rawAddress) {
+    if (rawAddress == null) return null;
+
+    final geocoding = _extractGeocoding(rawAddress);
+    final country = _firstNonEmptyString([
+      geocoding?['country'],
+      rawAddress['country'],
+      rawAddress['country_name'],
+      rawAddress['countryName'],
+    ]);
+
+    final normalized = country?.trim();
+    return (normalized == null || normalized.isEmpty) ? null : normalized;
+  }
+
+  static String? extractStreetName(Map<String, dynamic>? rawAddress) {
+    if (rawAddress == null) return null;
+
+    final geocoding = _extractGeocoding(rawAddress);
+    final street = _firstNonEmptyString([
+      rawAddress['street'],
+      geocoding?['street'],
+      geocoding?['road'],
+      geocoding?['name'],
+    ]);
+
+    final normalized = _shortenStreetPrefix(street);
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  static String? extractHouseNumber(Map<String, dynamic>? rawAddress) {
+    if (rawAddress == null) return null;
+
+    final geocoding = _extractGeocoding(rawAddress);
+    final house = _firstNonEmptyString([
+      rawAddress['house'],
+      geocoding?['housenumber'],
+      geocoding?['house_number'],
+    ]);
+
+    final normalized = house?.trim();
+    return (normalized == null || normalized.isEmpty) ? null : normalized;
+  }
+
+  static bool isKazakhstanAddress(Map<String, dynamic>? rawAddress, {String country = 'Казахстан'}) {
+    if (rawAddress == null) return false;
+    return _isCountryMatch(rawAddress, country);
+  }
+
   static String formatAddressSummary(
     Map<String, dynamic>? address, {
     String emptyText = 'Адрес не указан',
@@ -493,7 +542,8 @@ class ApiService {
     final street = address['street']?.toString().trim();
     final house = address['house']?.toString().trim();
     if ((base == null || base.trim().isEmpty) && street != null && street.isNotEmpty) {
-      base = house != null && house.isNotEmpty ? '$street, $house' : street;
+      final normalizedStreet = _shortenStreetPrefix(street);
+      base = house != null && house.isNotEmpty ? '$normalizedStreet, $house' : normalizedStreet;
     }
 
     final parts = <String>[(base == null || base.trim().isEmpty) ? emptyText : base.trim()];
@@ -693,22 +743,17 @@ class ApiService {
     }
 
     final parts = <String>[];
+    final streetLabel = _shortenStreetPrefix(street);
     if (street != null && houseNumber != null) {
-      parts.add('$street, $houseNumber');
+      parts.add('$streetLabel, $houseNumber');
     } else if (street != null) {
-      parts.add(street);
-    }
-
-    if (district != null && _normalizeAddressToken(district) != normalizedCity) {
+      parts.add(streetLabel);
+    } else if (district != null && _normalizeAddressToken(district) != normalizedCity) {
       parts.add(district);
     }
 
-    if (city != null) {
-      parts.add(city);
-    }
-
     if (parts.isNotEmpty) {
-      return parts.join(', ');
+      return parts.take(2).join(', ');
     }
 
     return _compactDirectAddressLabel(
@@ -744,21 +789,33 @@ class ApiService {
           normalized == 'kz') {
         continue;
       }
+      if (normalizedPreferredCity.isNotEmpty && normalized == normalizedPreferredCity) {
+        continue;
+      }
+      if (normalized.startsWith('город ') || normalized.startsWith('г ')) {
+        continue;
+      }
       if (compactParts.any((existing) => _normalizeAddressToken(existing) == normalized)) {
         continue;
       }
-      compactParts.add(trimmed);
-    }
-
-    if (normalizedPreferredCity.isNotEmpty && compactParts.every((part) => _normalizeAddressToken(part) != normalizedPreferredCity)) {
-      compactParts.add(preferredCity!.trim());
+      compactParts.add(_shortenStreetPrefix(trimmed));
     }
 
     if (compactParts.isEmpty) {
       return raw;
     }
 
-    return compactParts.take(3).join(', ');
+    return compactParts.take(2).join(', ');
+  }
+
+  static String _shortenStreetPrefix(String? value) {
+    final raw = value?.trim() ?? '';
+    if (raw.isEmpty) {
+      return raw;
+    }
+
+    final normalized = raw.replaceFirst(RegExp(r'^(улица|ул\.?)(\s+)', caseSensitive: false), 'Ул. ');
+    return normalized.replaceFirst(RegExp(r'^(ул\.?)(\s+)', caseSensitive: false), 'Ул. ');
   }
 
   static String _normalizeAddressToken(dynamic value) {
@@ -1357,6 +1414,52 @@ class ApiService {
     return null;
   }
 
+  static Future<List<ItemModel.Item>?> getAllPromotionItemsTyped({
+    required int promotionId,
+    int? businessId,
+    int limit = 50,
+    int maxPages = 20,
+  }) async {
+    final collected = <ItemModel.Item>[];
+    var page = 1;
+    var totalPages = 1;
+
+    while (page <= totalPages && page <= maxPages) {
+      final response = await getPromotionItems(
+        promotionId: promotionId,
+        businessId: businessId,
+        page: page,
+        limit: limit,
+      );
+
+      if (response == null) {
+        return page == 1 ? null : collected;
+      }
+
+      final data = response['data'];
+      if (data is! Map<String, dynamic>) {
+        return page == 1 ? null : collected;
+      }
+
+      final itemsJson = data['items'] as List<dynamic>? ?? const <dynamic>[];
+      collected.addAll(
+        itemsJson.whereType<Map>().map((item) => ItemModel.Item.fromJson(Map<String, dynamic>.from(item))),
+      );
+
+      final pagination = data['pagination'];
+      if (pagination is Map<String, dynamic>) {
+        final parsedTotalPages = _parseInt(pagination['totalPages'] ?? pagination['total_pages']);
+        totalPages = parsedTotalPages > 0 ? parsedTotalPages : page;
+      } else {
+        totalPages = page;
+      }
+
+      page += 1;
+    }
+
+    return collected;
+  }
+
   /// Получить категории с подкатегориями
   ///
   /// [businessId] - ID бизнеса для фильтрации (опционально)
@@ -1609,10 +1712,18 @@ class ApiService {
   /// Сгенерировать ссылку для добавления новой карты
   /// Возвращает URL для редиректа или null
   static Future<String?> generateAddCardLink() async {
+    final result = await generateAddCardLinkResult();
+    return result.link;
+  }
+
+  static Future<AddCardLinkResult> generateAddCardLinkResult() async {
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API generateAddCardLink: auth token not found');
-      return null;
+      return const AddCardLinkResult(
+        success: false,
+        message: 'Нужна авторизация, чтобы привязать новую карту.',
+      );
     }
     final uri = Uri.parse('$baseUrl/payments/generate-add-card-link');
     try {
@@ -1630,18 +1741,47 @@ class ApiService {
         if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
           final data = jsonResponse['data'] as Map<String, dynamic>;
           // API возвращает addCardLink, а не redirect_url
-          return data['addCardLink'] as String?;
+          final link = data['addCardLink'] as String?;
+          if (link == null || link.trim().isEmpty) {
+            return const AddCardLinkResult(
+              success: false,
+              message: 'Банк не вернул ссылку для привязки карты. Попробуйте еще раз чуть позже.',
+            );
+          }
+          return AddCardLinkResult(
+            success: true,
+            link: link,
+            message: jsonResponse['message']?.toString() ?? 'Ссылка на привязку карты готова.',
+          );
         } else {
           debugPrint('API generateAddCardLink error: ${jsonResponse['error']?['message']}');
+          return AddCardLinkResult(
+            success: false,
+            message: jsonResponse['error']?['message']?.toString() ??
+                jsonResponse['message']?.toString() ??
+                'Не удалось получить ссылку для добавления карты.',
+          );
         }
       } else {
         debugPrint('HTTP Error generateAddCardLink: ${response.statusCode}');
         debugPrint('Error body: ${response.body}');
+        String? message;
+        try {
+          final Map<String, dynamic> errorJson = json.decode(response.body);
+          message = errorJson['error']?['message']?.toString() ?? errorJson['message']?.toString();
+        } catch (_) {}
+        return AddCardLinkResult(
+          success: false,
+          message: message ?? 'Не удалось получить ссылку для добавления карты. Попробуйте еще раз.',
+        );
       }
     } catch (e) {
       debugPrint('Network Error generateAddCardLink: $e');
+      return const AddCardLinkResult(
+        success: false,
+        message: 'Не удалось связаться с сервисом привязки карты. Проверьте соединение и попробуйте еще раз.',
+      );
     }
-    return null;
   }
 
   /// Получить информацию о бонусах пользователя
@@ -2390,6 +2530,18 @@ class PromotionStory {
   String toString() {
     return 'PromotionStory(id: $storyId, promo: $promo)';
   }
+}
+
+class AddCardLinkResult {
+  final bool success;
+  final String? link;
+  final String message;
+
+  const AddCardLinkResult({
+    required this.success,
+    this.link,
+    required this.message,
+  });
 }
 
 /// Модель для товара

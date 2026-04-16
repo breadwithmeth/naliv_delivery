@@ -1,3 +1,5 @@
+import '../model/item.dart' as item_model;
+
 class CartItem {
   final int itemId;
   final String name;
@@ -9,6 +11,7 @@ class CartItem {
   final String? packagingType;
   final List<Map<String, dynamic>> selectedVariants;
   final List<Map<String, dynamic>> promotions;
+  final Map<String, dynamic>? itemData;
   final double? maxAmount; // лимит доступного количества (остаток)
 
   CartItem({
@@ -22,6 +25,7 @@ class CartItem {
     this.packagingType,
     required this.selectedVariants,
     required this.promotions,
+    this.itemData,
     this.maxAmount,
   });
 
@@ -37,6 +41,7 @@ class CartItem {
       packagingType: json['packagingType'] as String?,
       selectedVariants: (json['selectedVariants'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
       promotions: (json['promotions'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      itemData: json['itemData'] is Map ? Map<String, dynamic>.from(json['itemData'] as Map) : null,
       maxAmount: json['maxAmount'] != null ? (json['maxAmount'] as num).toDouble() : null,
     );
   }
@@ -53,8 +58,52 @@ class CartItem {
       if (packagingType != null) 'packagingType': packagingType,
       'selectedVariants': selectedVariants,
       'promotions': promotions,
+      if (itemData != null) 'itemData': itemData,
       if (maxAmount != null) 'maxAmount': maxAmount,
     };
+  }
+
+  CartItem copyWith({
+    int? itemId,
+    String? name,
+    double? price,
+    double? quantity,
+    double? stepQuantity,
+    String? image,
+    String? itemType,
+    String? packagingType,
+    List<Map<String, dynamic>>? selectedVariants,
+    List<Map<String, dynamic>>? promotions,
+    Map<String, dynamic>? itemData,
+    bool clearItemData = false,
+    double? maxAmount,
+  }) {
+    return CartItem(
+      itemId: itemId ?? this.itemId,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      quantity: quantity ?? this.quantity,
+      stepQuantity: stepQuantity ?? this.stepQuantity,
+      image: image ?? this.image,
+      itemType: itemType ?? this.itemType,
+      packagingType: packagingType ?? this.packagingType,
+      selectedVariants: selectedVariants ?? this.selectedVariants,
+      promotions: promotions ?? this.promotions,
+      itemData: clearItemData ? null : (itemData ?? this.itemData),
+      maxAmount: maxAmount ?? this.maxAmount,
+    );
+  }
+
+  item_model.Item? get snapshotItem {
+    if (itemData == null) {
+      return null;
+    }
+
+    try {
+      return item_model.Item.fromJson(itemData!);
+    } catch (_) {
+      return null;
+    }
   }
 
   Map<String, dynamic> toJsonForOrder() {

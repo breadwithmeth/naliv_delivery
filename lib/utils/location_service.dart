@@ -12,6 +12,12 @@ class LocationService {
   static const double autoAcceptAccuracyMeters = 200;
   static const double manualConfirmationAccuracyMeters = 1000;
 
+  bool get isIosBrowserLocationFlow => kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  String browserLocationSettingsInstructions({String browserLabel = 'Safari или Chrome'}) {
+    return 'На iPhone доступ к геолокации часто нужно включить для самого браузера. Откройте Настройки > Конфиденциальность и безопасность > Службы геолокации > $browserLabel и выберите «При использовании приложения». После этого вернитесь и нажмите кнопку геолокации еще раз.';
+  }
+
   /// Текущая позиция пользователя
   Position? _currentPosition;
   Position? get currentPosition => _currentPosition;
@@ -75,19 +81,24 @@ class LocationService {
 
       switch (permission) {
         case LocationPermission.denied:
+          final deniedMessage = isIosBrowserLocationFlow
+              ? browserLocationSettingsInstructions()
+              : 'Без доступа к геолокации тоже можно продолжить. Город можно выбрать вручную, а адрес указать позже при оформлении заказа.';
           return LocationPermissionResult(
             success: false,
-            message: 'Без доступа к геолокации тоже можно продолжить. Город можно выбрать вручную, а адрес указать позже при оформлении заказа.',
+            message: deniedMessage,
             permissionStatus: permission,
           );
 
         case LocationPermission.deniedForever:
+          final deniedForeverMessage = isIosBrowserLocationFlow
+              ? browserLocationSettingsInstructions()
+              : 'Доступ к геолокации отключён для приложения. Если захотите, его можно вернуть в настройках. Сейчас можно продолжить и без него.';
           return LocationPermissionResult(
             success: false,
-            message:
-                'Доступ к геолокации отключён для приложения. Если захотите, его можно вернуть в настройках. Сейчас можно продолжить и без него.',
+            message: deniedForeverMessage,
             permissionStatus: permission,
-            needsSettingsRedirect: true,
+            needsSettingsRedirect: !isIosBrowserLocationFlow,
           );
 
         case LocationPermission.whileInUse:

@@ -12,6 +12,7 @@ import 'package:gradusy24/utils/item_name_presentation.dart';
 import 'package:gradusy24/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
+import '../utils/smart_cart.dart';
 import 'package:gradusy24/widgets/address_selection_modal_material.dart';
 import 'cart_page.dart';
 
@@ -39,7 +40,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
 
-  int get _itemCount => Provider.of<CartProvider>(context, listen: false).items.length;
+  int get _itemCount => Provider.of<CartProvider>(context, listen: false).displayItemCount;
 
   void _handleBack() {
     final navigator = Navigator.of(context);
@@ -479,12 +480,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   int _getEarnedBonuses() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    return BonusRules.calculateEarnedBonusesForCartItems(cartProvider.items);
+    return _calculateEarnedBonuses(cartProvider.displayGroups);
   }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final displayGroups = cartProvider.displayGroups;
     final businessProvider = Provider.of<BusinessProvider>(context);
     final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
     final itemsTotal = cartProvider.getTotalPrice();
@@ -604,9 +606,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     _thinDivider(),
                     _sectionTitle('Ваш заказ · $_itemCount поз.'),
                     SizedBox(height: 8.s),
-                    for (int i = 0; i < cartProvider.items.length; i++) ...[
+                    for (int i = 0; i < displayGroups.length; i++) ...[
                       if (i > 0) Divider(color: Colors.white.withValues(alpha: 0.05), height: 16.s),
-                      _itemTile(cartProvider.items[i]),
+                      _itemTile(displayGroups[i]),
                     ],
                     _thinDivider(),
                     _summaryRow('Товары', _money(itemsTotal)),
@@ -735,15 +737,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  static double _freeAmount(item) {
+  static double _freeAmount(CartDisplayGroup item) {
+    if (item.freeQuantity > 0) {
+      return item.freeQuantity;
+    }
     for (final promo in item.promotions) {
       final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'SUBTRACT') {
         final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
         final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
         final groupSize = base + add;
-        if (groupSize > 0 && base > 0 && item.quantity >= groupSize) {
-          final count = item.quantity ~/ groupSize;
+        if (groupSize > 0 && base > 0 && item.totalQuantity >= groupSize) {
+          final count = item.totalQuantity ~/ groupSize;
           return (count * add).toDouble();
         }
       }
@@ -755,16 +760,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
   }
 
-  Widget _itemTile(item) {
-    final itemTitle = presentItemName(
-      rawName: item.name,
-      storedType: item.itemType,
-      storedPackagingType: item.packagingType,
-    );
+  Widget _itemTile(CartDisplayGroup item) {
+    final snapshot = item.itemSnapshot;
+    final itemTitle = snapshot != null
+        ? presentItemName(
+            rawName: snapshot.name,
+            categoryName: snapshot.category?.name,
+          )
+        : presentItemName(
+            rawName: item.name,
+            storedType: item.itemType,
+            storedPackagingType: item.packagingType,
+          );
     final double freeQty = _freeAmount(item);
     final bool hasFree = freeQty > 0;
     final double rawTotal = item.subtotalBeforePromotions;
     final bool hasSavings = item.totalPrice < rawTotal - 0.001;
+    final bottleBreakdown = item.bottleBreakdownLabel;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,7 +794,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Text('x${_fmtQty(item.quantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                  Text('x${_fmtQty(item.totalQuantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                  if (bottleBreakdown != null) ...[
+                    SizedBox(width: 6.s),
+                    Expanded(
+                      child: Text(
+                        bottleBreakdown,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
                   if (hasFree) ...[
                     SizedBox(width: 6.s),
                     Text(
@@ -1016,6 +1039,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
+
+  int _calculateEarnedBonuses(Iterable<CartDisplayGroup> items) {
+    final eligibleSubtotal = items.fold<double>(0, (sum, item) {
+      final snapshot = item.itemSnapshot;
+      final excluded = BonusRules.isBonusExcludedText(
+        name: snapshot?.name ?? item.name,
+        description: snapshot?.description,
+        categoryName: snapshot?.category?.name,
+        code: snapshot?.code,
+      );
+      if (excluded) {
+        return sum;
+      }
+      return sum + item.totalPrice;
+    });
+    return BonusRules.calculateEarnedBonuses(eligibleSubtotal);
+  }
 }
 
 class _CheckoutShopCitySheet extends StatefulWidget {

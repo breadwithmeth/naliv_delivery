@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
 import 'package:gradusy24/models/cart_item.dart';
+import 'package:gradusy24/model/item.dart' as item_model;
+
+import 'smart_cart.dart';
 
 /// Провайдер управления корзиной
 class CartProvider extends ChangeNotifier {
@@ -13,16 +16,32 @@ class CartProvider extends ChangeNotifier {
 
   /// Получить товар по ID и (необязательно) вариантам
   CartItem? getItem(int itemId, [List<Map<String, dynamic>>? variants]) {
+    final normalizedVariants = variants == null ? null : SmartCartSelection.normalizeVariantMaps(variants);
     if (variants != null) {
       return _items.firstWhereOrNull(
-        (item) => item.itemId == itemId && const DeepCollectionEquality().equals(item.selectedVariants, variants),
+        (item) => item.itemId == itemId && const DeepCollectionEquality().equals(item.selectedVariants, normalizedVariants),
       );
     }
     return _items.firstWhereOrNull((item) => item.itemId == itemId);
   }
 
+  List<CartDisplayGroup> get displayGroups => CartDisplayGroup.groupItems(_items);
+
+  int get displayItemCount => displayGroups.length;
+
   /// Добавить товар. Возвращает false, если обязательные опции не выбраны
   bool addItem(CartItem newItem) {
+    final normalizedItem = _normalizeItem(newItem);
+    final added = _addItemInternal(normalizedItem);
+    if (!added) {
+      return false;
+    }
+    _mergeExactDuplicates();
+    _persistAndNotify();
+    return true;
+  }
+
+  bool _addItemInternal(CartItem newItem) {
     for (final variant in newItem.selectedVariants) {
       // Проверяем обязательные опции, если есть
       final int req = variant['required'] as int? ?? 0;
@@ -35,6 +54,7 @@ class CartProvider extends ChangeNotifier {
         if (vid == 0) return false;
       }
     }
+
     final index = _items.indexWhere(
       (item) => item.itemId == newItem.itemId && const DeepCollectionEquality().equals(item.selectedVariants, newItem.selectedVariants),
     );
@@ -43,43 +63,50 @@ class CartProvider extends ChangeNotifier {
     } else {
       _items.add(newItem);
     }
-    _saveCart();
-    notifyListeners();
     return true;
   }
 
   /// Удалить товар(ы) по ID и (необязательно) вариантам
   void removeItem(int itemId, [List<Map<String, dynamic>>? variants]) {
+    _removeItemInternal(itemId, variants);
+    _persistAndNotify();
+  }
+
+  void _removeItemInternal(int itemId, [List<Map<String, dynamic>>? variants]) {
+    final normalizedVariants = variants == null ? null : SmartCartSelection.normalizeVariantMaps(variants);
     if (variants != null) {
       _items.removeWhere(
-        (item) => item.itemId == itemId && const DeepCollectionEquality().equals(item.selectedVariants, variants),
+        (item) => item.itemId == itemId && const DeepCollectionEquality().equals(item.selectedVariants, normalizedVariants),
       );
     } else {
       _items.removeWhere((item) => item.itemId == itemId);
     }
-    _saveCart();
-    notifyListeners();
   }
 
   /// Очистить всю корзину
   void clearCart() {
     _items.clear();
-    _saveCart();
-    notifyListeners();
+    _persistAndNotify();
   }
 
   /// Обновить количество товара, удалит при <=0
   void updateQuantity(int itemId, double newQuantity, [List<Map<String, dynamic>>? variants]) {
+    final updated = _updateQuantityInternal(itemId, newQuantity, variants);
+    if (!updated) return;
+    _mergeExactDuplicates();
+    _persistAndNotify();
+  }
+
+  bool _updateQuantityInternal(int itemId, double newQuantity, [List<Map<String, dynamic>>? variants]) {
     final item = getItem(itemId, variants);
-    if (item == null) return;
+    if (item == null) return false;
     item.updateQuantity(newQuantity);
     if (item.quantity <= 0) _items.remove(item);
-    _saveCart();
-    notifyListeners();
+    return true;
   }
 
   /// Общая сумма корзины с учетом скидок
-  double getTotalPrice() => _items.fold(0.0, (sum, item) => sum + item.totalPrice);
+  double getTotalPrice() => displayGroups.fold(0.0, (sum, item) => sum + item.totalPrice);
 
   /// Сохранить корзину
   Future<void> _saveCart() async {
@@ -98,7 +125,8 @@ class CartProvider extends ChangeNotifier {
       final decoded = jsonDecode(jsonString) as List<dynamic>;
       _items
         ..clear()
-        ..addAll(decoded.map((e) => CartItem.fromJson(e as Map<String, dynamic>)));
+        ..addAll(decoded.map((e) => _normalizeItem(CartItem.fromJson(e as Map<String, dynamic>))));
+      _mergeExactDuplicates();
       notifyListeners();
     }
   }
@@ -118,6 +146,299 @@ class CartProvider extends ChangeNotifier {
     updateQuantity(itemId, newQuantity, variants);
   }
 
+  double getCatalogQuantity(item_model.Item item) {
+    final selection = SmartCartSelection(item);
+    final group = displayGroups.firstWhereOrNull((entry) => entry.key == selection.defaultDisplayKey);
+    return group?.totalQuantity ?? 0.0;
+  }
+
+  void incrementCatalogItem(item_model.Item item) {
+    _adjustItemGroupQuantity(item, direction: 1);
+  }
+
+  void decrementCatalogItem(item_model.Item item) {
+    _adjustItemGroupQuantity(item, direction: -1);
+  }
+
+  void incrementDisplayGroup(CartDisplayGroup group) {
+    _adjustExistingGroup(group, direction: 1);
+  }
+
+  void decrementDisplayGroup(CartDisplayGroup group) {
+    _adjustExistingGroup(group, direction: -1);
+  }
+
+  void updateDisplayGroupBottleCounts(CartDisplayGroup group, Map<int, int> bottleCounts) {
+    final snapshot = group.itemSnapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    final selection = SmartCartSelection(snapshot);
+    if (!selection.usesPourFlow) {
+      return;
+    }
+
+    _syncPourFlowBottleCounts(selection, group.baseVariants, bottleCounts);
+  }
+
+  void _adjustItemGroupQuantity(
+    item_model.Item item, {
+    required int direction,
+  }) {
+    final selection = SmartCartSelection(item);
+    final key = selection.defaultDisplayKey;
+    final currentGroup = displayGroups.firstWhereOrNull((entry) => entry.key == key);
+    final currentQuantity = currentGroup?.totalQuantity ?? 0.0;
+    final step = selection.defaultStepQuantity;
+    final nextQuantity = selection.clampQuantity(currentQuantity + (step * direction));
+
+    if (direction < 0 && currentQuantity <= 0) {
+      return;
+    }
+
+    _syncSelectionGroup(selection, selection.defaultNonBottleVariants, nextQuantity);
+  }
+
+  void _adjustExistingGroup(
+    CartDisplayGroup group, {
+    required int direction,
+  }) {
+    final snapshot = group.itemSnapshot;
+    if (snapshot == null) {
+      return;
+    }
+
+    final selection = SmartCartSelection(snapshot);
+    final step = selection.usesPourFlow ? 1.0 : selection.defaultStepQuantity;
+    final nextQuantity = selection.clampQuantity(group.totalQuantity + (step * direction));
+
+    if (direction < 0 && group.totalQuantity <= 0) {
+      return;
+    }
+
+    _syncSelectionGroup(selection, group.baseVariants, nextQuantity);
+  }
+
+  void _syncSelectionGroup(
+    SmartCartSelection selection,
+    List<Map<String, dynamic>> baseVariants,
+    double targetQuantity,
+  ) {
+    final normalizedBaseVariants = SmartCartSelection.normalizeVariantMaps(baseVariants);
+    final displayKey = selection.displayKeyForVariants(normalizedBaseVariants);
+    final matching = _items.where((item) => CartDisplayGroup.displayKeyForCartItem(item) == displayKey).toList(growable: false);
+
+    if (selection.usesPourFlow) {
+      _syncPourFlowGroup(selection, normalizedBaseVariants, matching, targetQuantity);
+      return;
+    }
+
+    final clampedTarget = selection.clampQuantity(targetQuantity);
+    if (clampedTarget <= 0) {
+      for (final item in matching) {
+        _removeItemInternal(item.itemId, item.selectedVariants);
+      }
+      _persistAndNotify();
+      return;
+    }
+
+    if (matching.isEmpty) {
+      if (normalizedBaseVariants.isEmpty) {
+        _addItemInternal(
+          CartItem(
+            itemId: selection.item.itemId,
+            name: selection.item.name,
+            price: selection.item.price,
+            quantity: clampedTarget,
+            stepQuantity: selection.item.effectiveStepQuantity,
+            image: selection.item.image,
+            itemType: null,
+            packagingType: null,
+            selectedVariants: const <Map<String, dynamic>>[],
+            promotions:
+                (selection.item.promotions ?? const <item_model.ItemPromotion>[]).map((promotion) => promotion.toJson()).toList(growable: false),
+            itemData: selection.item.toJson(),
+            maxAmount: selection.item.amount?.toDouble(),
+          ),
+        );
+      } else {
+        addItemWithOptions(
+          selection.item.itemId,
+          selection.item.name,
+          selection.item.image ?? '',
+          selection.item.price,
+          clampedTarget,
+          normalizedBaseVariants,
+          (selection.item.promotions ?? const <item_model.ItemPromotion>[]).map((promotion) => promotion.toJson()).toList(growable: false),
+          null,
+          null,
+          selection.item.toJson(),
+        );
+        return;
+      }
+      _persistAndNotify();
+      return;
+    }
+
+    final primary = matching.first;
+    _updateQuantityInternal(primary.itemId, clampedTarget, primary.selectedVariants);
+    for (final duplicate in matching.skip(1)) {
+      _removeItemInternal(duplicate.itemId, duplicate.selectedVariants);
+    }
+    _mergeExactDuplicates();
+    _persistAndNotify();
+  }
+
+  void _syncPourFlowGroup(
+    SmartCartSelection selection,
+    List<Map<String, dynamic>> baseVariants,
+    List<CartItem> matching,
+    double targetQuantity,
+  ) {
+    final clampedTarget = selection.clampQuantity(targetQuantity);
+    final bottleCounts = clampedTarget <= 0 ? const <int, int>{} : selection.autoBottleBreakdown(clampedTarget);
+    final existingByBottle = <int, List<CartItem>>{};
+
+    for (final item in matching) {
+      final bottleVariant = item.selectedVariants.firstWhereOrNull(selection.isBottleVariant);
+      final bottleId = bottleVariant == null ? null : SmartCartSelection.variantRelationId(bottleVariant);
+      if (bottleId == null) {
+        continue;
+      }
+      existingByBottle.putIfAbsent(bottleId, () => <CartItem>[]).add(item);
+    }
+
+    for (final bottle in selection.filteredBottles) {
+      final bottleId = bottle.relationId;
+      final desiredCount = bottleCounts[bottleId] ?? 0;
+      final desiredQuantity = selection.clampQuantity(selection.volumeForBottle(bottle) * desiredCount);
+      final existing = existingByBottle[bottleId] ?? const <CartItem>[];
+
+      if (desiredQuantity <= 0) {
+        for (final item in existing) {
+          _removeItemInternal(item.itemId, item.selectedVariants);
+        }
+        continue;
+      }
+
+      if (existing.isEmpty) {
+        _addItemInternal(
+          CartItem(
+            itemId: selection.item.itemId,
+            name: selection.item.name,
+            price: selection.item.price,
+            quantity: desiredQuantity,
+            stepQuantity: selection.volumeForBottle(bottle),
+            image: selection.item.image,
+            itemType: null,
+            packagingType: null,
+            selectedVariants: selection.buildVariantMaps(bottle: bottle, baseVariants: baseVariants),
+            promotions:
+                (selection.item.promotions ?? const <item_model.ItemPromotion>[]).map((promotion) => promotion.toJson()).toList(growable: false),
+            itemData: selection.item.toJson(),
+            maxAmount: selection.item.amount?.toDouble(),
+          ),
+        );
+        continue;
+      }
+
+      final primary = existing.first;
+      _updateQuantityInternal(primary.itemId, desiredQuantity, primary.selectedVariants);
+      for (final duplicate in existing.skip(1)) {
+        _removeItemInternal(duplicate.itemId, duplicate.selectedVariants);
+      }
+    }
+
+    final targetBottleIds = bottleCounts.keys.toSet();
+    for (final entry in existingByBottle.entries) {
+      if (!targetBottleIds.contains(entry.key)) {
+        for (final item in entry.value) {
+          _removeItemInternal(item.itemId, item.selectedVariants);
+        }
+      }
+    }
+
+    _mergeExactDuplicates();
+    _persistAndNotify();
+  }
+
+  void _syncPourFlowBottleCounts(
+    SmartCartSelection selection,
+    List<Map<String, dynamic>> baseVariants,
+    Map<int, int> bottleCounts,
+  ) {
+    final normalizedBaseVariants = SmartCartSelection.normalizeVariantMaps(baseVariants);
+    final displayKey = selection.displayKeyForVariants(normalizedBaseVariants);
+    final matching = _items.where((item) => CartDisplayGroup.displayKeyForCartItem(item) == displayKey).toList(growable: false);
+    final existingByBottle = <int, List<CartItem>>{};
+
+    for (final item in matching) {
+      final bottleVariant = item.selectedVariants.firstWhereOrNull(selection.isBottleVariant);
+      final bottleId = bottleVariant == null ? null : SmartCartSelection.variantRelationId(bottleVariant);
+      if (bottleId == null) {
+        continue;
+      }
+      existingByBottle.putIfAbsent(bottleId, () => <CartItem>[]).add(item);
+    }
+
+    var totalLiters = 0.0;
+    for (final bottle in selection.filteredBottles) {
+      final rawCount = bottleCounts[bottle.relationId] ?? 0;
+      final count = rawCount < 0 ? 0 : rawCount;
+      totalLiters += selection.volumeForBottle(bottle) * count;
+    }
+
+    if (selection.maxAmount.isFinite && totalLiters > selection.maxAmount + 0.001) {
+      return;
+    }
+
+    for (final bottle in selection.filteredBottles) {
+      final bottleId = bottle.relationId;
+      final rawCount = bottleCounts[bottleId] ?? 0;
+      final desiredCount = rawCount < 0 ? 0 : rawCount;
+      final desiredQuantity = selection.clampQuantity(selection.volumeForBottle(bottle) * desiredCount);
+      final existing = existingByBottle[bottleId] ?? const <CartItem>[];
+
+      if (desiredQuantity <= 0) {
+        for (final item in existing) {
+          _removeItemInternal(item.itemId, item.selectedVariants);
+        }
+        continue;
+      }
+
+      if (existing.isEmpty) {
+        _addItemInternal(
+          CartItem(
+            itemId: selection.item.itemId,
+            name: selection.item.name,
+            price: selection.item.price,
+            quantity: desiredQuantity,
+            stepQuantity: selection.volumeForBottle(bottle),
+            image: selection.item.image,
+            itemType: null,
+            packagingType: null,
+            selectedVariants: selection.buildVariantMaps(bottle: bottle, baseVariants: normalizedBaseVariants),
+            promotions:
+                (selection.item.promotions ?? const <item_model.ItemPromotion>[]).map((promotion) => promotion.toJson()).toList(growable: false),
+            itemData: selection.item.toJson(),
+            maxAmount: selection.item.amount?.toDouble(),
+          ),
+        );
+        continue;
+      }
+
+      final primary = existing.first;
+      _updateQuantityInternal(primary.itemId, desiredQuantity, primary.selectedVariants);
+      for (final duplicate in existing.skip(1)) {
+        _removeItemInternal(duplicate.itemId, duplicate.selectedVariants);
+      }
+    }
+
+    _mergeExactDuplicates();
+    _persistAndNotify();
+  }
+
   /// Добавление товара с опциями в корзину
   bool addItemWithOptions(
     int itemId,
@@ -129,9 +450,10 @@ class CartProvider extends ChangeNotifier {
     List<Map<String, dynamic>> promotions,
     String? itemType,
     String? packagingType,
+    Map<String, dynamic>? itemData,
   ) {
     // Используем переданные мапы вариантов и акций
-    final variantMaps = List<Map<String, dynamic>>.from(selectedVariants);
+    final variantMaps = SmartCartSelection.normalizeVariantMaps(List<Map<String, dynamic>>.from(selectedVariants));
     final promoMaps = List<Map<String, dynamic>>.from(promotions);
     // Определяем шаг изменения из parent_item_amount или stepQuantity
     double step = variantMaps.isNotEmpty && variantMaps.first['parent_item_amount'] != null
@@ -148,7 +470,44 @@ class CartProvider extends ChangeNotifier {
       packagingType: packagingType,
       selectedVariants: variantMaps,
       promotions: promoMaps,
+      itemData: itemData,
     );
     return addItem(newItem);
+  }
+
+  CartItem _normalizeItem(CartItem item) {
+    return item.copyWith(
+      selectedVariants: SmartCartSelection.normalizeVariantMaps(item.selectedVariants),
+    );
+  }
+
+  void _mergeExactDuplicates() {
+    if (_items.length < 2) {
+      return;
+    }
+
+    final merged = <String, CartItem>{};
+    for (final item in _items) {
+      final key = '${item.itemId}|${item.selectedVariants.map(SmartCartSelection.variantStableKey).join(';')}';
+      final existing = merged[key];
+      if (existing == null) {
+        merged[key] = item;
+        continue;
+      }
+
+      existing.updateQuantity(existing.quantity + item.quantity);
+      if (existing.itemData == null && item.itemData != null) {
+        merged[key] = existing.copyWith(itemData: item.itemData);
+      }
+    }
+
+    _items
+      ..clear()
+      ..addAll(merged.values);
+  }
+
+  void _persistAndNotify() {
+    _saveCart();
+    notifyListeners();
   }
 }

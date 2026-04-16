@@ -32,7 +32,7 @@ class CartFloatingButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cart, _) {
-        final itemCount = cart.items.length;
+        final itemCount = cart.displayItemCount;
         final total = cart.getTotalPrice();
 
         if (itemCount == 0) return const SizedBox.shrink();

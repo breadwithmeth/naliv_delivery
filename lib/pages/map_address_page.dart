@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../services/onboarding_service.dart';
+import '../shared/app_theme.dart';
 import '../utils/api.dart';
 import '../utils/location_service.dart';
 import '../utils/responsive.dart';
@@ -41,6 +43,9 @@ class _MapAddressPageState extends State<MapAddressPage> {
   late LatLng _center;
   String? _selectedCity;
   String _currentAddress = '';
+  Map<String, dynamic>? _resolvedAddressData;
+  Map<String, dynamic>? _userAddressData;
+  Position? _userPosition;
   bool _isResolvingAddress = true;
   bool _isLocatingUser = false;
   int _reverseRequestId = 0;
@@ -90,10 +95,16 @@ class _MapAddressPageState extends State<MapAddressPage> {
     setState(() => _isLocatingUser = true);
     try {
       final permission = await _locationService.checkAndRequestPermissions();
-      if (!permission.success) return;
+      if (!permission.success) {
+        await _showLocationHelp(permission);
+        return;
+      }
 
       final serviceEnabled = await _locationService.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
+      if (!serviceEnabled) {
+        await _showLocationServicesDisabled();
+        return;
+      }
 
       Position? position;
       for (final accuracy in [LocationAccuracy.high, LocationAccuracy.medium, LocationAccuracy.low]) {
@@ -109,7 +120,16 @@ class _MapAddressPageState extends State<MapAddressPage> {
       if (position == null || !mounted) return;
 
       final nextCenter = LatLng(position.latitude, position.longitude);
-      setState(() => _center = nextCenter);
+      final userAddress = await ApiService.searchAddressByCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      setState(() {
+        _center = nextCenter;
+        _userPosition = position;
+        _userAddressData = userAddress != null && userAddress.isNotEmpty ? userAddress.first : null;
+      });
       _mapController.move(nextCenter, 16.5);
       await _reverseAddress(nextCenter.latitude, nextCenter.longitude);
     } finally {
@@ -125,11 +145,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
       setState(() => _isResolvingAddress = true);
     }
 
-    final addressData = await ApiService.searchAddresses(
-      lat: lat,
-      lon: lon,
-      city: _selectedCity,
-    );
+    final addressData = await ApiService.searchAddressByCoordinates(lat, lon);
 
     if (!mounted || requestId != _reverseRequestId) return;
 
@@ -144,6 +160,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
         : 'Адрес не найден';
 
     setState(() {
+      _resolvedAddressData = addressData != null && addressData.isNotEmpty ? addressData.first : null;
       _currentAddress = label;
       _isResolvingAddress = false;
     });
@@ -180,6 +197,8 @@ class _MapAddressPageState extends State<MapAddressPage> {
 
     setState(() {
       _center = nextCenter;
+      _resolvedAddressData =
+          selected['rawAddress'] is Map<String, dynamic> ? Map<String, dynamic>.from(selected['rawAddress'] as Map<String, dynamic>) : null;
       if (label.isNotEmpty) {
         _currentAddress = label;
       }
@@ -191,7 +210,131 @@ class _MapAddressPageState extends State<MapAddressPage> {
 
   void _confirmAddress() {
     final address = _currentAddress.trim().isNotEmpty ? _currentAddress.trim() : 'Адрес не найден';
-    _openAddressDetailsStep(address);
+    _validateAddressSelection().then((allowed) {
+      if (!allowed || !mounted) return;
+      _openAddressDetailsStep(address);
+    });
+  }
+
+  Future<bool> _validateAddressSelection() async {
+    final resolvedAddress = _resolvedAddressData;
+    if (resolvedAddress == null) {
+      await AppDialogs.showMessage(
+        context,
+        title: 'Адрес не найден',
+        message: 'Не получилось определить адрес по выбранной точке. Передвиньте карту немного и попробуйте еще раз.',
+      );
+      return false;
+    }
+
+    if (!ApiService.isKazakhstanAddress(resolvedAddress)) {
+      await AppDialogs.showMessage(
+        context,
+        title: 'Адрес вне зоны доставки',
+        message: 'Сейчас можно добавить только адреса в Казахстане.',
+      );
+      return false;
+    }
+
+    final userPosition = _userPosition;
+    if (userPosition == null || !_locationService.isAccurateEnoughForAutoSelection(userPosition)) {
+      return true;
+    }
+
+    final selectedCity = _normalizeToken(ApiService.extractCityName(resolvedAddress));
+    final selectedCountry = _normalizeToken(ApiService.extractCountryName(resolvedAddress));
+    final currentCity = _normalizeToken(ApiService.extractCityName(_userAddressData));
+    final currentCountry = _normalizeToken(ApiService.extractCountryName(_userAddressData));
+    final distanceMeters = Geolocator.distanceBetween(userPosition.latitude, userPosition.longitude, _center.latitude, _center.longitude);
+    final bool countryMismatch = selectedCountry.isNotEmpty && currentCountry.isNotEmpty && selectedCountry != currentCountry;
+    final bool cityMismatch = selectedCity.isNotEmpty && currentCity.isNotEmpty && selectedCity != currentCity;
+    final bool isFarAway = distanceMeters > 25000;
+
+    if (!countryMismatch && !cityMismatch && !isFarAway) {
+      return true;
+    }
+
+    final currentCityLabel = ApiService.extractCityName(_userAddressData) ?? 'вашего текущего города';
+    final selectedCityLabel = ApiService.extractCityName(resolvedAddress) ?? 'другого города';
+    final warningMessage = countryMismatch
+        ? 'Вы выбрали адрес в другой стране относительно текущего местоположения. Проверьте адрес и подтвердите, если он указан специально.'
+        : 'Адрес выглядит далеко от вашего текущего местоположения: сейчас вы в районе $currentCityLabel, а выбранный адрес относится к $selectedCityLabel (~${(distanceMeters / 1000).toStringAsFixed(1)} км). Продолжить?';
+
+    final shouldContinue = await AppDialogs.show<bool>(
+      context,
+      title: 'Проверьте адрес',
+      content: Text(warningMessage, style: const TextStyle(color: AppColors.textMute)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Исправить', style: TextStyle(color: AppColors.text)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Продолжить', style: TextStyle(color: AppColors.orange)),
+        ),
+      ],
+    );
+
+    return shouldContinue == true;
+  }
+
+  Future<void> _showLocationHelp(LocationPermissionResult permission) async {
+    final isIosBrowser = _locationService.isIosBrowserLocationFlow;
+    final shouldOpenSettings = await AppDialogs.show<bool>(
+      context,
+      title: 'Нужен доступ к геолокации',
+      content: Text(
+        isIosBrowser ? _locationService.browserLocationSettingsInstructions() : permission.message,
+        style: const TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Понятно', style: TextStyle(color: AppColors.text)),
+        ),
+        if (!isIosBrowser && permission.needsSettingsRedirect)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Открыть настройки', style: TextStyle(color: AppColors.orange)),
+          ),
+      ],
+    );
+
+    if (shouldOpenSettings == true && !isIosBrowser) {
+      await _locationService.openAppSettings();
+    }
+  }
+
+  Future<void> _showLocationServicesDisabled() async {
+    final isIosBrowser = _locationService.isIosBrowserLocationFlow;
+    final shouldOpenSettings = await AppDialogs.show<bool>(
+      context,
+      title: 'Геолокация выключена',
+      content: Text(
+        isIosBrowser ? _locationService.browserLocationSettingsInstructions() : 'Включите геолокацию в настройках устройства и попробуйте снова.',
+        style: const TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Позже', style: TextStyle(color: AppColors.text)),
+        ),
+        if (!isIosBrowser)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Открыть настройки', style: TextStyle(color: AppColors.orange)),
+          ),
+      ],
+    );
+
+    if (shouldOpenSettings == true && !isIosBrowser) {
+      await _locationService.openLocationSettings();
+    }
+  }
+
+  String _normalizeToken(String? value) {
+    return value?.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim() ?? '';
   }
 
   Future<void> _openAddressDetailsStep(String address) async {
@@ -216,9 +359,14 @@ class _MapAddressPageState extends State<MapAddressPage> {
       'lat': _center.latitude,
       'lon': _center.longitude,
       'address': address,
+      'street': ApiService.extractStreetName(_resolvedAddressData),
+      'house': ApiService.extractHouseNumber(_resolvedAddressData),
+      'city': ApiService.extractCityName(_resolvedAddressData),
+      'country': ApiService.extractCountryName(_resolvedAddressData),
       'entrance': _entranceController.text.trim(),
       'floor': _floorController.text.trim(),
       'apartment': _apartmentController.text.trim(),
+      'point': {'lat': _center.latitude, 'lon': _center.longitude},
       'source': 'map_selection',
       'timestamp': DateTime.now().toIso8601String(),
     });
@@ -851,6 +999,7 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
                                       'lat': lat,
                                       'lon': lon,
                                       'label': label,
+                                      'rawAddress': item,
                                     }),
                                     child: Ink(
                                       padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),

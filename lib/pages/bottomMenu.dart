@@ -19,6 +19,7 @@ import 'package:gradusy24/utils/address_storage_service.dart';
 import 'package:gradusy24/pages/login_page.dart';
 import 'package:gradusy24/utils/cart_provider.dart';
 import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/utils/browser_history.dart';
 
 class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;
@@ -58,6 +59,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   // Данные геолокации
   Position? _userPosition;
   bool _initialCheckoutHandled = false;
+  bool _browserHistoryReady = false;
 
   // Акции загружаются в MainPage
 
@@ -75,16 +77,59 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   @override
   void initState() {
     super.initState();
+    final browserTabIndex = _browserTabIndex();
     // Установка стартовой вкладки, если передан индекс
     if (widget.initialTabIndex != null) {
       _currentIndex = widget.initialTabIndex!.clamp(0, 4);
     }
+    if (browserTabIndex != null) {
+      _currentIndex = browserTabIndex.clamp(0, 4);
+    }
+    browserHistoryListen(_handleBrowserHistoryPop);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _restoreSavedBusinessSelection();
+      _syncBrowserHistory(replace: true);
       _openInitialCheckoutIfNeeded();
     });
     _loadCitiesAndSelection();
     _loadSavedAddress();
+  }
+
+  int? _browserTabIndex() {
+    final fragment = browserHistoryCurrentFragment();
+    if (fragment.isEmpty) {
+      return null;
+    }
+
+    final query = Uri.splitQueryString(fragment);
+    final rawTab = query['tab'];
+    if (rawTab == null) {
+      return null;
+    }
+    return int.tryParse(rawTab);
+  }
+
+  void _handleBrowserHistoryPop() {
+    if (!mounted) {
+      return;
+    }
+
+    final browserTabIndex = _browserTabIndex();
+    if (browserTabIndex == null || browserTabIndex == _currentIndex) {
+      return;
+    }
+
+    _onTabTapped(browserTabIndex.clamp(0, 4), fromBrowserHistory: true);
+  }
+
+  void _syncBrowserHistory({bool replace = false}) {
+    final fragment = 'tab=$_currentIndex';
+    if (!_browserHistoryReady || replace) {
+      browserHistoryReplaceFragment(fragment);
+      _browserHistoryReady = true;
+      return;
+    }
+    browserHistoryPushFragment(fragment);
   }
 
   Future<void> _restoreSavedBusinessSelection() async {
@@ -620,17 +665,31 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return Scaffold(
       extendBody: true,
       backgroundColor: _bgDeep,
-      body: IndexedStack(index: _currentIndex, children: pages),
+      body: PopScope(
+        canPop: _currentIndex == 0,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _currentIndex != 0) {
+            _onTabTapped(0);
+          }
+        },
+        child: IndexedStack(index: _currentIndex, children: pages),
+      ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
 
   int _currentIndex = 0;
 
-  void _onTabTapped(int index) {
+  void _onTabTapped(int index, {bool fromBrowserHistory = false}) {
+    if (_currentIndex == index) {
+      return;
+    }
     setState(() {
       _currentIndex = index;
     });
+    if (!fromBrowserHistory) {
+      _syncBrowserHistory();
+    }
   }
 
   Widget _buildBottomNav() {
@@ -674,7 +733,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
               child: Center(
                 child: Consumer<CartProvider>(
                   builder: (context, cart, _) {
-                    final itemCount = cart.items.length;
+                    final itemCount = cart.displayItemCount;
                     final total = cart.getTotalPrice();
                     final hasItems = itemCount > 0;
 
@@ -785,6 +844,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   @override
   void dispose() {
+    browserHistoryDispose(_handleBrowserHistoryPop);
     super.dispose();
   }
 }

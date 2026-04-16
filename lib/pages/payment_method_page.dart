@@ -25,6 +25,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
   String? _selectedCardId;
   bool _awaitingCardAdd = false;
   bool _isPaying = false;
+  int _cardCountBeforeAdd = 0;
+  _CardFeedback? _cardFeedback;
 
   @override
   void initState() {
@@ -44,11 +46,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     if (state == AppLifecycleState.resumed && _awaitingCardAdd) {
       // Вернулись из внешнего браузера — обновляем карты один раз
       _awaitingCardAdd = false;
-      _loadCards();
+      _loadCards(showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
     }
   }
 
-  Future<void> _loadCards() async {
+  Future<void> _loadCards({bool showRefreshFeedback = false, int? previousCount}) async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
@@ -65,6 +67,18 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
           _selectedCardId = null;
         }
       });
+      if (showRefreshFeedback) {
+        final previous = previousCount ?? 0;
+        final current = _cards?.length ?? 0;
+        if (current > previous) {
+          _setCardFeedback('Новая карта добавлена. Выберите её для оплаты.', _CardFeedbackTone.success);
+        } else {
+          _setCardFeedback(
+            'Список карт обновлен. Если новая карта еще не появилась, завершите привязку в форме банка и обновите список еще раз.',
+            _CardFeedbackTone.info,
+          );
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -75,40 +89,44 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
   }
 
   Future<void> _addCard() async {
-    final link = await ApiService.generateAddCardLink();
-    if (link == null) {
+    _cardCountBeforeAdd = _cards?.length ?? 0;
+    final result = await ApiService.generateAddCardLinkResult();
+    if (!result.success || result.link == null) {
       if (!mounted) return;
-      await _showNotice('Ссылка недоступна', 'Не удалось получить ссылку для добавления карты.');
+      _setCardFeedback(result.message, _CardFeedbackTone.error);
       return;
     }
 
+    final link = result.link!;
     final uri = Uri.tryParse(link);
     if (uri == null) {
       if (!mounted) return;
-      await _showNotice('Ссылка недоступна', 'Получена некорректная ссылка для добавления карты.');
+      _setCardFeedback('Получена некорректная ссылка для добавления карты. Попробуйте еще раз.', _CardFeedbackTone.error);
       return;
     }
 
     if (_supportsEmbeddedCardFlow) {
+      _setCardFeedback('Открываем защищенную форму банка для привязки карты.', _CardFeedbackTone.info);
       final shouldRefresh = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => AddCardWebViewPage(initialUrl: link),
         ),
       );
       if (shouldRefresh == true && mounted) {
-        await _loadCards();
+        await _loadCards(showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
       }
       return;
     }
 
     if (await canLaunchUrl(uri)) {
       _awaitingCardAdd = true;
+      _setCardFeedback('Открываем форму банка. После возвращения список карт обновится автоматически.', _CardFeedbackTone.info);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
       return;
     }
 
     if (!mounted) return;
-    await _showNotice('Ссылка недоступна', 'Не удалось открыть ссылку для добавления карты.');
+    _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _CardFeedbackTone.error);
   }
 
   bool get _supportsEmbeddedCardFlow {
@@ -248,6 +266,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     );
   }
 
+  void _setCardFeedback(String message, _CardFeedbackTone tone) {
+    if (!mounted) return;
+    setState(() {
+      _cardFeedback = _CardFeedback(message: message, tone: tone);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final amount = _getOrderAmount();
@@ -278,6 +303,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
               child: Column(
                 children: [
                   _amountHeader(amount),
+                  if (_cardFeedback != null) ...[
+                    SizedBox(height: 12.s),
+                    _cardFeedbackBanner(_cardFeedback!),
+                  ],
                   SizedBox(height: 14.s),
                   Expanded(
                     child: _isLoading ? const Center(child: CircularProgressIndicator(color: AppColors.orange)) : _cardsSection(),
@@ -432,6 +461,45 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     return button;
   }
 
+  Widget _cardFeedbackBanner(_CardFeedback feedback) {
+    final Color accent;
+    final IconData icon;
+    switch (feedback.tone) {
+      case _CardFeedbackTone.success:
+        accent = const Color(0xFF2A8C3E);
+        icon = Icons.check_circle_rounded;
+      case _CardFeedbackTone.error:
+        accent = AppColors.red;
+        icon = Icons.error_outline_rounded;
+      case _CardFeedbackTone.info:
+        accent = AppColors.orange;
+        icon = Icons.info_outline_rounded;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.s),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16.s),
+        border: Border.all(color: accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: accent, size: 18.s),
+          SizedBox(width: 10.s),
+          Expanded(
+            child: Text(
+              feedback.message,
+              style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _payButton() {
     final bool disabled = _isLoading || _isPaying || _selectedCardId == null;
     return GestureDetector(
@@ -489,4 +557,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
       ],
     );
   }
+}
+
+enum _CardFeedbackTone { success, error, info }
+
+class _CardFeedback {
+  final String message;
+  final _CardFeedbackTone tone;
+
+  const _CardFeedback({required this.message, required this.tone});
 }

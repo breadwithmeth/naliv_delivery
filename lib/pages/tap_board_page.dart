@@ -1203,13 +1203,13 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   Widget _cartSection(item_model.Item item) {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, _) {
-        final totalQuantity = cartProvider.getTotalQuantityForItem(item.itemId);
+        final totalQuantity = cartProvider.getCatalogQuantity(item);
         final isInCart = totalQuantity > 0;
         final num? maxAmount = item.amount;
         final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
 
         if (isInCart) {
-          return _quantityControls(item, cartProvider, totalQuantity, maxAmount, canIncrease);
+          return _quantityControls(item, cartProvider, totalQuantity, canIncrease);
         }
         return _addToCartButton(item, cartProvider, maxAmount);
       },
@@ -1220,27 +1220,13 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     item_model.Item item,
     CartProvider cartProvider,
     double totalQuantity,
-    num? maxAmount,
     bool canIncrease,
   ) {
     return Row(
       children: [
         _ctrlButton(
           icon: Icons.remove,
-          onPressed: () {
-            final variants = cartProvider.getItemVariants(item.itemId);
-            if (variants.isNotEmpty) {
-              final variant = variants.first;
-              double step = variant.stepQuantity;
-              for (final selectedVariant in variant.selectedVariants) {
-                if (selectedVariant.containsKey('parent_item_amount')) {
-                  step = (selectedVariant['parent_item_amount'] as num).toDouble();
-                  break;
-                }
-              }
-              cartProvider.updateQuantityWithVariants(item.itemId, variant.selectedVariants, variant.quantity - step);
-            }
-          },
+          onPressed: () => cartProvider.decrementCatalogItem(item),
         ),
         SizedBox(width: 5.s),
         Expanded(
@@ -1252,7 +1238,7 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
             ),
             child: Center(
               child: Text(
-                item.effectiveStepQuantity == 1.0 ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
+                totalQuantity == totalQuantity.roundToDouble() ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
                 style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w800, color: AppColors.orange),
               ),
             ),
@@ -1260,33 +1246,9 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
         ),
         SizedBox(width: 5.s),
         _ctrlButton(
-          icon: item.hasOptions ? Icons.settings : Icons.add,
+          icon: Icons.add,
           enabled: canIncrease,
-          onPressed: canIncrease
-              ? () {
-                  if (item.hasOptions) {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductDetailPage(item: item)));
-                  } else {
-                    final variants = cartProvider.getItemVariants(item.itemId);
-                    if (variants.isNotEmpty) {
-                      final variant = variants.first;
-                      double step = variant.stepQuantity;
-                      for (final selectedVariant in variant.selectedVariants) {
-                        if (selectedVariant.containsKey('parent_item_amount')) {
-                          step = (selectedVariant['parent_item_amount'] as num).toDouble();
-                          break;
-                        }
-                      }
-                      final target = variant.quantity + step;
-                      if (maxAmount != null && target > maxAmount.toDouble()) {
-                        cartProvider.updateQuantityWithVariants(item.itemId, variant.selectedVariants, maxAmount.toDouble());
-                      } else {
-                        cartProvider.updateQuantityWithVariants(item.itemId, variant.selectedVariants, target);
-                      }
-                    }
-                  }
-                }
-              : null,
+          onPressed: canIncrease ? () => cartProvider.incrementCatalogItem(item) : null,
         ),
       ],
     );
@@ -1319,13 +1281,9 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     CartProvider cartProvider,
     num? maxAmount,
   ) {
-    final itemTitle = presentItemName(
-      rawName: item.name,
-      categoryName: item.category?.name,
-    );
     final canAdd = maxAmount == null || maxAmount.toDouble() > 0;
-    final buttonLabel = canAdd ? (item.hasOptions ? 'Опции' : 'В корзину') : 'Нет';
-    final buttonIcon = canAdd ? (item.hasOptions ? Icons.tune_rounded : Icons.shopping_bag_outlined) : Icons.remove_shopping_cart_outlined;
+    final buttonLabel = canAdd ? 'В корзину' : 'Нет';
+    final buttonIcon = canAdd ? Icons.shopping_bag_outlined : Icons.remove_shopping_cart_outlined;
 
     return SizedBox(
       height: 32.s,
@@ -1334,29 +1292,7 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
         borderRadius: BorderRadius.circular(10.s),
         child: InkWell(
           borderRadius: BorderRadius.circular(10.s),
-          onTap: canAdd
-              ? () {
-                  if (item.hasOptions) {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductDetailPage(item: item)));
-                  } else {
-                    final stepQuantity = item.effectiveStepQuantity;
-                    cartProvider.addItem(CartItem(
-                      itemId: item.itemId,
-                      name: itemTitle.name,
-                      price: item.price,
-                      quantity: stepQuantity,
-                      stepQuantity: stepQuantity,
-                      image: item.image,
-                      itemType: itemTitle.type,
-                      packagingType: itemTitle.packagingType,
-                      selectedVariants: const <Map<String, dynamic>>[],
-                      promotions:
-                          (item.promotions ?? const <item_model.ItemPromotion>[]).map((promotion) => promotion.toJson()).toList(growable: false),
-                      maxAmount: item.amount?.toDouble(),
-                    ));
-                  }
-                }
-              : null,
+          onTap: canAdd ? () => cartProvider.incrementCatalogItem(item) : null,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

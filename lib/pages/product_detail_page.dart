@@ -601,6 +601,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       packagingType: _itemTitle.packagingType,
       selectedVariants: _selectedVariantMaps(includeBottle: bottle != null, bottle: bottle),
       promotions: includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[],
+      itemData: widget.item.toJson(),
       maxAmount: widget.item.amount?.toDouble(),
     );
   }
@@ -735,6 +736,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             promotions,
             _itemTitle.type,
             _itemTitle.packagingType,
+            widget.item.toJson(),
           );
           added = added || ok;
         }
@@ -749,6 +751,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           promotions,
           _itemTitle.type,
           _itemTitle.packagingType,
+          widget.item.toJson(),
         );
       } else {
         added = cart.addItem(
@@ -763,6 +766,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             packagingType: _itemTitle.packagingType,
             selectedVariants: const <Map<String, dynamic>>[],
             promotions: promotions,
+            itemData: widget.item.toJson(),
             maxAmount: widget.item.amount?.toDouble(),
           ),
         );
