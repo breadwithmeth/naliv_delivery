@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gradusy24/utils/location_service.dart';
 import 'package:gradusy24/utils/cart_provider.dart';
 import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/browser_route_history_observer.dart';
 import 'package:gradusy24/utils/liked_items_provider.dart';
 import 'package:gradusy24/services/notification_service.dart';
 import 'package:gradusy24/services/telemetry_consent_service.dart';
@@ -18,6 +19,7 @@ import 'firebase_options.dart';
 import 'package:gradusy24/utils/app_navigator.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+final BrowserRouteHistoryObserver browserRouteHistoryObserver = BrowserRouteHistoryObserver();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,7 +106,7 @@ class _MainState extends State<Main> with LocationMixin {
           return child!;
         },
         navigatorKey: AppNavigator.key,
-        navigatorObservers: [routeObserver, SentryNavigatorObserver()],
+        navigatorObservers: [browserRouteHistoryObserver, routeObserver, SentryNavigatorObserver()],
         title: "Градусы24",
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,

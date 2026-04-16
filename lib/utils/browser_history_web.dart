@@ -11,14 +11,35 @@ void browserHistoryPushFragment(String fragment) {
   if (_normalizedHash() == fragment) {
     return;
   }
-  html.window.history.pushState(null, html.document.title ?? '', nextUrl);
+  html.window.history.pushState(null, html.document.title, nextUrl);
 }
 
 void browserHistoryReplaceFragment(String fragment) {
-  html.window.history.replaceState(null, html.document.title ?? '', _withFragment(fragment));
+  html.window.history.replaceState(null, html.document.title, _withFragment(fragment));
 }
 
 String browserHistoryCurrentFragment() => _normalizedHash();
+
+Map<String, String> browserHistoryCurrentQueryParameters() {
+  final fragment = browserHistoryCurrentFragment();
+  if (fragment.isEmpty) {
+    return <String, String>{};
+  }
+
+  return Uri.splitQueryString(fragment);
+}
+
+void browserHistoryPushQueryParameters(Map<String, String> queryParameters) {
+  browserHistoryPushFragment(_buildFragment(queryParameters));
+}
+
+void browserHistoryReplaceQueryParameters(Map<String, String> queryParameters) {
+  browserHistoryReplaceFragment(_buildFragment(queryParameters));
+}
+
+void browserHistoryBack() {
+  html.window.history.back();
+}
 
 void browserHistoryListen(BrowserHistoryListener listener) {
   _listeners[listener]?.cancel();
@@ -44,4 +65,19 @@ String _withFragment(String fragment) {
     return '$path$search';
   }
   return '$path$search#$fragment';
+}
+
+String _buildFragment(Map<String, String> queryParameters) {
+  if (queryParameters.isEmpty) {
+    return '';
+  }
+
+  final filtered = Map<String, String>.fromEntries(
+    queryParameters.entries.where((entry) => entry.key.isNotEmpty && entry.value.isNotEmpty),
+  );
+  if (filtered.isEmpty) {
+    return '';
+  }
+
+  return filtered.entries.map((entry) => '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}').join('&');
 }
