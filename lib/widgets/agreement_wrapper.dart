@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/agreement_service.dart';
 import '../pages/mandatory_offer_page.dart';
+import 'app_loading_screen.dart';
 import 'authentication_wrapper.dart';
 
 /// Виджет-обертка для проверки принятия пользовательских соглашений
@@ -29,10 +30,8 @@ class _AgreementWrapperState extends State<AgreementWrapper> {
         _agreementsAccepted = accepted;
         _isLoading = false;
       });
-
-      print('🔍 Проверка согласий: ${accepted ? "приняты" : "не приняты"}');
     } catch (e) {
-      print('❌ Ошибка при проверке согласий: $e');
+      debugPrint('Ошибка при проверке согласий: $e');
       setState(() {
         _agreementsAccepted = false;
         _isLoading = false;
@@ -44,39 +43,12 @@ class _AgreementWrapperState extends State<AgreementWrapper> {
     setState(() {
       _agreementsAccepted = true;
     });
-    print('✅ Пользователь принял соглашения, переход к основному приложению');
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF121212),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/naliv_logo_loading.png',
-                width: 120,
-                height: 120,
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Загружаем приложение...',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return const AppLoadingScreen(message: 'Загружаем приложение...');
     }
 
     if (!_agreementsAccepted) {

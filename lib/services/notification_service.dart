@@ -1,15 +1,18 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api.dart';
-import 'package:naliv_delivery/utils/app_navigator.dart';
+import '../firebase_options.dart';
+import 'package:gradusy24/utils/app_navigator.dart';
 
 /// Глобальная функция для обработки фоновых сообщений
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('Обработка фонового сообщения: ${message.messageId}');
+  await NotificationService.instance.prepareForBackgroundMessageHandling();
+  debugPrint('Обработка фонового сообщения: ${message.messageId}');
   await NotificationService.instance.showNotification(message);
 }
 
@@ -18,29 +21,43 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   static NotificationService get instance => _instance;
   NotificationService._internal();
+  static const String _webVapidKey = String.fromEnvironment('FIREBASE_WEB_VAPID_KEY');
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  bool _tokenRefreshRegistered = false;
   String? _fcmToken;
+
+  bool get _isWeb => kIsWeb;
+  bool get _isAndroid => !_isWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _isIOS => !_isWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   /// Инициализация сервиса уведомлений
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      print('🔔 Инициализация сервиса уведомлений...');
+      await _ensureFirebaseInitialized();
+
+      debugPrint('🔔 Инициализация сервиса уведомлений...');
+
+      if (_isWeb) {
+        final supported = await FirebaseMessaging.instance.isSupported();
+        if (!supported) {
+          debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
+          _isInitialized = true;
+          return;
+        }
+      }
 
       // Инициализация локальных уведомлений
       await _initializeLocalNotifications();
 
-      // Запрос разрешений
-      await _requestPermissions();
-
-      // Получение FCM токена
-      await _getFCMToken();
+      // Восстанавливаем ранее полученный токен, если он уже был сохранён.
+      await _loadTokenFromStorage();
+      await syncTokenWithServerIfNeeded();
 
       // Настройка обработчиков сообщений
       _setupMessageHandlers();
@@ -49,20 +66,34 @@ class NotificationService {
       await _handleInitialMessage();
 
       _isInitialized = true;
-      print('✅ Сервис уведомлений инициализирован');
+      debugPrint('✅ Сервис уведомлений инициализирован');
     } catch (e) {
-      print('❌ Ошибка инициализации уведомлений: $e');
+      debugPrint('❌ Ошибка инициализации уведомлений: $e');
     }
+  }
+
+  Future<void> prepareForBackgroundMessageHandling() async {
+    await _ensureFirebaseInitialized();
+    await _initializeLocalNotifications();
+  }
+
+  Future<void> _ensureFirebaseInitialized() async {
+    if (Firebase.apps.isNotEmpty) return;
+
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 
   /// Инициализация локальных уведомлений
   Future<void> _initializeLocalNotifications() async {
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    if (_isWeb) return;
+
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     const initSettings = InitializationSettings(
@@ -76,64 +107,140 @@ class NotificationService {
     );
 
     // Создание канала уведомлений для Android
-    if (Platform.isAndroid) {
+    if (_isAndroid) {
       const channel = AndroidNotificationChannel(
-        'naliv_orders',
-        'Заказы Naliv',
+        'gradusy24_orders',
+        'Заказы Градусы24',
         description: 'Уведомления о статусе заказов',
         importance: Importance.high,
         playSound: true,
         enableVibration: true,
       );
 
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+      await _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
     }
   }
 
   /// Запрос разрешений на уведомления
-  Future<void> _requestPermissions() async {
-    if (Platform.isIOS) {
-      await _firebaseMessaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
+  Future<bool> _requestPermissions() async {
+    try {
+      if (_isWeb) {
+        final settings = await _firebaseMessaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          provisional: false,
+        );
+
+        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+      }
+
+      if (_isIOS) {
+        final settings = await _firebaseMessaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          provisional: false,
+        );
+
+        await _localNotifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            );
+
+        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+      }
+
+      if (_isAndroid) {
+        final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+        final granted = await androidImplementation?.requestNotificationsPermission();
+        return granted ?? true;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ Ошибка запроса разрешений на уведомления: $e');
+      return false;
     }
+  }
 
-    if (Platform.isAndroid) {
-      final androidImplementation =
-          _localNotifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+  Future<bool> enablePushNotifications() async {
+    try {
+      await initialize();
 
-      await androidImplementation?.requestNotificationsPermission();
+      if (_isWeb) {
+        if (_webVapidKey.trim().isEmpty) {
+          debugPrint('🔕 Web push временно пропущен: не задан FIREBASE_WEB_VAPID_KEY');
+          return false;
+        }
+
+        final supported = await FirebaseMessaging.instance.isSupported();
+        if (!supported) {
+          debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
+          return false;
+        }
+      }
+
+      final granted = await _requestPermissions();
+      if (!granted) {
+        debugPrint('🔕 Разрешение на уведомления не выдано');
+        return false;
+      }
+
+      return await _getFCMToken();
+    } catch (e) {
+      debugPrint('❌ Ошибка включения push-уведомлений: $e');
+      return false;
     }
   }
 
   /// Получение FCM токена
-  Future<void> _getFCMToken() async {
+  Future<bool> _getFCMToken() async {
     try {
-      _fcmToken = await _firebaseMessaging.getToken();
+      if (_isWeb && _webVapidKey.trim().isEmpty) {
+        debugPrint('❌ Для web push не задан FIREBASE_WEB_VAPID_KEY');
+        return false;
+      }
+
+      _fcmToken = _isWeb ? await _firebaseMessaging.getToken(vapidKey: _webVapidKey) : await _firebaseMessaging.getToken();
       if (_fcmToken != null) {
-        print('📱 FCM Token: $_fcmToken');
+        debugPrint('📱 FCM Token: $_fcmToken');
         await _saveTokenToStorage(_fcmToken!);
-        // Здесь можно отправить токен на сервер
-        await _sendTokenToServer(_fcmToken!);
+        final synced = await syncTokenWithServerIfNeeded();
+        if (!synced) {
+          debugPrint('ℹ️ FCM токен сохранён локально и будет повторно отправлен после авторизации');
+        }
+      } else {
+        debugPrint('❌ FCM token не был получен');
+        return false;
       }
     } catch (e) {
-      print('❌ Ошибка получения FCM токена: $e');
+      debugPrint('❌ Ошибка получения FCM токена: $e');
+      return false;
     }
 
     // Обновление токена
-    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
-      print('🔄 Новый FCM Token: $newToken');
-      _fcmToken = newToken;
-      await _saveTokenToStorage(newToken);
-      await _sendTokenToServer(newToken);
-    });
+    if (!_tokenRefreshRegistered) {
+      _tokenRefreshRegistered = true;
+      _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+        debugPrint('🔄 Новый FCM Token: $newToken');
+        _fcmToken = newToken;
+        await _saveTokenToStorage(newToken);
+        final synced = await syncTokenWithServerIfNeeded();
+        if (!synced) {
+          debugPrint('ℹ️ Новый FCM токен сохранён локально и будет отправлен позже');
+        }
+      });
+    }
+
+    return true;
+  }
+
+  Future<void> _loadTokenFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    _fcmToken = prefs.getString('fcm_token');
   }
 
   /// Сохранение токена в локальное хранилище
@@ -143,33 +250,51 @@ class NotificationService {
   }
 
   /// Отправка токена на сервер
-  Future<void> _sendTokenToServer(String token) async {
+  Future<bool> syncTokenWithServerIfNeeded() async {
+    final token = _fcmToken;
+    if (token == null || token.isEmpty) {
+      return false;
+    }
+
+    final authToken = await ApiService.getAuthToken();
+    if (authToken == null || authToken.isEmpty) {
+      debugPrint('ℹ️ Пропускаем отправку FCM токена: пользователь ещё не авторизован');
+      return false;
+    }
+
+    return _sendTokenToServer(token);
+  }
+
+  Future<bool> _sendTokenToServer(String token) async {
     try {
-      print('📤 Отправка токена на сервер: $token');
+      debugPrint('📤 Отправка токена на сервер: $token');
 
       final success = await ApiService.updateFCMToken(token);
 
       if (success) {
-        print('✅ Токен успешно отправлен на сервер');
+        debugPrint('✅ Токен успешно отправлен на сервер');
+        return true;
       } else {
-        print('❌ Ошибка отправки токена на сервер');
+        debugPrint('❌ Ошибка отправки токена на сервер');
       }
     } catch (e) {
-      print('❌ Ошибка отправки токена: $e');
+      debugPrint('❌ Ошибка отправки токена: $e');
     }
+
+    return false;
   }
 
   /// Настройка обработчиков сообщений
   void _setupMessageHandlers() {
     // Обработка сообщений на переднем плане
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('📨 Получено сообщение на переднем плане: ${message.messageId}');
+      debugPrint('📨 Получено сообщение на переднем плане: ${message.messageId}');
       showNotification(message);
     });
 
     // Обработка нажатий на уведомления
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('🔔 Нажато на уведомление: ${message.messageId}');
+      debugPrint('🔔 Нажато на уведомление: ${message.messageId}');
       _handleNotificationTap(message);
     });
 
@@ -181,8 +306,7 @@ class NotificationService {
   Future<void> _handleInitialMessage() async {
     final initialMessage = await _firebaseMessaging.getInitialMessage();
     if (initialMessage != null) {
-      print(
-          '🚀 Приложение запущено из уведомления: ${initialMessage.messageId}');
+      debugPrint('🚀 Приложение запущено из уведомления: ${initialMessage.messageId}');
       _handleNotificationTap(initialMessage);
     }
   }
@@ -190,12 +314,14 @@ class NotificationService {
   /// Показ локального уведомления
   Future<void> showNotification(RemoteMessage message) async {
     try {
+      if (_isWeb) return;
+
       final notification = message.notification;
 
       if (notification != null) {
         final androidDetails = AndroidNotificationDetails(
-          'naliv_orders',
-          'Заказы Naliv',
+          'gradusy24_orders',
+          'Заказы Градусы24',
           channelDescription: 'Уведомления о статусе заказов',
           importance: Importance.high,
           priority: Priority.high,
@@ -217,14 +343,14 @@ class NotificationService {
 
         await _localNotifications.show(
           message.hashCode,
-          notification.title ?? 'Naliv',
+          notification.title ?? 'Градусы24',
           notification.body ?? 'У вас новое уведомление',
           details,
           payload: json.encode(message.data),
         );
       }
     } catch (e) {
-      print('❌ Ошибка показа уведомления: $e');
+      debugPrint('❌ Ошибка показа уведомления: $e');
     }
   }
 
@@ -233,17 +359,17 @@ class NotificationService {
     if (response.payload != null) {
       try {
         final data = json.decode(response.payload!);
-        print('🔔 Нажато на локальное уведомление с данными: $data');
+        debugPrint('🔔 Нажато на локальное уведомление с данными: $data');
         _handleNotificationData(data);
       } catch (e) {
-        print('❌ Ошибка обработки данных уведомления: $e');
+        debugPrint('❌ Ошибка обработки данных уведомления: $e');
       }
     }
   }
 
   /// Обработка нажатия на Firebase уведомление
   void _handleNotificationTap(RemoteMessage message) {
-    print('🔔 Обработка нажатия на уведомление: ${message.data}');
+    debugPrint('🔔 Обработка нажатия на уведомление: ${message.data}');
     _handleNotificationData(message.data);
   }
 
@@ -253,8 +379,7 @@ class NotificationService {
     final orderId = data['order_id'];
     final businessId = data['business_id'];
 
-    print(
-        '📋 Тип уведомления: $type, Order ID: $orderId, Business ID: $businessId');
+    debugPrint('📋 Тип уведомления: $type, Order ID: $orderId, Business ID: $businessId');
 
     // TODO: Реализовать навигацию в зависимости от типа уведомления
     switch (type) {
@@ -280,7 +405,7 @@ class NotificationService {
   /// Навигация к заказу
   void _navigateToOrder(String? orderId) {
     if (orderId != null) {
-      print('🚀 Навигация к заказу: $orderId');
+      debugPrint('🚀 Навигация к заказу: $orderId');
       // Простейшая реализация: открываем вкладку Профиль (4), где пользователь видит список заказов
       AppNavigator.goToHomeTab(4);
     }
@@ -289,7 +414,7 @@ class NotificationService {
   /// Навигация к акциям
   void _navigateToPromotions(String? businessId) {
     if (businessId != null) {
-      print('🚀 Навигация к акциям магазина: $businessId');
+      debugPrint('🚀 Навигация к акциям магазина: $businessId');
       // Открываем главную (0), где обычно баннеры/акции
       AppNavigator.goToHomeTab(0);
     }
@@ -298,7 +423,7 @@ class NotificationService {
   /// Навигация к трекингу доставки
   void _navigateToDeliveryTracking(String? orderId) {
     if (orderId != null) {
-      print('🚀 Навигация к трекингу заказа: $orderId');
+      debugPrint('🚀 Навигация к трекингу заказа: $orderId');
       // Пока отдельной страницы нет — ведём в Профиль, где доступна информация о заказах
       AppNavigator.goToHomeTab(4);
     }
@@ -306,20 +431,22 @@ class NotificationService {
 
   /// Навигация на главную
   void _navigateToHome() {
-    print('🚀 Навигация на главную страницу');
+    debugPrint('🚀 Навигация на главную страницу');
     AppNavigator.goToHomeTab(0);
   }
 
   /// Получить текущий FCM токен
   String? get fcmToken => _fcmToken;
 
+  bool get isWebVapidKeyConfigured => _webVapidKey.trim().isNotEmpty;
+
   /// Подписка на топик
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      print('✅ Подписка на топик: $topic');
+      debugPrint('✅ Подписка на топик: $topic');
     } catch (e) {
-      print('❌ Ошибка подписки на топик $topic: $e');
+      debugPrint('❌ Ошибка подписки на топик $topic: $e');
     }
   }
 
@@ -327,20 +454,21 @@ class NotificationService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      print('✅ Отписка от топика: $topic');
+      debugPrint('✅ Отписка от топика: $topic');
     } catch (e) {
-      print('❌ Ошибка отписки от топика $topic: $e');
+      debugPrint('❌ Ошибка отписки от топика $topic: $e');
     }
   }
 
   /// Очистка всех уведомлений
   Future<void> clearAllNotifications() async {
+    if (_isWeb) return;
     await _localNotifications.cancelAll();
   }
 
   /// Получить количество непрочитанных уведомлений (только iOS)
   Future<int> getBadgeCount() async {
-    if (Platform.isIOS) {
+    if (_isIOS) {
       // Реализация для iOS
       return 0;
     }
@@ -349,7 +477,7 @@ class NotificationService {
 
   /// Установить количество непрочитанных уведомлений (только iOS)
   Future<void> setBadgeCount(int count) async {
-    if (Platform.isIOS) {
+    if (_isIOS) {
       // TODO: Реализовать установку badge для iOS
     }
   }

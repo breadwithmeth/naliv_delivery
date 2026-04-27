@@ -1,40 +1,51 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/cart_page.dart';
-import 'package:naliv_delivery/pages/catalog.dart';
-import 'package:naliv_delivery/pages/likedPage.dart';
-import 'package:naliv_delivery/pages/mainPage.dart';
-import 'package:naliv_delivery/pages/profile_page.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
-import 'package:naliv_delivery/utils/liked_items_provider.dart';
-import 'package:naliv_delivery/utils/cartFloatingButton.dart';
-import 'package:naliv_delivery/utils/location_service.dart';
+import 'package:gradusy24/pages/cart_page.dart';
+import 'package:gradusy24/pages/catalog.dart';
+import 'package:gradusy24/pages/checkout_page.dart';
+import 'package:gradusy24/pages/likedPage.dart';
+import 'package:gradusy24/pages/mainPage.dart';
+import 'package:gradusy24/pages/profile_page.dart';
+import 'package:gradusy24/services/onboarding_service.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/utils/business_provider.dart';
+import 'package:gradusy24/utils/liked_items_provider.dart';
+import 'package:gradusy24/utils/location_service.dart';
 import 'package:provider/provider.dart';
-import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
+import 'package:gradusy24/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:naliv_delivery/utils/address_storage_service.dart';
-import 'package:naliv_delivery/pages/login_page.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
+import '../utils/responsive.dart';
+import 'package:gradusy24/utils/address_storage_service.dart';
+import 'package:gradusy24/pages/login_page.dart';
+import 'package:gradusy24/utils/cart_provider.dart';
+import 'package:gradusy24/shared/app_theme.dart';
+import 'package:gradusy24/utils/browser_history.dart';
 
 class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;
   final Map<String, dynamic>? userInfo;
   final int? initialTabIndex;
+  final bool openCheckoutOnStart;
 
-  const BottomMenu(
-      {required this.isAuthenticated,
-      this.userInfo,
-      this.initialTabIndex,
-      super.key});
+  const BottomMenu({required this.isAuthenticated, this.userInfo, this.initialTabIndex, this.openCheckoutOnStart = false, super.key});
 
   @override
   State<BottomMenu> createState() => _BottomMenuState();
 }
 
 class _BottomMenuState extends State<BottomMenu> with LocationMixin {
+  // Palette to match main page design
+  static const Color _bgDeep = AppColors.bgDeep;
+  static const Color _bgTop = AppColors.bgTop;
+  static const Color _orange = AppColors.orange;
+  static const Color _text = AppColors.text;
+  static const Color _textMute = AppColors.textMute;
+
+  List<Map<String, dynamic>> _allBusinesses = [];
   List<Map<String, dynamic>> _businesses = [];
+  List<String> _availableCities = [];
   bool _isLoadingBusinesses = true;
+  String? _selectedCity;
 
   // Выбранный магазин
   Map<String, dynamic>? _selectedBusiness;
@@ -47,23 +58,133 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   // Данные геолокации
   Position? _userPosition;
+  bool _initialCheckoutHandled = false;
+  bool _browserHistoryReady = false;
 
   // Акции загружаются в MainPage
+
+  String _money(double value) {
+    return value == value.roundToDouble() ? '${value.toInt()} ₸' : '${value.toStringAsFixed(0)} ₸';
+  }
+
+  int? _selectedBusinessIdAsInt() {
+    final rawId = _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'];
+    if (rawId == null) return null;
+    if (rawId is int) return rawId;
+    return int.tryParse(rawId.toString());
+  }
 
   @override
   void initState() {
     super.initState();
+    final browserTabIndex = _browserTabIndex();
     // Установка стартовой вкладки, если передан индекс
     if (widget.initialTabIndex != null) {
       _currentIndex = widget.initialTabIndex!.clamp(0, 4);
     }
-    // Загружаем сохранённый магазин из storage
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final bp = Provider.of<BusinessProvider>(context, listen: false);
-      bp.loadSavedBusiness();
+    if (browserTabIndex != null) {
+      _currentIndex = browserTabIndex.clamp(0, 4);
+    }
+    browserHistoryListen(_handleBrowserHistoryPop);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _restoreSavedBusinessSelection();
+      _syncBrowserHistory(replace: true);
+      _openInitialCheckoutIfNeeded();
     });
-    _loadBusinesses();
+    _loadCitiesAndSelection();
     _loadSavedAddress();
+  }
+
+  int? _browserTabIndex() {
+    final fragment = browserHistoryCurrentFragment();
+    if (fragment.isEmpty) {
+      return null;
+    }
+
+    final query = Uri.splitQueryString(fragment);
+    final rawTab = query['tab'];
+    if (rawTab == null) {
+      return null;
+    }
+    return int.tryParse(rawTab);
+  }
+
+  void _handleBrowserHistoryPop() {
+    if (!mounted) {
+      return;
+    }
+
+    final browserTabIndex = _browserTabIndex();
+    if (browserTabIndex == null || browserTabIndex == _currentIndex) {
+      return;
+    }
+
+    _onTabTapped(browserTabIndex.clamp(0, 4), fromBrowserHistory: true);
+  }
+
+  void _syncBrowserHistory({bool replace = false}) {
+    final fragment = 'tab=$_currentIndex';
+    if (!_browserHistoryReady || replace) {
+      browserHistoryReplaceFragment(fragment);
+      _browserHistoryReady = true;
+      return;
+    }
+    browserHistoryPushFragment(fragment);
+  }
+
+  Future<void> _restoreSavedBusinessSelection() async {
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    await businessProvider.loadSavedBusiness();
+    final savedBusiness = businessProvider.selectedBusiness;
+    if (!mounted || savedBusiness == null) return;
+
+    setState(() {
+      _selectedBusiness = savedBusiness;
+    });
+  }
+
+  void _openInitialCheckoutIfNeeded() {
+    if (_initialCheckoutHandled || !widget.openCheckoutOnStart || !mounted) {
+      return;
+    }
+
+    _initialCheckoutHandled = true;
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    if (cartProvider.items.isEmpty) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CheckoutPage()),
+    );
+  }
+
+  Future<void> _loadCitiesAndSelection() async {
+    final cities = await OnboardingService.fetchAvailableCities(forceRefresh: true);
+    final city = await OnboardingService.getSelectedCity();
+    if (!mounted) return;
+
+    final cityNames = cities.map((item) => item.name).toList();
+    final fallbackSelectedCity = cityNames.contains(city) ? city : (cityNames.isNotEmpty ? cityNames.first : null);
+
+    setState(() {
+      _availableCities = cityNames;
+      _selectedCity = fallbackSelectedCity;
+    });
+
+    // Re-enrich businesses that were loaded before cities arrived
+    if (_allBusinesses.isNotEmpty) {
+      for (final b in _allBusinesses) {
+        b['_cityName'] = _detectBusinessCity(b) ?? '';
+      }
+    }
+
+    // Load businesses if not loaded yet, otherwise just refresh filter
+    if (_allBusinesses.isEmpty) {
+      await _loadBusinesses();
+    } else {
+      await _refreshBusinessesForSelectedCity();
+    }
   }
 
   Future<void> _loadBusinesses() async {
@@ -71,14 +192,16 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       _isLoadingBusinesses = true;
     });
     try {
-      final data = await ApiService.getBusinesses(page: 1, limit: 20);
+      final allBusinesses = await ApiService.getAllBusinesses();
       if (!mounted) return;
-      if (data != null && data['businesses'] != null) {
-        final list = List<Map<String, dynamic>>.from(data['businesses']);
-        setState(() {
-          _businesses = list;
-          _isLoadingBusinesses = false;
-        });
+      if (allBusinesses != null && allBusinesses.isNotEmpty) {
+        final list = List<Map<String, dynamic>>.from(allBusinesses);
+        // Enrich each business with resolved city name for the shop selector
+        for (final b in list) {
+          b['_cityName'] = _detectBusinessCity(b) ?? '';
+        }
+        _allBusinesses = list;
+        await _refreshBusinessesForSelectedCity(markLoadingComplete: true);
         // Пытаемся выбрать ближайший магазин к текущему адресу
         _autoSelectNearestBusiness();
       } else {
@@ -97,18 +220,209 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   Future<void> _selectBusiness(Map<String, dynamic> business) async {
+    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+
     setState(() {
       _selectedBusiness = business;
     });
-    await Provider.of<BusinessProvider>(context, listen: false)
-        .setSelectedBusiness(business);
-    final likedProvider =
-        Provider.of<LikedItemsProvider>(context, listen: false);
-    final businessId =
-        business['id'] ?? business['business_id'] ?? business['businessId'];
+    await Provider.of<BusinessProvider>(context, listen: false).setSelectedBusiness(business);
+    final businessId = business['id'] ?? business['business_id'] ?? business['businessId'];
     if (businessId != null) {
       likedProvider.loadLiked(int.tryParse(businessId.toString()) ?? 0);
     }
+  }
+
+  Future<void> _refreshBusinessesForSelectedCity({bool markLoadingComplete = false}) async {
+    if (!mounted) return;
+
+    final filteredBusinesses = _filterBusinessesByCity(_allBusinesses, _selectedCity);
+    final currentBusinessId = _businessIdOf(_selectedBusiness);
+    Map<String, dynamic>? preservedSelection;
+
+    if (currentBusinessId != null) {
+      for (final business in filteredBusinesses) {
+        if (_businessIdOf(business) == currentBusinessId) {
+          preservedSelection = business;
+          break;
+        }
+      }
+    }
+
+    final shouldClearStoredBusiness = _selectedBusiness != null && preservedSelection == null;
+
+    setState(() {
+      _businesses = filteredBusinesses;
+      _selectedBusiness = preservedSelection;
+      _lastNearestPromptKey = null;
+      if (markLoadingComplete) {
+        _isLoadingBusinesses = false;
+      }
+    });
+
+    if (shouldClearStoredBusiness) {
+      await Provider.of<BusinessProvider>(context, listen: false).clearSelectedBusiness();
+    }
+
+    if (!mounted || filteredBusinesses.isEmpty) return;
+    if (preservedSelection == null) {
+      _autoSelectNearestBusiness(force: true);
+    }
+  }
+
+  Future<void> _changeSelectedCity(String city) async {
+    if (city == _selectedCity) return;
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    if (cartProvider.items.isNotEmpty) {
+      final shouldProceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: _bgTop,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          title: const Text('Сменить город?', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+          content: const Text(
+            'При смене города активный магазин обновится, а корзина будет очищена.',
+            style: TextStyle(color: _textMute),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Отмена', style: TextStyle(color: _text))),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Сменить', style: TextStyle(color: _orange))),
+          ],
+        ),
+      );
+
+      if (shouldProceed != true || !mounted) {
+        return;
+      }
+
+      cartProvider.clearCart();
+    }
+
+    await OnboardingService.setSelectedCity(city);
+    if (!mounted) return;
+
+    setState(() {
+      _selectedCity = city;
+    });
+
+    await _refreshBusinessesForSelectedCity();
+
+    if (!mounted) return;
+    if (_selectedAddress != null && !_addressMatchesSelectedCity(_selectedAddress!, city)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Город изменён на $city. Проверьте адрес доставки.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> _filterBusinessesByCity(List<Map<String, dynamic>> businesses, String? city) {
+    if (city == null || city.trim().isEmpty) {
+      return List<Map<String, dynamic>>.from(businesses);
+    }
+
+    final cityIdMap = _buildCityIdMap(businesses);
+    return businesses.where((business) => _businessMatchesCity(business, city, cityIdMap)).toList();
+  }
+
+  Map<int, String> _buildCityIdMap(List<Map<String, dynamic>> businesses) {
+    final mapping = <int, String>{};
+
+    for (final business in businesses) {
+      final cityId = _parseCityId(business['city_id'] ?? business['cityId']);
+      if (cityId == null || mapping.containsKey(cityId)) continue;
+
+      final detectedCity = _detectBusinessCity(business);
+      if (detectedCity != null) {
+        mapping[cityId] = detectedCity;
+      }
+    }
+
+    for (final city in _availableCities) {
+      final cityId = OnboardingService.cachedCities
+          .where((item) => item.name == city)
+          .map((item) => item.id)
+          .cast<int?>()
+          .firstWhere((value) => value != null, orElse: () => null);
+      if (cityId != null) {
+        mapping.putIfAbsent(cityId, () => city);
+      }
+    }
+
+    return mapping;
+  }
+
+  bool _businessMatchesCity(Map<String, dynamic> business, String city, Map<int, String> cityIdMap) {
+    final explicitCity = _detectBusinessCity(business);
+    if (explicitCity != null) {
+      return explicitCity == city;
+    }
+
+    final cityId = _parseCityId(business['city_id'] ?? business['cityId']);
+    if (cityId != null) {
+      final mappedCity = cityIdMap[cityId] ?? OnboardingService.getCityNameById(cityId);
+      if (mappedCity != null) {
+        return mappedCity == city;
+      }
+    }
+
+    return false;
+  }
+
+  String? _detectBusinessCity(Map<String, dynamic> business) {
+    final rawSources = [
+      business['city'],
+      business['city_name'],
+      business['cityName'],
+      business['city_title'],
+      business['cityTitle'],
+      business['address'],
+      business['description'],
+    ];
+
+    for (final source in rawSources) {
+      if (source == null) continue;
+      final text = source.toString();
+      for (final city in _availableCities) {
+        if (_textMatchesCity(text, city)) {
+          return city;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  bool _addressMatchesSelectedCity(Map<String, dynamic> address, String city) {
+    final label = ApiService.formatAddressSummary(address, emptyText: '');
+    if (label.isEmpty) return true;
+
+    final containsKnownCity = _availableCities.any((knownCity) => _textMatchesCity(label, knownCity));
+    if (!containsKnownCity) return true;
+
+    return _textMatchesCity(label, city);
+  }
+
+  bool _textMatchesCity(String text, String city) {
+    final normalizedText = _normalizeText(text);
+    final normalizedCity = _normalizeText(city);
+    return normalizedCity.isNotEmpty && normalizedText.contains(normalizedCity);
+  }
+
+  String _normalizeText(String value) {
+    return value.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim();
+  }
+
+  int? _parseCityId(dynamic cityId) {
+    if (cityId == null) return null;
+    if (cityId is int) return cityId;
+    return int.tryParse(cityId.toString());
+  }
+
+  dynamic _businessIdOf(Map<String, dynamic>? business) {
+    return business?['id'] ?? business?['business_id'] ?? business?['businessId'];
   }
 
   // --- ЛОГИКА АВТОВЫБОРА БЛИЖАЙШЕГО МАГАЗИНА ---
@@ -119,7 +433,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       // Если нет адреса – fallback: если ничего не выбрано, возьмём первый для стабильности
       if (_selectedBusiness == null && _businesses.isNotEmpty) {
         _selectBusiness(_businesses.first);
-        _showBusinessChangeSnack(_businesses.first, auto: true);
       }
       return;
     }
@@ -133,7 +446,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
       if (nearest != null && nearest['id'] != _selectedBusiness!['id']) {
         _selectBusiness(nearest);
-        _showBusinessChangeSnack(nearest, auto: true);
       }
       return;
     }
@@ -141,7 +453,6 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
     if (nearest != null) {
       _selectBusiness(nearest);
-      _showBusinessChangeSnack(nearest, auto: true);
     }
   }
 
@@ -192,46 +503,18 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return null;
   }
 
-  void _showBusinessChangeSnack(Map<String, dynamic> business,
-      {bool auto = false}) {
-    // Показываем уже после построения кадра, чтобы Scaffold был доступен
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final distanceM = business['distanceMeters'];
-      String distanceText = '';
-      if (distanceM is num) {
-        final km =
-            (distanceM / 1000).toStringAsFixed(distanceM >= 1000 ? 1 : 2);
-        distanceText = ' ($km км)';
-      }
-      final text = auto
-          ? 'Выбран ближайший магазин: ${business['name']}$distanceText'
-          : 'Магазин изменён: ${business['name']}$distanceText';
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(text),
-            duration: const Duration(seconds: 3),
-            action: SnackBarAction(
-              label: 'Изменить',
-              onPressed: () {
-                // Открываем селектор магазинов через MainPage (там уже есть логика)
-                // Можно навигацией или callback; упрощённо ничего не делаем здесь.
-              },
-            ),
-          ),
-        );
-    });
-  }
-
   Future<void> _changeAddress() async {
+    final hadSelectedAddress = _selectedAddress != null;
     final newAddress = await AddressSelectionModalHelper.show(context);
     if (newAddress != null && mounted) {
       await AddressStorageService.saveSelectedAddress(newAddress);
       setState(() {
         _selectedAddress = newAddress;
       });
+      if (!hadSelectedAddress) {
+        _autoSelectNearestBusiness(force: true);
+        return;
+      }
       // Если магазин ещё не выбран – просто выберем ближайший
       if (_selectedBusiness == null) {
         _autoSelectNearestBusiness(force: true);
@@ -255,20 +538,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
     if (nearest == null) return;
 
-    final currentId = _selectedBusiness!['id'] ??
-        _selectedBusiness!['business_id'] ??
-        _selectedBusiness!['businessId'];
-    final nearestId =
-        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    final currentId = _selectedBusiness!['id'] ?? _selectedBusiness!['business_id'] ?? _selectedBusiness!['businessId'];
+    final nearestId = nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
     if (currentId == null || nearestId == null) return;
 
     // Уже ближайший
     if (currentId == nearestId) return;
 
-    final promptKey =
-        '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
-    if (_lastNearestPromptKey == promptKey)
-      return; // уже спрашивали в этой конфигурации
+    final promptKey = '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
+    if (_lastNearestPromptKey == promptKey) return; // уже спрашивали в этой конфигурации
     _lastNearestPromptKey = promptKey;
 
     // Расстояния
@@ -280,8 +558,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         final dLat = double.tryParse(bLat.toString());
         final dLon = double.tryParse(bLon.toString());
         if (dLat != null && dLon != null) {
-          return Geolocator.distanceBetween(
-              coords['lat']!, coords['lon']!, dLat, dLon);
+          return Geolocator.distanceBetween(coords['lat']!, coords['lon']!, dLat, dLon);
         }
       }
       return 0.0;
@@ -297,30 +574,31 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Ближайший магазин'),
+        backgroundColor: _bgTop,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        title: const Text('Ближайший магазин', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-                'Текущий магазин находится на ~$currentKm км от выбранного адреса.'),
+            Text('Текущий магазин находится на ~$currentKm км от выбранного адреса.', style: const TextStyle(color: _textMute)),
             const SizedBox(height: 8),
-            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).', style: const TextStyle(fontWeight: FontWeight.w600, color: _text)),
             const SizedBox(height: 12),
-            Text(hasCartItems
-                ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
-                : 'Переключить на ближайший магазин?'),
+            Text(
+              hasCartItems ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?' : 'Переключить на ближайший магазин?',
+              style: const TextStyle(color: _textMute),
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Оставить'),
+            child: const Text('Оставить', style: TextStyle(color: _text)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Переключить'),
+            child: const Text('Переключить', style: TextStyle(color: _orange)),
           ),
         ],
       ),
@@ -329,25 +607,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     if (shouldSwitch == true) {
       if (hasCartItems) {
         cartProvider.clearCart();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Корзина очищена из-за смены магазина'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
       }
       await _selectBusiness(nearest);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Вы переключились на ближайший магазин: ${nearest['name']}'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
     }
   }
 
@@ -369,149 +630,221 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: CartFloatingButton(),
-      extendBody: true,
-      backgroundColor: Colors.transparent,
-      body: _getCurrentPage(),
-      // floatingActionButton: const CartFloatingActionButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(16),
-        height: 70,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(35),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              blurRadius: 1,
-              spreadRadius: 2,
-              offset: const Offset(2, 2),
-            ),
-          ],
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            // color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(35),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(
-                icon: Icons.home,
-                isActive: _currentIndex == 0,
-                onTap: () => _onTabTapped(0),
-              ),
-              _buildNavItem(
-                icon: Icons.manage_search_outlined,
-                isActive: _currentIndex == 1,
-                onTap: () => _onTabTapped(1),
-              ),
-              _buildNavItem(
-                icon: Icons.favorite,
-                isActive: _currentIndex == 2,
-                onTap: () => _onTabTapped(2),
-              ),
-              _buildNavItem(
-                icon: Icons.person,
-                isActive: _currentIndex == 4,
-                onTap: () => _onTabTapped(4),
-              ),
-            ],
-          ),
-        ),
+    final selectedBusinessId = _selectedBusinessIdAsInt();
+    final pages = <Widget>[
+      MainPage(
+        key: const PageStorageKey('tab-home'),
+        businesses: _businesses,
+        allBusinesses: _allBusinesses,
+        availableCities: _availableCities,
+        selectedBusiness: _selectedBusiness,
+        selectedAddress: _selectedAddress,
+        selectedCity: _selectedCity,
+        userPosition: _userPosition,
+        onBusinessSelected: _selectBusiness,
+        onCityChanged: _changeSelectedCity,
+        onAddressChangeRequested: _changeAddress,
+        isLoadingBusinesses: _isLoadingBusinesses,
       ),
+      Catalog(
+        key: ValueKey('tab-catalog-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
+        businessId: selectedBusinessId,
+      ),
+      widget.isAuthenticated && selectedBusinessId != null
+          ? LikedPage(
+              key: ValueKey('tab-liked-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
+              businessId: selectedBusinessId,
+            )
+          : const LoginPage(redirectTabIndex: 2),
+      const CartPage(key: PageStorageKey('tab-cart')),
+      widget.isAuthenticated
+          ? ProfilePage(key: const PageStorageKey('tab-profile'), userInfo: widget.userInfo!)
+          : const LoginPage(redirectTabIndex: 4),
+    ];
+
+    return Scaffold(
+      extendBody: true,
+      backgroundColor: _bgDeep,
+      body: PopScope(
+        canPop: _currentIndex == 0,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _currentIndex != 0) {
+            _onTabTapped(0);
+          }
+        },
+        child: IndexedStack(index: _currentIndex, children: pages),
+      ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
   int _currentIndex = 0;
 
-  void _onTabTapped(int index) {
+  void _onTabTapped(int index, {bool fromBrowserHistory = false}) {
+    if (_currentIndex == index) {
+      return;
+    }
     setState(() {
       _currentIndex = index;
     });
+    if (!fromBrowserHistory) {
+      _syncBrowserHistory();
+    }
   }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.orange : Colors.transparent,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Icon(
-          icon,
-          color: isActive ? Colors.black87 : Colors.grey,
-          size: 28,
+  Widget _buildBottomNav() {
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: 84.s,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Container(
+                margin: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 14.s),
+                padding: EdgeInsets.symmetric(horizontal: 16.s),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_bgTop, _bgDeep],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(26.s),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12.s, offset: Offset(0, 8.s))],
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _navItem(icon: Icons.home_outlined, label: 'Главная', index: 0),
+                    _navItem(icon: Icons.widgets_outlined, label: 'Каталог', index: 1),
+                    SizedBox(width: 58.s),
+                    _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
+                    _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: -12.s,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Consumer<CartProvider>(
+                  builder: (context, cart, _) {
+                    final itemCount = cart.displayItemCount;
+                    final total = cart.getTotalPrice();
+                    final hasItems = itemCount > 0;
+
+                    return GestureDetector(
+                      onTap: () => _onTabTapped(3),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: 62.s,
+                                height: 62.s,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                      colors: [_orange, Color(0xFFFFB457)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12.s, offset: Offset(0, 8.s))],
+                                ),
+                                child: Center(
+                                  child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 23.s),
+                                ),
+                              ),
+                              if (hasItems)
+                                Positioned(
+                                  top: -1.s,
+                                  right: -1.s,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 3.s),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(10.s),
+                                      border: Border.all(color: _orange, width: 1.4),
+                                    ),
+                                    child: Text(
+                                      '$itemCount',
+                                      style: TextStyle(
+                                        color: _orange,
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          if (hasItems) ...[
+                            SizedBox(height: 5.s),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
+                              decoration: BoxDecoration(
+                                color: _orange,
+                                borderRadius: BorderRadius.circular(12.s),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.18),
+                                    blurRadius: 8.s,
+                                    offset: Offset(0, 4.s),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                _money(total),
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _getCurrentPage() {
-    // Показываем индикатор загрузки, если данные еще загружаются
-    if (_isLoadingBusinesses) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    switch (_currentIndex) {
-      case 0:
-        // Главная страница доступна всем
-        return MainPage(
-          businesses: _businesses,
-          selectedBusiness: _selectedBusiness,
-          selectedAddress: _selectedAddress,
-          userPosition: _userPosition,
-          onBusinessSelected: _selectBusiness,
-          onAddressChangeRequested: _changeAddress,
-          isLoadingBusinesses: _isLoadingBusinesses,
-        );
-      case 1:
-        // Каталог доступен всем
-        return Catalog(
-          businessId: _selectedBusiness?['id'] ??
-              _selectedBusiness?['business_id'] ??
-              _selectedBusiness?['businessId'],
-        );
-      case 2:
-        // Избранное требует авторизации
-        if (!widget.isAuthenticated) {
-          return const LoginPage(redirectTabIndex: 2);
-        }
-        return LikedPage(
-          businessId: _selectedBusiness?['id'] ??
-              _selectedBusiness?['business_id'] ??
-              _selectedBusiness?['businessId'],
-        );
-      case 3:
-        // Корзина доступна всем
-        return const CartPage();
-      case 4:
-        // Профиль требует авторизации
-        if (!widget.isAuthenticated) {
-          return const LoginPage(redirectTabIndex: 4);
-        }
-        return ProfilePage(userInfo: widget.userInfo!);
-      default:
-        return Container();
-    }
+  Widget _navItem({required IconData icon, required String label, required int index}) {
+    final isActive = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => _onTabTapped(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(7.s),
+            decoration: BoxDecoration(
+              color: isActive ? _orange.withValues(alpha: 0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12.s),
+            ),
+            child: Icon(icon, color: isActive ? _orange : _textMute, size: 22.s),
+          ),
+          SizedBox(height: 3.s),
+          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 10.sp, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
+    browserHistoryDispose(_handleBrowserHistoryPop);
     super.dispose();
   }
 }

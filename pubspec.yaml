@@ -1,5 +1,5 @@
-name: naliv_delivery
-description: Naliv delivery app.
+name: gradusy24
+description: Gradusy24 delivery app.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -19,7 +19,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version:  1.1.34
 
 environment:
-  sdk: ">=2.19.5 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,68 +30,42 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  shared_preferences: ^2.5.3
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
-  http: ^1.0.0
+  shared_preferences: ^2.5.5
+  intl: ^0.20.2
+  collection: ^1.19.1
+  http: ^1.6.0
   geolocator: ^12.0.0
-  flutter_markdown: ^0.6.17+3
+  flutter_markdown_plus: ^1.0.7
  
-  cached_network_image: ^3.3.1
-  flutter_map: ^6.1.0
-  location: ^5.0.3
-  permission_handler: ^11.3.0
-  google_fonts: ^6.2.1
-  provider: ^6.1.2
-  # flutter_launcher_icons: ^0.13.1
-  flutter_map_cancellable_tile_provider: ^2.0.0
+  flutter_map: ^8.2.2
+  permission_handler: ^11.4.0
+  provider: ^6.1.5+1
   
-  modal_bottom_sheet: ^3.0.0
-  # webview_flutter: ^4.8.0
   flutter_localizations:
     sdk: flutter
   latlong2: ^0.9.1
-  extended_image: ^8.2.1
-  vector_map_tiles: ^7.3.1
-  url_launcher: ^6.3.0
-  barcode: ^2.2.8
+  url_launcher: ^6.3.2
+  barcode: ^2.2.9
   barcode_widget: ^2.0.4
   scrollable_positioned_list: ^0.3.8
-  super_sliver_list: ^0.4.1
-  datepicker_dropdown: ^0.1.5
   
-  mesh_gradient: ^1.3.8
-  persistent_header_adaptive: ^2.1.0
-  loading_animation_widget: ^1.3.0
-  carousel_slider: ^5.0.0
-  bottom_sheet_scroll_physics: ^1.0.0
-  
-  dynamic_tabbar: ^1.0.9
-  expandable_page_view: ^1.0.17
-  visibility_detector: ^0.4.0+2
-  story: ^1.1.0
-  story_time: ^1.0.6
-  sqflite: ^2.4.1
-  vibration: ^3.1.1
-  flutter_inappwebview: ^6.1.5
-  webview_flutter: ^4.10.0
-  webview_flutter_web: ^0.2.3+4
-  shimmer: ^3.0.0
-  lottie: ^3.3.1
-  firebase_performance: ^0.10.1+4
-  firebase_core: ^3.12.1
-  firebase_messaging: ^15.1.7
-  flutter_local_notifications: ^19.4.0
-  connectivity_plus: ^6.1.4
-  flutter_launcher_icons: ^0.14.4
-  flutter_native_splash: ^2.4.6
+  carousel_slider: ^5.1.2
+  flutter_svg: ^2.2.4
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.10
+  flutter_local_notifications: ^19.5.0
+  sentry_flutter: ^9.16.1
+  package_info_plus: ^9.0.1
+  webview_flutter: ^4.13.1
+  web: ^1.1.1
   
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.2
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -155,6 +129,7 @@ flutter:
     - assets/vectors/chocolate.png
     - assets/vectors/other.png
     - assets/naliv_logo.png
+    - assets/logo_new.svg
     - assets/s/mc.png
     - assets/s/visa.png
     - assets/naliv_logo_loading.png
@@ -284,7 +259,7 @@ flutter_native_splash:
   # platform.
   android: true
   ios: true
-  web: true
+  web: false
 
   # Platform specific images can be specified with the following parameters, which will override
   # the respective parameter.  You may specify all, selected, or none of these parameters:

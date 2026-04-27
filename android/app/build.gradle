@@ -17,12 +17,15 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+def hasReleaseSigning = keystoreProperties['storeFile'] && file(keystoreProperties['storeFile']).exists()
+
 android {
-    namespace "com.naliv.delivery"
+    namespace "com.gradusy24.app"
     compileSdkVersion = flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -36,8 +39,8 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.naliv.delivery"
-        minSdkVersion 21
+        applicationId "com.gradusy24.app"
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode 123
         versionName "1.1.34"
@@ -54,7 +57,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
             shrinkResources false
             minifyEnabled false
         }
@@ -66,5 +69,6 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.20"
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0"
 }

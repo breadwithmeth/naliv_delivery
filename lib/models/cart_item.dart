@@ -1,11 +1,17 @@
+import '../model/item.dart' as item_model;
+
 class CartItem {
   final int itemId;
   final String name;
   final double price;
   double quantity;
   final double stepQuantity;
+  final String? image;
+  final String? itemType;
+  final String? packagingType;
   final List<Map<String, dynamic>> selectedVariants;
   final List<Map<String, dynamic>> promotions;
+  final Map<String, dynamic>? itemData;
   final double? maxAmount; // лимит доступного количества (остаток)
 
   CartItem({
@@ -14,8 +20,12 @@ class CartItem {
     required this.price,
     required this.quantity,
     required this.stepQuantity,
+    this.image,
+    this.itemType,
+    this.packagingType,
     required this.selectedVariants,
     required this.promotions,
+    this.itemData,
     this.maxAmount,
   });
 
@@ -26,15 +36,13 @@ class CartItem {
       price: (json['price'] as num).toDouble(),
       quantity: (json['quantity'] as num).toDouble(),
       stepQuantity: (json['stepQuantity'] as num).toDouble(),
-      selectedVariants: (json['selectedVariants'] as List<dynamic>)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList(),
-      promotions: (json['promotions'] as List<dynamic>)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList(),
-      maxAmount: json['maxAmount'] != null
-          ? (json['maxAmount'] as num).toDouble()
-          : null,
+      image: json['image'] as String?,
+      itemType: json['itemType'] as String?,
+      packagingType: json['packagingType'] as String?,
+      selectedVariants: (json['selectedVariants'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      promotions: (json['promotions'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      itemData: json['itemData'] is Map ? Map<String, dynamic>.from(json['itemData'] as Map) : null,
+      maxAmount: json['maxAmount'] != null ? (json['maxAmount'] as num).toDouble() : null,
     );
   }
 
@@ -45,10 +53,57 @@ class CartItem {
       'price': price,
       'quantity': quantity,
       'stepQuantity': stepQuantity,
+      if (image != null) 'image': image,
+      if (itemType != null) 'itemType': itemType,
+      if (packagingType != null) 'packagingType': packagingType,
       'selectedVariants': selectedVariants,
       'promotions': promotions,
+      if (itemData != null) 'itemData': itemData,
       if (maxAmount != null) 'maxAmount': maxAmount,
     };
+  }
+
+  CartItem copyWith({
+    int? itemId,
+    String? name,
+    double? price,
+    double? quantity,
+    double? stepQuantity,
+    String? image,
+    String? itemType,
+    String? packagingType,
+    List<Map<String, dynamic>>? selectedVariants,
+    List<Map<String, dynamic>>? promotions,
+    Map<String, dynamic>? itemData,
+    bool clearItemData = false,
+    double? maxAmount,
+  }) {
+    return CartItem(
+      itemId: itemId ?? this.itemId,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      quantity: quantity ?? this.quantity,
+      stepQuantity: stepQuantity ?? this.stepQuantity,
+      image: image ?? this.image,
+      itemType: itemType ?? this.itemType,
+      packagingType: packagingType ?? this.packagingType,
+      selectedVariants: selectedVariants ?? this.selectedVariants,
+      promotions: promotions ?? this.promotions,
+      itemData: clearItemData ? null : (itemData ?? this.itemData),
+      maxAmount: maxAmount ?? this.maxAmount,
+    );
+  }
+
+  item_model.Item? get snapshotItem {
+    if (itemData == null) {
+      return null;
+    }
+
+    try {
+      return item_model.Item.fromJson(itemData!);
+    } catch (_) {
+      return null;
+    }
   }
 
   Map<String, dynamic> toJsonForOrder() {
@@ -58,10 +113,7 @@ class CartItem {
       'options': selectedVariants.map((variant) {
         // API ожидает option_item_relation_id
         // Ищем ID варианта в разных возможных полях
-        final relationId = variant['variant_id'] ??
-            variant['relation_id'] ??
-            variant['variant']?['relation_id'] ??
-            variant['variant']?['variant_id'];
+        final relationId = variant['variant_id'] ?? variant['relation_id'] ?? variant['variant']?['relation_id'] ?? variant['variant']?['variant_id'];
         return {
           'option_item_relation_id': relationId,
           'amount': 1, // Обычно количество опций 1, если не указано иное
@@ -91,18 +143,13 @@ class CartItem {
     quantity = adjusted;
   }
 
-  /// Вычисляет итоговую цену с учетом акций
-  double get totalPrice {
-    double total = price * quantity;
+  double get optionsTotal {
+    var total = 0.0;
 
-    // Учитываем стоимость опций: price * (quantity / parent_item_amount)
     for (final variant in selectedVariants) {
-      print(quantity);
-      print('Variant: $variant');
       double? parentAmt;
       double? varPrice;
-      if (variant.containsKey('parent_item_amount') &&
-          variant.containsKey('price')) {
+      if (variant.containsKey('parent_item_amount') && variant.containsKey('price')) {
         parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
         varPrice = (variant['price'] as num?)?.toDouble();
       } else if (variant.containsKey('variant') && variant['variant'] is Map) {
@@ -111,70 +158,60 @@ class CartItem {
         varPrice = (v['price'] as num?)?.toDouble();
       }
       if (parentAmt != null && parentAmt > 0 && varPrice != null) {
-        // Стоимость опций считается по полному количеству товара, без учета акции
         final multiplier = quantity / parentAmt;
         total += varPrice * multiplier;
       }
     }
 
+    return total;
+  }
+
+  double get subtotalBeforePromotions => (price * quantity) + optionsTotal;
+
+  /// Вычисляет итоговую цену с учетом акций
+  double get totalPrice {
+    final optionsSubtotal = optionsTotal;
+    double payableQuantity = quantity;
+    double baseTotal = price * quantity;
+
     // SUBTRACT акции (учитываем ключи type/baseAmount/addAmount и discount_type/base_amount/add_amount)
     for (final promo in promotions) {
-      final type =
-          (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ??
-                (promo['base_amount'] as num?) ??
-                0)
-            .toInt();
-        final add =
-            ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0)
-                .toInt();
+        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
+        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
         final groupSize = base + add;
         if (groupSize > 0 && base > 0) {
           // Платим только за полные группы baseAmount, остаток игнорируем
           if (quantity >= groupSize) {
-            // Если quantity меньше группы, то просто умножаем на базу
             final int count = (quantity ~/ groupSize);
-            final payableCount = quantity - (count * add);
-            // Базовая сумма по оплате и учет стоимости опций
-            double subtotal = price * payableCount;
-            for (final variant in selectedVariants) {
-              double? parentAmt;
-              double? varPrice;
-              if (variant.containsKey('parent_item_amount') &&
-                  variant.containsKey('price')) {
-                parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
-                varPrice = (variant['price'] as num?)?.toDouble();
-              } else if (variant.containsKey('variant') &&
-                  variant['variant'] is Map) {
-                final v = variant['variant'] as Map;
-                parentAmt = (v['parent_item_amount'] as num?)?.toDouble();
-                varPrice = (v['price'] as num?)?.toDouble();
-              }
-              if (parentAmt != null && parentAmt > 0 && varPrice != null) {
-                final multiplier = quantity / parentAmt;
-                subtotal += varPrice * multiplier;
-              }
-            }
-            total = subtotal;
+            payableQuantity = quantity - (count * add);
+            baseTotal = price * payableQuantity;
           }
+        }
+      }
+    }
+
+    // Денежные скидки применяются только к базовому товару, не к цене тары/опций.
+    for (final promo in promotions) {
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'FIXED') {
+        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
+        if (disc > 0) {
+          baseTotal = (baseTotal - (disc * payableQuantity)).clamp(0, double.infinity).toDouble();
         }
       }
     }
 
     // DISCOUNT акции (учитываем ключи discount и discount_value)
     for (final promo in promotions) {
-      final type =
-          (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'DISCOUNT') {
-        final disc = ((promo['discount'] as num?) ??
-                (promo['discount_value'] as num?) ??
-                0)
-            .toDouble();
-        total = total * (1 - disc / 100);
+      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      if (type == 'DISCOUNT' || type == 'PERCENT') {
+        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
+        baseTotal = baseTotal * (1 - disc / 100);
       }
     }
 
-    return total;
+    return baseTotal + optionsSubtotal;
   }
 }

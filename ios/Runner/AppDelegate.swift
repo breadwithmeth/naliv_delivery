@@ -15,19 +15,8 @@ import UserNotifications
     
     GeneratedPluginRegistrant.register(with: self)
 
-    // Настройка уведомлений для iOS 10+
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
-      
-      let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-      UNUserNotificationCenter.current().requestAuthorization(
-        options: authOptions,
-        completionHandler: { _, _ in }
-      )
-    } else {
-      let settings: UIUserNotificationSettings =
-        UIUserNotificationSettings(types: [.alert, .badge, .sound], categories: nil)
-      application.registerUserNotificationSettings(settings)
     }
 
     application.registerForRemoteNotifications()
@@ -50,14 +39,7 @@ import UserNotifications
   override func userNotificationCenter(_ center: UNUserNotificationCenter,
                               willPresent notification: UNNotification,
                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-    let userInfo = notification.request.content.userInfo
-
-    // Показываем уведомление даже когда приложение активно
-    if #available(iOS 14.0, *) {
-      completionHandler([[.banner, .badge, .sound]])
-    } else {
-      completionHandler([[.alert, .badge, .sound]])
-    }
+    completionHandler([])
   }
 
   @available(iOS 10, *)

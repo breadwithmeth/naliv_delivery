@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/api.dart';
+import '../utils/cartFloatingButton.dart';
 import '../model/item.dart' as model;
 import '../shared/product_card.dart';
 import '../utils/liked_items_provider.dart';
+import '../utils/responsive.dart';
 
 class LikedPage extends StatefulWidget {
   final int businessId;
@@ -70,10 +72,7 @@ class _LikedPageState extends State<LikedPage> {
       }
 
       final List<dynamic> list = data['items'] ?? data['liked_items'] ?? [];
-      final newItems = list
-          .cast<Map<String, dynamic>>()
-          .map((json) => model.Item.fromJson(json))
-          .toList();
+      final newItems = list.cast<Map<String, dynamic>>().map((json) => model.Item.fromJson(json)).toList();
 
       setState(() {
         _items.addAll(newItems);
@@ -93,8 +92,7 @@ class _LikedPageState extends State<LikedPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       _loadPage();
     }
   }
@@ -106,6 +104,8 @@ class _LikedPageState extends State<LikedPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: CartFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
         title: const Text('Понравившиеся'),
       ),
@@ -129,7 +129,7 @@ class _LikedPageState extends State<LikedPage> {
             const Icon(Icons.error_outline, size: 28),
             const SizedBox(height: 8),
             Text(_error!),
-            const SizedBox(height: 8),
+            SizedBox(height: 7.s),
             ElevatedButton(
               onPressed: () => _loadPage(reset: true),
               child: const Text('Повторить'),
@@ -168,12 +168,12 @@ class _LikedPageState extends State<LikedPage> {
 
         return GridView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            padding: EdgeInsets.all(10.s),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.60,
+              crossAxisSpacing: 10.s,
+              mainAxisSpacing: 10.s,
+              childAspectRatio: 0.56,
             ),
             itemCount: _items.length + (_isLoading ? 1 : 0),
             itemBuilder: (context, index) {

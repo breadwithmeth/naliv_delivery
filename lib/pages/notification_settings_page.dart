@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import '../utils/responsive.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
   @override
-  State<NotificationSettingsPage> createState() =>
-      _NotificationSettingsPageState();
+  State<NotificationSettingsPage> createState() => _NotificationSettingsPageState();
 }
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
@@ -89,7 +89,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(14.s),
         children: [
           Card(
             child: Padding(
@@ -104,16 +104,14 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   const SizedBox(height: 16),
                   SwitchListTile(
                     title: const Text('Уведомления о заказах'),
-                    subtitle:
-                        const Text('Статус заказа, подтверждение, готовность'),
+                    subtitle: const Text('Статус заказа, подтверждение, готовность'),
                     value: _orderNotifications,
                     onChanged: _toggleOrderNotifications,
                     secondary: const Icon(Icons.shopping_cart),
                   ),
                   SwitchListTile(
                     title: const Text('Акции и предложения'),
-                    subtitle: const Text(
-                        'Новые акции, скидки, специальные предложения'),
+                    subtitle: const Text('Новые акции, скидки, специальные предложения'),
                     value: _promoNotifications,
                     onChanged: _togglePromoNotifications,
                     secondary: const Icon(Icons.local_offer),
@@ -152,11 +150,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     subtitle: const Text('Перезапустить сервис уведомлений'),
                     leading: const Icon(Icons.refresh),
                     onTap: () async {
-                      await NotificationService.instance.initialize();
+                      await NotificationService.instance.enablePushNotifications();
+                      await _loadSettings();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content:
-                              Text('Сервис уведомлений переинициализирован'),
+                          content: Text('Сервис уведомлений переинициализирован'),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -189,8 +187,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                               // TODO: Скопировать токен в буфер обмена
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content:
-                                      Text('Токен скопирован в буфер обмена'),
+                                  content: Text('Токен скопирован в буфер обмена'),
                                   duration: Duration(seconds: 2),
                                 ),
                               );

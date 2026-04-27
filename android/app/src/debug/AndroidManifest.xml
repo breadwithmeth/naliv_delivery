@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.naliv.delivery">
+    package="com.gradusy24.app">
     <!-- The INTERNET permission is required for development. Specifically,
          the Flutter tool needs it to communicate with the running application
          to allow setting breakpoints, to provide hot reload, etc.
@@ -18,14 +18,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- required -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-
-
-    <!-- foregroundServiceType: dataSync -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-
-    <!-- foregroundServiceType: remoteMessaging -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
     
     <!-- important: Do not change service name. -->
     <!-- Add android:stopWithTask option only when necessary. -->

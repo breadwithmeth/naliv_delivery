@@ -1,4 +1,7 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html>
+
+<head>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
@@ -13,22 +16,22 @@
     the `--base-href` argument provided to `flutter build`.
   -->
   <base href="$FLUTTER_BASE_HREF">
-  <base href="/"> 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Доставка напитков Градусы24.">
+  <meta name="theme-color" content="#121212">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Налив/Градусы24">
+  <meta name="apple-mobile-web-app-title" content="Градусы24">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <script type="application/javascript" src="/assets/packages/flutter_inappwebview_web/assets/web/web_support.js" defer=""></script>
+  <script type="application/javascript" src="assets/packages/flutter_inappwebview_web/assets/web/web_support.js" defer=""></script>
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
 
-  <title>Налив/Градусы24</title>
+  <title>Градусы24</title>
   <link rel="manifest" href="manifest.json">
 
   <script>
@@ -61,82 +64,283 @@
 
 
 
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
   <style id="splash-screen-style">
-    html {
-      height: 100%
+    :root {
+      --bg-deep: #121212;
+      --bg-top: #161616;
+      --card: #1e1e1e;
+      --orange: #f6a10c;
+      --text: #ffffff;
+      --text-mute: #9fb0c8;
     }
 
+    html,
     body {
       margin: 0;
       min-height: 100%;
-      background-color: #ffffff;
-      background-image: url("splash/img/light-background.png");
-      background-size: 100% 100%;
+      height: 100%;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-deep) 100%);
     }
 
-    .center {
-      margin: 0;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
+    body {
+      overflow: hidden;
+      font-family: "Raleway", "Segoe UI", sans-serif;
     }
 
-    .contain {
-      display:block;
-      width:100%; height:100%;
-      object-fit: contain;
+    /* ── fullscreen overlay ─── */
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(246, 161, 12, 0.06), transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(255, 255, 255, 0.03), transparent 40%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-deep) 100%);
+      z-index: 9999;
+      transition: opacity 0.4s ease;
     }
 
-    .stretch {
-      display:block;
-      width:100%; height:100%;
+    #splash.removing {
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .cover {
-      display:block;
-      width:100%; height:100%;
-      object-fit: cover;
+    /* ── glowing icon ─────── */
+    .sp-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle, rgba(246, 161, 12, 0.12), transparent 70%);
+      animation: sp-icon-in 0.7s ease-out, sp-glow 2.4s ease-in-out 0.7s infinite;
     }
 
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
+    .sp-icon-inner {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 1.5px solid rgba(246, 161, 12, 0.25);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 20px rgba(246, 161, 12, 0.12);
     }
 
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
-      left: 0;
+    .sp-icon-inner svg {
+      width: 24px;
+      height: 24px;
     }
 
-    .bottomRight {
-      position: absolute;
-      bottom: 0;
-      right: 0;
+    /* ── text ──────────────── */
+    .sp-title {
+      margin: 28px 0 8px;
+      color: var(--text);
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      animation: sp-fade-up 0.6s ease-out 0.15s both;
+    }
+
+    .sp-tagline {
+      margin: 0 auto;
+      max-width: 280px;
+      color: var(--text-mute);
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: center;
+      animation: sp-fade-up 0.6s ease-out 0.35s both;
+    }
+
+    /* ── progress bar ─────── */
+    .sp-bar-wrap {
+      width: 180px;
+      height: 3px;
+      margin-top: 32px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      animation: sp-fade-up 0.5s ease-out 0.55s both;
+    }
+
+    .sp-bar-shimmer {
+      width: 40%;
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+      animation: sp-shimmer 2s ease-in-out infinite;
+    }
+
+    /* ── rotating fact ────── */
+    .sp-fact {
+      margin-top: 18px;
+      color: var(--orange);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      min-height: 18px;
+      animation: sp-fade-up 0.5s ease-out 0.7s both;
+    }
+
+    .sp-fact span {
+      display: inline-block;
+      animation: sp-fact-cycle 14s step-end infinite;
+    }
+
+    /* ── keyframes ─────────── */
+    @keyframes sp-icon-in {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes sp-glow {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.06);
+      }
+    }
+
+    @keyframes sp-fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes sp-shimmer {
+      0% {
+        transform: translateX(-180px);
+      }
+
+      100% {
+        transform: translateX(360px);
+      }
+    }
+
+    @keyframes sp-fact-cycle {
+      0% {
+        content: "";
+      }
+
+      /* JS handles text rotation */
     }
   </style>
   <script id="splash-screen-script">
+    var __splashRemoved = false;
     function removeSplashFromWeb() {
-      document.getElementById("splash")?.remove();
+      if (__splashRemoved) return;
+      __splashRemoved = true;
+      var el = document.getElementById("splash");
+      if (el) {
+        el.classList.add("removing");
+        setTimeout(function () { el.remove(); }, 450);
+      }
       document.getElementById("splash-branding")?.remove();
       document.body.style.background = "transparent";
     }
+    // Fallback: watch for Flutter root element in the DOM
+    (function () {
+      var obs = new MutationObserver(function () {
+        if (document.querySelector('flutter-view, flt-glass-pane')) {
+          obs.disconnect();
+          removeSplashFromWeb();
+        }
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+      // Ultimate safety net: remove splash after 15 seconds no matter what
+      setTimeout(function () {
+        obs.disconnect();
+        removeSplashFromWeb();
+      }, 15000);
+    })();
   </script>
 </head>
 
 <body>
+  <div id="splash" aria-hidden="true">
+    <div class="sp-icon">
+      <div class="sp-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 2L6.5 6H3.5L2 2H8Z" fill="#f6a10c" opacity="0.5" />
+          <path d="M16 2L17.5 6H20.5L22 2H16Z" fill="#f6a10c" opacity="0.5" />
+          <path d="M6 7H18L17 14C16.5 17 14.5 19 12 19C9.5 19 7.5 17 7 14L6 7Z" stroke="#f6a10c" stroke-width="1.6" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M12 19V22" stroke="#f6a10c" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M8 22H16" stroke="#f6a10c" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M9 11C9 11 10 13 12 13C14 13 15 11 15 11" stroke="#f6a10c" stroke-width="1.2" stroke-linecap="round" />
+        </svg>
+      </div>
+    </div>
+    <div class="sp-title">Градусы24</div>
+    <p class="sp-tagline">Круглосуточный маркет-бар для тех,<br>кто выбирает вкус и качество</p>
+    <div class="sp-bar-wrap">
+      <div class="sp-bar-shimmer"></div>
+    </div>
+    <div class="sp-fact"><span id="sp-fact-text">Доставка 24/7</span></div>
+  </div>
+  <script>
+    // Rotate facts in the splash
+    (function () {
+      var facts = [
+        "Доставка 24/7",
+        "Более 3\u00A0000 позиций алкоголя",
+        "Доставка за 35 минут",
+        "Свежее разливное пиво",
+        "Элитный алкоголь 21+",
+        "Собственная система лояльности"
+      ];
+      var i = 0;
+      var el = document.getElementById("sp-fact-text");
+      if (!el) return;
+      setInterval(function () {
+        i = (i + 1) % facts.length;
+        el.style.opacity = "0";
+        el.style.transform = "translateY(6px)";
+        el.style.transition = "opacity 0.3s, transform 0.3s";
+        setTimeout(function () {
+          el.textContent = facts[i];
+          el.style.opacity = "1";
+          el.style.transform = "translateY(0)";
+        }, 300);
+      }, 2800);
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async=""></script>
-  </body></html>
+</body>
+
+</html>

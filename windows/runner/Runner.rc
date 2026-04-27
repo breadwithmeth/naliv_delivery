@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "naliv_delivery" "\0"
+            VALUE "FileDescription", "Gradusy24" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "naliv_delivery" "\0"
+            VALUE "InternalName", "gradusy24" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "naliv_delivery.exe" "\0"
-            VALUE "ProductName", "naliv_delivery" "\0"
+            VALUE "OriginalFilename", "gradusy24.exe" "\0"
+            VALUE "ProductName", "Gradusy24" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

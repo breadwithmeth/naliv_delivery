@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/pages/bottomMenu.dart';
-import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/pages/bottomMenu.dart';
+import 'package:gradusy24/services/auth_service.dart';
+import 'package:gradusy24/widgets/app_loading_screen.dart';
 
 class AuthenticationWrapper extends StatefulWidget {
   final int? initialTabIndex;
+  final bool openCheckoutOnStart;
 
-  const AuthenticationWrapper({super.key, this.initialTabIndex});
+  const AuthenticationWrapper({super.key, this.initialTabIndex, this.openCheckoutOnStart = false});
 
   @override
   State<AuthenticationWrapper> createState() => _AuthenticationWrapperState();
@@ -46,18 +48,14 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
           _isLoading = false;
         });
       }
-      print('Error checking authentication: $e');
+      debugPrint('Error checking authentication: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const AppLoadingScreen();
     }
 
     // Всегда показываем bottomMenu, но передаем статус авторизации
@@ -65,6 +63,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       isAuthenticated: _isAuthenticated,
       userInfo: _userInfo,
       initialTabIndex: widget.initialTabIndex,
+      openCheckoutOnStart: widget.openCheckoutOnStart,
     );
   }
 }

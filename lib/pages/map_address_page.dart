@@ -1,525 +1,1044 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
-import '../utils/address_storage_service.dart';
 
-/// Страница для уточнения адреса на карте
+import '../services/onboarding_service.dart';
+import '../shared/app_theme.dart';
+import '../utils/api.dart';
+import '../utils/location_service.dart';
+import '../utils/responsive.dart';
+
 class MapAddressPage extends StatefulWidget {
   final double initialLat;
   final double initialLon;
-  final Function(Map<String, dynamic>) onAddressSelected;
+  final Map<String, dynamic>? initialAddress;
 
   const MapAddressPage({
-    Key? key,
+    super.key,
     required this.initialLat,
     required this.initialLon,
-    required this.onAddressSelected,
-  }) : super(key: key);
+    this.initialAddress,
+  });
 
   @override
   State<MapAddressPage> createState() => _MapAddressPageState();
 }
 
-class _MapAddressPageState extends State<MapAddressPage>
-    with TickerProviderStateMixin {
-  late LatLng _markerPos;
+class _MapAddressPageState extends State<MapAddressPage> {
+  static const Color _bgDeep = Color(0xFF121212);
+  static const Color _bgTop = Color(0xFF161616);
+  static const Color _card = Color(0xFF1E1E1E);
+  static const Color _cardDark = Color(0xFF181818);
+  static const Color _orange = Color(0xFFF6A10C);
+  static const Color _text = Colors.white;
+  static const Color _textMute = Color(0xFF9FB0C8);
+
   final MapController _mapController = MapController();
-  final DraggableScrollableController _sheetController =
-      DraggableScrollableController();
-  bool _isSheetExpanded = false;
-  // Current address string from reverse geocoding
+  final LocationService _locationService = LocationService.instance;
+
+  late LatLng _center;
+  String? _selectedCity;
   String _currentAddress = '';
-  // Controllers for additional address details
-  final TextEditingController _apartmentController = TextEditingController();
+  Map<String, dynamic>? _resolvedAddressData;
+  Map<String, dynamic>? _userAddressData;
+  Position? _userPosition;
+  bool _isResolvingAddress = true;
+  bool _isLocatingUser = false;
+  int _reverseRequestId = 0;
   final TextEditingController _entranceController = TextEditingController();
-  final TextEditingController _commentController = TextEditingController();
-  @override
-  void initState() {
-    super.initState();
-    _markerPos = LatLng(widget.initialLat, widget.initialLon);
-    // Get initial address
-    _reverseAddress(_markerPos.latitude, _markerPos.longitude);
-    _sheetController.addListener(() {
-      print(_sheetController.size);
-      if (_sheetController.size > .7) {
-        // _sheetController.animateTo(
-        //   0.85,
-        //   duration: const Duration(milliseconds: 300),
-        //   curve: Curves.easeInOut,
-        // );
-        setState(() {
-          _isSheetExpanded = true;
-        });
-      } else {
-        setState(() {
-          _isSheetExpanded = false;
-        });
-      }
-    });
-  }
-
-  void _reverseAddress(double lat, double lon) async {
-    final addressData = await ApiService.searchAddresses(
-      lat: lat,
-      lon: lon,
-    );
-    print(addressData);
-    // Update current address text
-    if (addressData != null && addressData.isNotEmpty) {
-      final first = addressData.first;
-      String result;
-      // Check if this is a GeoJSON FeatureCollection
-      if (first.containsKey('features') && first['features'] is List) {
-        final features = first['features'] as List<dynamic>;
-        if (features.isNotEmpty) {
-          final feature = features.first as Map<String, dynamic>;
-          final properties = feature['properties'] as Map<String, dynamic>;
-          final geo = properties['geocoding'] as Map<String, dynamic>;
-          // Extract relevant fields
-          final streetVal = geo['street']?.toString() ?? '';
-          final houseVal = geo['housenumber']?.toString() ?? '';
-          final districtVal = geo['district']?.toString() ?? '';
-          final cityVal = geo['city']?.toString() ?? '';
-          final nameVal = geo['name']?.toString() ?? '';
-
-          // Build single-line address: city, street, house
-          final parts = <String>[];
-          if (nameVal.isNotEmpty) parts.add(nameVal);
-          if (streetVal.isNotEmpty) parts.add(' $streetVal');
-          if (houseVal.isNotEmpty) {
-            parts.add('дом $houseVal');
-          } else {
-            // Use coordinates if no house number
-            parts.add('${lat.toStringAsFixed(6)}, ${lon.toStringAsFixed(6)}');
-          }
-          if (districtVal.isNotEmpty) parts.add(districtVal);
-          if (cityVal.isNotEmpty) parts.add(cityVal);
-
-          result = parts.join(', ');
-        } else {
-          result = 'Адрес не найден';
-        }
-      } else {
-        // Fallback to display_name
-        result = first['display_name'] as String? ?? '';
-      }
-      setState(() {
-        _currentAddress = result;
-      });
-    } else {
-      setState(() {
-        _currentAddress = 'Адрес не найден';
-      });
-    }
-  }
+  final TextEditingController _floorController = TextEditingController();
+  final TextEditingController _apartmentController = TextEditingController();
 
   @override
   void dispose() {
-    _sheetController.dispose();
-    _apartmentController.dispose();
     _entranceController.dispose();
-    _commentController.dispose();
+    _floorController.dispose();
+    _apartmentController.dispose();
     super.dispose();
   }
 
   @override
+  void initState() {
+    super.initState();
+    _center = LatLng(widget.initialLat, widget.initialLon);
+    _prefillFromInitialAddress();
+    _initialize();
+  }
+
+  void _prefillFromInitialAddress() {
+    final initialAddress = widget.initialAddress;
+    if (initialAddress == null) return;
+
+    _currentAddress = initialAddress['address']?.toString() ?? initialAddress['name']?.toString() ?? '';
+    _entranceController.text = initialAddress['entrance']?.toString() ?? '';
+    _floorController.text = initialAddress['floor']?.toString() ?? '';
+    _apartmentController.text = initialAddress['apartment']?.toString() ?? '';
+  }
+
+  Future<void> _initialize() async {
+    _selectedCity = await OnboardingService.getSelectedCity();
+    if (!mounted) return;
+
+    unawaited(_reverseAddress(_center.latitude, _center.longitude));
+    if (widget.initialAddress == null) {
+      unawaited(_centerOnUserLocation());
+    }
+  }
+
+  Future<void> _centerOnUserLocation() async {
+    if (!mounted || _isLocatingUser) return;
+
+    setState(() => _isLocatingUser = true);
+    try {
+      final permission = await _locationService.checkAndRequestPermissions();
+      if (!permission.success) {
+        await _showLocationHelp(permission);
+        return;
+      }
+
+      final serviceEnabled = await _locationService.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await _showLocationServicesDisabled();
+        return;
+      }
+
+      Position? position;
+      for (final accuracy in [LocationAccuracy.high, LocationAccuracy.medium, LocationAccuracy.low]) {
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: accuracy,
+            timeLimit: const Duration(seconds: 7),
+          );
+          break;
+        } catch (_) {}
+      }
+
+      if (position == null || !mounted) return;
+
+      final nextCenter = LatLng(position.latitude, position.longitude);
+      final userAddress = await ApiService.searchAddressByCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      setState(() {
+        _center = nextCenter;
+        _userPosition = position;
+        _userAddressData = userAddress != null && userAddress.isNotEmpty ? userAddress.first : null;
+      });
+      _mapController.move(nextCenter, 16.5);
+      await _reverseAddress(nextCenter.latitude, nextCenter.longitude);
+    } finally {
+      if (mounted) {
+        setState(() => _isLocatingUser = false);
+      }
+    }
+  }
+
+  Future<void> _reverseAddress(double lat, double lon) async {
+    final requestId = ++_reverseRequestId;
+    if (mounted) {
+      setState(() => _isResolvingAddress = true);
+    }
+
+    final addressData = await ApiService.searchAddressByCoordinates(lat, lon);
+
+    if (!mounted || requestId != _reverseRequestId) return;
+
+    final label = addressData != null && addressData.isNotEmpty
+        ? ApiService.extractAddressLabel(
+              addressData.first,
+              lat: lat,
+              lon: lon,
+              preferredCity: _selectedCity,
+            ) ??
+            'Адрес не найден'
+        : 'Адрес не найден';
+
+    setState(() {
+      _resolvedAddressData = addressData != null && addressData.isNotEmpty ? addressData.first : null;
+      _currentAddress = label;
+      _isResolvingAddress = false;
+    });
+  }
+
+  void _onMapSettled() {
+    final nextCenter = _mapController.camera.center;
+    setState(() => _center = nextCenter);
+    unawaited(_reverseAddress(nextCenter.latitude, nextCenter.longitude));
+  }
+
+  Future<void> _openSearch() async {
+    final selected = await showGeneralDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'address-search',
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      pageBuilder: (_, __, ___) => const SizedBox.shrink(),
+      transitionDuration: const Duration(milliseconds: 180),
+      transitionBuilder: (_, animation, __, ___) {
+        return FadeTransition(
+          opacity: animation,
+          child: _AddressSearchSheet(selectedCity: _selectedCity),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+
+    final lat = (selected['lat'] as num).toDouble();
+    final lon = (selected['lon'] as num).toDouble();
+    final label = selected['label']?.toString() ?? '';
+    final nextCenter = LatLng(lat, lon);
+
+    setState(() {
+      _center = nextCenter;
+      _resolvedAddressData =
+          selected['rawAddress'] is Map<String, dynamic> ? Map<String, dynamic>.from(selected['rawAddress'] as Map<String, dynamic>) : null;
+      if (label.isNotEmpty) {
+        _currentAddress = label;
+      }
+    });
+
+    _mapController.move(nextCenter, 17);
+    await _reverseAddress(lat, lon);
+  }
+
+  void _confirmAddress() {
+    final address = _currentAddress.trim().isNotEmpty ? _currentAddress.trim() : 'Адрес не найден';
+    _validateAddressSelection().then((allowed) {
+      if (!allowed || !mounted) return;
+      _openAddressDetailsStep(address);
+    });
+  }
+
+  Future<bool> _validateAddressSelection() async {
+    final resolvedAddress = _resolvedAddressData;
+    if (resolvedAddress == null) {
+      await AppDialogs.showMessage(
+        context,
+        title: 'Адрес не найден',
+        message: 'Не получилось определить адрес по выбранной точке. Передвиньте карту немного и попробуйте еще раз.',
+      );
+      return false;
+    }
+
+    if (!ApiService.isKazakhstanAddress(resolvedAddress)) {
+      await AppDialogs.showMessage(
+        context,
+        title: 'Адрес вне зоны доставки',
+        message: 'Сейчас можно добавить только адреса в Казахстане.',
+      );
+      return false;
+    }
+
+    final userPosition = _userPosition;
+    if (userPosition == null || !_locationService.isAccurateEnoughForAutoSelection(userPosition)) {
+      return true;
+    }
+
+    final selectedCity = _normalizeToken(ApiService.extractCityName(resolvedAddress));
+    final selectedCountry = _normalizeToken(ApiService.extractCountryName(resolvedAddress));
+    final currentCity = _normalizeToken(ApiService.extractCityName(_userAddressData));
+    final currentCountry = _normalizeToken(ApiService.extractCountryName(_userAddressData));
+    final distanceMeters = Geolocator.distanceBetween(userPosition.latitude, userPosition.longitude, _center.latitude, _center.longitude);
+    final bool countryMismatch = selectedCountry.isNotEmpty && currentCountry.isNotEmpty && selectedCountry != currentCountry;
+    final bool cityMismatch = selectedCity.isNotEmpty && currentCity.isNotEmpty && selectedCity != currentCity;
+    final bool isFarAway = distanceMeters > 25000;
+
+    if (!countryMismatch && !cityMismatch && !isFarAway) {
+      return true;
+    }
+
+    final currentCityLabel = ApiService.extractCityName(_userAddressData) ?? 'вашего текущего города';
+    final selectedCityLabel = ApiService.extractCityName(resolvedAddress) ?? 'другого города';
+    final warningMessage = countryMismatch
+        ? 'Вы выбрали адрес в другой стране относительно текущего местоположения. Проверьте адрес и подтвердите, если он указан специально.'
+        : 'Адрес выглядит далеко от вашего текущего местоположения: сейчас вы в районе $currentCityLabel, а выбранный адрес относится к $selectedCityLabel (~${(distanceMeters / 1000).toStringAsFixed(1)} км). Продолжить?';
+
+    final shouldContinue = await AppDialogs.show<bool>(
+      context,
+      title: 'Проверьте адрес',
+      content: Text(warningMessage, style: const TextStyle(color: AppColors.textMute)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Исправить', style: TextStyle(color: AppColors.text)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Продолжить', style: TextStyle(color: AppColors.orange)),
+        ),
+      ],
+    );
+
+    return shouldContinue == true;
+  }
+
+  Future<void> _showLocationHelp(LocationPermissionResult permission) async {
+    final isIosBrowser = _locationService.isIosBrowserLocationFlow;
+    final shouldOpenSettings = await AppDialogs.show<bool>(
+      context,
+      title: 'Нужен доступ к геолокации',
+      content: Text(
+        isIosBrowser ? _locationService.browserLocationSettingsInstructions() : permission.message,
+        style: const TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Понятно', style: TextStyle(color: AppColors.text)),
+        ),
+        if (!isIosBrowser && permission.needsSettingsRedirect)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Открыть настройки', style: TextStyle(color: AppColors.orange)),
+          ),
+      ],
+    );
+
+    if (shouldOpenSettings == true && !isIosBrowser) {
+      await _locationService.openAppSettings();
+    }
+  }
+
+  Future<void> _showLocationServicesDisabled() async {
+    final isIosBrowser = _locationService.isIosBrowserLocationFlow;
+    final shouldOpenSettings = await AppDialogs.show<bool>(
+      context,
+      title: 'Геолокация выключена',
+      content: Text(
+        isIosBrowser ? _locationService.browserLocationSettingsInstructions() : 'Включите геолокацию в настройках устройства и попробуйте снова.',
+        style: const TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Позже', style: TextStyle(color: AppColors.text)),
+        ),
+        if (!isIosBrowser)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Открыть настройки', style: TextStyle(color: AppColors.orange)),
+          ),
+      ],
+    );
+
+    if (shouldOpenSettings == true && !isIosBrowser) {
+      await _locationService.openLocationSettings();
+    }
+  }
+
+  String _normalizeToken(String? value) {
+    return value?.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim() ?? '';
+  }
+
+  Future<void> _openAddressDetailsStep(String address) async {
+    final details = await Navigator.of(context).push<Map<String, String>>(
+      MaterialPageRoute(
+        builder: (_) => AddressDetailsPage(
+          address: address,
+          initialEntrance: _entranceController.text,
+          initialFloor: _floorController.text,
+          initialApartment: _apartmentController.text,
+        ),
+      ),
+    );
+
+    if (details == null || !mounted) return;
+
+    _entranceController.text = details['entrance'] ?? '';
+    _floorController.text = details['floor'] ?? '';
+    _apartmentController.text = details['apartment'] ?? '';
+
+    Navigator.of(context).pop({
+      'lat': _center.latitude,
+      'lon': _center.longitude,
+      'address': address,
+      'street': ApiService.extractStreetName(_resolvedAddressData),
+      'house': ApiService.extractHouseNumber(_resolvedAddressData),
+      'city': ApiService.extractCityName(_resolvedAddressData),
+      'country': ApiService.extractCountryName(_resolvedAddressData),
+      'entrance': _entranceController.text.trim(),
+      'floor': _floorController.text.trim(),
+      'apartment': _apartmentController.text.trim(),
+      'point': {'lat': _center.latitude, 'lon': _center.longitude},
+      'source': 'map_selection',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final safeTop = MediaQuery.of(context).padding.top;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Выберите адрес на карте'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () async {
-                // Open simple dialog for text-based address search
-                final selected = await showDialog<Map<String, dynamic>>(
-                  useSafeArea: true,
-                  context: context,
-                  builder: (context) {
-                    List<Map<String, dynamic>> results = [];
-                    String query = '';
-                    return Dialog(
-                      insetPadding: EdgeInsets.all(8),
-                      child: StatefulBuilder(
-                        builder: (context, setModalState) {
-                          return Container(
-                            padding: const EdgeInsets.all(8),
-                            child: ListView(
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Поиск адреса',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge,
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(),
-                                    ),
-                                  ],
-                                ),
-                                TextField(
-                                  autofocus: true,
-                                  decoration: InputDecoration(
-                                    hintText: 'Введите адрес',
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.search),
-                                      onPressed: () async {
-                                        final res = await ApiService
-                                            .searchAddressByText(query);
-                                        if (res != null) {
-                                          setModalState(() => results = res);
-                                        }
-                                      },
+      backgroundColor: _bgDeep,
+      body: Stack(
+        children: [
+          Positioned.fill(child: _map()),
+          Positioned.fill(child: _backgroundGlow()),
+          Positioned(
+            top: safeTop + 10.s,
+            left: 14.s,
+            right: 14.s,
+            child: _topBar(),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: Transform.translate(
+                  offset: Offset(0, -20.s),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 12.s,
+                        height: 12.s,
+                        decoration: BoxDecoration(
+                          color: _orange,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: _orange.withValues(alpha: 0.36), blurRadius: 18, spreadRadius: 2),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.location_on_rounded, size: 42.s, color: _orange),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 14.s,
+            bottom: 148.s + safeBottom,
+            child: _locateButton(),
+          ),
+          Positioned(
+            left: 14.s,
+            right: 14.s,
+            bottom: 14.s + safeBottom,
+            child: _addressCard(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _map() {
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: _center,
+        initialZoom: 16,
+        onPointerUp: (_, __) => _onMapSettled(),
+        onTap: (_, latLng) {
+          _mapController.move(latLng, _mapController.camera.zoom);
+          _onMapSettled();
+        },
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+          subdomains: const ['tile0', 'tile1', 'tile2', 'tile3'],
+          tileProvider: NetworkTileProvider(),
+        ),
+      ],
+    );
+  }
+
+  Widget _backgroundGlow() {
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _bgTop.withValues(alpha: 0.20),
+              Colors.transparent,
+              Colors.black.withValues(alpha: 0.22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _topBar() {
+    return Row(
+      children: [
+        _circleButton(
+          icon: Icons.arrow_back_ios_new_rounded,
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: _searchBar()),
+      ],
+    );
+  }
+
+  Widget _searchBar() {
+    final hint = _selectedCity == null ? 'Поиск адреса' : '$_selectedCity, улица или дом';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.s),
+        onTap: _openSearch,
+        child: Ink(
+          height: 46.s,
+          padding: EdgeInsets.symmetric(horizontal: 12.s),
+          decoration: BoxDecoration(
+            color: _card.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16.s),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.24), blurRadius: 16, offset: const Offset(0, 8)),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, color: _textMute),
+              SizedBox(width: 8.s),
+              Expanded(
+                child: Text(
+                  hint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _text, fontSize: 13.sp, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.s),
+        onTap: onTap,
+        child: Ink(
+          width: 46.s,
+          height: 46.s,
+          decoration: BoxDecoration(
+            color: _card.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16.s),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Icon(icon, color: _text, size: 16.s),
+        ),
+      ),
+    );
+  }
+
+  Widget _locateButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.s),
+        onTap: _isLocatingUser ? null : _centerOnUserLocation,
+        child: Ink(
+          width: 46.s,
+          height: 46.s,
+          decoration: BoxDecoration(
+            color: _card.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16.s),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: _isLocatingUser
+              ? Padding(
+                  padding: EdgeInsets.all(12.s),
+                  child: CircularProgressIndicator(strokeWidth: 2.2, color: _orange),
+                )
+              : Icon(Icons.my_location_rounded, color: _text, size: 18.s),
+        ),
+      ),
+    );
+  }
+
+  Widget _addressCard() {
+    final addressLabel =
+        _isResolvingAddress ? 'Ищем адрес...' : (_currentAddress.trim().isEmpty ? 'Подвиньте карту немного' : _currentAddress.trim());
+
+    return Container(
+      padding: EdgeInsets.all(12.s),
+      decoration: BoxDecoration(
+        color: _cardDark.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(22.s),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.34), blurRadius: 22, offset: const Offset(0, 14)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            addressLabel,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800, height: 1.25),
+          ),
+          SizedBox(height: 7.s),
+          Text(
+            'Сначала подтвердите точку на карте, затем добавьте подъезд, этаж и квартиру на следующем шаге.',
+            style: TextStyle(color: _textMute, fontSize: 12.sp, height: 1.35),
+          ),
+          SizedBox(height: 10.s),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isResolvingAddress ? null : _confirmAddress,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _orange,
+                foregroundColor: Colors.black,
+                disabledBackgroundColor: _orange.withValues(alpha: 0.55),
+                elevation: 0,
+                padding: EdgeInsets.symmetric(vertical: 14.s),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+              ),
+              child: Text(
+                _isResolvingAddress ? 'Определяем...' : 'Подтвердить адрес',
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AddressDetailsPage extends StatefulWidget {
+  const AddressDetailsPage({
+    required this.address,
+    required this.initialEntrance,
+    required this.initialFloor,
+    required this.initialApartment,
+  });
+
+  final String address;
+  final String initialEntrance;
+  final String initialFloor;
+  final String initialApartment;
+
+  @override
+  State<AddressDetailsPage> createState() => _AddressDetailsPageState();
+}
+
+class _AddressDetailsPageState extends State<AddressDetailsPage> {
+  static const Color _card = Color(0xFF1E1E1E);
+  static const Color _cardDark = Color(0xFF181818);
+  static const Color _bgDeep = Color(0xFF121212);
+  static const Color _bgTop = Color(0xFF161616);
+  static const Color _orange = Color(0xFFF6A10C);
+  static const Color _text = Colors.white;
+  static const Color _textMute = Color(0xFF9FB0C8);
+
+  late final TextEditingController _entranceController;
+  late final TextEditingController _floorController;
+  late final TextEditingController _apartmentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = TextEditingController(text: widget.initialEntrance);
+    _floorController = TextEditingController(text: widget.initialFloor);
+    _apartmentController = TextEditingController(text: widget.initialApartment);
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    _floorController.dispose();
+    _apartmentController.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    Navigator.of(context).pop({
+      'entrance': _entranceController.text.trim(),
+      'floor': _floorController.text.trim(),
+      'apartment': _apartmentController.text.trim(),
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: _bgDeep,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_bgTop, _bgDeep],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, bottomInset + 14.s),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16.s),
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Ink(
+                          width: 46.s,
+                          height: 46.s,
+                          decoration: BoxDecoration(
+                            color: _card.withValues(alpha: 0.94),
+                            borderRadius: BorderRadius.circular(16.s),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          ),
+                          child: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10.s),
+                    Expanded(
+                      child: Text(
+                        'Детали адреса',
+                        style: TextStyle(color: _text, fontSize: 22.sp, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.s),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(14.s),
+                  decoration: BoxDecoration(
+                    color: _cardDark,
+                    borderRadius: BorderRadius.circular(22.s),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Выбранный адрес',
+                        style: TextStyle(color: _textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 7.s),
+                      Text(
+                        widget.address,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800, height: 1.35),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 18.s),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _detailsField(
+                          controller: _entranceController,
+                          label: 'Подъезд',
+                          hint: 'Например, 2 или 2А',
+                          icon: Icons.stairs_rounded,
+                        ),
+                        SizedBox(height: 12.s),
+                        _detailsField(
+                          controller: _floorController,
+                          label: 'Этаж',
+                          hint: 'Например, 7 или м',
+                          icon: Icons.layers_rounded,
+                        ),
+                        SizedBox(height: 12.s),
+                        _detailsField(
+                          controller: _apartmentController,
+                          label: 'Квартира',
+                          hint: 'Например, 45 или 45Б',
+                          icon: Icons.door_front_door_rounded,
+                        ),
+                        SizedBox(height: 12.s),
+                        Text(
+                          'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
+                          style: TextStyle(color: _textMute, fontSize: 12.sp, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 14.s),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _confirm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _orange,
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(vertical: 14.s),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+                    ),
+                    child: Text(
+                      'Подтвердить и выбрать адрес',
+                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailsField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: _text, fontSize: 13.sp, fontWeight: FontWeight.w800)),
+        SizedBox(height: 7.s),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.characters,
+          style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: _textMute),
+            prefixIcon: Icon(icon, color: _orange),
+            filled: true,
+            fillColor: _card,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 14.s),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16.s),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16.s),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16.s)),
+              borderSide: BorderSide(color: _orange),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddressSearchSheet extends StatefulWidget {
+  final String? selectedCity;
+
+  const _AddressSearchSheet({required this.selectedCity});
+
+  @override
+  State<_AddressSearchSheet> createState() => _AddressSearchSheetState();
+}
+
+class _AddressSearchSheetState extends State<_AddressSearchSheet> {
+  static const Color _bgDeep = Color(0xFF121212);
+  static const Color _card = Color(0xFF1E1E1E);
+  static const Color _cardDark = Color(0xFF181818);
+  static const Color _orange = Color(0xFFF6A10C);
+  static const Color _text = Colors.white;
+  static const Color _textMute = Color(0xFF9FB0C8);
+
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  List<Map<String, dynamic>> _results = [];
+  bool _isSearching = false;
+  int _latestRequestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _runSearch(String rawValue) async {
+    final trimmed = rawValue.trim();
+    if (trimmed.length < 3) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _results = [];
+      });
+      return;
+    }
+
+    final requestId = ++_latestRequestId;
+    setState(() => _isSearching = true);
+
+    final result = await ApiService.searchAddressByText(
+      trimmed,
+      city: widget.selectedCity,
+    );
+
+    if (!mounted || requestId != _latestRequestId) return;
+    setState(() {
+      _isSearching = false;
+      _results = result ?? [];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _bgDeep,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 7.s),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 46.s,
+                      decoration: BoxDecoration(
+                        color: _card,
+                        borderRadius: BorderRadius.circular(16.s),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      ),
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        style: const TextStyle(color: _text, fontWeight: FontWeight.w700),
+                        decoration: InputDecoration(
+                          hintText: widget.selectedCity == null ? 'Поиск адреса' : '${widget.selectedCity}, улица или дом',
+                          hintStyle: const TextStyle(color: _textMute),
+                          prefixIcon: const Icon(Icons.search_rounded, color: _textMute),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+                        ),
+                        onChanged: _runSearch,
+                        textInputAction: TextInputAction.search,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _controller.text.trim().length < 3
+                  ? const Center(
+                      child: Text('Введите 3 символа', style: TextStyle(color: _textMute, fontWeight: FontWeight.w700)),
+                    )
+                  : _isSearching
+                      ? const Center(child: CircularProgressIndicator(color: _orange))
+                      : _results.isEmpty
+                          ? const Center(
+                              child: Text('Ничего не найдено', style: TextStyle(color: _textMute, fontWeight: FontWeight.w700)),
+                            )
+                          : ListView.separated(
+                              padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 14.s),
+                              itemCount: _results.length,
+                              separatorBuilder: (_, __) => SizedBox(height: 7.s),
+                              itemBuilder: (_, index) {
+                                final item = _results[index];
+                                double lat;
+                                double lon;
+
+                                if (item['geometry'] != null && item['geometry']['coordinates'] is List) {
+                                  final coordinates = item['geometry']['coordinates'] as List;
+                                  lon = (coordinates[0] as num).toDouble();
+                                  lat = (coordinates[1] as num).toDouble();
+                                } else if (item['point'] != null) {
+                                  lat = (item['point']['lat'] as num).toDouble();
+                                  lon = (item['point']['lon'] as num).toDouble();
+                                } else {
+                                  lat = ((item['lat'] as num?) ?? 0).toDouble();
+                                  lon = ((item['lon'] as num?) ?? 0).toDouble();
+                                }
+
+                                final label = ApiService.extractAddressLabel(item, preferredCity: widget.selectedCity) ?? 'Адрес';
+
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16.s),
+                                    onTap: () => Navigator.of(context).pop({
+                                      'lat': lat,
+                                      'lon': lon,
+                                      'label': label,
+                                      'rawAddress': item,
+                                    }),
+                                    child: Ink(
+                                      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+                                      decoration: BoxDecoration(
+                                        color: _cardDark,
+                                        borderRadius: BorderRadius.circular(16.s),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 32.s,
+                                            height: 32.s,
+                                            decoration: BoxDecoration(
+                                              color: _orange.withValues(alpha: 0.14),
+                                              borderRadius: BorderRadius.circular(10.s),
+                                            ),
+                                            child: Icon(Icons.place_outlined, color: _orange, size: 16.s),
+                                          ),
+                                          SizedBox(width: 10.s),
+                                          Expanded(
+                                            child: Text(
+                                              label,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(color: _text, fontWeight: FontWeight.w700, height: 1.25),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  onChanged: (v) async {
-                                    query = v;
-                                    final res =
-                                        await ApiService.searchAddressByText(
-                                            query);
-                                    if (res != null) {
-                                      setModalState(() => results = res);
-                                    }
-                                  },
-                                  onSubmitted: (v) => query = v,
-                                ),
-                                ListView.builder(
-                                  physics: NeverScrollableScrollPhysics(),
-                                  shrinkWrap: true,
-                                  primary: false,
-                                  itemCount: results.length,
-                                  itemBuilder: (context, i) {
-                                    final item = results[i];
-                                    double lat, lon;
-                                    if (item['geometry'] != null &&
-                                        item['geometry']['coordinates']
-                                            is List) {
-                                      final coords = item['geometry']
-                                          ['coordinates'] as List;
-                                      lon = (coords[0] as num).toDouble();
-                                      lat = (coords[1] as num).toDouble();
-                                    } else if (item['point'] != null) {
-                                      lat = (item['point']['lat'] as num)
-                                          .toDouble();
-                                      lon = (item['point']['lon'] as num)
-                                          .toDouble();
-                                    } else {
-                                      lat = ((item['lat'] as num?) ?? 0)
-                                          .toDouble();
-                                      lon = ((item['lon'] as num?) ?? 0)
-                                          .toDouble();
-                                    }
-                                    String name;
-                                    if (item['properties'] != null &&
-                                        item['properties']['geocoding'] !=
-                                            null) {
-                                      name = (item['properties']['geocoding']
-                                              ['label'] as String?) ??
-                                          '';
-                                    } else {
-                                      name =
-                                          (item['display_name'] as String?) ??
-                                              (item['label'] as String?) ??
-                                              '';
-                                    }
-                                    return ListTile(
-                                      contentPadding: EdgeInsets.all(4),
-                                      title: Text(name),
-                                      onTap: () {
-                                        setState(() {
-                                          _isSheetExpanded = true;
-                                          _sheetController.animateTo(0.85,
-                                              duration: const Duration(
-                                                  milliseconds: 300),
-                                              curve: Curves.easeInOut);
-                                        });
-                                        Navigator.of(context)
-                                            .pop({'lat': lat, 'lon': lon});
-                                      },
-                                    );
-                                  },
-                                ),
-                              ],
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                );
-                if (selected != null) {
-                  setState(() {
-                    _markerPos = LatLng(selected['lat']!, selected['lon']!);
-                  });
-                  _mapController.move(_markerPos, 16.0);
-                  _reverseAddress(selected['lat']!, selected['lon']!);
-                }
-              },
             ),
           ],
         ),
-        body: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Column(
-              children: [
-                Expanded(
-                    flex: 7,
-                    child: Stack(
-                      children: [
-                        FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            onPointerUp: (event, point) {
-                              print(point);
-                              setState(() {
-                                _markerPos = _mapController.camera.center;
-                                _reverseAddress(
-                                    _markerPos.latitude, _markerPos.longitude);
-                              });
-                            },
-                            onPositionChanged: (position, hasGesture) {
-                              if (!hasGesture) {}
-                            },
-                            center: _markerPos,
-                            zoom: 16.0,
-                            onTap: (tapPos, latlng) {
-                              setState(() {
-                                _markerPos = latlng;
-                              });
-                            },
-                          ),
-                          children: [
-                            TileLayer(
-                              // tileBuilder: _darkModeTileBuilder,
-                              urlTemplate:
-                                  'https://tile3.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
-                              subdomains: ['tile0', 'tile1', 'tile2', 'tile3'],
-
-                              // urlTemplate:
-                              //     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              // urlTemplate:
-                              //     'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                              tileProvider: CancellableNetworkTileProvider(),
-                            ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: _markerPos,
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.circle,
-                                    size: 20,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Center(
-                          child: Icon(
-                            Icons.circle_outlined,
-                            size: 20,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    )),
-                Spacer(
-                  flex: 3,
-                )
-              ],
-            ),
-            // Draggable bottom sheet
-            DraggableScrollableSheet(
-              snap: true,
-              controller: _sheetController,
-              initialChildSize: 0.4,
-              minChildSize: 0.4,
-              maxChildSize: 0.85,
-              builder:
-                  (BuildContext context, ScrollController scrollController) {
-                return !_isSheetExpanded
-                    ? Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black54,
-                              blurRadius: 15,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(16)),
-                        ),
-                        child: ListView(
-                          controller: scrollController,
-                          children: [
-                            // Drag handle
-                            Center(
-                              child: Container(
-                                width: 40,
-                                height: 4,
-                                margin: EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[400],
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            // After address display
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                _currentAddress.isNotEmpty
-                                    ? _currentAddress
-                                    : 'Загрузка адреса...',
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                            // Apartment, entrance, comment inputs
-
-                            // select button
-                            Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  _sheetController.animateTo(
-                                    0.85,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                },
-                                child: Text('Выбрать этот адрес'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(16)),
-                        ),
-                        child: ListView(
-                          controller: scrollController,
-                          children: [
-                            // Drag handle
-                            Center(
-                              child: Container(
-                                width: 40,
-                                height: 4,
-                                margin: EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[400],
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            // After address display
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                _currentAddress.isNotEmpty
-                                    ? _currentAddress
-                                    : 'Загрузка адреса...',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ),
-                            // Apartment, entrance, comment inputs
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              child: TextField(
-                                controller: _apartmentController,
-                                decoration: InputDecoration(
-                                  labelText: 'Квартира',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              child: TextField(
-                                controller: _entranceController,
-                                decoration: InputDecoration(
-                                  labelText: 'Подъезд',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              child: TextField(
-                                controller: _commentController,
-                                decoration: InputDecoration(
-                                  labelText: 'Комментарий',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  // Build full address data
-                                  final data = {
-                                    'lat': _markerPos.latitude,
-                                    'lon': _markerPos.longitude,
-                                    'address': _currentAddress,
-                                    'apartment': _apartmentController.text,
-                                    'entrance': _entranceController.text,
-                                    'comment': _commentController.text,
-                                  };
-                                  // Save as selected address
-                                  await AddressStorageService
-                                      .saveSelectedAddress(data);
-                                  // Add to address history
-                                  await AddressStorageService
-                                      .addToAddressHistory({
-                                    'name': data['address'],
-                                    'point': {
-                                      'lat': data['lat'],
-                                      'lon': data['lon']
-                                    },
-                                    'apartment': data['apartment'],
-                                    'entrance': data['entrance'],
-                                    'comment': data['comment'],
-                                  });
-                                  // Notify upstream via callback
-                                  widget.onAddressSelected(data);
-                                  // Close the map page
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text('Выбрать этот адрес'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-              },
-            ),
-          ],
-        ));
+      ),
+    );
   }
 }

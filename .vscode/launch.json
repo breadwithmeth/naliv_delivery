@@ -4,6 +4,15 @@
     // Для получения дополнительной информации посетите: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+            {
+      "name": "Flutter (Chrome)",
+      "request": "launch",
+      "type": "dart",
+            "deviceId": "chrome",
+            "toolArgs": [
+                "--dart-define=FIREBASE_WEB_VAPID_KEY=BMnRqiXgW2dV9cbrqtbb6Iq4uIwFQVKbxyyvmkAr5Zh83F-STXA9YUSXJL-RUZENYx38i-k7Fnz9LD50J3NC8Qc"
+            ]
+    },
         {
             "name": "naliv_delivery",
             "request": "launch",

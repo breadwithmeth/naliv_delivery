@@ -1,37 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/model/item.dart' as ItemModel;
-import 'package:naliv_delivery/shared/product_card.dart';
+import 'package:gradusy24/utils/api.dart';
+import 'package:gradusy24/model/item.dart' as item_model;
+import 'package:gradusy24/shared/product_card.dart';
+import '../utils/responsive.dart';
 
 /// Страница с товарами конкретной акции
 class PromotionItemsPage extends StatefulWidget {
   final int promotionId;
   final String? promotionName;
   final int businessId;
+  final List<item_model.Item>? initialItems;
 
   const PromotionItemsPage({
-    Key? key,
+    super.key,
     required this.promotionId,
     this.promotionName,
     required this.businessId,
-  }) : super(key: key);
+    this.initialItems,
+  });
 
   @override
   State<PromotionItemsPage> createState() => _PromotionItemsPageState();
 }
 
 class _PromotionItemsPageState extends State<PromotionItemsPage> {
-  List<ItemModel.Item>? _items;
+  List<item_model.Item>? _items;
   bool _isLoading = false;
   String? _error;
-  int _page = 1;
-  final int _limit = 20;
-  int? _totalPages;
 
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    if (widget.initialItems != null) {
+      _items = List<item_model.Item>.from(widget.initialItems!);
+    } else {
+      _loadItems();
+    }
   }
 
   Future<void> _loadItems() async {
@@ -40,27 +44,20 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
       _error = null;
     });
     try {
-      // Запрос полной информации с товарами и пагинацией
-      final resp = await ApiService.getPromotionItems(
+      final items = await ApiService.getAllPromotionItemsTyped(
         promotionId: widget.promotionId,
         businessId: widget.businessId,
-        page: _page,
-        limit: _limit,
+        limit: 50,
       );
-      if (resp == null) throw Exception('Пустой ответ');
-      final data = resp['data'] as Map<String, dynamic>;
-      final itemsJson = data['items'] as List<dynamic>;
-      final items = itemsJson
-          .cast<Map<String, dynamic>>()
-          .map((e) => ItemModel.Item.fromJson(e))
-          .toList();
-      final pagination = data['pagination'] as Map<String, dynamic>?;
+      if (items == null) throw Exception('Пустой ответ');
+      final filteredItems = items.where(_isSellablePromotionItem).toList(growable: false);
+      if (!mounted) return;
       setState(() {
-        _items = items;
-        _totalPages = pagination?['totalPages'] as int?;
+        _items = filteredItems;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Ошибка загрузки товаров: $e';
         _isLoading = false;
@@ -68,14 +65,19 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     }
   }
 
+  bool _isSellablePromotionItem(item_model.Item item) {
+    final hasStock = (item.amount ?? 0) > 0;
+    final visible = item.visible == null || item.visible == 1;
+    final hasPriceSignal = item.price > 0 || item.hasOptions;
+    return visible && hasStock && hasPriceSignal;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.promotionName != null
-              ? 'Акция: ${widget.promotionName}'
-              : 'Товары акции',
+          widget.promotionName != null ? 'Акция: ${widget.promotionName}' : 'Товары акции',
         ),
       ),
       body: _isLoading
@@ -95,59 +97,21 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                 )
               : (_items == null || _items!.isEmpty)
                   ? const Center(child: Text('Товары не найдены'))
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.6,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                              ),
-                              itemCount: _items!.length,
-                              itemBuilder: (context, index) {
-                                final item = _items![index];
-                                return ProductCard(item: item);
-                              },
-                            ),
-                          ),
+                  : Padding(
+                      padding: EdgeInsets.all(7.s),
+                      child: GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.56,
+                          crossAxisSpacing: 7.s,
+                          mainAxisSpacing: 7.s,
                         ),
-                        // Навигация по страницам
-                        if (_totalPages != null && _totalPages! > 1)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                TextButton(
-                                  onPressed: _page > 1
-                                      ? () {
-                                          setState(() => _page--);
-                                          _loadItems();
-                                        }
-                                      : null,
-                                  child: const Text('Назад'),
-                                ),
-                                const SizedBox(width: 16),
-                                Text('Страница $_page из $_totalPages'),
-                                const SizedBox(width: 16),
-                                TextButton(
-                                  onPressed: _page < _totalPages!
-                                      ? () {
-                                          setState(() => _page++);
-                                          _loadItems();
-                                        }
-                                      : null,
-                                  child: const Text('Вперёд'),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
+                        itemCount: _items!.length,
+                        itemBuilder: (context, index) {
+                          final item = _items![index];
+                          return ProductCard(item: item);
+                        },
+                      ),
                     ),
     );
   }

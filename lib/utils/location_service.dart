@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -7,6 +8,15 @@ class LocationService {
   static LocationService? _instance;
   static LocationService get instance => _instance ??= LocationService._();
   LocationService._();
+
+  static const double autoAcceptAccuracyMeters = 200;
+  static const double manualConfirmationAccuracyMeters = 1000;
+
+  bool get isIosBrowserLocationFlow => kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  String browserLocationSettingsInstructions({String browserLabel = 'Safari или Chrome'}) {
+    return 'На iPhone доступ к геолокации часто нужно включить для самого браузера. Откройте Настройки > Конфиденциальность и безопасность > Службы геолокации > $browserLabel и выберите «При использовании приложения». После этого вернитесь и нажмите кнопку геолокации еще раз.';
+  }
 
   /// Текущая позиция пользователя
   Position? _currentPosition;
@@ -61,8 +71,7 @@ class LocationService {
       if (!serviceEnabled) {
         return LocationPermissionResult(
           success: false,
-          message:
-              'Сервисы геолокации отключены. Включите GPS в настройках устройства.',
+          message: 'Геолокация сейчас выключена. Если хотите, можно включить её в настройках устройства. Без неё тоже можно продолжить.',
           permissionStatus: LocationPermission.denied,
         );
       }
@@ -72,26 +81,31 @@ class LocationService {
 
       switch (permission) {
         case LocationPermission.denied:
+          final deniedMessage = isIosBrowserLocationFlow
+              ? browserLocationSettingsInstructions()
+              : 'Без доступа к геолокации тоже можно продолжить. Город можно выбрать вручную, а адрес указать позже при оформлении заказа.';
           return LocationPermissionResult(
             success: false,
-            message: 'Разрешение на использование геолокации отклонено.',
+            message: deniedMessage,
             permissionStatus: permission,
           );
 
         case LocationPermission.deniedForever:
+          final deniedForeverMessage = isIosBrowserLocationFlow
+              ? browserLocationSettingsInstructions()
+              : 'Доступ к геолокации отключён для приложения. Если захотите, его можно вернуть в настройках. Сейчас можно продолжить и без него.';
           return LocationPermissionResult(
             success: false,
-            message:
-                'Разрешение на геолокацию отклонено навсегда. Разрешите доступ в настройках приложения.',
+            message: deniedForeverMessage,
             permissionStatus: permission,
-            needsSettingsRedirect: true,
+            needsSettingsRedirect: !isIosBrowserLocationFlow,
           );
 
         case LocationPermission.whileInUse:
         case LocationPermission.always:
           return LocationPermissionResult(
             success: true,
-            message: 'Разрешение на геолокацию получено.',
+            message: 'Геолокация включена. Попробуем определить ваш город автоматически.',
             permissionStatus: permission,
           );
 
@@ -105,7 +119,7 @@ class LocationService {
     } catch (e) {
       return LocationPermissionResult(
         success: false,
-        message: 'Ошибка при запросе разрешения: $e',
+        message: 'Не получилось получить доступ к геолокации. Можно продолжить без неё и выбрать данные вручную.',
         permissionStatus: LocationPermission.denied,
       );
     }
@@ -118,10 +132,9 @@ class LocationService {
   }) async {
     try {
       // Проверяем разрешения
-      LocationPermissionResult permissionResult =
-          await checkAndRequestPermissions();
+      LocationPermissionResult permissionResult = await checkAndRequestPermissions();
       if (!permissionResult.success) {
-        print('Не удалось получить разрешение: ${permissionResult.message}');
+        debugPrint('Не удалось получить разрешение: ${permissionResult.message}');
         return null;
       }
 
@@ -133,16 +146,28 @@ class LocationService {
 
       return _currentPosition;
     } catch (e) {
-      print('Ошибка при получении геолокации: $e');
+      debugPrint('Ошибка при получении геолокации: $e');
       return null;
     }
   }
 
+  bool isAccurateEnoughForAutoSelection(
+    Position position, {
+    double maxAccuracyMeters = autoAcceptAccuracyMeters,
+  }) {
+    return position.accuracy > 0 && position.accuracy <= maxAccuracyMeters;
+  }
+
+  bool requiresManualConfirmation(
+    Position position, {
+    double maxAccuracyMeters = manualConfirmationAccuracyMeters,
+  }) {
+    return position.accuracy <= 0 || position.accuracy > maxAccuracyMeters;
+  }
+
   /// Вычисляет расстояние между двумя точками в метрах
-  double calculateDistance(double startLatitude, double startLongitude,
-      double endLatitude, double endLongitude) {
-    return Geolocator.distanceBetween(
-        startLatitude, startLongitude, endLatitude, endLongitude);
+  double calculateDistance(double startLatitude, double startLongitude, double endLatitude, double endLongitude) {
+    return Geolocator.distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude);
   }
 
   /// Отслеживает позицию пользователя (стрим)
@@ -222,9 +247,7 @@ class LocationPermissionDialog {
   }
 
   /// Показывает диалог с ошибкой и предложением перейти в настройки
-  static Future<bool> showPermissionDeniedDialog(
-      BuildContext context, String message,
-      {bool canOpenSettings = true}) async {
+  static Future<bool> showPermissionDeniedDialog(BuildContext context, String message, {bool canOpenSettings = true}) async {
     bool? result = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -279,20 +302,17 @@ mixin LocationMixin<T extends StatefulWidget> on State<T> {
   /// Запрашивает разрешение и получает текущую позицию
   Future<bool> requestLocationAndGetPosition() async {
     // Показываем объяснение пользователю
-    bool userAccepted =
-        await LocationPermissionDialog.showPermissionExplanation(context);
+    bool userAccepted = await LocationPermissionDialog.showPermissionExplanation(context);
     if (!userAccepted) {
       return false;
     }
 
     // Проверяем и запрашиваем разрешения
-    LocationPermissionResult result =
-        await locationService.checkAndRequestPermissions();
+    LocationPermissionResult result = await locationService.checkAndRequestPermissions();
 
     if (!result.success) {
       // Показываем диалог с ошибкой
-      bool openSettings =
-          await LocationPermissionDialog.showPermissionDeniedDialog(
+      bool openSettings = await LocationPermissionDialog.showPermissionDeniedDialog(
         context,
         result.message,
         canOpenSettings: result.needsSettingsRedirect,
