@@ -206,6 +206,7 @@ class CartProvider extends ChangeNotifier {
   }) {
     final snapshot = group.itemSnapshot;
     if (snapshot == null) {
+      _adjustLegacyExistingGroup(group, direction: direction);
       return;
     }
 
@@ -218,6 +219,89 @@ class CartProvider extends ChangeNotifier {
     }
 
     _syncSelectionGroup(selection, group.baseVariants, nextQuantity);
+  }
+
+  // Restored legacy carts may miss itemData snapshots, so mutate the raw rows directly.
+  void _adjustLegacyExistingGroup(
+    CartDisplayGroup group, {
+    required int direction,
+  }) {
+    final matching = _items.where((item) => CartDisplayGroup.displayKeyForCartItem(item) == group.key).toList(growable: false);
+    if (matching.isEmpty) {
+      return;
+    }
+
+    final hasBottleLikeVariants = matching.any((item) => item.selectedVariants.any(SmartCartSelection.looksBottleLikeVariant));
+    final target = _selectLegacyAdjustmentItem(matching, preferSmallestStep: hasBottleLikeVariants);
+    if (target == null) {
+      return;
+    }
+
+    final step = _legacyItemStep(target);
+    if (step <= 0) {
+      return;
+    }
+
+    if (direction < 0) {
+      final nextQuantity = target.quantity - step;
+      if (nextQuantity <= 0.001) {
+        _removeItemInternal(target.itemId, target.selectedVariants);
+      } else {
+        _updateQuantityInternal(target.itemId, nextQuantity, target.selectedVariants);
+      }
+      _mergeExactDuplicates();
+      _persistAndNotify();
+      return;
+    }
+
+    final maxAmount = group.maxAmount;
+    final totalQuantity = matching.fold<double>(0.0, (sum, item) => sum + item.quantity);
+    if (maxAmount != null && totalQuantity + step > maxAmount + 0.001) {
+      return;
+    }
+
+    _updateQuantityInternal(target.itemId, target.quantity + step, target.selectedVariants);
+    _mergeExactDuplicates();
+    _persistAndNotify();
+  }
+
+  CartItem? _selectLegacyAdjustmentItem(
+    List<CartItem> items, {
+    required bool preferSmallestStep,
+  }) {
+    if (items.isEmpty) {
+      return null;
+    }
+
+    if (!preferSmallestStep) {
+      return items.first;
+    }
+
+    final sorted = items.toList(growable: false)
+      ..sort((left, right) {
+        final stepCompare = _legacyItemStep(left).compareTo(_legacyItemStep(right));
+        if (stepCompare != 0) {
+          return stepCompare;
+        }
+        return left.quantity.compareTo(right.quantity);
+      });
+
+    return sorted.firstWhereOrNull((item) => item.quantity > 0) ?? sorted.first;
+  }
+
+  double _legacyItemStep(CartItem item) {
+    for (final variant in item.selectedVariants) {
+      final variantStep = SmartCartSelection.variantParentItemAmount(variant);
+      if (variantStep != null && variantStep > 0) {
+        return variantStep;
+      }
+    }
+
+    if (item.stepQuantity > 0) {
+      return item.stepQuantity;
+    }
+
+    return 1.0;
   }
 
   void _syncSelectionGroup(

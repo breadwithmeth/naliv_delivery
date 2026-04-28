@@ -69,6 +69,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '708777510505',
     projectId: 'naliv-web-test',
     storageBucket: 'naliv-web-test.firebasestorage.app',
-    iosBundleId: 'com.gradusy24.app',
+    iosBundleId: 'naliv_delivery',
   );
 }

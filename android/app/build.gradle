@@ -20,7 +20,7 @@ if (keystorePropertiesFile.exists()) {
 def hasReleaseSigning = keystoreProperties['storeFile'] && file(keystoreProperties['storeFile']).exists()
 
 android {
-    namespace "com.gradusy24.app"
+    namespace "com.naliv.delivery"
     compileSdkVersion = flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -39,7 +39,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.gradusy24.app"
+        applicationId "com.naliv.delivery"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode 123
