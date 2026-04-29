@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gradusy24/model/item.dart';
-import 'package:gradusy24/pages/product_detail_page.dart';
-import 'package:gradusy24/utils/cart_provider.dart';
+import 'package:naliv_delivery/model/item.dart';
+import 'package:naliv_delivery/pages/product_detail_page.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() {
   group('ProductDetailPage self-bottling', () {
-    testWidgets('uses explicit item unit for non-pour quantity labels', (tester) async {
+    testWidgets('uses explicit item unit for non-pour quantity labels',
+        (tester) async {
       final item = Item(
         itemId: 99,
         name: 'Fresh lemonade',
@@ -24,7 +25,8 @@ void main() {
       expect(find.text('1 шт.'), findsNothing);
     });
 
-    testWidgets('keeps pour flow for promotion payloads that use variants', (tester) async {
+    testWidgets('keeps pour flow for promotion payloads that use variants',
+        (tester) async {
       final item = Item.fromJson(<String, dynamic>{
         'item_id': 30318,
         'name': 'Пиво розлив Kronenbourg Blanc 1664 1л 4.8%',
@@ -96,7 +98,9 @@ void main() {
       expect(find.text('2600 ₸ за 1 л'), findsOneWidget);
     });
 
-    testWidgets('shows bottle-aware promo totals without discounting bottle price', (tester) async {
+    testWidgets(
+        'shows bottle-aware promo totals without discounting bottle price',
+        (tester) async {
       final item = _buildPourItem(
         amount: 5,
         bottles: <ItemOptionItem>[
@@ -135,7 +139,9 @@ void main() {
       expect(find.text('945 ₸'), findsNothing);
     });
 
-    testWidgets('does not overfill when max amount has no exact bottle combination', (tester) async {
+    testWidgets(
+        'does not overfill when max amount has no exact bottle combination',
+        (tester) async {
       final item = _buildPourItem(
         amount: 2.5,
         bottles: <ItemOptionItem>[

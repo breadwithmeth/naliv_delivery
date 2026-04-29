@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:gradusy24/utils/cartFloatingButton.dart';
+import 'package:naliv_delivery/utils/cartFloatingButton.dart';
 
 import '../globals.dart' as globals;
 import '../model/item.dart' as item_model;
@@ -49,7 +49,8 @@ class TapBoardPage extends StatefulWidget {
 
 class _TapBoardPageState extends State<TapBoardPage> {
   static const Duration _cacheTtl = Duration(minutes: 5);
-  static final Map<String, _TapBoardItemsCacheEntry> _categoryItemsCache = <String, _TapBoardItemsCacheEntry>{};
+  static final Map<String, _TapBoardItemsCacheEntry> _categoryItemsCache =
+      <String, _TapBoardItemsCacheEntry>{};
 
   List<item_model.Item> _items = <item_model.Item>[];
   bool _isLoading = false;
@@ -79,7 +80,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 240) {
       _loadMoreItems();
     }
   }
@@ -121,7 +123,9 @@ class _TapBoardPageState extends State<TapBoardPage> {
     required int categoryId,
     required int? subcategoryId,
   }) {
-    return version == _selectionVersion && _selectedCategory?.categoryId == categoryId && _selectedSubcategory?.categoryId == subcategoryId;
+    return version == _selectionVersion &&
+        _selectedCategory?.categoryId == categoryId &&
+        _selectedSubcategory?.categoryId == subcategoryId;
   }
 
   Future<void> _loadCategoryItems({bool isLoadMore = false}) async {
@@ -141,7 +145,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
       if (!isLoadMore) {
         setState(() {
           _isLoading = false;
-          _error = 'Ошибка загрузки товаров: businessId is required to load categories';
+          _error =
+              'Ошибка загрузки товаров: businessId is required to load categories';
         });
       }
       return;
@@ -203,7 +208,10 @@ class _TapBoardPageState extends State<TapBoardPage> {
           )) {
         setState(() {
           if (response != null) {
-            final convertedItems = response.data.items.map((categoryItem) => item_model.Item.fromCategoryItem(categoryItem)).toList();
+            final convertedItems = response.data.items
+                .map((categoryItem) =>
+                    item_model.Item.fromCategoryItem(categoryItem))
+                .toList();
             _storeCachedCategoryItems(
               key: cacheKey,
               items: convertedItems,
@@ -239,7 +247,10 @@ class _TapBoardPageState extends State<TapBoardPage> {
   }
 
   Future<void> _loadMoreItems() async {
-    if (_isLoading || _isLoadingMore || _pagination == null || !_pagination!.hasNextPage) return;
+    if (_isLoading ||
+        _isLoadingMore ||
+        _pagination == null ||
+        !_pagination!.hasNextPage) return;
     await _loadCategoryItems(isLoadMore: true);
   }
 
@@ -273,12 +284,14 @@ class _TapBoardPageState extends State<TapBoardPage> {
 
   void _scrollToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 
   bool _hasActivePromotions(item_model.Item item) {
-    return (item.promotions ?? const <item_model.ItemPromotion>[]).any((promotion) => promotion.isActive);
+    return (item.promotions ?? const <item_model.ItemPromotion>[])
+        .any((promotion) => promotion.isActive);
   }
 
   bool _isItemAvailable(item_model.Item item) {
@@ -287,9 +300,11 @@ class _TapBoardPageState extends State<TapBoardPage> {
 
   int _maxDiscountPercent(item_model.Item item) {
     var best = 0;
-    for (final promotion in item.promotions ?? const <item_model.ItemPromotion>[]) {
+    for (final promotion
+        in item.promotions ?? const <item_model.ItemPromotion>[]) {
       if (!promotion.isActive) continue;
-      final isDiscountType = promotion.discountType == 'PERCENT' || promotion.discountType == 'FIXED';
+      final isDiscountType = promotion.discountType == 'PERCENT' ||
+          promotion.discountType == 'FIXED';
       if (!isDiscountType || promotion.discountValue <= 0) continue;
       final effective = promotion.calculateEffectiveDiscountPercent(item.price);
       if (effective > best) best = effective;
@@ -312,7 +327,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
         return aAvailable ? -1 : 1;
       }
 
-      final discountCompare = _maxDiscountPercent(b.value).compareTo(_maxDiscountPercent(a.value));
+      final discountCompare =
+          _maxDiscountPercent(b.value).compareTo(_maxDiscountPercent(a.value));
       if (discountCompare != 0) {
         return discountCompare;
       }
@@ -325,7 +341,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final hasSubcategories = _selectedCategory != null && _selectedCategory!.hasSubcategories;
+    final hasSubcategories =
+        _selectedCategory != null && _selectedCategory!.hasSubcategories;
     final hasMultipleCategories = widget.allCategories.length > 1;
     final orderedItems = _orderedItems();
 
@@ -359,7 +376,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text, size: 18.s),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: AppColors.text, size: 18.s),
             onPressed: () => Navigator.of(context).pop(),
           ),
           Expanded(
@@ -367,12 +385,17 @@ class _TapBoardPageState extends State<TapBoardPage> {
               widget.sectionTitle ?? 'Сегодня на кране',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.text, fontSize: 18.sp, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w900),
             ),
           ),
           IconButton(
-            icon: Icon(Icons.search_rounded, color: AppColors.textMute, size: 20.s),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
+            icon: Icon(Icons.search_rounded,
+                color: AppColors.textMute, size: 20.s),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const SearchPage())),
           ),
         ],
       ),
@@ -383,7 +406,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
     return Padding(
       padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 4.s),
       child: GestureDetector(
-        onTap: () => setState(() => _showCategorySidebar = !_showCategorySidebar),
+        onTap: () =>
+            setState(() => _showCategorySidebar = !_showCategorySidebar),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
           decoration: BoxDecoration(
@@ -400,7 +424,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
                   color: AppColors.orange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(7.s),
                 ),
-                child: Icon(Icons.sports_bar_rounded, color: AppColors.orange, size: 14.s),
+                child: Icon(Icons.sports_bar_rounded,
+                    color: AppColors.orange, size: 14.s),
               ),
               SizedBox(width: 10.s),
               Expanded(
@@ -408,18 +433,25 @@ class _TapBoardPageState extends State<TapBoardPage> {
                   _selectedCategory?.name ?? 'Сегодня на кране',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800),
                 ),
               ),
               Text(
                 '${widget.allCategories.length} раздела',
-                style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 11.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: AppColors.textMute.withValues(alpha: 0.7),
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600),
               ),
               SizedBox(width: 7.s),
               AnimatedRotation(
                 turns: _showCategorySidebar ? 0.5 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Icon(Icons.expand_more_rounded, color: AppColors.textMute, size: 18.s),
+                child: Icon(Icons.expand_more_rounded,
+                    color: AppColors.textMute, size: 18.s),
               ),
             ],
           ),
@@ -442,12 +474,19 @@ class _TapBoardPageState extends State<TapBoardPage> {
                 child: Material(
                   color: Colors.transparent,
                   child: Container(
-                    constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.55),
+                    constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.55),
                     decoration: BoxDecoration(
                       color: AppColors.card,
                       borderRadius: BorderRadius.circular(16.s),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 24, offset: const Offset(0, 12))],
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12))
+                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16.s),
@@ -457,19 +496,26 @@ class _TapBoardPageState extends State<TapBoardPage> {
                         itemCount: widget.allCategories.length,
                         itemBuilder: (_, index) {
                           final category = widget.allCategories[index];
-                          final selected = category.categoryId == _selectedCategory?.categoryId;
+                          final selected = category.categoryId ==
+                              _selectedCategory?.categoryId;
                           return InkWell(
                             onTap: () => _onCategoryChanged(category),
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 12.s),
-                              color: selected ? AppColors.orange.withValues(alpha: 0.1) : Colors.transparent,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16.s, vertical: 12.s),
+                              color: selected
+                                  ? AppColors.orange.withValues(alpha: 0.1)
+                                  : Colors.transparent,
                               child: Row(
                                 children: [
                                   Container(
                                     width: 7.s,
                                     height: 7.s,
                                     decoration: BoxDecoration(
-                                      color: selected ? AppColors.orange : Colors.white.withValues(alpha: 0.12),
+                                      color: selected
+                                          ? AppColors.orange
+                                          : Colors.white
+                                              .withValues(alpha: 0.12),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -478,9 +524,13 @@ class _TapBoardPageState extends State<TapBoardPage> {
                                     child: Text(
                                       category.name,
                                       style: TextStyle(
-                                        color: selected ? AppColors.orange : AppColors.text,
+                                        color: selected
+                                            ? AppColors.orange
+                                            : AppColors.text,
                                         fontSize: 14.sp,
-                                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                                        fontWeight: selected
+                                            ? FontWeight.w800
+                                            : FontWeight.w600,
                                       ),
                                     ),
                                   ),
@@ -489,7 +539,10 @@ class _TapBoardPageState extends State<TapBoardPage> {
                                       padding: EdgeInsets.only(left: 7.s),
                                       child: Text(
                                         '${category.subcategories.length}',
-                                        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 11.sp),
+                                        style: TextStyle(
+                                            color: AppColors.textMute
+                                                .withValues(alpha: 0.6),
+                                            fontSize: 11.sp),
                                       ),
                                     ),
                                   if (category.itemsCount > 0)
@@ -497,7 +550,10 @@ class _TapBoardPageState extends State<TapBoardPage> {
                                       padding: EdgeInsets.only(left: 7.s),
                                       child: Text(
                                         '${category.getTotalItemsCount()}',
-                                        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.5), fontSize: 11.sp),
+                                        style: TextStyle(
+                                            color: AppColors.textMute
+                                                .withValues(alpha: 0.5),
+                                            fontSize: 11.sp),
                                       ),
                                     ),
                                 ],
@@ -540,7 +596,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
             final subcategory = subcategories[index - 1];
             return _chip(
               label: subcategory.name,
-              selected: _selectedSubcategory?.categoryId == subcategory.categoryId,
+              selected:
+                  _selectedSubcategory?.categoryId == subcategory.categoryId,
               onTap: () => _onSubcategorySelected(subcategory),
               count: subcategory.itemsCount > 0 ? subcategory.itemsCount : null,
             );
@@ -564,7 +621,10 @@ class _TapBoardPageState extends State<TapBoardPage> {
         decoration: BoxDecoration(
           color: selected ? AppColors.orange : AppColors.card,
           borderRadius: BorderRadius.circular(11.s),
-          border: Border.all(color: selected ? AppColors.orange : Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(
+              color: selected
+                  ? AppColors.orange
+                  : Colors.white.withValues(alpha: 0.06)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -582,7 +642,9 @@ class _TapBoardPageState extends State<TapBoardPage> {
               Text(
                 '$count',
                 style: TextStyle(
-                  color: selected ? Colors.black.withValues(alpha: 0.6) : AppColors.textMute.withValues(alpha: 0.6),
+                  color: selected
+                      ? Colors.black.withValues(alpha: 0.6)
+                      : AppColors.textMute.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w600,
                   fontSize: 10.sp,
                 ),
@@ -603,10 +665,14 @@ class _TapBoardPageState extends State<TapBoardPage> {
             const SizedBox(
               width: 36,
               height: 36,
-              child: CircularProgressIndicator(color: AppColors.orange, strokeWidth: 3),
+              child: CircularProgressIndicator(
+                  color: AppColors.orange, strokeWidth: 3),
             ),
             const SizedBox(height: 16),
-            Text('Загружаем витрину...', style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 14)),
+            Text('Загружаем витрину...',
+                style: TextStyle(
+                    color: AppColors.textMute.withValues(alpha: 0.7),
+                    fontSize: 14)),
           ],
         ),
       );
@@ -627,7 +693,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
       child: ListView.separated(
         controller: _scrollController,
         padding: EdgeInsets.fromLTRB(0, 6.s, 0, 120.s),
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics()),
         itemCount: orderedItems.length + (_isLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) => Divider(
           color: Colors.white.withValues(alpha: 0.06),
@@ -640,7 +707,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 18.s),
               child: const Center(
-                child: CircularProgressIndicator(color: AppColors.orange, strokeWidth: 2.5),
+                child: CircularProgressIndicator(
+                    color: AppColors.orange, strokeWidth: 2.5),
               ),
             );
           }
@@ -665,12 +733,16 @@ class _TapBoardPageState extends State<TapBoardPage> {
                 color: AppColors.red.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.error_outline_rounded, color: AppColors.red, size: 28.s),
+              child: Icon(Icons.error_outline_rounded,
+                  color: AppColors.red, size: 28.s),
             ),
             SizedBox(height: 16.s),
             Text(
               _error!,
-              style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16.s),
@@ -681,7 +753,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.orange,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11.s)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11.s)),
                 padding: EdgeInsets.symmetric(horizontal: 20.s, vertical: 10.s),
                 textStyle: const TextStyle(fontWeight: FontWeight.w800),
               ),
@@ -693,7 +766,8 @@ class _TapBoardPageState extends State<TapBoardPage> {
   }
 
   Widget _emptyState() {
-    final label = _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'категории';
+    final label =
+        _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'категории';
     return Center(
       child: Padding(
         padding: EdgeInsets.all(28.s),
@@ -707,17 +781,23 @@ class _TapBoardPageState extends State<TapBoardPage> {
                 color: Colors.white.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.sports_bar_rounded, color: AppColors.textMute.withValues(alpha: 0.5), size: 27.s),
+              child: Icon(Icons.sports_bar_rounded,
+                  color: AppColors.textMute.withValues(alpha: 0.5), size: 27.s),
             ),
             SizedBox(height: 16.s),
             Text(
               'Пока пусто',
-              style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800),
             ),
             SizedBox(height: 7.s),
             Text(
               'В "$label" пока нет товаров',
-              style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 13.sp),
+              style: TextStyle(
+                  color: AppColors.textMute.withValues(alpha: 0.7),
+                  fontSize: 13.sp),
               textAlign: TextAlign.center,
             ),
           ],
@@ -748,7 +828,8 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     final businessId = businessProvider.selectedBusinessId;
     if (businessId != null && businessId != _businessId) {
       _businessId = businessId;
@@ -757,7 +838,8 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   }
 
   Future<void> _initLikeState(int businessId) async {
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
     final providerLiked = likedProvider.isLiked(businessId, widget.item.itemId);
     if (providerLiked) {
       _isLikedOverride = true;
@@ -780,7 +862,8 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   Future<void> _toggleLike() async {
     if (_likeInProgress) return;
     setState(() => _likeInProgress = true);
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
     try {
       final newValue = await ApiService.toggleLikeItem(widget.item.itemId);
       if (newValue != null && mounted) {
@@ -814,16 +897,31 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     final discountPromo = _primaryDiscountPromo(activePromotions);
     final subtractPromotions = _subtractPromotions(activePromotions);
     final hasDiscount = discountPromo != null;
-    final discountedPrice = discountPromo?.calculateDiscountedPrice(item.price) ?? item.price;
-    final discountPercent = discountPromo?.calculateEffectiveDiscountPercent(item.price) ?? 0;
+    final discountedPrice =
+        discountPromo?.calculateDiscountedPrice(item.price) ?? item.price;
+    final discountPercent =
+        discountPromo?.calculateEffectiveDiscountPercent(item.price) ?? 0;
     final isOutOfStock = item.amount != null && item.amount! <= 0;
-    final isLowStock = !isOutOfStock && item.amount != null && item.amount! > 0 && item.amount! <= 5;
-    final bonusPoints = isOutOfStock ? 0 : _calculateBonusPoints(item, discountedPrice);
-    final portionPrice = isWeightItem && portionWeight > 0 ? discountedPrice * portionWeight : null;
-    final oldPrice = hasDiscount ? (portionPrice != null ? item.price * portionWeight : item.price) : null;
+    final isLowStock = !isOutOfStock &&
+        item.amount != null &&
+        item.amount! > 0 &&
+        item.amount! <= 5;
+    final bonusPoints =
+        isOutOfStock ? 0 : _calculateBonusPoints(item, discountedPrice);
+    final portionPrice = isWeightItem && portionWeight > 0
+        ? discountedPrice * portionWeight
+        : null;
+    final oldPrice = hasDiscount
+        ? (portionPrice != null ? item.price * portionWeight : item.price)
+        : null;
     final mainPrice = portionPrice ?? discountedPrice;
-    final savingsAmount = hasDiscount ? (item.price - discountedPrice) * (isWeightItem && portionWeight > 0 ? portionWeight : 1) : 0.0;
-    final portionLabel = isWeightItem && portionWeight > 0 ? globals.formatQuantity(portionWeight, item.unit ?? 'кг') : null;
+    final savingsAmount = hasDiscount
+        ? (item.price - discountedPrice) *
+            (isWeightItem && portionWeight > 0 ? portionWeight : 1)
+        : 0.0;
+    final portionLabel = isWeightItem && portionWeight > 0
+        ? globals.formatQuantity(portionWeight, item.unit ?? 'кг')
+        : null;
 
     final subtitleParts = <String>[];
     if (itemTitle.type != null) subtitleParts.add(itemTitle.type!);
@@ -950,8 +1048,12 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors:
-                        item.hasImage ? const [Color(0xFFF4F1ED), Color(0xFFE2D7CA)] : [AppColors.cardDark, AppColors.blue.withValues(alpha: 0.9)],
+                    colors: item.hasImage
+                        ? const [Color(0xFFF4F1ED), Color(0xFFE2D7CA)]
+                        : [
+                            AppColors.cardDark,
+                            AppColors.blue.withValues(alpha: 0.9)
+                          ],
                   ),
                 ),
                 child: item.hasImage
@@ -959,11 +1061,13 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
                         item.image!,
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Center(
-                          child: Icon(Icons.inventory_2_outlined, color: AppColors.textMute, size: 28.s),
+                          child: Icon(Icons.inventory_2_outlined,
+                              color: AppColors.textMute, size: 28.s),
                         ),
                       )
                     : Center(
-                        child: Icon(Icons.inventory_2_outlined, color: AppColors.textMute, size: 28.s),
+                        child: Icon(Icons.inventory_2_outlined,
+                            color: AppColors.textMute, size: 28.s),
                       ),
               ),
             ),
@@ -980,7 +1084,11 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
                 ),
                 child: Text(
                   '-$discountPercent%',
-                  style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w900, height: 1.0),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.w900,
+                      height: 1.0),
                 ),
               ),
             ),
@@ -999,7 +1107,9 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
                 child: Icon(
                   _isLiked ? Icons.favorite : Icons.favorite_border,
                   size: 13.s,
-                  color: _isLiked ? AppColors.red : Colors.white.withValues(alpha: 0.8),
+                  color: _isLiked
+                      ? AppColors.red
+                      : Colors.white.withValues(alpha: 0.8),
                 ),
               ),
             ),
@@ -1045,17 +1155,26 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
         if (portionLabel != null)
           Text(
             'за $portionLabel',
-            style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 9.sp, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                color: AppColors.textMute.withValues(alpha: 0.7),
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w600),
           ),
         if (isWeightItem)
           Text(
             '${_formatPrice(discountedPrice)} ₸/кг',
-            style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 9.sp, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                color: AppColors.textMute.withValues(alpha: 0.6),
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w600),
           ),
         if (hasDiscount && savingsAmount >= 1)
           Text(
             '−${_formatPrice(savingsAmount)} ₸',
-            style: TextStyle(color: AppColors.orange, fontSize: 9.sp, fontWeight: FontWeight.w700),
+            style: TextStyle(
+                color: AppColors.orange,
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w700),
           ),
       ],
     );
@@ -1076,7 +1195,8 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     if (hasDiscount && discountPercent > 0) {
       spans.add(TextSpan(
         text: '-$discountPercent%',
-        style: TextStyle(color: AppColors.red, fontSize: 10.sp, fontWeight: FontWeight.w800),
+        style: TextStyle(
+            color: AppColors.red, fontSize: 10.sp, fontWeight: FontWeight.w800),
       ));
     }
 
@@ -1084,7 +1204,10 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
       _appendSeparator(spans);
       spans.add(TextSpan(
         text: _subtractPromoLabel(promo),
-        style: TextStyle(color: AppColors.orange, fontSize: 10.sp, fontWeight: FontWeight.w800),
+        style: TextStyle(
+            color: AppColors.orange,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w800),
       ));
     }
 
@@ -1092,13 +1215,19 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
       _appendSeparator(spans);
       spans.add(TextSpan(
         text: 'Нет в наличии',
-        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 10.sp, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: AppColors.textMute.withValues(alpha: 0.7),
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w600),
       ));
     } else if (isLowStock) {
       _appendSeparator(spans);
       spans.add(TextSpan(
         text: 'Мало',
-        style: TextStyle(color: AppColors.orange, fontSize: 10.sp, fontWeight: FontWeight.w700),
+        style: TextStyle(
+            color: AppColors.orange,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w700),
       ));
     }
 
@@ -1106,7 +1235,10 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
       _appendSeparator(spans);
       spans.add(TextSpan(
         text: '★ $bonusPoints',
-        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 10.sp, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: AppColors.textMute.withValues(alpha: 0.7),
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w600),
       ));
     }
 
@@ -1114,7 +1246,10 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
       _appendSeparator(spans);
       spans.add(TextSpan(
         text: _compactOptionsLabel(item),
-        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 10.sp, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: AppColors.textMute.withValues(alpha: 0.7),
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w600),
       ));
     }
 
@@ -1131,7 +1266,8 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     if (spans.isNotEmpty) {
       spans.add(TextSpan(
         text: ' · ',
-        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.35), fontSize: 10.sp),
+        style: TextStyle(
+            color: AppColors.textMute.withValues(alpha: 0.35), fontSize: 10.sp),
       ));
     }
   }
@@ -1144,12 +1280,16 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   }
 
   List<item_model.ItemPromotion> _activePromotions(item_model.Item item) {
-    return (item.promotions ?? const <item_model.ItemPromotion>[]).where((promotion) => promotion.isActive).toList(growable: false);
+    return (item.promotions ?? const <item_model.ItemPromotion>[])
+        .where((promotion) => promotion.isActive)
+        .toList(growable: false);
   }
 
-  item_model.ItemPromotion? _primaryDiscountPromo(List<item_model.ItemPromotion> promotions) {
+  item_model.ItemPromotion? _primaryDiscountPromo(
+      List<item_model.ItemPromotion> promotions) {
     for (final promotion in promotions) {
-      final isDiscountType = promotion.discountType == 'PERCENT' || promotion.discountType == 'FIXED';
+      final isDiscountType = promotion.discountType == 'PERCENT' ||
+          promotion.discountType == 'FIXED';
       if (isDiscountType && promotion.discountValue > 0) {
         return promotion;
       }
@@ -1157,9 +1297,13 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     return null;
   }
 
-  List<item_model.ItemPromotion> _subtractPromotions(List<item_model.ItemPromotion> promotions) {
+  List<item_model.ItemPromotion> _subtractPromotions(
+      List<item_model.ItemPromotion> promotions) {
     return promotions
-        .where((promotion) => promotion.discountType == 'SUBTRACT' && promotion.baseAmount > 0 && promotion.addAmount > 0)
+        .where((promotion) =>
+            promotion.discountType == 'SUBTRACT' &&
+            promotion.baseAmount > 0 &&
+            promotion.addAmount > 0)
         .toList(growable: false);
   }
 
@@ -1167,7 +1311,9 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
     if (promotion.baseAmount > 0 && promotion.addAmount > 0) {
       return '${promotion.baseAmount}+${promotion.addAmount}';
     }
-    final fallback = (promotion.description?.trim().isNotEmpty ?? false) ? promotion.description!.trim() : promotion.name.trim();
+    final fallback = (promotion.description?.trim().isNotEmpty ?? false)
+        ? promotion.description!.trim()
+        : promotion.name.trim();
     return fallback.isEmpty ? 'Промо' : fallback;
   }
 
@@ -1206,10 +1352,12 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
         final totalQuantity = cartProvider.getCatalogQuantity(item);
         final isInCart = totalQuantity > 0;
         final num? maxAmount = item.amount;
-        final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
+        final bool canIncrease =
+            maxAmount == null || totalQuantity < maxAmount.toDouble();
 
         if (isInCart) {
-          return _quantityControls(item, cartProvider, totalQuantity, canIncrease);
+          return _quantityControls(
+              item, cartProvider, totalQuantity, canIncrease);
         }
         return _addToCartButton(item, cartProvider, maxAmount);
       },
@@ -1233,13 +1381,19 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
           child: Container(
             height: 32.s,
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.orange.withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: AppColors.orange.withValues(alpha: 0.3)),
               borderRadius: BorderRadius.circular(8.s),
             ),
             child: Center(
               child: Text(
-                totalQuantity == totalQuantity.roundToDouble() ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w800, color: AppColors.orange),
+                totalQuantity == totalQuantity.roundToDouble()
+                    ? totalQuantity.toStringAsFixed(0)
+                    : totalQuantity.toStringAsFixed(2),
+                style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.orange),
               ),
             ),
           ),
@@ -1248,7 +1402,9 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
         _ctrlButton(
           icon: Icons.add,
           enabled: canIncrease,
-          onPressed: canIncrease ? () => cartProvider.incrementCatalogItem(item) : null,
+          onPressed: canIncrease
+              ? () => cartProvider.incrementCatalogItem(item)
+              : null,
         ),
       ],
     );
@@ -1269,7 +1425,8 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
           borderRadius: BorderRadius.circular(8.s),
           onTap: onPressed,
           child: Center(
-            child: Icon(icon, size: 15.s, color: enabled ? Colors.black : AppColors.textMute),
+            child: Icon(icon,
+                size: 15.s, color: enabled ? Colors.black : AppColors.textMute),
           ),
         ),
       ),
@@ -1283,7 +1440,9 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   ) {
     final canAdd = maxAmount == null || maxAmount.toDouble() > 0;
     final buttonLabel = canAdd ? 'В корзину' : 'Нет';
-    final buttonIcon = canAdd ? Icons.shopping_bag_outlined : Icons.remove_shopping_cart_outlined;
+    final buttonIcon = canAdd
+        ? Icons.shopping_bag_outlined
+        : Icons.remove_shopping_cart_outlined;
 
     return SizedBox(
       height: 32.s,
@@ -1296,11 +1455,16 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(buttonIcon, size: 14.s, color: canAdd ? Colors.black : AppColors.textMute),
+              Icon(buttonIcon,
+                  size: 14.s,
+                  color: canAdd ? Colors.black : AppColors.textMute),
               SizedBox(width: 5.s),
               Text(
                 buttonLabel,
-                style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w800, color: canAdd ? Colors.black : AppColors.textMute),
+                style: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800,
+                    color: canAdd ? Colors.black : AppColors.textMute),
               ),
             ],
           ),
@@ -1321,9 +1485,13 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
       }
       parts.insert(0, number.toString());
       final formatted = parts.join(' ');
-      return frac > 0.005 ? '$formatted.${(frac * 100).round().toString().padLeft(2, '0')}' : formatted;
+      return frac > 0.005
+          ? '$formatted.${(frac * 100).round().toString().padLeft(2, '0')}'
+          : formatted;
     }
 
-    return price == price.roundToDouble() ? price.toStringAsFixed(0) : price.toStringAsFixed(2);
+    return price == price.roundToDouble()
+        ? price.toStringAsFixed(0)
+        : price.toStringAsFixed(2);
   }
 }

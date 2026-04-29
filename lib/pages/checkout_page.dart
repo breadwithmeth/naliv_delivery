@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:gradusy24/pages/bonus_info_page.dart';
-import 'package:gradusy24/pages/payment_method_page.dart';
-import 'package:gradusy24/services/onboarding_service.dart';
-import 'package:gradusy24/shared/app_theme.dart';
-import 'package:gradusy24/utils/address_storage_service.dart';
-import 'package:gradusy24/utils/api.dart';
-import 'package:gradusy24/utils/app_navigator.dart';
-import 'package:gradusy24/utils/bonus_rules.dart';
-import 'package:gradusy24/utils/business_provider.dart';
-import 'package:gradusy24/utils/item_name_presentation.dart';
-import 'package:gradusy24/utils/responsive.dart';
+import 'package:naliv_delivery/pages/bonus_info_page.dart';
+import 'package:naliv_delivery/pages/payment_method_page.dart';
+import 'package:naliv_delivery/services/onboarding_service.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/address_storage_service.dart';
+import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
+import 'package:naliv_delivery/utils/bonus_rules.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/item_name_presentation.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/smart_cart.dart';
-import 'package:gradusy24/widgets/address_selection_modal_material.dart';
+import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'cart_page.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -40,7 +40,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
 
-  int get _itemCount => Provider.of<CartProvider>(context, listen: false).displayItemCount;
+  int get _itemCount =>
+      Provider.of<CartProvider>(context, listen: false).displayItemCount;
 
   void _handleBack() {
     final navigator = Navigator.of(context);
@@ -48,7 +49,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       navigator.pop();
     } else {
       // Safeguard: if this is the last route, return to cart instead of a blank screen.
-      navigator.pushReplacement(MaterialPageRoute(builder: (_) => const CartPage()));
+      navigator
+          .pushReplacement(MaterialPageRoute(builder: (_) => const CartPage()));
     }
   }
 
@@ -111,24 +113,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _showBusinessSelectionSheet() async {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final availableCities = (await OnboardingService.fetchAvailableCities(forceRefresh: true)).map((city) => city.name).toList();
+    final availableCities =
+        (await OnboardingService.fetchAvailableCities(forceRefresh: true))
+            .map((city) => city.name)
+            .toList();
     final selectedCity = await OnboardingService.getSelectedCity();
     final businesses = await ApiService.getAllBusinesses();
 
     if (!mounted) return;
     if (businesses == null || businesses.isEmpty) {
-      await _showNotice('Магазины не найдены', 'Не удалось загрузить список магазинов. Попробуйте ещё раз.');
+      await _showNotice('Магазины не найдены',
+          'Не удалось загрузить список магазинов. Попробуйте ещё раз.');
       return;
     }
 
-    final preparedBusinesses = List<Map<String, dynamic>>.from(businesses).map((business) {
+    final preparedBusinesses =
+        List<Map<String, dynamic>>.from(businesses).map((business) {
       return {
         ...business,
         '_cityName': _detectBusinessCity(business, availableCities) ?? '',
       };
     }).toList();
 
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     final selectedBusiness = businessProvider.selectedBusiness;
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -193,7 +201,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final loggedIn = await ApiService.isUserLoggedIn();
     if (!mounted) return;
     if (!loggedIn) {
-      await _showNotice('Нужна авторизация', 'Пожалуйста, авторизуйтесь, чтобы оформить заказ.');
+      await _showNotice('Нужна авторизация',
+          'Пожалуйста, авторизуйтесь, чтобы оформить заказ.');
       return;
     }
 
@@ -201,14 +210,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isSubmitting = true);
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
-      await _showNotice('Магазин не выбран', 'Пожалуйста, выберите магазин перед оформлением заказа.');
+      await _showNotice('Магазин не выбран',
+          'Пожалуйста, выберите магазин перед оформлением заказа.');
       setState(() => _isSubmitting = false);
       return;
     }
     if (_selectedAddress == null && _deliveryType == 'DELIVERY') {
-      await _showNotice('Адрес не выбран', 'Пожалуйста, выберите адрес доставки.');
+      await _showNotice(
+          'Адрес не выбран', 'Пожалуйста, выберите адрес доставки.');
       setState(() => _isSubmitting = false);
       return;
     }
@@ -230,7 +242,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     final body = <String, dynamic>{
       'business_id': businessProvider.selectedBusiness!['id'],
-      'street': normalizedAddress['street'] ?? normalizedAddress['address'] ?? '',
+      'street':
+          normalizedAddress['street'] ?? normalizedAddress['address'] ?? '',
       'house': normalizedAddress['house'] ?? '-',
       'lat': normalizedAddress['lat'] ?? 0.0,
       'lon': normalizedAddress['lon'] ?? 0.0,
@@ -244,7 +257,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'total_amount': _getTotalWithDelivery(),
       'use_bonuses': _useBonus,
       if (_useBonus) 'bonus_amount': _getUsedBonuses(),
-      if (_selectedDeliveryDateTime != null) 'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
+      if (_selectedDeliveryDateTime != null)
+        'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
       'saved_card_id': 1,
     };
     try {
@@ -263,7 +277,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         );
       } else {
-        final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'];
+        final errorMessage = result['error'] is Map
+            ? result['error']['message']
+            : result['error'];
         await _showNotice('Ошибка создания заказа', '$errorMessage');
       }
     } finally {
@@ -276,9 +292,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (_selectedAddress == null || _deliveryType != 'DELIVERY') return;
     if (_isCalculatingDelivery) return;
     setState(() => _isCalculatingDelivery = true);
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     if (businessProvider.selectedBusiness == null) {
-      await _showNotice('Магазин не выбран', 'Сначала выберите магазин, чтобы рассчитать доставку.');
+      await _showNotice('Магазин не выбран',
+          'Сначала выберите магазин, чтобы рассчитать доставку.');
       setState(() => _isCalculatingDelivery = false);
       return;
     }
@@ -298,7 +316,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
     } catch (e) {
       if (mounted) {
-        await _showNotice('Доставка не рассчитана', 'Не удалось рассчитать доставку: $e');
+        await _showNotice(
+            'Доставка не рассчитана', 'Не удалось рассчитать доставку: $e');
       }
     } finally {
       if (mounted) setState(() => _isCalculatingDelivery = false);
@@ -315,15 +334,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
         children: [
           ListTile(
             leading: const Icon(Icons.schedule, color: AppColors.orange),
-            title: const Text('Сейчас', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-            subtitle: const Text('Доставка в ближайшее время', style: TextStyle(color: AppColors.textMute)),
+            title: const Text('Сейчас',
+                style: TextStyle(
+                    color: AppColors.text, fontWeight: FontWeight.w700)),
+            subtitle: const Text('Доставка в ближайшее время',
+                style: TextStyle(color: AppColors.textMute)),
             onTap: () => Navigator.pop(context, 'NOW'),
           ),
           const Divider(color: Color(0x229FB0C8)),
           ListTile(
             leading: const Icon(Icons.calendar_today, color: AppColors.orange),
-            title: const Text('Запланировать', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-            subtitle: const Text('Выберите дату и время', style: TextStyle(color: AppColors.textMute)),
+            title: const Text('Запланировать',
+                style: TextStyle(
+                    color: AppColors.text, fontWeight: FontWeight.w700)),
+            subtitle: const Text('Выберите дату и время',
+                style: TextStyle(color: AppColors.textMute)),
             onTap: () async {
               Navigator.pop(context);
               await _showDateTimePicker();
@@ -333,8 +358,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
             const Divider(color: Color(0x229FB0C8)),
             ListTile(
               leading: const Icon(Icons.clear, color: AppColors.orange),
-              title: const Text('Сбросить', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700)),
-              subtitle: const Text('Очистить выбранное время', style: TextStyle(color: AppColors.textMute)),
+              title: const Text('Сбросить',
+                  style: TextStyle(
+                      color: AppColors.text, fontWeight: FontWeight.w700)),
+              subtitle: const Text('Очистить выбранное время',
+                  style: TextStyle(color: AppColors.textMute)),
               onTap: () => Navigator.pop(context, 'RESET'),
             ),
           ],
@@ -410,13 +438,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     // Проверяем, что выбранное время не в прошлом
     if (selectedDateTime.isBefore(now)) {
-      await _showNotice('Некорректное время', 'Нельзя выбрать время в прошлом.');
+      await _showNotice(
+          'Некорректное время', 'Нельзя выбрать время в прошлом.');
       return;
     }
 
     // Проверяем, что время в пределах 24 часов
     if (selectedDateTime.isAfter(now.add(const Duration(hours: 24)))) {
-      await _showNotice('Некорректное время', 'Доставка возможна только в течение 24 часов.');
+      await _showNotice(
+          'Некорректное время', 'Доставка возможна только в течение 24 часов.');
       return;
     }
 
@@ -434,12 +464,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final tomorrow = today.add(const Duration(days: 1));
 
       String dateText;
-      if (_selectedDeliveryDateTime!.day == today.day && _selectedDeliveryDateTime!.month == today.month) {
+      if (_selectedDeliveryDateTime!.day == today.day &&
+          _selectedDeliveryDateTime!.month == today.month) {
         dateText = 'Сегодня';
-      } else if (_selectedDeliveryDateTime!.day == tomorrow.day && _selectedDeliveryDateTime!.month == tomorrow.month) {
+      } else if (_selectedDeliveryDateTime!.day == tomorrow.day &&
+          _selectedDeliveryDateTime!.month == tomorrow.month) {
         dateText = 'Завтра';
       } else {
-        dateText = '${_selectedDeliveryDateTime!.day}.${_selectedDeliveryDateTime!.month.toString().padLeft(2, '0')}';
+        dateText =
+            '${_selectedDeliveryDateTime!.day}.${_selectedDeliveryDateTime!.month.toString().padLeft(2, '0')}';
       }
 
       final timeText =
@@ -453,10 +486,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
   double _getTotalWithDelivery() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final itemsTotal = cartProvider.getTotalPrice();
-    final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null) ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0 : 0.0;
+    final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null)
+        ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
 
     // Bonuses apply only to items (not delivery).
-    final bonusApplied = _useBonus && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
+    final bonusApplied =
+        _useBonus && _bonusData != null && _bonusData!['success'] == true
+            ? _getUsedBonuses()
+            : 0.0;
 
     return (itemsTotal - bonusApplied).clamp(0, double.infinity) + deliveryCost;
   }
@@ -472,10 +510,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     // Максимум 30% от суммы товаров можно оплатить бонусами, доставка не покрывается бонусами.
     final maxBonusUsage = itemsTotal * 0.30;
-    final availableBonuses = (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
+    final availableBonuses =
+        (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
 
     // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (30%), или сумма товаров
-    return [availableBonuses, maxBonusUsage, itemsTotal].reduce((a, b) => a < b ? a : b);
+    return [availableBonuses, maxBonusUsage, itemsTotal]
+        .reduce((a, b) => a < b ? a : b);
   }
 
   int _getEarnedBonuses() {
@@ -488,11 +528,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final cartProvider = Provider.of<CartProvider>(context);
     final displayGroups = cartProvider.displayGroups;
     final businessProvider = Provider.of<BusinessProvider>(context);
-    final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+    final deliveryCost =
+        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
     final itemsTotal = cartProvider.getTotalPrice();
     final totalWithDelivery = _getTotalWithDelivery();
     final earnedBonuses = _getEarnedBonuses();
-    final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
+    final bool canUseBonus =
+        _bonusData != null && _bonusData!['success'] == true;
     final double bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
 
     return PopScope(
@@ -515,7 +557,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
             icon: const Icon(Icons.arrow_back_ios_new, size: 18),
             onPressed: _handleBack,
           ),
-          title: Text('Оформление', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.sp)),
+          title: Text('Оформление',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.sp)),
         ),
         bottomNavigationBar: _bottomCheckoutBar(total: totalWithDelivery),
         body: Stack(
@@ -548,18 +591,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         padding: EdgeInsets.only(bottom: 4.s),
                         child: Row(
                           children: [
-                            Expanded(child: _compactField(_entranceController, 'Подъезд')),
+                            Expanded(
+                                child: _compactField(
+                                    _entranceController, 'Подъезд')),
                             SizedBox(width: 8.s),
-                            Expanded(child: _compactField(_floorController, 'Этаж')),
+                            Expanded(
+                                child: _compactField(_floorController, 'Этаж')),
                             SizedBox(width: 8.s),
-                            Expanded(child: _compactField(_apartmentController, 'Квартира')),
+                            Expanded(
+                                child: _compactField(
+                                    _apartmentController, 'Квартира')),
                           ],
                         ),
                       ),
                       _tapRow(
                         icon: Icons.local_shipping_outlined,
                         title: 'Стоимость доставки',
-                        value: _isCalculatingDelivery ? 'считаем…' : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                        value: _isCalculatingDelivery
+                            ? 'считаем…'
+                            : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
                         onTap: _calculateDelivery,
                       ),
                     ],
@@ -572,17 +622,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     _thinDivider(),
                     Row(
                       children: [
-                        Icon(Icons.stars_rounded, color: AppColors.orange, size: 18.s),
+                        Icon(Icons.stars_rounded,
+                            color: AppColors.orange, size: 18.s),
                         SizedBox(width: 10.s),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Списать бонусы', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+                              const Text('Списать бонусы',
+                                  style: TextStyle(
+                                      color: AppColors.text,
+                                      fontWeight: FontWeight.w800)),
                               if (canUseBonus)
                                 _buildBonusSubtitle()
                               else
-                                const Text('Проверяем баланс…', style: TextStyle(color: AppColors.textMute, fontSize: 12)),
+                                const Text('Проверяем баланс…',
+                                    style: TextStyle(
+                                        color: AppColors.textMute,
+                                        fontSize: 12)),
                             ],
                           ),
                         ),
@@ -592,45 +649,68 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           activeTrackColor: AppColors.orange,
                           inactiveThumbColor: AppColors.text,
                           inactiveTrackColor: AppColors.blue,
-                          onChanged: canUseBonus ? (v) => setState(() => _useBonus = v) : null,
+                          onChanged: canUseBonus
+                              ? (v) => setState(() => _useBonus = v)
+                              : null,
                         ),
                       ],
                     ),
                     GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BonusInfoPage())),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const BonusInfoPage())),
                       child: Padding(
                         padding: EdgeInsets.only(left: 28.s, top: 2.s),
-                        child: Text('Как работают бонусы →', style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+                        child: Text('Как работают бонусы →',
+                            style: TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600)),
                       ),
                     ),
                     _thinDivider(),
                     _sectionTitle('Ваш заказ · $_itemCount поз.'),
                     SizedBox(height: 8.s),
                     for (int i = 0; i < displayGroups.length; i++) ...[
-                      if (i > 0) Divider(color: Colors.white.withValues(alpha: 0.05), height: 16.s),
+                      if (i > 0)
+                        Divider(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            height: 16.s),
                       _itemTile(displayGroups[i]),
                     ],
                     _thinDivider(),
                     _summaryRow('Товары', _money(itemsTotal)),
                     SizedBox(height: 6.s),
                     if (_deliveryType == 'DELIVERY') ...[
-                      _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                      _summaryRow('Доставка',
+                          deliveryCost > 0 ? _money(deliveryCost) : '—'),
                       SizedBox(height: 6.s),
                     ],
                     if (bonusUsed > 0) ...[
-                      _summaryRow('Списание бонусов', '-${_money(bonusUsed)}', valueColor: Colors.greenAccent),
+                      _summaryRow('Списание бонусов', '-${_money(bonusUsed)}',
+                          valueColor: Colors.greenAccent),
                       SizedBox(height: 6.s),
                     ],
                     if (earnedBonuses > 0) ...[
-                      _summaryRow('Бонусы за заказ', '+$earnedBonuses ₸', valueColor: Colors.greenAccent),
+                      _summaryRow('Бонусы за заказ', '+$earnedBonuses ₸',
+                          valueColor: Colors.greenAccent),
                       SizedBox(height: 6.s),
                     ],
-                    Divider(color: Colors.white.withValues(alpha: 0.08), height: 20.s),
+                    Divider(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        height: 20.s),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Итого', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
-                        Text(_money(totalWithDelivery), style: TextStyle(color: AppColors.orange, fontSize: 18.sp, fontWeight: FontWeight.w900)),
+                        Text('Итого',
+                            style: TextStyle(
+                                color: AppColors.text,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w800)),
+                        Text(_money(totalWithDelivery),
+                            style: TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w900)),
                       ],
                     ),
                   ],
@@ -646,7 +726,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _deliveryTabs() {
     return Container(
       padding: EdgeInsets.all(4.s),
-      decoration: AppDecorations.card(radius: 22, color: AppColors.cardDark.withValues(alpha: 0.9)),
+      decoration: AppDecorations.card(
+          radius: 22, color: AppColors.cardDark.withValues(alpha: 0.9)),
       child: Row(
         children: [
           _deliveryTab('Доставка', 'DELIVERY'),
@@ -659,7 +740,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _sectionTitle(String text) {
     return Padding(
       padding: EdgeInsets.only(top: 2.s),
-      child: Text(text, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+      child: Text(text,
+          style: TextStyle(
+              color: AppColors.textMute,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4)),
     );
   }
 
@@ -689,13 +775,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 14.sp)),
+                  Text(title,
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp)),
                   if (value != null)
-                    Text(value, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(value,
+                        style: TextStyle(
+                            color: AppColors.textMute, fontSize: 12.sp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
-            if (onTap != null) Icon(Icons.chevron_right, color: AppColors.textMute, size: 18.s),
+            if (onTap != null)
+              Icon(Icons.chevron_right, color: AppColors.textMute, size: 18.s),
           ],
         ),
       ),
@@ -742,10 +837,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return item.freeQuantity;
     }
     for (final promo in item.promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
+      final type =
+          (promo['type'] as String?) ?? (promo['discount_type'] as String?);
       if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
-        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
+        final base = ((promo['baseAmount'] as num?) ??
+                (promo['base_amount'] as num?) ??
+                0)
+            .toInt();
+        final add =
+            ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0)
+                .toInt();
         final groupSize = base + add;
         if (groupSize > 0 && base > 0 && item.totalQuantity >= groupSize) {
           final count = item.totalQuantity ~/ groupSize;
@@ -757,7 +858,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   static String _fmtQty(double qty) {
-    return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
+    return (qty - qty.roundToDouble()).abs() < 0.001
+        ? qty.toStringAsFixed(0)
+        : qty.toStringAsFixed(2);
   }
 
   Widget _itemTile(CartDisplayGroup item) {
@@ -788,13 +891,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
               if (itemTitle.attributes.isNotEmpty)
                 Text(
                   itemTitle.attributes.join(' • '),
-                  style: const TextStyle(color: AppColors.textMute, fontSize: 12, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                      color: AppColors.textMute,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
                 ),
-              Text(itemTitle.name, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+              Text(itemTitle.name,
+                  style: const TextStyle(
+                      color: AppColors.text, fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Text('x${_fmtQty(item.totalQuantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                  Text('x${_fmtQty(item.totalQuantity)}',
+                      style: const TextStyle(
+                          color: AppColors.textMute, fontSize: 12)),
                   if (bottleBreakdown != null) ...[
                     SizedBox(width: 6.s),
                     Expanded(
@@ -802,7 +912,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         bottleBreakdown,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: AppColors.textMute,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -810,7 +923,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     SizedBox(width: 6.s),
                     Text(
                       '+ ${_fmtQty(freeQty)} в подарок',
-                      style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: AppColors.orange,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                 ],
@@ -832,11 +948,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   decorationColor: AppColors.textMute.withValues(alpha: 0.5),
                 ),
               ),
-            Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
+            Text(_money(item.totalPrice),
+                style: const TextStyle(
+                    color: AppColors.orange, fontWeight: FontWeight.w900)),
             if (hasFree)
               Text(
                 '+ ${_fmtQty(freeQty)} в подарок',
-                style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600),
               ),
           ],
         ),
@@ -844,12 +965,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _summaryRow(String label, String value, {Color valueColor = AppColors.text}) {
+  Widget _summaryRow(String label, String value,
+      {Color valueColor = AppColors.text}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-        Text(value, style: TextStyle(color: valueColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+        Text(label,
+            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+        Text(value,
+            style: TextStyle(
+                color: valueColor,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700)),
       ],
     );
   }
@@ -859,13 +986,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
       padding: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 10.s),
       decoration: BoxDecoration(
         color: AppColors.bgDeep,
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: SafeArea(
         top: false,
         child: Row(
           children: [
-            Text(_money(total), style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900)),
+            Text(_money(total),
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w900)),
             SizedBox(width: 14.s),
             Expanded(
               child: _primaryButton(
@@ -890,9 +1022,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
           padding: EdgeInsets.symmetric(vertical: 14.s),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(23.s),
-            gradient: const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
+            gradient: const LinearGradient(
+                colors: [Color(0xFF8B1F1E), AppColors.red]),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10)),
             ],
           ),
           child: Row(
@@ -900,7 +1036,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
             children: [
               Icon(Icons.check_circle, color: Colors.white, size: 16.s),
               SizedBox(width: 9.s),
-              Text(label, style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w800)),
+              Text(label,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -909,7 +1049,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   String _addressText() {
-    return ApiService.formatAddressSummary(_selectedAddress, emptyText: 'Выберите адрес');
+    return ApiService.formatAddressSummary(_selectedAddress,
+        emptyText: 'Выберите адрес');
   }
 
   void _syncAddressDetailControllers(Map<String, dynamic>? address) {
@@ -935,7 +1076,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (missing.isEmpty) return true;
 
-    _showNotice('Незаполненный адрес', 'Добавьте ${missing.join(', ')} перед подтверждением заказа.');
+    _showNotice('Незаполненный адрес',
+        'Добавьте ${missing.join(', ')} перед подтверждением заказа.');
     return false;
   }
 
@@ -948,10 +1090,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   dynamic _businessIdOf(Map<String, dynamic>? business) {
-    return business?['id'] ?? business?['business_id'] ?? business?['businessId'];
+    return business?['id'] ??
+        business?['business_id'] ??
+        business?['businessId'];
   }
 
-  String? _detectBusinessCity(Map<String, dynamic> business, List<String> availableCities) {
+  String? _detectBusinessCity(
+      Map<String, dynamic> business, List<String> availableCities) {
     final rawSources = [
       business['city'],
       business['city_name'],
@@ -982,14 +1127,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   String _normalizeText(String value) {
-    return value.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim();
+    return value
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+        .replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ')
+        .trim();
   }
 
   Widget _compactField(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
-      style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
+      style: TextStyle(
+          color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
@@ -1015,7 +1165,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildBonusSubtitle() {
     if (_bonusData == null || _bonusData!['success'] != true) {
-      return const Text('Загрузка...', style: TextStyle(color: AppColors.textMute));
+      return const Text('Загрузка...',
+          style: TextStyle(color: AppColors.textMute));
     }
 
     final bonusData = _bonusData!['data'];
@@ -1024,15 +1175,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final itemsTotal = cartProvider.getTotalPrice();
     final maxBonusUsage = itemsTotal * 0.30;
-    final availableToUse = totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
+    final availableToUse =
+        totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('На балансе: $totalBonuses ₸', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w800)),
+        Text('На балансе: $totalBonuses ₸',
+            style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w800)),
         Text(
           'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸',
-          style: const TextStyle(color: AppColors.textMute, fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+              color: AppColors.textMute,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -1085,7 +1245,11 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
       return trimmed;
     }
 
-    final parts = trimmed.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    final parts = trimmed
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return trimmed;
 
     final lastPart = parts.last.toLowerCase();
@@ -1154,7 +1318,8 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
     final items = <_CheckoutSheetItem>[];
 
     for (final entry in grouped.entries) {
-      items.add(_CheckoutSheetItem.header(entry.key, entry.value.length, entry.key == widget.selectedCity));
+      items.add(_CheckoutSheetItem.header(
+          entry.key, entry.value.length, entry.key == widget.selectedCity));
       for (final shop in entry.value) {
         items.add(_CheckoutSheetItem.shop(shop, _isSelected(shop)));
       }
@@ -1183,7 +1348,10 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Выберите магазин',
-                  style: TextStyle(color: AppColors.text, fontSize: 18.sp, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w800),
                 ),
               ),
             ),
@@ -1193,7 +1361,9 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Смена магазина очистит корзину и вернёт вас к каталогу.',
-                  style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 12.sp),
+                  style: TextStyle(
+                      color: AppColors.textMute.withValues(alpha: 0.6),
+                      fontSize: 12.sp),
                 ),
               ),
             ),
@@ -1204,9 +1374,12 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.store_mall_directory, color: AppColors.textMute, size: 32),
+                          Icon(Icons.store_mall_directory,
+                              color: AppColors.textMute, size: 32),
                           SizedBox(height: 10),
-                          Text('Магазины не найдены', style: TextStyle(color: AppColors.text, fontSize: 15)),
+                          Text('Магазины не найдены',
+                              style: TextStyle(
+                                  color: AppColors.text, fontSize: 15)),
                         ],
                       ),
                     )
@@ -1217,11 +1390,13 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
                       itemBuilder: (listContext, index) {
                         final item = items[index];
                         if (item.isHeader) {
-                          return _cityHeader(item.cityName!, item.shopCount!, item.isCurrentCity!);
+                          return _cityHeader(item.cityName!, item.shopCount!,
+                              item.isCurrentCity!);
                         }
                         return Padding(
                           padding: EdgeInsets.only(bottom: 7.s),
-                          child: _shopCard(listContext, item.business!, item.isSelectedShop!),
+                          child: _shopCard(listContext, item.business!,
+                              item.isSelectedShop!),
                         );
                       },
                     ),
@@ -1240,7 +1415,9 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
           Icon(
             isCurrent ? Icons.my_location_rounded : Icons.location_city_rounded,
             size: 14.s,
-            color: isCurrent ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.5),
+            color: isCurrent
+                ? AppColors.orange
+                : AppColors.textMute.withValues(alpha: 0.5),
           ),
           SizedBox(width: 7.s),
           Text(
@@ -1255,13 +1432,17 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 2.s),
             decoration: BoxDecoration(
-              color: isCurrent ? AppColors.orange.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.04),
+              color: isCurrent
+                  ? AppColors.orange.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(9.s),
             ),
             child: Text(
               '$count',
               style: TextStyle(
-                color: isCurrent ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.5),
+                color: isCurrent
+                    ? AppColors.orange
+                    : AppColors.textMute.withValues(alpha: 0.5),
                 fontSize: 11.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -1271,7 +1452,10 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
             const Spacer(),
             Text(
               'текущий город',
-              style: TextStyle(color: AppColors.orange.withValues(alpha: 0.5), fontSize: 10.sp, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: AppColors.orange.withValues(alpha: 0.5),
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ],
@@ -1279,7 +1463,8 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
     );
   }
 
-  Widget _shopCard(BuildContext context, Map<String, dynamic> shop, bool isSelected) {
+  Widget _shopCard(
+      BuildContext context, Map<String, dynamic> shop, bool isSelected) {
     final name = (shop['name'] ?? shop['title'] ?? 'Магазин').toString();
     final city = shop['_cityName']?.toString();
     final rawAddress = (shop['address'] ?? shop['subtitle'] ?? '').toString();
@@ -1292,13 +1477,17 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
         key: isSelected ? _selectedShopKey : null,
         padding: EdgeInsets.all(12.s),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.orange.withValues(alpha: 0.10) : AppColors.cardDark,
+          color: isSelected
+              ? AppColors.orange.withValues(alpha: 0.10)
+              : AppColors.cardDark,
           borderRadius: BorderRadius.circular(12.s),
         ),
         child: Row(
           children: [
             Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.storefront_rounded,
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.storefront_rounded,
               color: AppColors.orange,
               size: 22.s,
             ),
@@ -1324,7 +1513,10 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
                       city,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.85), fontSize: 12.sp, height: 1.2),
+                      style: TextStyle(
+                          color: AppColors.textMute.withValues(alpha: 0.85),
+                          fontSize: 12.sp,
+                          height: 1.2),
                     ),
                   ],
                 ],
@@ -1333,7 +1525,8 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
             if (isSelected)
               Padding(
                 padding: EdgeInsets.only(left: 7.s),
-                child: Icon(Icons.check_rounded, color: AppColors.orange, size: 18.s),
+                child: Icon(Icons.check_rounded,
+                    color: AppColors.orange, size: 18.s),
               ),
           ],
         ),
@@ -1360,10 +1553,16 @@ class _CheckoutSheetItem {
   });
 
   factory _CheckoutSheetItem.header(String city, int count, bool isCurrent) {
-    return _CheckoutSheetItem._(isHeader: true, cityName: city, shopCount: count, isCurrentCity: isCurrent);
+    return _CheckoutSheetItem._(
+        isHeader: true,
+        cityName: city,
+        shopCount: count,
+        isCurrentCity: isCurrent);
   }
 
-  factory _CheckoutSheetItem.shop(Map<String, dynamic> business, bool isSelected) {
-    return _CheckoutSheetItem._(isHeader: false, business: business, isSelectedShop: isSelected);
+  factory _CheckoutSheetItem.shop(
+      Map<String, dynamic> business, bool isSelected) {
+    return _CheckoutSheetItem._(
+        isHeader: false, business: business, isSelectedShop: isSelected);
   }
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:gradusy24/pages/add_card_webview_page.dart';
-import 'package:gradusy24/shared/app_theme.dart';
-import 'package:gradusy24/utils/app_navigator.dart';
-import 'package:gradusy24/utils/api.dart';
-import 'package:gradusy24/utils/cart_provider.dart';
-import 'package:gradusy24/utils/responsive.dart';
+import 'package:naliv_delivery/pages/add_card_webview_page.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
+import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,13 +13,16 @@ class PaymentMethodPage extends StatefulWidget {
   final Map<String, dynamic> orderData;
   final double? displayAmount;
 
-  const PaymentMethodPage({Key? key, required this.orderData, this.displayAmount}) : super(key: key);
+  const PaymentMethodPage(
+      {Key? key, required this.orderData, this.displayAmount})
+      : super(key: key);
 
   @override
   _PaymentMethodPageState createState() => _PaymentMethodPageState();
 }
 
-class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindingObserver {
+class _PaymentMethodPageState extends State<PaymentMethodPage>
+    with WidgetsBindingObserver {
   List<Map<String, dynamic>>? _cards;
   bool _isLoading = true;
   String? _selectedCardId;
@@ -50,7 +53,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     }
   }
 
-  Future<void> _loadCards({bool showRefreshFeedback = false, int? previousCount}) async {
+  Future<void> _loadCards(
+      {bool showRefreshFeedback = false, int? previousCount}) async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
@@ -71,7 +75,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         final previous = previousCount ?? 0;
         final current = _cards?.length ?? 0;
         if (current > previous) {
-          _setCardFeedback('Новая карта добавлена. Выберите её для оплаты.', _CardFeedbackTone.success);
+          _setCardFeedback('Новая карта добавлена. Выберите её для оплаты.',
+              _CardFeedbackTone.success);
         } else {
           _setCardFeedback(
             'Список карт обновлен. Если новая карта еще не появилась, завершите привязку в форме банка и обновите список еще раз.',
@@ -101,32 +106,39 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     final uri = Uri.tryParse(link);
     if (uri == null) {
       if (!mounted) return;
-      _setCardFeedback('Получена некорректная ссылка для добавления карты. Попробуйте еще раз.', _CardFeedbackTone.error);
+      _setCardFeedback(
+          'Получена некорректная ссылка для добавления карты. Попробуйте еще раз.',
+          _CardFeedbackTone.error);
       return;
     }
 
     if (_supportsEmbeddedCardFlow) {
-      _setCardFeedback('Открываем защищенную форму банка для привязки карты.', _CardFeedbackTone.info);
+      _setCardFeedback('Открываем защищенную форму банка для привязки карты.',
+          _CardFeedbackTone.info);
       final shouldRefresh = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => AddCardWebViewPage(initialUrl: link),
         ),
       );
       if (shouldRefresh == true && mounted) {
-        await _loadCards(showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
+        await _loadCards(
+            showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
       }
       return;
     }
 
     if (await canLaunchUrl(uri)) {
       _awaitingCardAdd = true;
-      _setCardFeedback('Открываем форму банка. После возвращения список карт обновится автоматически.', _CardFeedbackTone.info);
+      _setCardFeedback(
+          'Открываем форму банка. После возвращения список карт обновится автоматически.',
+          _CardFeedbackTone.info);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
       return;
     }
 
     if (!mounted) return;
-    _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _CardFeedbackTone.error);
+    _setCardFeedback('Не удалось открыть форму банка для привязки карты.',
+        _CardFeedbackTone.error);
   }
 
   bool get _supportsEmbeddedCardFlow {
@@ -148,7 +160,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     if (_isPaying || _isLoading) return;
     if (_selectedCardId == null) {
       if (mounted) {
-        await _showNotice('Карта не выбрана', 'Пожалуйста, выберите карту для оплаты.');
+        await _showNotice(
+            'Карта не выбрана', 'Пожалуйста, выберите карту для оплаты.');
       }
       return;
     }
@@ -174,7 +187,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
                 SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange)),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.orange)),
                 ),
                 SizedBox(width: 12),
                 Text('Проводим оплату...'),
@@ -186,7 +202,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     }
 
     try {
-      final orderId = widget.orderData['order_id']?.toString() ?? widget.orderData['order_uuid']?.toString();
+      final orderId = widget.orderData['order_id']?.toString() ??
+          widget.orderData['order_uuid']?.toString();
       if (orderId == null || orderId.isEmpty) {
         if (mounted) Navigator.of(context, rootNavigator: true).pop();
         if (mounted) {
@@ -214,7 +231,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         }
       } else {
         // Ошибка оплаты
-        final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'].toString();
+        final errorMessage = result['error'] is Map
+            ? result['error']['message']
+            : result['error'].toString();
 
         if (mounted) {
           await _showNotice('Ошибка оплаты', 'Ошибка оплаты: $errorMessage');
@@ -285,7 +304,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AppColors.text,
-        title: const Text('Способ оплаты', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Способ оплаты',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -309,7 +329,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
                   ],
                   SizedBox(height: 14.s),
                   Expanded(
-                    child: _isLoading ? const Center(child: CircularProgressIndicator(color: AppColors.orange)) : _cardsSection(),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                                color: AppColors.orange))
+                        : _cardsSection(),
                   ),
                   SizedBox(height: 14.s),
                   _payButton(),
@@ -330,23 +354,39 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
       padding: EdgeInsets.all(14.s),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16.s),
-        gradient: const LinearGradient(colors: [AppColors.bgTop, AppColors.cardDark]),
+        gradient:
+            const LinearGradient(colors: [AppColors.bgTop, AppColors.cardDark]),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 10)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 18,
+              offset: const Offset(0, 10)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Сумма к оплате:', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+          Text('Сумма к оплате:',
+              style: TextStyle(
+                  color: AppColors.textMute,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600)),
           SizedBox(height: 5.s),
           RichText(
             text: TextSpan(
               text: amount,
-              style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w900),
               children: [
-                TextSpan(text: ' ₸', style: TextStyle(color: AppColors.orange, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                TextSpan(
+                    text: ' ₸',
+                    style: TextStyle(
+                        color: AppColors.orange,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -360,11 +400,16 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.credit_card_off_outlined, color: AppColors.textMute.withValues(alpha: 0.8), size: 50.s),
+          Icon(Icons.credit_card_off_outlined,
+              color: AppColors.textMute.withValues(alpha: 0.8), size: 50.s),
           SizedBox(height: 10.s),
-          const Text('Карт пока нет', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+          const Text('Карт пока нет',
+              style: TextStyle(
+                  color: AppColors.text, fontWeight: FontWeight.w800)),
           SizedBox(height: 7.s),
-          Text('Добавьте карту, чтобы оплатить заказ', style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.9))),
+          Text('Добавьте карту, чтобы оплатить заказ',
+              style:
+                  TextStyle(color: AppColors.textMute.withValues(alpha: 0.9))),
           SizedBox(height: 14.s),
           _addCardButton(expanded: false),
         ],
@@ -405,11 +450,20 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
           gradient: LinearGradient(
             colors: isSelected
                 ? [AppColors.cardDark, AppColors.blue]
-                : [AppColors.cardDark.withValues(alpha: 0.9), AppColors.card.withValues(alpha: 0.9)],
+                : [
+                    AppColors.cardDark.withValues(alpha: 0.9),
+                    AppColors.card.withValues(alpha: 0.9)
+                  ],
           ),
-          border: Border.all(color: isSelected ? AppColors.orange.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(
+              color: isSelected
+                  ? AppColors.orange.withValues(alpha: 0.7)
+                  : Colors.white.withValues(alpha: 0.06)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 12)),
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 12)),
           ],
         ),
         child: Row(
@@ -419,20 +473,34 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
               height: 24.s,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? AppColors.orange : Colors.white.withValues(alpha: 0.4), width: 2),
+                border: Border.all(
+                    color: isSelected
+                        ? AppColors.orange
+                        : Colors.white.withValues(alpha: 0.4),
+                    width: 2),
                 color: isSelected ? AppColors.orange : Colors.transparent,
               ),
-              child: isSelected ? Icon(Icons.check, size: 14.s, color: Colors.black) : null,
+              child: isSelected
+                  ? Icon(Icons.check, size: 14.s, color: Colors.black)
+                  : null,
             ),
             SizedBox(width: 12.s),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(mask, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800)),
+                  Text(mask,
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800)),
                   SizedBox(height: 3.s),
-                  Text(holder?.isNotEmpty == true ? holder! : 'Банковская карта',
-                      style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+                  Text(
+                      holder?.isNotEmpty == true ? holder! : 'Банковская карта',
+                      style: TextStyle(
+                          color: AppColors.textMute,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -445,11 +513,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
   Widget _addCardButton({bool expanded = true}) {
     final button = OutlinedButton.icon(
       icon: const Icon(Icons.add, color: AppColors.orange),
-      label: const Text('Добавить новую карту', style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
+      label: const Text('Добавить новую карту',
+          style:
+              TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: AppColors.orange, width: 1.2),
         padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
         backgroundColor: Colors.white.withValues(alpha: 0.02),
       ),
       onPressed: _addCard,
@@ -492,7 +563,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
           Expanded(
             child: Text(
               feedback.message,
-              style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.35),
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35),
             ),
           ),
         ],
@@ -511,9 +586,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
           padding: EdgeInsets.symmetric(vertical: 14.s),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24.s),
-            gradient: const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
+            gradient: const LinearGradient(
+                colors: [Color(0xFF8B1F1E), AppColors.red]),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10)),
             ],
           ),
           child: Row(
@@ -523,12 +602,18 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
                 const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                 ),
                 SizedBox(width: 10.s),
               ] else
                 Icon(Icons.lock_outline, color: Colors.white, size: 16.s),
-              Text('Оплатить', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w800)),
+              Text('Оплатить',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -547,13 +632,23 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
           child: CircleAvatar(
             radius: 20.s,
             backgroundColor: Colors.black,
-            child: Text('24', style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
+            child: Text('24',
+                style: TextStyle(
+                    color: AppColors.orange, fontWeight: FontWeight.w800)),
           ),
         ),
         SizedBox(height: 9.s),
-        Text('ВСЕГДА В ВАШЕМ КРУГУ', style: TextStyle(color: AppColors.orange, fontSize: 10.sp, fontWeight: FontWeight.w800)),
+        Text('ВСЕГДА В ВАШЕМ КРУГУ',
+            style: TextStyle(
+                color: AppColors.orange,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w800)),
         SizedBox(height: 3.s),
-        Text('ӘРҚАШАН СІЗДІҢ АРАҢЫЗДА', style: TextStyle(color: AppColors.textMute, fontSize: 9.sp, fontWeight: FontWeight.w700)),
+        Text('ӘРҚАШАН СІЗДІҢ АРАҢЫЗДА',
+            style: TextStyle(
+                color: AppColors.textMute,
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w700)),
       ],
     );
   }
