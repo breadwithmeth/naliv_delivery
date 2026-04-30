@@ -15,6 +15,8 @@ class ProfileCardsPage extends StatefulWidget {
 }
 
 class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBindingObserver {
+  static const String _webAddCardWindowName = 'gradusy24_add_card';
+
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _cards = <Map<String, dynamic>>[];
@@ -94,6 +96,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
 
   Future<void> _addCard() async {
     _cardCountBeforeAdd = _cards.length;
+
+    final webWindowName = await _reserveWebAddCardWindow();
+
     final result = await ApiService.generateAddCardLinkResult();
     if (!result.success || result.link == null) {
       _setCardFeedback(result.message, _ProfileCardFeedbackTone.error);
@@ -119,6 +124,24 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
       return;
     }
 
+    if (kIsWeb) {
+      final opened = await launchUrl(
+        uri,
+        webOnlyWindowName: webWindowName ?? '_self',
+      );
+      if (opened) {
+        _awaitingCardAdd = true;
+        _setCardFeedback(
+          'Открываем форму банка в новой вкладке. После завершения привязки вернитесь и обновите список карт.',
+          _ProfileCardFeedbackTone.info,
+        );
+        return;
+      }
+
+      _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _ProfileCardFeedbackTone.error);
+      return;
+    }
+
     if (await canLaunchUrl(uri)) {
       _awaitingCardAdd = true;
       _setCardFeedback('Открываем форму банка. После возвращения список карт обновится автоматически.', _ProfileCardFeedbackTone.info);
@@ -127,6 +150,25 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
     }
 
     _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _ProfileCardFeedbackTone.error);
+  }
+
+  Future<String?> _reserveWebAddCardWindow() async {
+    if (!kIsWeb) return null;
+
+    final opened = await launchUrl(
+      Uri.parse('about:blank'),
+      webOnlyWindowName: _webAddCardWindowName,
+    );
+
+    if (!opened) {
+      _setCardFeedback(
+        'Браузер заблокировал открытие вкладки для формы банка. Разрешите всплывающие окна и попробуйте снова.',
+        _ProfileCardFeedbackTone.error,
+      );
+      return null;
+    }
+
+    return _webAddCardWindowName;
   }
 
   bool get _supportsEmbeddedCardFlow {

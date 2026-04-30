@@ -20,6 +20,8 @@ class PaymentMethodPage extends StatefulWidget {
 }
 
 class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindingObserver {
+  static const String _webAddCardWindowName = 'gradusy24_add_card';
+
   List<Map<String, dynamic>>? _cards;
   bool _isLoading = true;
   String? _selectedCardId;
@@ -90,6 +92,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
 
   Future<void> _addCard() async {
     _cardCountBeforeAdd = _cards?.length ?? 0;
+
+    final webWindowName = await _reserveWebAddCardWindow();
+
     final result = await ApiService.generateAddCardLinkResult();
     if (!result.success || result.link == null) {
       if (!mounted) return;
@@ -106,15 +111,36 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
     }
 
     if (_supportsEmbeddedCardFlow) {
+      if (!mounted) return;
       _setCardFeedback('Открываем защищенную форму банка для привязки карты.', _CardFeedbackTone.info);
       final shouldRefresh = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => AddCardWebViewPage(initialUrl: link),
         ),
       );
-      if (shouldRefresh == true && mounted) {
+      if (!mounted) return;
+      if (shouldRefresh == true) {
         await _loadCards(showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
       }
+      return;
+    }
+
+    if (kIsWeb) {
+      final opened = await launchUrl(
+        uri,
+        webOnlyWindowName: webWindowName ?? '_self',
+      );
+      if (opened) {
+        _awaitingCardAdd = true;
+        _setCardFeedback(
+          'Открываем форму банка в новой вкладке. После завершения привязки вернитесь и обновите список карт.',
+          _CardFeedbackTone.info,
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _CardFeedbackTone.error);
       return;
     }
 
@@ -127,6 +153,25 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
 
     if (!mounted) return;
     _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _CardFeedbackTone.error);
+  }
+
+  Future<String?> _reserveWebAddCardWindow() async {
+    if (!kIsWeb) return null;
+
+    final opened = await launchUrl(
+      Uri.parse('about:blank'),
+      webOnlyWindowName: _webAddCardWindowName,
+    );
+
+    if (!opened && mounted) {
+      _setCardFeedback(
+        'Браузер заблокировал открытие вкладки для формы банка. Разрешите всплывающие окна и попробуйте снова.',
+        _CardFeedbackTone.error,
+      );
+      return null;
+    }
+
+    return _webAddCardWindowName;
   }
 
   bool get _supportsEmbeddedCardFlow {
