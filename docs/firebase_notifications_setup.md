@@ -31,7 +31,7 @@
 3. Добавьте Android и iOS приложения в проект
 
 ### 2. Настройка Android приложения
-1. Добавьте Android app с package name: `com.gradusy24.app`
+1. Добавьте Android app с package name: `naliv_delivery`
 2. Скачайте `google-services.json` 
 3. Поместите файл в `android/app/`
 

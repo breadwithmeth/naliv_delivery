@@ -24,7 +24,7 @@
 1. Откройте [Firebase Console](https://console.firebase.google.com/)
 2. Выберите ваш проект
 3. Нажмите "Add app" → iOS
-4. Введите Bundle ID: `com.gradusy24.app` (или ваш Bundle ID)
+4. Введите Bundle ID: `naliv_delivery` (или ваш Bundle ID)
 5. Скачайте `GoogleService-Info.plist`
 
 #### Загрузка APNs ключа:
