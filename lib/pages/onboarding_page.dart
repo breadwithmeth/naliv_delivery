@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:gradusy24/services/notification_service.dart';
-import 'package:gradusy24/services/onboarding_service.dart';
-import 'package:gradusy24/services/telemetry_consent_service.dart';
-import 'package:gradusy24/utils/location_service.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/services/onboarding_service.dart';
+import 'package:naliv_delivery/services/telemetry_consent_service.dart';
+import 'package:naliv_delivery/utils/location_service.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key, required this.onCompleted, this.initialCity});
+  const OnboardingPage(
+      {super.key, required this.onCompleted, this.initialCity});
 
   final VoidCallback onCompleted;
   final String? initialCity;
@@ -61,7 +62,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final hasStored = TelemetryConsentService.hasStoredConsent;
     final cached = TelemetryConsentService.cachedConsent;
     setState(() {
-      _shareDiagnostics = hasStored ? cached : true; // Pre-check for first-time users
+      _shareDiagnostics =
+          hasStored ? cached : true; // Pre-check for first-time users
     });
   }
 
@@ -89,7 +91,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
 
     try {
-      final cities = await OnboardingService.fetchAvailableCities(forceRefresh: false);
+      final cities =
+          await OnboardingService.fetchAvailableCities(forceRefresh: false);
       if (!mounted) return;
 
       setState(() {
@@ -116,11 +119,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Future<bool> _autoResolveCity() async {
     if (_cities.isEmpty) {
-      final cached = OnboardingService.cachedCities.map(_mapCityOption).toList();
+      final cached =
+          OnboardingService.cachedCities.map(_mapCityOption).toList();
       if (cached.isNotEmpty) {
         setState(() => _cities = cached);
       } else {
-        final fetched = await OnboardingService.fetchAvailableCities(forceRefresh: false);
+        final fetched =
+            await OnboardingService.fetchAvailableCities(forceRefresh: false);
         if (fetched.isNotEmpty) {
           setState(() => _cities = fetched.map(_mapCityOption).toList());
         }
@@ -153,17 +158,31 @@ class _OnboardingPageState extends State<OnboardingPage> {
   _CityOption _mapCityOption(OnboardingCity city) {
     switch (city.name) {
       case 'Павлодар':
-        return const _CityOption(name: 'Павлодар', subtitle: 'Северо-восточный маршрут', icon: Icons.location_city_rounded);
+        return const _CityOption(
+            name: 'Павлодар',
+            subtitle: 'Северо-восточный маршрут',
+            icon: Icons.location_city_rounded);
       case 'Караганда':
-        return const _CityOption(name: 'Караганда', subtitle: 'Доставка по району и центру', icon: Icons.apartment_rounded);
+        return const _CityOption(
+            name: 'Караганда',
+            subtitle: 'Доставка по району и центру',
+            icon: Icons.apartment_rounded);
       case 'Темиртау':
-        return const _CityOption(name: 'Темиртау', subtitle: 'Быстрый старт для частых заказов', icon: Icons.factory_rounded);
+        return const _CityOption(
+            name: 'Темиртау',
+            subtitle: 'Быстрый старт для частых заказов',
+            icon: Icons.factory_rounded);
       case 'Астана':
-        return const _CityOption(name: 'Астана', subtitle: 'Столица и ближайшие адреса', icon: Icons.location_on_rounded);
+        return const _CityOption(
+            name: 'Астана',
+            subtitle: 'Столица и ближайшие адреса',
+            icon: Icons.location_on_rounded);
       default:
         return _CityOption(
           name: city.name,
-          subtitle: city.deliveryType == 'DISTANCE' ? 'Доставка по расстоянию' : 'Доставка по зоне покрытия',
+          subtitle: city.deliveryType == 'DISTANCE'
+              ? 'Доставка по расстоянию'
+              : 'Доставка по зоне покрытия',
           icon: Icons.location_city_rounded,
         );
     }
@@ -213,12 +232,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ),
                     Text(
                       'Выберите город',
-                      style: TextStyle(color: _text, fontSize: 20, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                          color: _text,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Не получилось определить автоматически. Выберите вручную.',
-                      style: TextStyle(color: _textMute, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: _textMute, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 16),
                     if (_guessedCity != null)
@@ -228,24 +251,33 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         decoration: BoxDecoration(
                           color: _cardDark,
                           borderRadius: BorderRadius.circular(16.s),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.06)),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
-                              child: const Icon(Icons.location_searching_rounded, color: _orange),
+                              decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(14)),
+                              child: const Icon(
+                                  Icons.location_searching_rounded,
+                                  color: _orange),
                             ),
                             SizedBox(width: 12.s),
                             Expanded(
                               child: Text(
                                 'Похоже, вы в городе $_guessedCity. Подтвердите, чтобы не искать в списке.',
-                                style: const TextStyle(color: _text, height: 1.35, fontWeight: FontWeight.w700),
+                                style: const TextStyle(
+                                    color: _text,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w700),
                               ),
                             ),
                             TextButton(
-                              onPressed: () => Navigator.of(context).pop(_guessedCity),
+                              onPressed: () =>
+                                  Navigator.of(context).pop(_guessedCity),
                               child: const Text('Выбрать'),
                             ),
                           ],
@@ -272,7 +304,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       _notificationMessage = null;
     });
 
-    final webVapidMissing = kIsWeb && !NotificationService.instance.isWebVapidKeyConfigured;
+    final webVapidMissing =
+        kIsWeb && !NotificationService.instance.isWebVapidKeyConfigured;
     if (webVapidMissing) {
       await OnboardingService.markNotificationPromptSeen();
       await TelemetryConsentService.setConsent(_shareDiagnostics);
@@ -281,7 +314,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       setState(() {
         _isRequestingNotifications = false;
         _notificationsGranted = false;
-        _notificationMessage = 'Веб-уведомления временно отключены. Продолжаем без них.';
+        _notificationMessage =
+            'Веб-уведомления временно отключены. Продолжаем без них.';
       });
 
       await _goToPage(1);
@@ -304,7 +338,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     await TelemetryConsentService.setConsent(_shareDiagnostics);
 
     final shouldAdvance = granted || kIsWeb;
-    final webPushUnavailable = kIsWeb && !NotificationService.instance.isWebVapidKeyConfigured;
+    final webPushUnavailable =
+        kIsWeb && !NotificationService.instance.isWebVapidKeyConfigured;
 
     final notificationMessage = messageOverride ??
         (granted
@@ -368,9 +403,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
           city: _selectedCity,
         );
 
-        final resolvedCity = reverse != null && reverse.isNotEmpty ? ApiService.extractCityName(reverse.first) : null;
+        final resolvedCity = reverse != null && reverse.isNotEmpty
+            ? ApiService.extractCityName(reverse.first)
+            : null;
 
-        final canUseResolved = resolvedCity != null && (_isCityAvailable(resolvedCity) || _cities.isEmpty);
+        final canUseResolved = resolvedCity != null &&
+            (_isCityAvailable(resolvedCity) || _cities.isEmpty);
 
         if (canUseResolved) {
           setState(() {
@@ -438,7 +476,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   gradient: RadialGradient(
                     center: const Alignment(-0.45, -0.72),
                     radius: 1.18,
-                    colors: [Colors.white.withValues(alpha: 0.04), Colors.transparent],
+                    colors: [
+                      Colors.white.withValues(alpha: 0.04),
+                      Colors.transparent
+                    ],
                     stops: const [0.0, 1.0],
                   ),
                 ),
@@ -450,7 +491,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   gradient: RadialGradient(
                     center: const Alignment(0.72, 0.9),
                     radius: 1.36,
-                    colors: [Colors.white.withValues(alpha: 0.03), Colors.transparent],
+                    colors: [
+                      Colors.white.withValues(alpha: 0.03),
+                      Colors.transparent
+                    ],
                     stops: const [0.0, 1.0],
                   ),
                 ),
@@ -471,7 +515,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
             alignment: Alignment.centerLeft,
             child: Text(
               'ГРАДУСЫ',
-              style: TextStyle(color: _text, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              style: TextStyle(
+                  color: _text,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5),
             ),
           ),
         ),
@@ -485,7 +533,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           child: Text(
             '${_pageIndex + 1}/$_totalSteps',
-            style: const TextStyle(color: _textMute, fontWeight: FontWeight.w700),
+            style:
+                const TextStyle(color: _textMute, fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -504,7 +553,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             height: 4.s,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: index <= _pageIndex ? _orange : Colors.white.withValues(alpha: 0.08),
+              color: index <= _pageIndex
+                  ? _orange
+                  : Colors.white.withValues(alpha: 0.08),
             ),
           ),
         ),
@@ -526,9 +577,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
         final isCompactWidth = constraints.maxWidth < 380;
         final isCompactHeight = constraints.maxHeight < 720;
         final isTinyHeight = constraints.maxHeight < 640;
-        final maxContentWidth = constraints.maxWidth > 680 ? 560.0 : constraints.maxWidth;
+        final maxContentWidth =
+            constraints.maxWidth > 680 ? 560.0 : constraints.maxWidth;
         final topSpacing = isTinyHeight ? 8.0 : 16.0;
-        final cardPadding = isTinyHeight ? 18.0 : (isCompactHeight ? 20.0 : 24.0);
+        final cardPadding =
+            isTinyHeight ? 18.0 : (isCompactHeight ? 20.0 : 24.0);
         final cardRadius = isTinyHeight ? 24.0 : 28.0;
         final iconBoxSize = isTinyHeight ? 60.0 : 72.0;
         final iconRadius = isTinyHeight ? 18.0 : 22.0;
@@ -557,8 +610,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       decoration: BoxDecoration(
                         color: _card,
                         borderRadius: BorderRadius.circular(cardRadius),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 16, offset: const Offset(0, 12))],
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06)),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.28),
+                              blurRadius: 16,
+                              offset: const Offset(0, 12))
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,27 +627,42 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               width: iconBoxSize,
                               height: iconBoxSize,
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: artGradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                gradient: LinearGradient(
+                                    colors: artGradient,
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight),
                                 borderRadius: BorderRadius.circular(iconRadius),
                               ),
-                              child: Icon(icon, color: Colors.white, size: iconSize),
+                              child: Icon(icon,
+                                  color: Colors.white, size: iconSize),
                             ),
                             SizedBox(height: sectionGap),
                           ],
                           Text(
                             eyebrow,
-                            style: TextStyle(color: _orange.withValues(alpha: 0.95), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.6),
+                            style: TextStyle(
+                                color: _orange.withValues(alpha: 0.95),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             title,
-                            style: TextStyle(color: _text, fontSize: titleSize, fontWeight: FontWeight.w900, height: 1.02),
+                            style: TextStyle(
+                                color: _text,
+                                fontSize: titleSize,
+                                fontWeight: FontWeight.w900,
+                                height: 1.02),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             description,
                             style: TextStyle(
-                                color: _textMute.withValues(alpha: 0.96), fontSize: descriptionSize, height: 1.45, fontWeight: FontWeight.w600),
+                                color: _textMute.withValues(alpha: 0.96),
+                                fontSize: descriptionSize,
+                                height: 1.45,
+                                fontWeight: FontWeight.w600),
                           ),
                           SizedBox(height: sectionGap),
                           body,
@@ -628,7 +702,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
               children: [
                 Text(
                   _citiesError ?? 'Список городов пока пуст.',
-                  style: const TextStyle(color: _text, height: 1.4, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                      color: _text, height: 1.4, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -637,11 +712,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     onPressed: _isLoadingCities ? null : _loadCities,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _text,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.08)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.s)),
                     ),
-                    child: Text(_isLoadingCities ? 'Загружаем...' : 'Повторить'),
+                    child:
+                        Text(_isLoadingCities ? 'Загружаем...' : 'Повторить'),
                   ),
                 ),
               ],
@@ -650,7 +728,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         }
 
         final isSingleColumn = constraints.maxWidth < 380;
-        final tileHeight = isSingleColumn ? 136.0 : (constraints.maxWidth < 460 ? 152.0 : 164.0);
+        final tileHeight = isSingleColumn
+            ? 136.0
+            : (constraints.maxWidth < 460 ? 152.0 : 164.0);
         final iconSize = isSingleColumn ? 26.0 : 28.0;
         final titleSize = isSingleColumn ? 17.0 : 18.0;
 
@@ -682,7 +762,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 padding: EdgeInsets.all(14.s),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: isSelected ? const [_orange, _red] : const [_blue, _cardDark],
+                    colors: isSelected
+                        ? const [_orange, _red]
+                        : const [_blue, _cardDark],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -697,14 +779,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       city.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: _text, fontSize: titleSize, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                          color: _text,
+                          fontSize: titleSize,
+                          fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       city.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontSize: 12,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -718,7 +807,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildCityGridSkeleton(double maxWidth) {
     final isSingleColumn = maxWidth < 380;
-    final tileHeight = isSingleColumn ? 136.0 : (maxWidth < 460 ? 152.0 : 164.0);
+    final tileHeight =
+        isSingleColumn ? 136.0 : (maxWidth < 460 ? 152.0 : 164.0);
     final cardCount = isSingleColumn ? 3 : 4;
 
     return GridView.builder(
@@ -792,7 +882,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSingleColumn = constraints.maxWidth < 360;
-        final itemWidth = isSingleColumn ? constraints.maxWidth : (constraints.maxWidth - 10) / 2;
+        final itemWidth = isSingleColumn
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 10) / 2;
 
         return Wrap(
           spacing: 10,
@@ -823,14 +915,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Container(
               width: 36.s,
               height: 36.s,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12.s)),
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12.s)),
               child: const Icon(Icons.place_outlined, color: _orange),
             ),
             SizedBox(width: 10.s),
             const Expanded(
               child: Text(
                 'Найдём ваш город и ближайший магазин. Точный адрес можно будет указать позже, при оформлении заказа.',
-                style: TextStyle(color: _textMute, height: 1.4, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: _textMute, height: 1.4, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -848,9 +943,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_locationGranted ? Icons.check_circle_rounded : Icons.info_outline_rounded, color: _locationGranted ? _orange : _textMute),
+          Icon(
+              _locationGranted
+                  ? Icons.check_circle_rounded
+                  : Icons.info_outline_rounded,
+              color: _locationGranted ? _orange : _textMute),
           const SizedBox(width: 12),
-          Expanded(child: Text(_locationMessage!, style: const TextStyle(color: _text, height: 1.45, fontWeight: FontWeight.w600))),
+          Expanded(
+              child: Text(_locationMessage!,
+                  style: const TextStyle(
+                      color: _text,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -860,7 +964,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return _buildShell(
       eyebrow: 'ШАГ 2',
       title: 'Разрешите геолокацию',
-      description: 'Поможем быстрее определить ваш город. Точный адрес добавите уже при оформлении заказа.',
+      description:
+          'Поможем быстрее определить ваш город. Точный адрес добавите уже при оформлении заказа.',
       icon: Icons.near_me_rounded,
       artGradient: const [_blue, _teal],
       body: Column(
@@ -868,8 +973,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _buildLocationStatusCard(),
           const SizedBox(height: 16),
           _buildBenefitWrap(const [
-            _BenefitItem(icon: Icons.storefront_rounded, label: 'Ближайший магазин'),
-            _BenefitItem(icon: Icons.pin_drop_outlined, label: 'Точный адрес позже'),
+            _BenefitItem(
+                icon: Icons.storefront_rounded, label: 'Ближайший магазин'),
+            _BenefitItem(
+                icon: Icons.pin_drop_outlined, label: 'Точный адрес позже'),
           ]),
         ],
       ),
@@ -877,16 +984,24 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (_isRequestingLocation || _isDeterminingCity) ? null : _handleLocationFlow,
+            onPressed: (_isRequestingLocation || _isDeterminingCity)
+                ? null
+                : _handleLocationFlow,
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
               padding: EdgeInsets.symmetric(vertical: 16.s),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-              textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.s)),
+              textStyle:
+                  TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
             child: (_isRequestingLocation || _isDeterminingCity)
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.2, color: Colors.black))
                 : const Text('Разрешить геолокацию'),
           ),
         ),
@@ -899,7 +1014,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
               foregroundColor: _text,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               padding: EdgeInsets.symmetric(vertical: 14.s),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.s)),
             ),
             child: const Text('Выбрать город вручную'),
           ),
@@ -932,7 +1048,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Expanded(
               child: Text(
                 'Разрешите уведомления, чтобы получать статус заказа, важные обновления и персональные акции.',
-                style: TextStyle(color: _textMute, height: 1.35, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: _textMute,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -943,16 +1062,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Container(
       padding: EdgeInsets.all(14.s),
       decoration: BoxDecoration(
-        color: _notificationsGranted ? _orange.withValues(alpha: 0.12) : _cardDark,
+        color:
+            _notificationsGranted ? _orange.withValues(alpha: 0.12) : _cardDark,
         borderRadius: BorderRadius.circular(18.s),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_notificationsGranted ? Icons.check_circle_rounded : Icons.info_outline_rounded, color: _notificationsGranted ? _orange : _textMute),
+          Icon(
+              _notificationsGranted
+                  ? Icons.check_circle_rounded
+                  : Icons.info_outline_rounded,
+              color: _notificationsGranted ? _orange : _textMute),
           const SizedBox(width: 12),
-          Expanded(child: Text(_notificationMessage!, style: const TextStyle(color: _text, height: 1.45, fontWeight: FontWeight.w600))),
+          Expanded(
+              child: Text(_notificationMessage!,
+                  style: const TextStyle(
+                      color: _text,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -975,7 +1104,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
               padding: EdgeInsets.only(left: 4.s, bottom: 6.s),
               child: Text(
                 'Прозрачность',
-                style: TextStyle(color: _teal.withValues(alpha: 0.85), fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                style: TextStyle(
+                    color: _teal.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2),
               ),
             ),
           ),
@@ -983,7 +1115,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
             width: double.infinity,
             margin: EdgeInsets.only(bottom: 12.s),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_blue, _cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: const LinearGradient(
+                  colors: [_blue, _cardDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(16.s),
               border: Border.all(color: _teal.withValues(alpha: 0.25)),
             ),
@@ -996,18 +1131,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
               },
               controlAffinity: ListTileControlAffinity.leading,
               activeColor: _orange,
-              checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
-              title: const Text('Помочь улучшить приложение', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+              checkboxShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6)),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 14.s, vertical: 6.s),
+              title: const Text('Помочь улучшить приложение',
+                  style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
               subtitle: const Text(
                 'Анонимные отчёты об ошибках. Можно отключить в настройках.',
-                style: TextStyle(color: _textMute, height: 1.3, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: _textMute, height: 1.3, fontWeight: FontWeight.w600),
               ),
             ),
           ),
           _buildBenefitWrap(const [
             _BenefitItem(icon: Icons.local_offer_rounded, label: 'Новые акции'),
-            _BenefitItem(icon: Icons.receipt_long_rounded, label: 'Статус заказа'),
+            _BenefitItem(
+                icon: Icons.receipt_long_rounded, label: 'Статус заказа'),
           ]),
         ],
       ),
@@ -1015,17 +1155,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isRequestingNotifications ? null : (_notificationsGranted ? () => _goToPage(1) : _requestNotificationPermission),
+            onPressed: _isRequestingNotifications
+                ? null
+                : (_notificationsGranted
+                    ? () => _goToPage(1)
+                    : _requestNotificationPermission),
             style: ElevatedButton.styleFrom(
               backgroundColor: _orange,
               foregroundColor: Colors.black,
               padding: EdgeInsets.symmetric(vertical: 16.s),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-              textStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.s)),
+              textStyle:
+                  TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp),
             ),
             child: _isRequestingNotifications
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black))
-                : Text(_notificationsGranted ? 'Далее' : 'Разрешить уведомления'),
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.2, color: Colors.black))
+                : Text(
+                    _notificationsGranted ? 'Далее' : 'Разрешить уведомления'),
           ),
         ),
         const SizedBox(height: 12),
@@ -1050,19 +1201,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final horizontalPadding = constraints.maxWidth < 360 ? 16.0 : 20.0;
+                final horizontalPadding =
+                    constraints.maxWidth < 360 ? 16.0 : 20.0;
                 final topPadding = constraints.maxHeight < 700 ? 14.0 : 18.0;
                 final bottomPadding = constraints.maxHeight < 700 ? 16.0 : 20.0;
                 final topSectionGap = constraints.maxHeight < 700 ? 12.0 : 16.0;
                 final progressGap = constraints.maxHeight < 700 ? 10.0 : 14.0;
-                final maxFrameWidth = constraints.maxWidth > 760 ? 640.0 : constraints.maxWidth;
+                final maxFrameWidth =
+                    constraints.maxWidth > 760 ? 640.0 : constraints.maxWidth;
 
                 return Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxFrameWidth),
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(horizontalPadding, topPadding, horizontalPadding, bottomPadding),
+                      padding: EdgeInsets.fromLTRB(horizontalPadding,
+                          topPadding, horizontalPadding, bottomPadding),
                       child: Column(
                         children: [
                           _buildTopBar(),
@@ -1115,7 +1269,10 @@ class _BenefitPill extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: _OnboardingPageState._text, fontSize: 12, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                  color: _OnboardingPageState._text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -1132,7 +1289,8 @@ class _BenefitItem {
 }
 
 class _CityOption {
-  const _CityOption({required this.name, required this.subtitle, required this.icon});
+  const _CityOption(
+      {required this.name, required this.subtitle, required this.icon});
 
   final String name;
   final String subtitle;

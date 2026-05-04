@@ -1,25 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:gradusy24/pages/cart_page.dart';
-import 'package:gradusy24/pages/catalog.dart';
-import 'package:gradusy24/pages/checkout_page.dart';
-import 'package:gradusy24/pages/likedPage.dart';
-import 'package:gradusy24/pages/mainPage.dart';
-import 'package:gradusy24/pages/profile_page.dart';
-import 'package:gradusy24/services/onboarding_service.dart';
-import 'package:gradusy24/utils/api.dart';
-import 'package:gradusy24/utils/business_provider.dart';
-import 'package:gradusy24/utils/liked_items_provider.dart';
-import 'package:gradusy24/utils/location_service.dart';
+import 'package:naliv_delivery/pages/cart_page.dart';
+import 'package:naliv_delivery/pages/catalog.dart';
+import 'package:naliv_delivery/pages/checkout_page.dart';
+import 'package:naliv_delivery/pages/likedPage.dart';
+import 'package:naliv_delivery/pages/mainPage.dart';
+import 'package:naliv_delivery/pages/profile_page.dart';
+import 'package:naliv_delivery/services/onboarding_service.dart';
+import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/liked_items_provider.dart';
+import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:provider/provider.dart';
-import 'package:gradusy24/widgets/address_selection_modal_material.dart';
+import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../utils/responsive.dart';
-import 'package:gradusy24/utils/address_storage_service.dart';
-import 'package:gradusy24/pages/login_page.dart';
-import 'package:gradusy24/utils/cart_provider.dart';
-import 'package:gradusy24/shared/app_theme.dart';
-import 'package:gradusy24/utils/browser_history.dart';
+import 'package:naliv_delivery/utils/address_storage_service.dart';
+import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/browser_history.dart';
 
 class BottomMenu extends StatefulWidget {
   final bool isAuthenticated;
@@ -27,7 +27,12 @@ class BottomMenu extends StatefulWidget {
   final int? initialTabIndex;
   final bool openCheckoutOnStart;
 
-  const BottomMenu({required this.isAuthenticated, this.userInfo, this.initialTabIndex, this.openCheckoutOnStart = false, super.key});
+  const BottomMenu(
+      {required this.isAuthenticated,
+      this.userInfo,
+      this.initialTabIndex,
+      this.openCheckoutOnStart = false,
+      super.key});
 
   @override
   State<BottomMenu> createState() => _BottomMenuState();
@@ -64,11 +69,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   // Акции загружаются в MainPage
 
   String _money(double value) {
-    return value == value.roundToDouble() ? '${value.toInt()} ₸' : '${value.toStringAsFixed(0)} ₸';
+    return value == value.roundToDouble()
+        ? '${value.toInt()} ₸'
+        : '${value.toStringAsFixed(0)} ₸';
   }
 
   int? _selectedBusinessIdAsInt() {
-    final rawId = _selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId'];
+    final rawId = _selectedBusiness?['id'] ??
+        _selectedBusiness?['business_id'] ??
+        _selectedBusiness?['businessId'];
     if (rawId == null) return null;
     if (rawId is int) return rawId;
     return int.tryParse(rawId.toString());
@@ -133,7 +142,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   Future<void> _restoreSavedBusinessSelection() async {
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     await businessProvider.loadSavedBusiness();
     final savedBusiness = businessProvider.selectedBusiness;
     if (!mounted || savedBusiness == null) return;
@@ -160,12 +170,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   Future<void> _loadCitiesAndSelection() async {
-    final cities = await OnboardingService.fetchAvailableCities(forceRefresh: true);
+    final cities =
+        await OnboardingService.fetchAvailableCities(forceRefresh: true);
     final city = await OnboardingService.getSelectedCity();
     if (!mounted) return;
 
     final cityNames = cities.map((item) => item.name).toList();
-    final fallbackSelectedCity = cityNames.contains(city) ? city : (cityNames.isNotEmpty ? cityNames.first : null);
+    final fallbackSelectedCity = cityNames.contains(city)
+        ? city
+        : (cityNames.isNotEmpty ? cityNames.first : null);
 
     setState(() {
       _availableCities = cityNames;
@@ -220,22 +233,27 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   Future<void> _selectBusiness(Map<String, dynamic> business) async {
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
 
     setState(() {
       _selectedBusiness = business;
     });
-    await Provider.of<BusinessProvider>(context, listen: false).setSelectedBusiness(business);
-    final businessId = business['id'] ?? business['business_id'] ?? business['businessId'];
+    await Provider.of<BusinessProvider>(context, listen: false)
+        .setSelectedBusiness(business);
+    final businessId =
+        business['id'] ?? business['business_id'] ?? business['businessId'];
     if (businessId != null) {
       likedProvider.loadLiked(int.tryParse(businessId.toString()) ?? 0);
     }
   }
 
-  Future<void> _refreshBusinessesForSelectedCity({bool markLoadingComplete = false}) async {
+  Future<void> _refreshBusinessesForSelectedCity(
+      {bool markLoadingComplete = false}) async {
     if (!mounted) return;
 
-    final filteredBusinesses = _filterBusinessesByCity(_allBusinesses, _selectedCity);
+    final filteredBusinesses =
+        _filterBusinessesByCity(_allBusinesses, _selectedCity);
     final currentBusinessId = _businessIdOf(_selectedBusiness);
     Map<String, dynamic>? preservedSelection;
 
@@ -248,7 +266,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       }
     }
 
-    final shouldClearStoredBusiness = _selectedBusiness != null && preservedSelection == null;
+    final shouldClearStoredBusiness =
+        _selectedBusiness != null && preservedSelection == null;
 
     setState(() {
       _businesses = filteredBusinesses;
@@ -260,7 +279,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     });
 
     if (shouldClearStoredBusiness) {
-      await Provider.of<BusinessProvider>(context, listen: false).clearSelectedBusiness();
+      await Provider.of<BusinessProvider>(context, listen: false)
+          .clearSelectedBusiness();
     }
 
     if (!mounted || filteredBusinesses.isEmpty) return;
@@ -278,15 +298,22 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: _bgTop,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
-          title: const Text('Сменить город?', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          title: const Text('Сменить город?',
+              style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
           content: const Text(
             'При смене города активный магазин обновится, а корзина будет очищена.',
             style: TextStyle(color: _textMute),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Отмена', style: TextStyle(color: _text))),
-            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Сменить', style: TextStyle(color: _orange))),
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Отмена', style: TextStyle(color: _text))),
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Сменить', style: TextStyle(color: _orange))),
           ],
         ),
       );
@@ -308,7 +335,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     await _refreshBusinessesForSelectedCity();
 
     if (!mounted) return;
-    if (_selectedAddress != null && !_addressMatchesSelectedCity(_selectedAddress!, city)) {
+    if (_selectedAddress != null &&
+        !_addressMatchesSelectedCity(_selectedAddress!, city)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Город изменён на $city. Проверьте адрес доставки.'),
@@ -318,13 +346,16 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     }
   }
 
-  List<Map<String, dynamic>> _filterBusinessesByCity(List<Map<String, dynamic>> businesses, String? city) {
+  List<Map<String, dynamic>> _filterBusinessesByCity(
+      List<Map<String, dynamic>> businesses, String? city) {
     if (city == null || city.trim().isEmpty) {
       return List<Map<String, dynamic>>.from(businesses);
     }
 
     final cityIdMap = _buildCityIdMap(businesses);
-    return businesses.where((business) => _businessMatchesCity(business, city, cityIdMap)).toList();
+    return businesses
+        .where((business) => _businessMatchesCity(business, city, cityIdMap))
+        .toList();
   }
 
   Map<int, String> _buildCityIdMap(List<Map<String, dynamic>> businesses) {
@@ -354,7 +385,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     return mapping;
   }
 
-  bool _businessMatchesCity(Map<String, dynamic> business, String city, Map<int, String> cityIdMap) {
+  bool _businessMatchesCity(
+      Map<String, dynamic> business, String city, Map<int, String> cityIdMap) {
     final explicitCity = _detectBusinessCity(business);
     if (explicitCity != null) {
       return explicitCity == city;
@@ -362,7 +394,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
     final cityId = _parseCityId(business['city_id'] ?? business['cityId']);
     if (cityId != null) {
-      final mappedCity = cityIdMap[cityId] ?? OnboardingService.getCityNameById(cityId);
+      final mappedCity =
+          cityIdMap[cityId] ?? OnboardingService.getCityNameById(cityId);
       if (mappedCity != null) {
         return mappedCity == city;
       }
@@ -399,7 +432,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final label = ApiService.formatAddressSummary(address, emptyText: '');
     if (label.isEmpty) return true;
 
-    final containsKnownCity = _availableCities.any((knownCity) => _textMatchesCity(label, knownCity));
+    final containsKnownCity =
+        _availableCities.any((knownCity) => _textMatchesCity(label, knownCity));
     if (!containsKnownCity) return true;
 
     return _textMatchesCity(label, city);
@@ -412,7 +446,11 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   String _normalizeText(String value) {
-    return value.toLowerCase().replaceAll('ё', 'е').replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ').trim();
+    return value
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+        .replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ')
+        .trim();
   }
 
   int? _parseCityId(dynamic cityId) {
@@ -422,7 +460,9 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   dynamic _businessIdOf(Map<String, dynamic>? business) {
-    return business?['id'] ?? business?['business_id'] ?? business?['businessId'];
+    return business?['id'] ??
+        business?['business_id'] ??
+        business?['businessId'];
   }
 
   // --- ЛОГИКА АВТОВЫБОРА БЛИЖАЙШЕГО МАГАЗИНА ---
@@ -538,15 +578,20 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final nearest = _findNearestBusiness(coords['lat']!, coords['lon']!);
     if (nearest == null) return;
 
-    final currentId = _selectedBusiness!['id'] ?? _selectedBusiness!['business_id'] ?? _selectedBusiness!['businessId'];
-    final nearestId = nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
+    final currentId = _selectedBusiness!['id'] ??
+        _selectedBusiness!['business_id'] ??
+        _selectedBusiness!['businessId'];
+    final nearestId =
+        nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
     if (currentId == null || nearestId == null) return;
 
     // Уже ближайший
     if (currentId == nearestId) return;
 
-    final promptKey = '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
-    if (_lastNearestPromptKey == promptKey) return; // уже спрашивали в этой конфигурации
+    final promptKey =
+        '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
+    if (_lastNearestPromptKey == promptKey)
+      return; // уже спрашивали в этой конфигурации
     _lastNearestPromptKey = promptKey;
 
     // Расстояния
@@ -558,7 +603,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         final dLat = double.tryParse(bLat.toString());
         final dLon = double.tryParse(bLon.toString());
         if (dLat != null && dLon != null) {
-          return Geolocator.distanceBetween(coords['lat']!, coords['lon']!, dLat, dLon);
+          return Geolocator.distanceBetween(
+              coords['lat']!, coords['lon']!, dLat, dLon);
         }
       }
       return 0.0;
@@ -575,18 +621,27 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: _bgTop,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
-        title: const Text('Ближайший магазин', style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        title: const Text('Ближайший магазин',
+            style: TextStyle(color: _text, fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Текущий магазин находится на ~$currentKm км от выбранного адреса.', style: const TextStyle(color: _textMute)),
+            Text(
+                'Текущий магазин находится на ~$currentKm км от выбранного адреса.',
+                style: const TextStyle(color: _textMute)),
             const SizedBox(height: 8),
-            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).', style: const TextStyle(fontWeight: FontWeight.w600, color: _text)),
+            Text('Ближайший магазин: ${nearest['name']} (~$nearestKm км).',
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, color: _text)),
             const SizedBox(height: 12),
             Text(
-              hasCartItems ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?' : 'Переключить на ближайший магазин?',
+              hasCartItems
+                  ? 'Переключение очистит текущую корзину. Перейти к ближайшему магазину?'
+                  : 'Переключить на ближайший магазин?',
               style: const TextStyle(color: _textMute),
             ),
           ],
@@ -647,18 +702,22 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         isLoadingBusinesses: _isLoadingBusinesses,
       ),
       Catalog(
-        key: ValueKey('tab-catalog-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
+        key: ValueKey(
+            'tab-catalog-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
         businessId: selectedBusinessId,
       ),
       widget.isAuthenticated && selectedBusinessId != null
           ? LikedPage(
-              key: ValueKey('tab-liked-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
+              key: ValueKey(
+                  'tab-liked-${_selectedBusiness?['id'] ?? _selectedBusiness?['business_id'] ?? _selectedBusiness?['businessId']}'),
               businessId: selectedBusinessId,
             )
           : const LoginPage(redirectTabIndex: 2),
       const CartPage(key: PageStorageKey('tab-cart')),
       widget.isAuthenticated
-          ? ProfilePage(key: const PageStorageKey('tab-profile'), userInfo: widget.userInfo!)
+          ? ProfilePage(
+              key: const PageStorageKey('tab-profile'),
+              userInfo: widget.userInfo!)
           : const LoginPage(redirectTabIndex: 4),
     ];
 
@@ -711,17 +770,31 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(26.s),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12.s, offset: Offset(0, 8.s))],
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 12.s,
+                        offset: Offset(0, 8.s))
+                  ],
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.04)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _navItem(icon: Icons.home_outlined, label: 'Главная', index: 0),
-                    _navItem(icon: Icons.widgets_outlined, label: 'Каталог', index: 1),
+                    _navItem(
+                        icon: Icons.home_outlined, label: 'Главная', index: 0),
+                    _navItem(
+                        icon: Icons.widgets_outlined,
+                        label: 'Каталог',
+                        index: 1),
                     SizedBox(width: 58.s),
-                    _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
-                    _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
+                    _navItem(
+                        icon: Icons.favorite_border,
+                        label: 'Избранное',
+                        index: 2),
+                    _navItem(
+                        icon: Icons.person_outline, label: 'Профиль', index: 4),
                   ],
                 ),
               ),
@@ -751,11 +824,20 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   gradient: const LinearGradient(
-                                      colors: [_orange, Color(0xFFFFB457)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 12.s, offset: Offset(0, 8.s))],
+                                      colors: [_orange, Color(0xFFFFB457)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.35),
+                                        blurRadius: 12.s,
+                                        offset: Offset(0, 8.s))
+                                  ],
                                 ),
                                 child: Center(
-                                  child: Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 23.s),
+                                  child: Icon(Icons.shopping_cart_outlined,
+                                      color: Colors.black, size: 23.s),
                                 ),
                               ),
                               if (hasItems)
@@ -763,11 +845,13 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                                   top: -1.s,
                                   right: -1.s,
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 3.s),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 6.s, vertical: 3.s),
                                     decoration: BoxDecoration(
                                       color: Colors.black,
                                       borderRadius: BorderRadius.circular(10.s),
-                                      border: Border.all(color: _orange, width: 1.4),
+                                      border: Border.all(
+                                          color: _orange, width: 1.4),
                                     ),
                                     child: Text(
                                       '$itemCount',
@@ -784,7 +868,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                           if (hasItems) ...[
                             SizedBox(height: 5.s),
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 9.s, vertical: 4.s),
                               decoration: BoxDecoration(
                                 color: _orange,
                                 borderRadius: BorderRadius.circular(12.s),
@@ -819,7 +904,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     );
   }
 
-  Widget _navItem({required IconData icon, required String label, required int index}) {
+  Widget _navItem(
+      {required IconData icon, required String label, required int index}) {
     final isActive = _currentIndex == index;
     return GestureDetector(
       onTap: () => _onTabTapped(index),
@@ -830,13 +916,20 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
           Container(
             padding: EdgeInsets.all(7.s),
             decoration: BoxDecoration(
-              color: isActive ? _orange.withValues(alpha: 0.12) : Colors.transparent,
+              color: isActive
+                  ? _orange.withValues(alpha: 0.12)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12.s),
             ),
-            child: Icon(icon, color: isActive ? _orange : _textMute, size: 22.s),
+            child:
+                Icon(icon, color: isActive ? _orange : _textMute, size: 22.s),
           ),
           SizedBox(height: 3.s),
-          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 10.sp, fontWeight: FontWeight.w700)),
+          Text(label,
+              style: TextStyle(
+                  color: isActive ? _text : _textMute,
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );

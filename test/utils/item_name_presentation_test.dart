@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gradusy24/utils/item_name_presentation.dart';
+import 'package:naliv_delivery/utils/item_name_presentation.dart';
 
 void main() {
   group('presentItemName', () {
@@ -148,7 +148,9 @@ void main() {
       expect(result.pricingAttributes, <String>['0,355 л', '4,8%']);
     });
 
-    test('does not treat brand ordinal as implicit volume before actual bottle size', () {
+    test(
+        'does not treat brand ordinal as implicit volume before actual bottle size',
+        () {
       final result = presentItemName(
         rawName: 'Пиво бут Балтика экспортное 7 0.475 5.4%',
         categoryName: 'Пиво',

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:gradusy24/utils/api.dart';
+import 'package:naliv_delivery/utils/api.dart';
 
 class CityMapCenter {
   const CityMapCenter({required this.lat, required this.lon});
@@ -14,7 +14,8 @@ class CityMapCenter {
 }
 
 class OnboardingCity {
-  const OnboardingCity({required this.id, required this.name, this.deliveryType});
+  const OnboardingCity(
+      {required this.id, required this.name, this.deliveryType});
 
   final int id;
   final String name;
@@ -38,9 +39,12 @@ class OnboardingState {
 class OnboardingService {
   static const String _completedKey = 'onboarding_completed';
   static const String _selectedCityKey = 'onboarding_selected_city';
-  static const String _locationPromptSeenKey = 'onboarding_location_prompt_seen';
-  static const String _notificationPromptSeenKey = 'onboarding_notification_prompt_seen';
-  static const String _availableCitiesCacheKey = 'onboarding_available_cities_cache';
+  static const String _locationPromptSeenKey =
+      'onboarding_location_prompt_seen';
+  static const String _notificationPromptSeenKey =
+      'onboarding_notification_prompt_seen';
+  static const String _availableCitiesCacheKey =
+      'onboarding_available_cities_cache';
 
   static List<OnboardingCity> _citiesCache = <OnboardingCity>[];
   static Map<int, String> _cityIds = <int, String>{};
@@ -52,9 +56,11 @@ class OnboardingService {
     'Астана': CityMapCenter(lat: 51.1694, lon: 71.4491),
   };
 
-  static List<String> get availableCities => List<String>.unmodifiable(_citiesCache.map((city) => city.name));
+  static List<String> get availableCities =>
+      List<String>.unmodifiable(_citiesCache.map((city) => city.name));
 
-  static List<OnboardingCity> get cachedCities => List<OnboardingCity>.unmodifiable(_citiesCache);
+  static List<OnboardingCity> get cachedCities =>
+      List<OnboardingCity>.unmodifiable(_citiesCache);
 
   static Future<void> _hydrateCitiesFromPrefs() async {
     if (_citiesCache.isNotEmpty) return;
@@ -88,11 +94,13 @@ class OnboardingService {
 
   static OnboardingCity? _parseCity(Map<String, dynamic> city) {
     final idValue = city['city_id'] ?? city['id'];
-    final id = idValue is int ? idValue : int.tryParse(idValue?.toString() ?? '');
+    final id =
+        idValue is int ? idValue : int.tryParse(idValue?.toString() ?? '');
     final name = city['name']?.toString().trim();
     if (id == null || name == null || name.isEmpty) return null;
 
-    return OnboardingCity(id: id, name: name, deliveryType: city['delivery_type']?.toString());
+    return OnboardingCity(
+        id: id, name: name, deliveryType: city['delivery_type']?.toString());
   }
 
   static Future<OnboardingState> getState() async {
@@ -101,7 +109,8 @@ class OnboardingService {
       isCompleted: prefs.getBool(_completedKey) ?? false,
       selectedCity: prefs.getString(_selectedCityKey),
       locationPromptSeen: prefs.getBool(_locationPromptSeenKey) ?? false,
-      notificationPromptSeen: prefs.getBool(_notificationPromptSeenKey) ?? false,
+      notificationPromptSeen:
+          prefs.getBool(_notificationPromptSeenKey) ?? false,
     );
   }
 
@@ -115,7 +124,8 @@ class OnboardingService {
     return prefs.getString(_selectedCityKey);
   }
 
-  static Future<List<OnboardingCity>> fetchAvailableCities({bool forceRefresh = false}) async {
+  static Future<List<OnboardingCity>> fetchAvailableCities(
+      {bool forceRefresh = false}) async {
     await _hydrateCitiesFromPrefs();
 
     if (!forceRefresh && _citiesCache.isNotEmpty) {
@@ -166,7 +176,9 @@ class OnboardingService {
     if (kIsWeb) return null;
     try {
       if (_citiesCache.isEmpty) return null;
-      final resp = await http.get(Uri.parse('https://ipapi.co/json/')).timeout(const Duration(seconds: 4));
+      final resp = await http
+          .get(Uri.parse('https://ipapi.co/json/'))
+          .timeout(const Duration(seconds: 4));
       if (resp.statusCode != 200) return null;
       final data = json.decode(resp.body);
       final cityName = data['city']?.toString();

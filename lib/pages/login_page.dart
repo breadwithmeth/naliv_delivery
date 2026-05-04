@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:gradusy24/services/notification_service.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
 import '../utils/api.dart';
-import 'package:gradusy24/shared/app_theme.dart';
-import 'package:gradusy24/widgets/authentication_wrapper.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import '../utils/responsive.dart';
 
 // Форматирует ввод номера в +7 700 123 45 67
@@ -68,13 +68,15 @@ class LoginPage extends StatefulWidget {
   final int? redirectTabIndex;
   final bool openCheckoutOnSuccess;
 
-  const LoginPage({super.key, this.redirectTabIndex, this.openCheckoutOnSuccess = false});
+  const LoginPage(
+      {super.key, this.redirectTabIndex, this.openCheckoutOnSuccess = false});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
@@ -148,7 +150,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _autoSlideTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!_showAuthForm && _pageController.hasClients) {
         final next = (_currentPage + 1) % _slides.length;
-        _pageController.animateToPage(next, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+        _pageController.animateToPage(next,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut);
       }
     });
   }
@@ -179,7 +183,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   String _normalizedPhone() {
-    final digits = PhoneTextInputFormatter.normalize(_phoneController.text.trim());
+    final digits =
+        PhoneTextInputFormatter.normalize(_phoneController.text.trim());
     if (digits.isEmpty) return '';
     return '+$digits';
   }
@@ -206,7 +211,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -240,7 +246,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -344,7 +351,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 width: active ? 20.s : 6.s,
                 height: 6.s,
                 decoration: BoxDecoration(
-                  color: active ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.3),
+                  color: active
+                      ? AppColors.orange
+                      : AppColors.textMute.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               );
@@ -354,7 +363,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         Text(
           'Войдите, чтобы не упустить выгоду',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.7), fontSize: 13.sp, height: 1.3),
+          style: TextStyle(
+              color: AppColors.textMute.withValues(alpha: 0.7),
+              fontSize: 13.sp,
+              height: 1.3),
         ),
         SizedBox(height: 16.s),
         Padding(
@@ -387,10 +399,19 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           SizedBox(height: 28.s),
           Text(slide.title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w900, color: AppColors.text, height: 1.15, letterSpacing: -0.5)),
+              style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.text,
+                  height: 1.15,
+                  letterSpacing: -0.5)),
           SizedBox(height: 8.s),
           Text(slide.subtitle,
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 13.sp, color: AppColors.textMute.withValues(alpha: 0.6), height: 1.4)),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppColors.textMute.withValues(alpha: 0.6),
+                  height: 1.4)),
           const Spacer(flex: 2),
         ],
       ),
@@ -441,12 +462,21 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           SizedBox(height: 18.s),
           Text(
             _codeSent ? 'Введите код' : 'Вход по номеру телефона',
-            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w900, color: AppColors.text, height: 1.15),
+            style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w900,
+                color: AppColors.text,
+                height: 1.15),
           ),
           SizedBox(height: 6.s),
           Text(
-            _codeSent ? 'СМС отправлено на ${_phoneController.text}' : 'Отправим короткий код подтверждения',
-            style: TextStyle(fontSize: 13.sp, color: AppColors.textMute.withValues(alpha: 0.6), height: 1.4),
+            _codeSent
+                ? 'СМС отправлено на ${_phoneController.text}'
+                : 'Отправим короткий код подтверждения',
+            style: TextStyle(
+                fontSize: 13.sp,
+                color: AppColors.textMute.withValues(alpha: 0.6),
+                height: 1.4),
           ),
           SizedBox(height: 24.s),
           Form(
@@ -456,11 +486,18 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 if (!_codeSent) ...[
                   _phoneInput(),
                   SizedBox(height: 18.s),
-                  _primaryButton(label: 'Получить код', onPressed: _isLoading ? null : _sendCode),
+                  _primaryButton(
+                      label: 'Получить код',
+                      onPressed: _isLoading ? null : _sendCode),
                 ] else ...[
                   _otpInput(),
                   SizedBox(height: 18.s),
-                  _primaryButton(label: 'Подтвердить', onPressed: _isLoading || _codeController.text.trim().length != 6 ? null : _verifyCode),
+                  _primaryButton(
+                      label: 'Подтвердить',
+                      onPressed:
+                          _isLoading || _codeController.text.trim().length != 6
+                              ? null
+                              : _verifyCode),
                   SizedBox(height: 14.s),
                   Center(
                     child: GestureDetector(
@@ -468,7 +505,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         _codeSent = false;
                         _codeController.clear();
                       }),
-                      child: Text('Изменить номер', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: AppColors.orange)),
+                      child: Text('Изменить номер',
+                          style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.orange)),
                     ),
                   ),
                 ],
@@ -498,25 +539,36 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         if (normalized.length != 11) return 'Неверный формат номера';
         return null;
       },
-      style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w600),
+      style: TextStyle(
+          color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w600),
       cursorColor: AppColors.orange,
       decoration: InputDecoration(
         hintText: '+7 700 123 45 67',
         hintStyle: TextStyle(color: AppColors.textMute.withValues(alpha: 0.3)),
         prefixIcon: Padding(
           padding: EdgeInsets.only(left: 12.s, right: 8.s),
-          child: Icon(Icons.phone_iphone_rounded, color: AppColors.orange, size: 20.s),
+          child: Icon(Icons.phone_iphone_rounded,
+              color: AppColors.orange, size: 20.s),
         ),
         prefixIconConstraints: BoxConstraints(minWidth: 42.s),
         filled: true,
         fillColor: AppColors.card,
         contentPadding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 14.s),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: const BorderSide(color: AppColors.orange, width: 1)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: const BorderSide(color: AppColors.red)),
-        focusedErrorBorder:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(14.s), borderSide: const BorderSide(color: AppColors.red, width: 1)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.s),
+            borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.s),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.s),
+            borderSide: const BorderSide(color: AppColors.orange, width: 1)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.s),
+            borderSide: const BorderSide(color: AppColors.red)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14.s),
+            borderSide: const BorderSide(color: AppColors.red, width: 1)),
         errorStyle: TextStyle(color: AppColors.red, fontSize: 11.sp),
       ),
     );
@@ -555,7 +607,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   child: Center(
                     child: Text(
                       hasValue ? code[index] : '',
-                      style: TextStyle(color: AppColors.text, fontSize: 22.sp, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.w800),
                     ),
                   ),
                 ),
@@ -588,7 +643,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     _verifyCode();
                   }
                 },
-                decoration: const InputDecoration(border: InputBorder.none, counterText: ''),
+                decoration: const InputDecoration(
+                    border: InputBorder.none, counterText: ''),
                 style: const TextStyle(color: Colors.transparent),
                 cursorColor: Colors.transparent,
                 maxLength: 6,
@@ -607,15 +663,25 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       width: double.infinity,
       height: 48.s,
       child: Material(
-        color: onPressed != null ? AppColors.orange : AppColors.orange.withValues(alpha: 0.5),
+        color: onPressed != null
+            ? AppColors.orange
+            : AppColors.orange.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14.s),
         child: InkWell(
           borderRadius: BorderRadius.circular(14.s),
           onTap: onPressed,
           child: Center(
             child: _isLoading
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
-                : Text(label, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800, color: Colors.black)),
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.black))
+                : Text(label,
+                    style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black)),
           ),
         ),
       ),
@@ -627,5 +693,6 @@ class _SlideData {
   final IconData icon;
   final String title;
   final String subtitle;
-  const _SlideData({required this.icon, required this.title, required this.subtitle});
+  const _SlideData(
+      {required this.icon, required this.title, required this.subtitle});
 }
