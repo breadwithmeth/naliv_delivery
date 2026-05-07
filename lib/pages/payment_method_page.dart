@@ -30,7 +30,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   String? _selectedCardId;
   bool _awaitingCardAdd = false;
   bool _isPaying = false;
+  bool _isPreparingAddCardLink = false;
   int _cardCountBeforeAdd = 0;
+  String? _preparedAddCardLink;
   _CardFeedback? _cardFeedback;
 
   @override
@@ -95,14 +97,22 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     }
   }
 
-  Future<void> _addCard() async {
-    _cardCountBeforeAdd = _cards?.length ?? 0;
+  Future<void> _prepareAddCardLink() async {
+    if (_isPreparingAddCardLink) return;
 
-    final webWindowName = await _reserveWebAddCardWindow();
+    if (!mounted) return;
+    setState(() {
+      _isPreparingAddCardLink = true;
+    });
 
     final result = await ApiService.generateAddCardLinkResult();
+
+    if (!mounted) return;
+    setState(() {
+      _isPreparingAddCardLink = false;
+    });
+
     if (!result.success || result.link == null) {
-      if (!mounted) return;
       _setCardFeedback(result.message, _CardFeedbackTone.error);
       return;
     }
@@ -110,12 +120,48 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     final link = result.link!;
     final uri = Uri.tryParse(link);
     if (uri == null) {
-      if (!mounted) return;
       _setCardFeedback(
           'Получена некорректная ссылка для добавления карты. Попробуйте еще раз.',
           _CardFeedbackTone.error);
       return;
     }
+
+    if (!mounted) return;
+    setState(() {
+      _preparedAddCardLink = uri.toString();
+    });
+    _setCardFeedback(
+      'Ссылка получена. Нажмите «Привязать карту», чтобы открыть форму банка.',
+      _CardFeedbackTone.success,
+    );
+  }
+
+  Future<void> _openPreparedAddCardLink() async {
+    final link = _preparedAddCardLink;
+    if (link == null || link.isEmpty) {
+      _setCardFeedback(
+        'Сначала получите ссылку для привязки карты.',
+        _CardFeedbackTone.info,
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(link);
+    if (uri == null) {
+      _setCardFeedback(
+        'Ссылка для привязки карты устарела или некорректна. Получите новую ссылку.',
+        _CardFeedbackTone.error,
+      );
+      if (!mounted) return;
+      setState(() {
+        _preparedAddCardLink = null;
+      });
+      return;
+    }
+
+    _cardCountBeforeAdd = _cards?.length ?? 0;
+
+    final webWindowName = await _reserveWebAddCardWindow();
 
     if (_supportsEmbeddedCardFlow) {
       if (!mounted) return;
@@ -557,11 +603,33 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   Widget _addCardButton({bool expanded = true}) {
+    final hasPreparedLink = _preparedAddCardLink != null;
+    final bool isBusy = _isPreparingAddCardLink;
     final button = OutlinedButton.icon(
-      icon: const Icon(Icons.add, color: AppColors.orange),
-      label: const Text('Добавить новую карту',
-          style:
-              TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
+      icon: isBusy
+          ? SizedBox(
+              width: 16.s,
+              height: 16.s,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.orange),
+              ),
+            )
+          : Icon(
+              hasPreparedLink ? Icons.link_outlined : Icons.link,
+              color: AppColors.orange,
+            ),
+      label: Text(
+        isBusy
+            ? 'Получаем ссылку...'
+            : (hasPreparedLink
+                ? 'Привязать карту'
+                : 'Получить ссылку для привязки'),
+        style: const TextStyle(
+          color: AppColors.orange,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: AppColors.orange, width: 1.2),
         padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
@@ -569,7 +637,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
         backgroundColor: Colors.white.withValues(alpha: 0.02),
       ),
-      onPressed: _addCard,
+      onPressed: isBusy
+          ? null
+          : (hasPreparedLink ? _openPreparedAddCardLink : _prepareAddCardLink),
     );
 
     if (expanded) {
