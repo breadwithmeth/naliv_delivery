@@ -6,7 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api.dart';
 import '../firebase_options.dart';
-import 'package:gradusy24/utils/app_navigator.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 
 /// Глобальная функция для обработки фоновых сообщений
 @pragma('vm:entry-point')
@@ -21,17 +21,20 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   static NotificationService get instance => _instance;
   NotificationService._internal();
-  static const String _webVapidKey = String.fromEnvironment('FIREBASE_WEB_VAPID_KEY');
+  static const String _webVapidKey =
+      String.fromEnvironment('FIREBASE_WEB_VAPID_KEY');
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
   bool _tokenRefreshRegistered = false;
   String? _fcmToken;
 
   bool get _isWeb => kIsWeb;
-  bool get _isAndroid => !_isWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _isAndroid =>
+      !_isWeb && defaultTargetPlatform == TargetPlatform.android;
   bool get _isIOS => !_isWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   /// Инициализация сервиса уведомлений
@@ -89,7 +92,8 @@ class NotificationService {
   Future<void> _initializeLocalNotifications() async {
     if (_isWeb) return;
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -117,7 +121,10 @@ class NotificationService {
         enableVibration: true,
       );
 
-      await _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
     }
   }
 
@@ -132,7 +139,8 @@ class NotificationService {
           provisional: false,
         );
 
-        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+        return settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional;
       }
 
       if (_isIOS) {
@@ -143,19 +151,26 @@ class NotificationService {
           provisional: false,
         );
 
-        await _localNotifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
+        await _localNotifications
+            .resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(
               alert: true,
               badge: true,
               sound: true,
             );
 
-        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+        return settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional;
       }
 
       if (_isAndroid) {
-        final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        final androidImplementation =
+            _localNotifications.resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
 
-        final granted = await androidImplementation?.requestNotificationsPermission();
+        final granted =
+            await androidImplementation?.requestNotificationsPermission();
         return granted ?? true;
       }
 
@@ -172,7 +187,8 @@ class NotificationService {
 
       if (_isWeb) {
         if (_webVapidKey.trim().isEmpty) {
-          debugPrint('🔕 Web push временно пропущен: не задан FIREBASE_WEB_VAPID_KEY');
+          debugPrint(
+              '🔕 Web push временно пропущен: не задан FIREBASE_WEB_VAPID_KEY');
           return false;
         }
 
@@ -204,13 +220,16 @@ class NotificationService {
         return false;
       }
 
-      _fcmToken = _isWeb ? await _firebaseMessaging.getToken(vapidKey: _webVapidKey) : await _firebaseMessaging.getToken();
+      _fcmToken = _isWeb
+          ? await _firebaseMessaging.getToken(vapidKey: _webVapidKey)
+          : await _firebaseMessaging.getToken();
       if (_fcmToken != null) {
         debugPrint('📱 FCM Token: $_fcmToken');
         await _saveTokenToStorage(_fcmToken!);
         final synced = await syncTokenWithServerIfNeeded();
         if (!synced) {
-          debugPrint('ℹ️ FCM токен сохранён локально и будет повторно отправлен после авторизации');
+          debugPrint(
+              'ℹ️ FCM токен сохранён локально и будет повторно отправлен после авторизации');
         }
       } else {
         debugPrint('❌ FCM token не был получен');
@@ -230,7 +249,8 @@ class NotificationService {
         await _saveTokenToStorage(newToken);
         final synced = await syncTokenWithServerIfNeeded();
         if (!synced) {
-          debugPrint('ℹ️ Новый FCM токен сохранён локально и будет отправлен позже');
+          debugPrint(
+              'ℹ️ Новый FCM токен сохранён локально и будет отправлен позже');
         }
       });
     }
@@ -258,7 +278,8 @@ class NotificationService {
 
     final authToken = await ApiService.getAuthToken();
     if (authToken == null || authToken.isEmpty) {
-      debugPrint('ℹ️ Пропускаем отправку FCM токена: пользователь ещё не авторизован');
+      debugPrint(
+          'ℹ️ Пропускаем отправку FCM токена: пользователь ещё не авторизован');
       return false;
     }
 
@@ -288,7 +309,8 @@ class NotificationService {
   void _setupMessageHandlers() {
     // Обработка сообщений на переднем плане
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('📨 Получено сообщение на переднем плане: ${message.messageId}');
+      debugPrint(
+          '📨 Получено сообщение на переднем плане: ${message.messageId}');
       showNotification(message);
     });
 
@@ -306,7 +328,8 @@ class NotificationService {
   Future<void> _handleInitialMessage() async {
     final initialMessage = await _firebaseMessaging.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('🚀 Приложение запущено из уведомления: ${initialMessage.messageId}');
+      debugPrint(
+          '🚀 Приложение запущено из уведомления: ${initialMessage.messageId}');
       _handleNotificationTap(initialMessage);
     }
   }
@@ -379,7 +402,8 @@ class NotificationService {
     final orderId = data['order_id'];
     final businessId = data['business_id'];
 
-    debugPrint('📋 Тип уведомления: $type, Order ID: $orderId, Business ID: $businessId');
+    debugPrint(
+        '📋 Тип уведомления: $type, Order ID: $orderId, Business ID: $businessId');
 
     // TODO: Реализовать навигацию в зависимости от типа уведомления
     switch (type) {

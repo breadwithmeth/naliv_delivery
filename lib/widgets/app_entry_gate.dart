@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:gradusy24/pages/onboarding_page.dart';
-import 'package:gradusy24/services/onboarding_service.dart';
-import 'package:gradusy24/widgets/authentication_wrapper.dart';
-import 'package:gradusy24/widgets/app_loading_screen.dart';
+import 'package:naliv_delivery/pages/onboarding_page.dart';
+import 'package:naliv_delivery/services/onboarding_service.dart';
+import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 
 class AppEntryGate extends StatefulWidget {
   const AppEntryGate({super.key});

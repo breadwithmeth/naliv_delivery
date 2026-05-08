@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gradusy24/shared/app_theme.dart';
-import 'package:gradusy24/utils/responsive.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class AddCardWebViewPage extends StatefulWidget {
@@ -79,7 +79,8 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.text,
-        title: const Text('Добавление карты', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Добавление карты',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(
             tooltip: 'Обновить',
@@ -105,18 +106,26 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(12.s),
-                    decoration: AppDecorations.card(radius: 16.s, color: AppColors.cardDark.withValues(alpha: 0.96)),
+                    decoration: AppDecorations.card(
+                        radius: 16.s,
+                        color: AppColors.cardDark.withValues(alpha: 0.96)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Откроется защищенная форма банка для привязки карты.',
-                          style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700),
                         ),
                         SizedBox(height: 4.s),
                         Text(
                           _hostLabel(),
-                          style: TextStyle(color: AppColors.textMute, fontSize: 10.sp, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: AppColors.textMute,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -139,7 +148,8 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                                 child: ColoredBox(
                                   color: Colors.white.withValues(alpha: 0.85),
                                   child: const Center(
-                                    child: CircularProgressIndicator(color: AppColors.orange),
+                                    child: CircularProgressIndicator(
+                                        color: AppColors.orange),
                                   ),
                                 ),
                               ),
@@ -159,9 +169,11 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                         backgroundColor: AppColors.orange,
                         foregroundColor: Colors.black,
                         padding: EdgeInsets.symmetric(vertical: 14.s),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.s)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18.s)),
                       ),
-                      child: const Text('Готово, обновить карты', style: TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('Готово, обновить карты',
+                          style: TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ),
                 ),

@@ -4,11 +4,15 @@ import 'package:gradusy24/model/item.dart';
 import 'package:gradusy24/pages/product_detail_page.dart';
 import 'package:gradusy24/utils/business_provider.dart';
 import 'package:gradusy24/utils/cart_provider.dart';
+import 'package:naliv_delivery/model/item.dart';
+import 'package:naliv_delivery/pages/product_detail_page.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() {
   group('ProductDetailPage self-bottling', () {
-    testWidgets('uses explicit item unit for non-pour quantity labels', (tester) async {
+    testWidgets('uses explicit item unit for non-pour quantity labels',
+        (tester) async {
       final item = Item(
         itemId: 99,
         name: 'Fresh lemonade',
@@ -124,7 +128,9 @@ void main() {
       expect(find.text('1×2 л'), findsOneWidget);
     });
 
-    testWidgets('shows bottle-aware promo totals without discounting bottle price', (tester) async {
+    testWidgets(
+        'shows bottle-aware promo totals without discounting bottle price',
+        (tester) async {
       final item = _buildPourItem(
         amount: 5,
         bottles: <ItemOptionItem>[

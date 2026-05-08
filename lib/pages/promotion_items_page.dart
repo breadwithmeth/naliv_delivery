@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gradusy24/utils/api.dart';
-import 'package:gradusy24/model/item.dart' as item_model;
-import 'package:gradusy24/shared/product_card.dart';
+import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/model/item.dart' as item_model;
+import 'package:naliv_delivery/shared/product_card.dart';
 import '../utils/responsive.dart';
 
 /// Страница с товарами конкретной акции
@@ -50,7 +50,8 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
         limit: 50,
       );
       if (items == null) throw Exception('Пустой ответ');
-      final filteredItems = items.where(_isSellablePromotionItem).toList(growable: false);
+      final filteredItems =
+          items.where(_isSellablePromotionItem).toList(growable: false);
       if (!mounted) return;
       setState(() {
         _items = filteredItems;
@@ -77,7 +78,9 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.promotionName != null ? 'Акция: ${widget.promotionName}' : 'Товары акции',
+          widget.promotionName != null
+              ? 'Акция: ${widget.promotionName}'
+              : 'Товары акции',
         ),
       ),
       body: _isLoading

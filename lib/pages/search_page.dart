@@ -6,7 +6,7 @@ import '../utils/responsive.dart';
 import '../utils/cartFloatingButton.dart';
 import '../shared/product_card.dart';
 import '../model/item.dart' as ItemModel;
-import 'package:gradusy24/shared/app_theme.dart';
+import 'package:naliv_delivery/shared/app_theme.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -48,7 +48,8 @@ class _SearchPageState extends State<SearchPage> {
     if (!_isLoadingMore &&
         _pagination != null &&
         _pagination!.hasNextPage &&
-        _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
@@ -56,7 +57,8 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> _search(String query) async {
     if (query.isEmpty) return;
 
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     final businessId = businessProvider.selectedBusinessId;
 
     setState(() {
@@ -86,7 +88,9 @@ class _SearchPageState extends State<SearchPage> {
         return;
       }
 
-      final mapped = resp.data.items.map((ci) => ItemModel.Item.fromCategoryItem(ci)).toList();
+      final mapped = resp.data.items
+          .map((ci) => ItemModel.Item.fromCategoryItem(ci))
+          .toList();
 
       setState(() {
         _items = mapped;
@@ -106,7 +110,9 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _loadMore() async {
-    if (_currentQuery.isEmpty || _pagination == null || !_pagination!.hasNextPage) {
+    if (_currentQuery.isEmpty ||
+        _pagination == null ||
+        !_pagination!.hasNextPage) {
       return;
     }
 
@@ -125,7 +131,9 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
 
       if (resp != null) {
-        final mapped = resp.data.items.map((ci) => ItemModel.Item.fromCategoryItem(ci)).toList();
+        final mapped = resp.data.items
+            .map((ci) => ItemModel.Item.fromCategoryItem(ci))
+            .toList();
 
         setState(() {
           _items.addAll(mapped);
@@ -147,9 +155,11 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
+            CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(AppColors.orange)),
             SizedBox(height: 16),
-            Text('Загрузка товаров...', style: TextStyle(color: AppColors.text)),
+            Text('Загрузка товаров...',
+                style: TextStyle(color: AppColors.text)),
           ],
         ),
       );
@@ -170,7 +180,10 @@ class _SearchPageState extends State<SearchPage> {
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -202,7 +215,10 @@ class _SearchPageState extends State<SearchPage> {
             const SizedBox(height: 16),
             Text(
               'Товары не найдены',
-              style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -246,7 +262,8 @@ class _SearchPageState extends State<SearchPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AppColors.text,
-        title: const Text('Поиск', style: TextStyle(fontWeight: FontWeight.w800)),
+        title:
+            const Text('Поиск', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Stack(
         children: [

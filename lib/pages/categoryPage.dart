@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gradusy24/utils/cartFloatingButton.dart';
+import 'package:naliv_delivery/utils/cartFloatingButton.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
 import '../shared/product_card.dart';
@@ -38,7 +38,8 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   static const Duration _cacheTtl = Duration(minutes: 5);
-  static final Map<String, _CategoryItemsCacheEntry> _categoryItemsCache = <String, _CategoryItemsCacheEntry>{};
+  static final Map<String, _CategoryItemsCacheEntry> _categoryItemsCache =
+      <String, _CategoryItemsCacheEntry>{};
 
   // ─── Palette (matches mainPage) ──────────────────────────
   static const Color _bgDeep = Color(0xFF121212);
@@ -78,7 +79,8 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 240) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 240) {
       _loadMoreItems();
     }
   }
@@ -120,7 +122,9 @@ class _CategoryPageState extends State<CategoryPage> {
     required int categoryId,
     required int? subcategoryId,
   }) {
-    return version == _selectionVersion && _selectedCategory?.categoryId == categoryId && _selectedSubcategory?.categoryId == subcategoryId;
+    return version == _selectionVersion &&
+        _selectedCategory?.categoryId == categoryId &&
+        _selectedSubcategory?.categoryId == subcategoryId;
   }
 
   // ─── Data Loading ────────────────────────────────────────
@@ -141,7 +145,8 @@ class _CategoryPageState extends State<CategoryPage> {
       if (!isLoadMore) {
         setState(() {
           _isLoading = false;
-          _error = 'Ошибка загрузки товаров: businessId is required to load categories';
+          _error =
+              'Ошибка загрузки товаров: businessId is required to load categories';
         });
       }
       return;
@@ -202,7 +207,10 @@ class _CategoryPageState extends State<CategoryPage> {
           )) {
         setState(() {
           if (response != null) {
-            final convertedItems = response.data.items.map((categoryItem) => ItemModel.Item.fromCategoryItem(categoryItem)).toList();
+            final convertedItems = response.data.items
+                .map((categoryItem) =>
+                    ItemModel.Item.fromCategoryItem(categoryItem))
+                .toList();
             _storeCachedCategoryItems(
               key: cacheKey,
               items: convertedItems,
@@ -238,7 +246,10 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Future<void> _loadMoreItems() async {
-    if (_isLoading || _isLoadingMore || _pagination == null || !_pagination!.hasNextPage) return;
+    if (_isLoading ||
+        _isLoadingMore ||
+        _pagination == null ||
+        !_pagination!.hasNextPage) return;
     await _loadCategoryItems(isLoadMore: true);
   }
 
@@ -272,7 +283,8 @@ class _CategoryPageState extends State<CategoryPage> {
 
   void _scrollToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 
@@ -281,7 +293,8 @@ class _CategoryPageState extends State<CategoryPage> {
   // ═══════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    final hasSubcategories = _selectedCategory != null && _selectedCategory!.hasSubcategories;
+    final hasSubcategories =
+        _selectedCategory != null && _selectedCategory!.hasSubcategories;
     final hasMultipleCategories = widget.allCategories.length > 1;
 
     return Scaffold(
@@ -331,7 +344,10 @@ class _CategoryPageState extends State<CategoryPage> {
             gradient: RadialGradient(
               center: const Alignment(-0.5, -0.8),
               radius: 1.6,
-              colors: [Colors.white.withValues(alpha: 0.03), Colors.transparent],
+              colors: [
+                Colors.white.withValues(alpha: 0.03),
+                Colors.transparent
+              ],
             ),
           ),
         ),
@@ -346,7 +362,8 @@ class _CategoryPageState extends State<CategoryPage> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 18.s),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: _text, size: 18.s),
             onPressed: () => Navigator.of(context).pop(),
           ),
           Expanded(
@@ -354,12 +371,14 @@ class _CategoryPageState extends State<CategoryPage> {
               widget.sectionTitle ?? _selectedCategory?.name ?? 'Каталог',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: _text, fontSize: 18.sp, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                  color: _text, fontSize: 18.sp, fontWeight: FontWeight.w900),
             ),
           ),
           IconButton(
             icon: Icon(Icons.search_rounded, color: _textMute, size: 20.s),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const SearchPage())),
           ),
         ],
       ),
@@ -371,7 +390,8 @@ class _CategoryPageState extends State<CategoryPage> {
     return Padding(
       padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 4.s),
       child: GestureDetector(
-        onTap: () => setState(() => _showCategorySidebar = !_showCategorySidebar),
+        onTap: () =>
+            setState(() => _showCategorySidebar = !_showCategorySidebar),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
           decoration: BoxDecoration(
@@ -396,18 +416,25 @@ class _CategoryPageState extends State<CategoryPage> {
                   _selectedCategory?.name ?? 'Каталог',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      color: _text,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800),
                 ),
               ),
               Text(
                 '${widget.allCategories.length} кат.',
-                style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 11.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: _textMute.withValues(alpha: 0.7),
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600),
               ),
               SizedBox(width: 7.s),
               AnimatedRotation(
                 turns: _showCategorySidebar ? 0.5 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Icon(Icons.expand_more_rounded, color: _textMute, size: 18.s),
+                child: Icon(Icons.expand_more_rounded,
+                    color: _textMute, size: 18.s),
               ),
             ],
           ),
@@ -437,8 +464,14 @@ class _CategoryPageState extends State<CategoryPage> {
                     decoration: BoxDecoration(
                       color: _card,
                       borderRadius: BorderRadius.circular(16.s),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 24, offset: const Offset(0, 12))],
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12))
+                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16.s),
@@ -448,19 +481,26 @@ class _CategoryPageState extends State<CategoryPage> {
                         itemCount: widget.allCategories.length,
                         itemBuilder: (_, i) {
                           final cat = widget.allCategories[i];
-                          final selected = cat.categoryId == _selectedCategory?.categoryId;
+                          final selected =
+                              cat.categoryId == _selectedCategory?.categoryId;
                           return InkWell(
                             onTap: () => _onCategoryChanged(cat),
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 12.s),
-                              color: selected ? _orange.withValues(alpha: 0.1) : Colors.transparent,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16.s, vertical: 12.s),
+                              color: selected
+                                  ? _orange.withValues(alpha: 0.1)
+                                  : Colors.transparent,
                               child: Row(
                                 children: [
                                   Container(
                                     width: 7.s,
                                     height: 7.s,
                                     decoration: BoxDecoration(
-                                      color: selected ? _orange : Colors.white.withValues(alpha: 0.12),
+                                      color: selected
+                                          ? _orange
+                                          : Colors.white
+                                              .withValues(alpha: 0.12),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -471,7 +511,9 @@ class _CategoryPageState extends State<CategoryPage> {
                                       style: TextStyle(
                                         color: selected ? _orange : _text,
                                         fontSize: 14.sp,
-                                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                                        fontWeight: selected
+                                            ? FontWeight.w800
+                                            : FontWeight.w600,
                                       ),
                                     ),
                                   ),
@@ -480,7 +522,10 @@ class _CategoryPageState extends State<CategoryPage> {
                                       padding: EdgeInsets.only(left: 7.s),
                                       child: Text(
                                         '${cat.subcategories.length}',
-                                        style: TextStyle(color: _textMute.withValues(alpha: 0.6), fontSize: 11.sp),
+                                        style: TextStyle(
+                                            color: _textMute.withValues(
+                                                alpha: 0.6),
+                                            fontSize: 11.sp),
                                       ),
                                     ),
                                   if (cat.itemsCount > 0)
@@ -488,7 +533,10 @@ class _CategoryPageState extends State<CategoryPage> {
                                       padding: EdgeInsets.only(left: 7.s),
                                       child: Text(
                                         '${cat.getTotalItemsCount()}',
-                                        style: TextStyle(color: _textMute.withValues(alpha: 0.5), fontSize: 11.sp),
+                                        style: TextStyle(
+                                            color: _textMute.withValues(
+                                                alpha: 0.5),
+                                            fontSize: 11.sp),
                                       ),
                                     ),
                                 ],
@@ -541,7 +589,11 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
-  Widget _chip({required String label, required bool selected, required VoidCallback onTap, int? count}) {
+  Widget _chip(
+      {required String label,
+      required bool selected,
+      required VoidCallback onTap,
+      int? count}) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -570,7 +622,9 @@ class _CategoryPageState extends State<CategoryPage> {
               Text(
                 '$count',
                 style: TextStyle(
-                  color: selected ? Colors.black.withValues(alpha: 0.6) : _textMute.withValues(alpha: 0.6),
+                  color: selected
+                      ? Colors.black.withValues(alpha: 0.6)
+                      : _textMute.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w600,
                   fontSize: 10.sp,
                 ),
@@ -590,10 +644,13 @@ class _CategoryPageState extends State<CategoryPage> {
         children: [
           Expanded(
             child: Text(
-              _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'Все товары',
+              _selectedSubcategory?.name ??
+                  _selectedCategory?.name ??
+                  'Все товары',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                  color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800),
             ),
           ),
           if (!_isLoading && _items.isNotEmpty)
@@ -605,7 +662,10 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
               child: Text(
                 '${_items.length} шт.',
-                style: TextStyle(color: _textMute.withValues(alpha: 0.8), fontSize: 11.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: _textMute.withValues(alpha: 0.8),
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -626,7 +686,9 @@ class _CategoryPageState extends State<CategoryPage> {
               child: CircularProgressIndicator(color: _orange, strokeWidth: 3),
             ),
             const SizedBox(height: 16),
-            Text('Загрузка...', style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 14)),
+            Text('Загрузка...',
+                style: TextStyle(
+                    color: _textMute.withValues(alpha: 0.7), fontSize: 14)),
           ],
         ),
       );
@@ -647,7 +709,8 @@ class _CategoryPageState extends State<CategoryPage> {
       child: GridView.builder(
         controller: _scrollController,
         padding: EdgeInsets.fromLTRB(14.s, 4.s, 14.s, 120.s),
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics()),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.56,
@@ -660,7 +723,8 @@ class _CategoryPageState extends State<CategoryPage> {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(color: _orange, strokeWidth: 2.5),
+                child:
+                    CircularProgressIndicator(color: _orange, strokeWidth: 2.5),
               ),
             );
           }
@@ -690,7 +754,8 @@ class _CategoryPageState extends State<CategoryPage> {
             SizedBox(height: 16.s),
             Text(
               _error!,
-              style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16.s),
@@ -701,7 +766,8 @@ class _CategoryPageState extends State<CategoryPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _orange,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11.s)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11.s)),
                 padding: EdgeInsets.symmetric(horizontal: 20.s, vertical: 10.s),
                 textStyle: const TextStyle(fontWeight: FontWeight.w800),
               ),
@@ -714,7 +780,8 @@ class _CategoryPageState extends State<CategoryPage> {
 
   // ─── Empty state ─────────────────────────────────────────
   Widget _emptyState() {
-    final label = _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'категории';
+    final label =
+        _selectedSubcategory?.name ?? _selectedCategory?.name ?? 'категории';
     return Center(
       child: Padding(
         padding: EdgeInsets.all(28.s),
@@ -728,17 +795,20 @@ class _CategoryPageState extends State<CategoryPage> {
                 color: Colors.white.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.inventory_2_outlined, color: _textMute.withValues(alpha: 0.5), size: 27.s),
+              child: Icon(Icons.inventory_2_outlined,
+                  color: _textMute.withValues(alpha: 0.5), size: 27.s),
             ),
             SizedBox(height: 16.s),
             Text(
               'Товары не найдены',
-              style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                  color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800),
             ),
             SizedBox(height: 7.s),
             Text(
               'В "$label" пока нет товаров',
-              style: TextStyle(color: _textMute.withValues(alpha: 0.7), fontSize: 13.sp),
+              style: TextStyle(
+                  color: _textMute.withValues(alpha: 0.7), fontSize: 13.sp),
               textAlign: TextAlign.center,
             ),
           ],

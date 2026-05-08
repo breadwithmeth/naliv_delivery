@@ -1,26 +1,27 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:gradusy24/utils/location_service.dart';
-import 'package:gradusy24/utils/cart_provider.dart';
-import 'package:gradusy24/utils/business_provider.dart';
-import 'package:gradusy24/utils/browser_history.dart';
-import 'package:gradusy24/utils/browser_route_history_observer.dart';
-import 'package:gradusy24/utils/liked_items_provider.dart';
-import 'package:gradusy24/services/notification_service.dart';
-import 'package:gradusy24/services/telemetry_consent_service.dart';
-import 'package:gradusy24/utils/responsive.dart';
-import 'package:gradusy24/widgets/app_entry_gate.dart';
+import 'package:naliv_delivery/utils/location_service.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/browser_history.dart';
+import 'package:naliv_delivery/utils/browser_route_history_observer.dart';
+import 'package:naliv_delivery/utils/liked_items_provider.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/services/telemetry_consent_service.dart';
+import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:naliv_delivery/widgets/app_entry_gate.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'firebase_options.dart';
-import 'package:gradusy24/utils/app_navigator.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
-final BrowserRouteHistoryObserver browserRouteHistoryObserver = BrowserRouteHistoryObserver();
+final BrowserRouteHistoryObserver browserRouteHistoryObserver =
+    BrowserRouteHistoryObserver();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,9 +30,11 @@ Future<void> main() async {
 
   await SentryFlutter.init(
     (options) {
-      options.dsn = 'https://d19c02e97e5b55f26c69d3cbd7ad8394@o4510957798883328.ingest.us.sentry.io/4511133765271552';
+      options.dsn =
+          'https://d19c02e97e5b55f26c69d3cbd7ad8394@o4510957798883328.ingest.us.sentry.io/4511133765271552';
       options.environment = kReleaseMode ? 'production' : 'development';
-      options.release = '${packageInfo.packageName}@${packageInfo.version}+${packageInfo.buildNumber}';
+      options.release =
+          '${packageInfo.packageName}@${packageInfo.version}+${packageInfo.buildNumber}';
       options.tracesSampleRate = 1.0;
       options.enableAutoSessionTracking = true;
       options.sendDefaultPii = true;
@@ -114,7 +117,11 @@ class _MainState extends State<Main> with LocationMixin {
           return child!;
         },
         navigatorKey: AppNavigator.key,
-        navigatorObservers: [browserRouteHistoryObserver, routeObserver, SentryNavigatorObserver()],
+        navigatorObservers: [
+          browserRouteHistoryObserver,
+          routeObserver,
+          SentryNavigatorObserver()
+        ],
         title: "Градусы24",
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,

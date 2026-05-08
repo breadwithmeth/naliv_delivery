@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gradusy24/widgets/authentication_wrapper.dart';
+import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 
 class AppNavigator {
   AppNavigator._();

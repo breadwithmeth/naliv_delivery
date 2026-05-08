@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gradusy24/utils/api.dart';
+import 'package:naliv_delivery/utils/api.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -31,11 +31,13 @@ class AuthService {
       final parts = token.split('.');
       if (parts.length != 3) throw Exception('Invalid token format');
 
-      final payload = json.decode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+      final payload = json
+          .decode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
 
       // Получаем время истечения из токена (exp обычно в секундах)
       if (payload['exp'] != null) {
-        final expiry = DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
+        final expiry =
+            DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
         await prefs.setString(_tokenExpiryKey, expiry.toIso8601String());
       }
     } catch (e) {
