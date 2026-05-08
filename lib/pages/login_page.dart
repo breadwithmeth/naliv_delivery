@@ -91,7 +91,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   Timer? _autoSlideTimer;
   Timer? _resumeTimer;
+  Timer? _sendCodeCooldownTimer;
   bool _userInteracting = false;
+  int _sendCodeCooldownSeconds = 0;
+  String? _sendCodeCooldownPhone;
 
   static const _slides = [
     _SlideData(
@@ -133,6 +136,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _iconPulse.dispose();
     _autoSlideTimer?.cancel();
     _resumeTimer?.cancel();
+    _sendCodeCooldownTimer?.cancel();
     _phoneController.dispose();
     _codeController.dispose();
     _phoneFocusNode.dispose();
@@ -188,19 +192,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   Future<void> _sendCode() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
     final phone = _normalizedPhone();
+    if (_isCooldownActiveForPhone(phone)) return;
+
+    setState(() => _isLoading = true);
     try {
-      final sent = await ApiService.sendAuthCode(phone);
-      if (mounted && sent) {
+      final result = await ApiService.sendAuthCode(phone);
+      if (!mounted) return;
+
+      if (result.success) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Код отправлен на $phone'),
           backgroundColor: AppColors.card,
         ));
         setState(() => _codeSent = true);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Не удалось отправить код'),
+      } else {
+        if (result.cooldownSeconds != null && result.cooldownSeconds! > 0) {
+          _startSendCodeCooldown(phone: phone, seconds: result.cooldownSeconds!);
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(result.message),
           backgroundColor: AppColors.card,
         ));
       }
@@ -211,6 +222,55 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  bool _isCooldownActiveForPhone(String phone) {
+    return phone.isNotEmpty && _sendCodeCooldownSeconds > 0 && _sendCodeCooldownPhone == phone;
+  }
+
+  void _startSendCodeCooldown({required String phone, required int seconds}) {
+    final normalizedSeconds = seconds <= 0 ? 60 : seconds;
+    _sendCodeCooldownTimer?.cancel();
+    if (!mounted) return;
+
+    setState(() {
+      _sendCodeCooldownPhone = phone;
+      _sendCodeCooldownSeconds = normalizedSeconds;
+    });
+
+    _sendCodeCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_sendCodeCooldownSeconds <= 1) {
+        timer.cancel();
+        setState(() {
+          _sendCodeCooldownSeconds = 0;
+          _sendCodeCooldownPhone = null;
+        });
+        return;
+      }
+
+      setState(() {
+        _sendCodeCooldownSeconds -= 1;
+      });
+    });
+  }
+
+  String _sendCodeButtonLabel() {
+    final phone = _normalizedPhone();
+    if (_isCooldownActiveForPhone(phone)) {
+      return 'Повторить через ${_formatCooldown(_sendCodeCooldownSeconds)}';
+    }
+    return 'Получить код';
+  }
+
+  String _formatCooldown(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainder.toString().padLeft(2, '0')}';
   }
 
   Future<void> _verifyCode() async {
@@ -456,7 +516,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 if (!_codeSent) ...[
                   _phoneInput(),
                   SizedBox(height: 18.s),
-                  _primaryButton(label: 'Получить код', onPressed: _isLoading ? null : _sendCode),
+                  _primaryButton(
+                    label: _sendCodeButtonLabel(),
+                    onPressed: _isLoading || _isCooldownActiveForPhone(_normalizedPhone()) ? null : _sendCode,
+                  ),
                 ] else ...[
                   _otpInput(),
                   SizedBox(height: 18.s),

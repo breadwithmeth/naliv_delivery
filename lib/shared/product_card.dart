@@ -11,6 +11,7 @@ import '../utils/business_provider.dart';
 import '../utils/item_name_presentation.dart';
 import '../utils/liked_items_provider.dart';
 import '../utils/responsive.dart';
+import '../utils/smart_cart.dart';
 
 class ProductCard extends StatefulWidget {
   final item_model.Item item;
@@ -34,8 +35,28 @@ class _ProductCardState extends State<ProductCard> {
   bool _likeInProgress = false;
   bool? _isLikedOverride;
   int? _businessId;
+  bool _cartMotionArmed = false;
 
   bool get _isLiked => _isLikedOverride ?? false;
+
+  void _armCartMotion() {
+    if (_cartMotionArmed || !mounted) {
+      return;
+    }
+    setState(() {
+      _cartMotionArmed = true;
+    });
+  }
+
+  void _incrementCatalogItem(CartProvider cartProvider, item_model.Item item) {
+    _armCartMotion();
+    cartProvider.incrementCatalogItem(item);
+  }
+
+  void _decrementCatalogItem(CartProvider cartProvider, item_model.Item item) {
+    _armCartMotion();
+    cartProvider.decrementCatalogItem(item);
+  }
 
   @override
   void didChangeDependencies() {
@@ -743,15 +764,21 @@ class _ProductCardState extends State<ProductCard> {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, _) {
         final totalQuantity = cartProvider.getCatalogQuantity(item);
-        final isInCart = totalQuantity > 0;
         final num? maxAmount = item.amount;
+        final selection = SmartCartSelection(item);
+        final bool canDecrease = totalQuantity > 0;
         final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
+        final bool decrementRemovesItem = canDecrease && totalQuantity <= selection.defaultStepQuantity + 0.001;
 
-        if (isInCart) {
-          return _quantityControls(item, cartProvider, totalQuantity, canIncrease);
-        } else {
-          return _addToCartButton(item, cartProvider, maxAmount);
-        }
+        return _quantityControls(
+          item,
+          cartProvider,
+          totalQuantity,
+          canDecrease,
+          canIncrease,
+          decrementRemovesItem,
+          _cartMotionArmed,
+        );
       },
     );
   }
@@ -761,41 +788,119 @@ class _ProductCardState extends State<ProductCard> {
     item_model.Item item,
     CartProvider cartProvider,
     double totalQuantity,
+    bool canDecrease,
     bool canIncrease,
+    bool decrementRemovesItem,
+    bool animate,
   ) {
-    return Row(
-      children: [
-        _ctrlButton(
-          icon: Icons.remove,
-          onPressed: () => cartProvider.decrementCatalogItem(item),
-        ),
-        SizedBox(width: 5.s),
-        Expanded(
-          child: Container(
-            height: 30.s,
-            decoration: BoxDecoration(
-              border: Border.all(color: _orange.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(7.s),
-            ),
-            child: Center(
-              child: Text(
-                totalQuantity == totalQuantity.roundToDouble() ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2),
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _orange,
+    final quantityLabel = totalQuantity == totalQuantity.roundToDouble() ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2);
+    final shellDuration = animate ? const Duration(milliseconds: 220) : Duration.zero;
+    final valueDuration = animate ? const Duration(milliseconds: 170) : Duration.zero;
+    final buttonSize = 30.s;
+    final gap = 5.s;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth.isFinite ? constraints.maxWidth : buttonSize;
+        final leadingSpace = canDecrease ? 0.0 : (maxWidth - buttonSize).clamp(0.0, double.infinity);
+        final expandedQuantityWidth = (maxWidth - (buttonSize * 2) - (gap * 2)).clamp(0.0, double.infinity);
+        final quantityWidth = canDecrease ? expandedQuantityWidth : 0.0;
+
+        return SizedBox(
+          height: buttonSize,
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: shellDuration,
+                curve: Curves.easeOutCubic,
+                width: leadingSpace,
+              ),
+              _animatedSlot(
+                width: canDecrease ? buttonSize : 0.0,
+                duration: shellDuration,
+                child: _ctrlButton(
+                  icon: decrementRemovesItem ? Icons.delete_outline : Icons.remove,
+                  enabled: canDecrease,
+                  onPressed: canDecrease ? () => _decrementCatalogItem(cartProvider, item) : null,
+                  animate: animate,
                 ),
               ),
-            ),
+              AnimatedContainer(
+                duration: shellDuration,
+                curve: Curves.easeOutCubic,
+                width: canDecrease ? gap : 0.0,
+              ),
+              _animatedSlot(
+                width: quantityWidth,
+                duration: shellDuration,
+                child: AnimatedOpacity(
+                  duration: valueDuration,
+                  curve: Curves.easeOutCubic,
+                  opacity: canDecrease ? 1 : 0,
+                  child: Container(
+                    height: buttonSize,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _orange.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(7.s),
+                    ),
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: valueDuration,
+                        reverseDuration: animate ? const Duration(milliseconds: 130) : Duration.zero,
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          final offset = Tween<Offset>(
+                            begin: const Offset(0, 0.18),
+                            end: Offset.zero,
+                          ).animate(animation);
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(position: offset, child: child),
+                          );
+                        },
+                        child: Text(
+                          canDecrease ? quantityLabel : '',
+                          key: ValueKey(canDecrease ? quantityLabel : 'empty'),
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            color: _orange,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedContainer(
+                duration: shellDuration,
+                curve: Curves.easeOutCubic,
+                width: canDecrease ? gap : 0.0,
+              ),
+              _ctrlButton(
+                icon: Icons.add,
+                enabled: canIncrease,
+                onPressed: canIncrease ? () => _incrementCatalogItem(cartProvider, item) : null,
+                animate: animate,
+              ),
+            ],
           ),
-        ),
-        SizedBox(width: 5.s),
-        _ctrlButton(
-          icon: Icons.add,
-          enabled: canIncrease,
-          onPressed: canIncrease ? () => cartProvider.incrementCatalogItem(item) : null,
-        ),
-      ],
+        );
+      },
+    );
+  }
+
+  Widget _animatedSlot({
+    required double width,
+    required Duration duration,
+    required Widget child,
+  }) {
+    return AnimatedContainer(
+      duration: duration,
+      curve: Curves.easeOutCubic,
+      width: width,
+      child: ClipRect(child: child),
     );
   }
 
@@ -803,6 +908,7 @@ class _ProductCardState extends State<ProductCard> {
     required IconData icon,
     VoidCallback? onPressed,
     bool enabled = true,
+    bool animate = false,
   }) {
     return SizedBox(
       width: 30.s,
@@ -814,48 +920,27 @@ class _ProductCardState extends State<ProductCard> {
           borderRadius: BorderRadius.circular(7.s),
           onTap: onPressed,
           child: Center(
-            child: Icon(icon, size: 14.s, color: enabled ? Colors.black : _textMute),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─── Add-to-cart button ──────────────────────────────────
-  Widget _addToCartButton(
-    item_model.Item item,
-    CartProvider cartProvider,
-    num? maxAmount,
-  ) {
-    final bool canAdd = maxAmount == null || maxAmount.toDouble() > 0;
-    final buttonLabel = canAdd ? 'В корзину' : 'Нет в наличии';
-    final buttonIcon = canAdd ? Icons.shopping_bag_outlined : Icons.remove_shopping_cart_outlined;
-    return SizedBox(
-      height: 30.s,
-      child: Material(
-        color: canAdd ? _orange : _cardDark,
-        borderRadius: BorderRadius.circular(9.s),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(9.s),
-          onTap: canAdd ? () => cartProvider.incrementCatalogItem(item) : null,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                buttonIcon,
+            child: AnimatedSwitcher(
+              duration: animate ? const Duration(milliseconds: 160) : Duration.zero,
+              reverseDuration: animate ? const Duration(milliseconds: 120) : Duration.zero,
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.82, end: 1).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: Icon(
+                icon,
+                key: ValueKey('${icon.codePoint}_$enabled'),
                 size: 14.s,
-                color: canAdd ? Colors.black : _textMute,
+                color: enabled ? Colors.black : _textMute,
               ),
-              SizedBox(width: 5.s),
-              Text(
-                buttonLabel,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  color: canAdd ? Colors.black : _textMute,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

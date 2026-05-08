@@ -833,8 +833,7 @@ class ApiService {
   }
 
   /// Отправить одноразовый код на указанный номер телефона
-  /// Возвращает true при успешной отправке
-  static Future<bool> sendAuthCode(String phoneNumber) async {
+  static Future<AuthCodeSendResult> sendAuthCode(String phoneNumber) async {
     final uri = Uri.parse('$baseUrl/auth/send-code');
     try {
       final response = await http.post(
@@ -842,14 +841,96 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phone_number': phoneNumber}),
       );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        return jsonResponse['success'] == true;
+      Map<String, dynamic>? jsonResponse;
+      if (response.body.isNotEmpty) {
+        try {
+          jsonResponse = json.decode(response.body) as Map<String, dynamic>;
+        } catch (_) {}
       }
+
+      if (response.statusCode == 200) {
+        final success = jsonResponse?['success'] == true;
+        return AuthCodeSendResult(
+          success: success,
+          message: jsonResponse?['message']?.toString() ?? (success ? 'Код отправлен.' : 'Не удалось отправить код.'),
+          statusCode: response.statusCode,
+        );
+      }
+
+      final message = jsonResponse?['error']?['message']?.toString() ?? jsonResponse?['message']?.toString() ?? 'Не удалось отправить код.';
+      return AuthCodeSendResult(
+        success: false,
+        message: message,
+        statusCode: response.statusCode,
+        cooldownSeconds: response.statusCode == 429 ? _extractAuthCodeCooldownSeconds(response.headers['retry-after'], message) : null,
+      );
     } catch (e) {
       debugPrint('Error sendAuthCode: $e');
+      return const AuthCodeSendResult(
+        success: false,
+        message: 'Не удалось отправить код. Проверьте соединение и попробуйте еще раз.',
+      );
     }
-    return false;
+  }
+
+  static int? _extractAuthCodeCooldownSeconds(String? retryAfter, String? message) {
+    final retryAfterSeconds = _parseRetryAfterSeconds(retryAfter);
+    if (retryAfterSeconds != null && retryAfterSeconds > 0) {
+      return retryAfterSeconds;
+    }
+
+    final messageSeconds = _parseCooldownSecondsFromMessage(message);
+    if (messageSeconds != null && messageSeconds > 0) {
+      return messageSeconds;
+    }
+
+    return 60;
+  }
+
+  static int? _parseRetryAfterSeconds(String? retryAfter) {
+    final trimmed = retryAfter?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+
+    final seconds = int.tryParse(trimmed);
+    if (seconds != null) {
+      return seconds;
+    }
+
+    final retryAt = DateTime.tryParse(trimmed);
+    if (retryAt == null) {
+      return null;
+    }
+
+    final diff = retryAt.toUtc().difference(DateTime.now().toUtc()).inSeconds;
+    return diff > 0 ? diff : null;
+  }
+
+  static int? _parseCooldownSecondsFromMessage(String? message) {
+    final normalized = message?.toLowerCase().replaceAll('ё', 'е');
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+
+    var totalSeconds = 0;
+    for (final match in RegExp(r'(\d+)\s*(час(?:а|ов)?|мину(?:та|ты|ту|т)|секунд(?:а|ы|у)?|сек)').allMatches(normalized)) {
+      final value = int.tryParse(match.group(1) ?? '');
+      final unit = match.group(2) ?? '';
+      if (value == null || value <= 0) {
+        continue;
+      }
+
+      if (unit.startsWith('час')) {
+        totalSeconds += value * 3600;
+      } else if (unit.startsWith('мину')) {
+        totalSeconds += value * 60;
+      } else {
+        totalSeconds += value;
+      }
+    }
+
+    return totalSeconds > 0 ? totalSeconds : null;
   }
 
   /// Проверка одноразового кода для аутентификации
@@ -2541,6 +2622,20 @@ class AddCardLinkResult {
     required this.success,
     this.link,
     required this.message,
+  });
+}
+
+class AuthCodeSendResult {
+  final bool success;
+  final String message;
+  final int? statusCode;
+  final int? cooldownSeconds;
+
+  const AuthCodeSendResult({
+    required this.success,
+    required this.message,
+    this.statusCode,
+    this.cooldownSeconds,
   });
 }
 

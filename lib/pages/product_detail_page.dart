@@ -8,13 +8,13 @@ import '../model/item.dart' as item_model;
 import '../models/cart_item.dart';
 import '../shared/app_theme.dart';
 import '../utils/api.dart';
-import '../utils/bonus_rules.dart';
 import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/item_name_presentation.dart';
 import '../utils/liked_items_provider.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/responsive.dart';
+import '../utils/subtract_promotion_math.dart';
 
 class ProductDetailPage extends StatefulWidget {
   const ProductDetailPage({super.key, required this.item});
@@ -23,6 +23,24 @@ class ProductDetailPage extends StatefulWidget {
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
+}
+
+class _SubtractPromoUiState {
+  const _SubtractPromoUiState({
+    required this.promo,
+    required this.amount,
+    required this.free,
+    required this.toNextGift,
+    required this.progress,
+    required this.unlocked,
+  });
+
+  final item_model.ItemPromotion promo;
+  final double amount;
+  final double free;
+  final double toNextGift;
+  final double progress;
+  final bool unlocked;
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
@@ -37,6 +55,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final Map<int, int> _bottleCounts = {};
 
   double _manualQuantity = 0;
+  bool _descriptionExpanded = false;
   bool _submitting = false;
 
   // ── like state ──
@@ -58,6 +77,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   List<item_model.ItemPromotion> get _activePromotions {
     return (widget.item.promotions ?? const <item_model.ItemPromotion>[]).where((promotion) => promotion.isActive).toList(growable: false);
+  }
+
+  List<item_model.ItemPromotion> get _detailPromotions {
+    return _activePromotions.where((promotion) => promotion.discountType != 'SUBTRACT').toList(growable: false);
   }
 
   item_model.ItemPromotion? get _subtractPromo {
@@ -83,10 +106,115 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   double _freeFromPromo(double quantity) {
     final promo = _subtractPromo;
     if (promo == null) return 0;
-    final groupSize = promo.baseAmount + promo.addAmount;
-    if (groupSize <= 0 || quantity < groupSize) return 0;
-    final count = (quantity ~/ groupSize);
-    return (count * promo.addAmount).toDouble();
+    return subtractPromotionFreeQuantityForConfig(
+      quantity,
+      baseAmount: promo.baseAmount,
+      addAmount: promo.addAmount,
+    );
+  }
+
+  _SubtractPromoUiState? _subtractUiState(double quantity) {
+    final promo = _subtractPromo;
+    if (promo == null) {
+      return null;
+    }
+
+    final amount = _normalizeDouble(quantity);
+    final free = _normalizeDouble(_freeFromPromo(amount));
+    final toNextGift = _normalizeDouble(
+      subtractPromotionAmountToNextGift(
+        amount,
+        baseAmount: promo.baseAmount,
+      ),
+    );
+    final progress = subtractPromotionProgress(
+      amount,
+      baseAmount: promo.baseAmount,
+    );
+    final unlocked = subtractPromotionUnlocked(
+      amount,
+      baseAmount: promo.baseAmount,
+    );
+
+    return _SubtractPromoUiState(
+      promo: promo,
+      amount: amount,
+      free: free,
+      toNextGift: toNextGift,
+      progress: progress,
+      unlocked: unlocked,
+    );
+  }
+
+  int _subtractRewardCount(_SubtractPromoUiState state) {
+    final baseAmount = state.promo.baseAmount;
+    if (baseAmount <= 0) {
+      return 0;
+    }
+    return (state.amount / baseAmount).floor();
+  }
+
+  bool _subtractAtRewardBoundary(_SubtractPromoUiState state) {
+    return state.amount > subtractPromotionEpsilon && state.toNextGift <= subtractPromotionEpsilon;
+  }
+
+  bool _subtractShowSuccessState(_SubtractPromoUiState state) {
+    return _subtractAtRewardBoundary(state) && _subtractRewardCount(state) == 1;
+  }
+
+  String? _subtractRewardMultiplierLabel(_SubtractPromoUiState state) {
+    final rewardCount = _subtractRewardCount(state);
+    if (rewardCount <= 1) {
+      return null;
+    }
+    return 'x$rewardCount';
+  }
+
+  double _subtractDisplayProgress(_SubtractPromoUiState state, int segmentCount) {
+    if (_subtractAtRewardBoundary(state)) {
+      return 0;
+    }
+    return _subtractCycleProgress(state) * segmentCount;
+  }
+
+  String _subtractPromoStatusText(_SubtractPromoUiState state) {
+    final baseLabel = _promoAmountLabel(state.promo.baseAmount.toDouble());
+    final addLabel = _promoAmountLabel(state.promo.addAmount.toDouble());
+    final nextLabel = _subtractNextRewardLabel(state);
+    final rewardCount = _subtractRewardCount(state);
+
+    if (state.amount <= subtractPromotionEpsilon) {
+      return 'Добавьте $baseLabel и получите +$addLabel';
+    }
+    if (_subtractAtRewardBoundary(state)) {
+      if (rewardCount == 1) {
+        return 'Подарок открыт!';
+      }
+      return 'Добавьте ещё $baseLabel для следующего подарка';
+    }
+    if (rewardCount > 0) {
+      return 'Добавьте ещё $nextLabel для следующего подарка';
+    }
+    return 'Добавьте ещё $nextLabel для подарка';
+  }
+
+  double _subtractCycleProgress(_SubtractPromoUiState state) {
+    final baseAmount = state.promo.baseAmount;
+    if (baseAmount <= 0 || state.amount <= subtractPromotionEpsilon) {
+      return 0;
+    }
+
+    final remainder = state.amount % baseAmount;
+    if (remainder.abs() <= subtractPromotionEpsilon) {
+      return 0;
+    }
+
+    return (remainder / baseAmount).clamp(0.0, 1.0);
+  }
+
+  String _subtractNextRewardLabel(_SubtractPromoUiState state) {
+    final remaining = state.toNextGift <= subtractPromotionEpsilon ? state.promo.baseAmount.toDouble() : state.toNextGift;
+    return _promoAmountLabel(remaining);
   }
 
   // ── lifecycle ─────────────────────────────────────────────────
@@ -168,18 +296,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } finally {
       if (mounted) setState(() => _likeInProgress = false);
     }
-  }
-
-  int _calculateBonusPoints() {
-    if (BonusRules.isBonusExcludedText(
-      name: widget.item.name,
-      description: widget.item.description,
-      categoryName: widget.item.category?.name,
-      code: widget.item.code,
-    )) {
-      return 0;
-    }
-    return BonusRules.calculateEarnedBonuses(_displayUnitPrice());
   }
 
   // ── business logic ────────────────────────────────────────────
@@ -336,18 +452,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return 'шт.';
   }
 
-  void _adjustLiters(int direction) {
-    final current = _totalLitersFromBottles();
-    final breakdown = _nextBottleBreakdown(direction);
-    final next = _litersForCounts(breakdown);
-    if ((next - current).abs() < 0.001) return;
-    setState(() {
-      for (final bottle in _filteredBottles) {
-        _bottleCounts[bottle.relationId] = breakdown[bottle.relationId] ?? 0;
-      }
-    });
-  }
-
   void _adjustQuantity(int direction) {
     final step = widget.item.effectiveStepQuantity <= 0 ? 1.0 : widget.item.effectiveStepQuantity;
     final next = (_manualQuantity + step * direction).clamp(step, _maxAmount());
@@ -380,6 +484,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       }
     }
     return _normalizeDouble(total);
+  }
+
+  void _adjustLiters(int direction) {
+    final current = _totalLitersFromBottles();
+    final breakdown = _nextBottleBreakdown(direction);
+    final next = _litersForCounts(breakdown);
+    if ((next - current).abs() < 0.001) return;
+    setState(() {
+      for (final bottle in _filteredBottles) {
+        _bottleCounts[bottle.relationId] = breakdown[bottle.relationId] ?? 0;
+      }
+    });
   }
 
   Map<int, int> _nextBottleBreakdown(int direction) {
@@ -417,14 +533,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return '-$percent%';
     }
     return '-${_money(promo.discountValue)}';
-  }
-
-  double _displayUnitPrice() {
-    final promo = _discountPromo;
-    if (promo == null) {
-      return widget.item.price;
-    }
-    return promo.calculateDiscountedPrice(widget.item.price);
   }
 
   Map<int, int> _autoBottleBreakdown(double targetLiters) {
@@ -502,8 +610,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return _manualQuantity;
   }
 
-  int _configuredBottleCount() {
-    return _activeBottleCounts().values.fold<int>(0, (sum, count) => sum + count);
+  String _activeBottleDetailLabel() {
+    return _activeBottleCounts().entries.map((entry) {
+      final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
+      return '${entry.value}×${_volumeLabel(_volumeForBottle(bottle))}';
+    }).join(' · ');
+  }
+
+  String _priceBreakdownBaseLabel(double amount) {
+    if (_usesPourFlow) {
+      return '${_volumeLabel(amount)} напитка';
+    }
+    return _quantityLabel(amount);
   }
 
   List<item_model.ItemOptionItem> _selectedItemsFor(item_model.ItemOption option) {
@@ -627,44 +745,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return total;
   }
 
-  double _applyPromotionsToBaseTotal(double baseTotal, double quantity) {
-    double payableQuantity = quantity;
-    double result = baseTotal;
-    final promotions = _promotionMaps();
+  double _applyPromotionsToBaseTotal(double quantity) {
+    return applyPromotionsToPaidBaseTotal(
+      unitPrice: widget.item.price,
+      quantity: quantity,
+      promotions: _promotionMaps(),
+    );
+  }
 
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
-        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
-        final groupSize = base + add;
-        if (groupSize > 0 && base > 0 && quantity >= groupSize) {
-          final count = quantity ~/ groupSize;
-          payableQuantity = quantity - (count * add);
-          result = widget.item.price * payableQuantity;
-        }
-      }
+  double _previewSubtotalBeforePromotions() {
+    if (_usesPourFlow) {
+      final totalLiters = _totalLitersFromBottles();
+      final optionsTotal = _pourFlowOptionsTotal();
+      final rawBase = subtractPromotionDisplayBaseTotal(widget.item.price, totalLiters, _promotionMaps());
+      return rawBase + optionsTotal;
     }
 
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'FIXED') {
-        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        if (disc > 0) {
-          result = (result - (disc * payableQuantity)).clamp(0, double.infinity).toDouble();
-        }
-      }
-    }
-
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'DISCOUNT' || type == 'PERCENT') {
-        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        result = result * (1 - disc / 100);
-      }
-    }
-
-    return result;
+    return _previewCartItem(
+      quantity: _manualQuantity,
+      includePromotions: true,
+    ).subtotalBeforePromotions;
   }
 
   double _previewTotal({bool includePromotions = true}) {
@@ -677,7 +777,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final totalLiters = _totalLitersFromBottles();
       final optionsTotal = _pourFlowOptionsTotal();
       final baseTotal = widget.item.price * totalLiters;
-      final promotedBase = includePromotions ? _applyPromotionsToBaseTotal(baseTotal, totalLiters) : baseTotal;
+      final promotedBase = includePromotions ? _applyPromotionsToBaseTotal(totalLiters) : baseTotal;
       return promotedBase + optionsTotal;
     }
 
@@ -840,10 +940,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget build(BuildContext context) {
     final pad = MediaQuery.of(context).padding;
     final total = _previewTotal();
-    final rawTotal = _previewTotal(includePromotions: false);
+    final rawTotal = _previewSubtotalBeforePromotions();
     final amount = _configuredAmount();
-    final cart = context.watch<CartProvider>();
-    final cartQuantity = cart.getTotalQuantityForItem(widget.item.itemId);
+    final subtractState = _subtractUiState(amount);
+    final footerHeight = 96.s + pad.bottom;
+    final footerReserve = 116.s + pad.bottom;
 
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
@@ -862,11 +963,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _productInfo(),
-                      SizedBox(height: 18.s),
-                      if (_subtractPromo != null) ...[
-                        _subtractPromoBanner(),
-                        SizedBox(height: 18.s),
+                      if (subtractState != null) ...[
+                        SizedBox(height: 14.s),
+                        _subtractPriceSignalCard(subtractState),
                       ],
+                      SizedBox(height: 18.s),
                       _thinDivider(),
                       SizedBox(height: 18.s),
                       if (_usesPourFlow) ...[
@@ -875,10 +976,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ],
                       if (!_usesPourFlow) ...[
                         _quantityControl(),
-                        if (_subtractPromo != null) ...[
-                          SizedBox(height: 14.s),
-                          _subtractPromoInfo(),
-                        ],
                         SizedBox(height: 18.s),
                       ],
                       if (_visibleOptions.isNotEmpty) ...[
@@ -887,7 +984,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         _optionsBlock(),
                         SizedBox(height: 18.s),
                       ],
-                      if (_activePromotions.isNotEmpty) ...[
+                      if (_detailPromotions.isNotEmpty) ...[
                         _thinDivider(),
                         SizedBox(height: 18.s),
                         _promoBlock(),
@@ -899,7 +996,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         _descriptionBlock(),
                         SizedBox(height: 18.s),
                       ],
-                      SizedBox(height: 72.s + pad.bottom),
+                      SizedBox(height: footerReserve),
                     ],
                   ),
                 ),
@@ -917,12 +1014,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
 
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: footerHeight - 1.s,
+            child: IgnorePointer(
+              child: SizedBox(
+                height: 30.s,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF1A1A1A).withValues(alpha: 0),
+                        const Color(0xFF1A1A1A).withValues(alpha: 0.92),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // ─ bottom bar ─
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: _bottomBar(total, rawTotal, amount, cartQuantity, pad),
+            child: _bottomBar(total, rawTotal, amount, pad),
           ),
         ],
       ),
@@ -933,7 +1053,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _imageArea(EdgeInsets pad) {
     final hasImage = (widget.item.image ?? '').trim().isNotEmpty;
-    final promo = _subtractPromo;
     final discount = _discountPromo;
 
     return Stack(
@@ -985,60 +1104,38 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
         ),
-
-        // Top-left badges column
+        if (discount != null)
+          Positioned(
+            top: pad.top + 58.s,
+            left: 18.s,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
+              decoration: BoxDecoration(
+                color: AppColors.red,
+                borderRadius: BorderRadius.circular(10.s),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.local_fire_department_rounded, size: 13.s, color: Colors.white),
+                  SizedBox(width: 5.s),
+                  Text(
+                    _discountBadgeLabel(discount),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Positioned(
           top: pad.top + 10.s,
-          left: 14.s,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (discount != null) ...[
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
-                  decoration: BoxDecoration(
-                    color: AppColors.red,
-                    borderRadius: BorderRadius.circular(10.s),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.local_fire_department_rounded, size: 13.s, color: Colors.white),
-                      SizedBox(width: 5.s),
-                      Text(
-                        _discountBadgeLabel(discount),
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          height: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-
-        // Bottom row: promo marker
-        Positioned(
-          bottom: 18.s,
-          left: 18.s,
-          right: 18.s,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (promo != null)
-                _heroMarker(
-                  icon: Icons.card_giftcard_rounded,
-                  foreground: AppColors.orange,
-                  background: AppColors.orange.withValues(alpha: 0.14),
-                  borderColor: AppColors.orange.withValues(alpha: 0.16),
-                ),
-            ],
-          ),
+          right: 14.s,
+          child: _favoriteAction(),
         ),
       ],
     );
@@ -1049,134 +1146,57 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   // ── product info ──────────────────────────────────────────────
-
   Widget _productInfo() {
-    final bonusPoints = _calculateBonusPoints();
+    final identityColor = Color.lerp(AppColors.textMute, AppColors.text, 0.12)!;
+    final identityParts = <String>[
+      if (_itemTitle.type != null && _itemTitle.type!.trim().isNotEmpty) _itemTitle.type!,
+      if (_itemTitle.packagingType != null && _itemTitle.packagingType!.trim().isNotEmpty) _itemTitle.packagingType!,
+      if (_itemTitle.countryName != null && _itemTitle.countryName!.trim().isNotEmpty) _itemTitle.countryName!,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Packaging + category/type on the left, country on the right.
-        if (_itemTitle.packagingType != null || _itemTitle.type != null || _itemTitle.countryName != null) ...[
-          Row(
-            children: [
-              if (_itemTitle.packagingType != null) ...[
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
-                  decoration: BoxDecoration(
-                    color: AppColors.orange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(7.s),
-                  ),
-                  child: Text(
-                    _itemTitle.packagingType!,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.orange,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8.s),
-              ],
-              if (_itemTitle.type != null)
-                Expanded(
-                  child: Text(
-                    _itemTitle.type!,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textMute,
-                      height: 1.2,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                )
-              else
-                const Spacer(),
-              if (_itemTitle.countryName != null) ...[
-                SizedBox(width: 10.s),
-                Text(
-                  _itemTitle.countryName!,
-                  style: TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
+        if (identityParts.isNotEmpty) ...[
+          Text(
+            identityParts.join(' • '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: identityColor,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+              height: 1.2,
+            ),
           ),
-          SizedBox(height: 10.s),
+          SizedBox(height: 8.s),
         ],
-
-        // Product name
         Text(
           _itemTitle.name,
           style: TextStyle(
             color: AppColors.text,
-            fontSize: 22.sp,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w800,
             height: 1.2,
           ),
         ),
-        SizedBox(height: 14.s),
+        SizedBox(height: 12.s),
         ..._priceDisplay(),
         SizedBox(height: 10.s),
-        _supportingInfoRow(bonusPoints),
+        _supportingInfoRow(),
       ],
     );
   }
 
-  Widget _supportingInfoRow(int bonusPoints) {
+  Widget _supportingInfoRow() {
     final hasStock = widget.item.amount != null && widget.item.amount! > 0;
-    final hasBonuses = bonusPoints > 0;
 
-    if (!hasStock && !hasBonuses) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: _favoriteAction(),
-      );
+    if (!hasStock) {
+      return const SizedBox.shrink();
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasStock) _stockIndicator(widget.item.amount!),
-              if (hasBonuses) ...[
-                if (hasStock) SizedBox(height: 8.s),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.star_rounded, size: 15.s, color: AppColors.orange),
-                    SizedBox(width: 5.s),
-                    Text(
-                      '+$bonusPoints бонусов',
-                      style: TextStyle(
-                        color: AppColors.textMute,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-        SizedBox(width: 12.s),
-        _favoriteAction(),
-      ],
-    );
+    return _stockIndicator(widget.item.amount!);
   }
 
   Widget _favoriteAction() {
@@ -1184,43 +1204,141 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       onTap: _toggleLike,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 8.s),
+        width: 42.s,
+        height: 42.s,
         decoration: BoxDecoration(
-          color: _isLiked ? AppColors.red : AppColors.red.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10.s),
+          color: _isLiked ? AppColors.red : AppColors.card.withValues(alpha: 0.88),
+          shape: BoxShape.circle,
           border: Border.all(
-            color: _isLiked ? AppColors.red : AppColors.red.withValues(alpha: 0.22),
+            color: _isLiked ? AppColors.red : Colors.white.withValues(alpha: 0.08),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _isLiked ? Icons.favorite : Icons.favorite_border,
-              size: 15.s,
-              color: _isLiked ? Colors.white : AppColors.red,
-            ),
-            SizedBox(width: 6.s),
-            Text(
-              _isLiked ? 'В любимом' : 'В любимое',
-              style: TextStyle(
-                color: _isLiked ? Colors.white : AppColors.red,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.24),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
+        child: _likeInProgress
+            ? Padding(
+                padding: EdgeInsets.all(12.s),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: _isLiked ? Colors.white : AppColors.red,
+                ),
+              )
+            : Icon(
+                _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                size: 18.s,
+                color: _isLiked ? Colors.white : AppColors.red,
+              ),
       ),
     );
+  }
+
+  Widget _priceMetaRow(List<String> facts) {
+    if (facts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Wrap(
+      spacing: 14.s,
+      runSpacing: 6.s,
+      children: facts
+          .map(
+            (fact) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _pricingFactIcon(fact),
+                  size: 13.s,
+                  color: AppColors.textMute,
+                ),
+                SizedBox(width: 6.s),
+                Text(
+                  fact,
+                  style: TextStyle(
+                    color: AppColors.textMute,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  IconData _pricingFactIcon(String fact) {
+    if (fact.contains('%')) {
+      return Icons.bolt_rounded;
+    }
+    return Icons.local_drink_outlined;
+  }
+
+  Widget _primaryPriceText(double price) {
+    return Text(
+      _money(price),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: AppColors.orange,
+        fontSize: 25.sp,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+
+  List<String> _priceFacts() {
+    final facts = <String>[];
+    final volume = _itemTitle.volumeLabel ?? _fallbackVolumeLabel();
+    final alcohol = _itemTitle.alcoholLabel ?? _fallbackAlcoholLabel();
+
+    if (volume != null) {
+      facts.add(volume);
+    }
+    if (alcohol != null) {
+      facts.add(alcohol);
+    }
+
+    return facts;
+  }
+
+  String? _fallbackVolumeLabel() {
+    if (_usesPourFlow && widget.item.effectiveStepQuantity > 0) {
+      return _volumeLabel(widget.item.effectiveStepQuantity);
+    }
+    return null;
+  }
+
+  String? _fallbackAlcoholLabel() {
+    final normalizedName = widget.item.name.replaceAll(',', '.');
+    final match = RegExp(r'(\d{1,2}(?:\.\d{1,2})?)\s*%').firstMatch(normalizedName);
+    final raw = match?.group(1);
+    final value = raw == null ? null : double.tryParse(raw);
+    if (value == null) {
+      return null;
+    }
+    return '${_compactMetricLabel(value)}%';
+  }
+
+  String _compactMetricLabel(double value) {
+    if ((value - value.roundToDouble()).abs() < 0.001) {
+      return value.toStringAsFixed(0);
+    }
+    if ((value * 10 - (value * 10).roundToDouble()).abs() < 0.001) {
+      return value.toStringAsFixed(1);
+    }
+    return value.toStringAsFixed(2);
   }
 
   // ── price display with discount ────────────────────────────
 
   List<Widget> _priceDisplay() {
     final promo = _discountPromo;
-    final unitSuffix = _usesPourFlow ? ' / 1 л' : null;
-    final facts = _itemTitle.pricingAttributes.take(2).toList(growable: false);
+    final facts = _priceFacts();
 
     if (promo != null) {
       final discounted = promo.calculateDiscountedPrice(widget.item.price);
@@ -1241,60 +1359,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: _money(discounted),
-                          style: TextStyle(
-                            color: AppColors.orange,
-                            fontSize: 25.sp,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        if (unitSuffix != null)
-                          TextSpan(
-                            text: unitSuffix,
-                            style: TextStyle(
-                              color: AppColors.textMute,
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 6.s),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
-                    decoration: BoxDecoration(
-                      color: AppColors.red,
-                      borderRadius: BorderRadius.circular(6.s),
-                    ),
-                    child: Text(
-                      _discountBadgeLabel(promo),
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
+              child: _primaryPriceText(discounted),
+            ),
+            SizedBox(width: 12.s),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
+              decoration: BoxDecoration(
+                color: AppColors.red,
+                borderRadius: BorderRadius.circular(999.s),
+              ),
+              child: Text(
+                _discountBadgeLabel(promo),
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-            if (facts.isNotEmpty) ...[
-              SizedBox(width: 12.s),
-              _pricingFactsAccent(facts),
-            ],
           ],
         ),
+        if (facts.isNotEmpty) ...[
+          SizedBox(height: 10.s),
+          _priceMetaRow(facts),
+        ],
         if (savings >= 1) ...[
           SizedBox(height: 4.s),
           Text(
@@ -1306,138 +1394,134 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
         ],
-        if (_usesPourFlow) ...[
-          SizedBox(height: 8.s),
-          _pourPriceInfoHint(),
-        ],
       ];
     }
 
-    // SUBTRACT promo — shown as dedicated banner below, keep price clean
     return [
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: _money(widget.item.price),
-                    style: TextStyle(
-                      color: AppColors.orange,
-                      fontSize: 25.sp,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  if (unitSuffix != null)
-                    TextSpan(
-                      text: unitSuffix,
-                      style: TextStyle(
-                        color: AppColors.textMute,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            child: _primaryPriceText(widget.item.price),
           ),
-          if (facts.isNotEmpty) ...[
-            SizedBox(width: 12.s),
-            _pricingFactsAccent(facts),
-          ],
         ],
       ),
-      if (_usesPourFlow) ...[
-        SizedBox(height: 8.s),
-        _pourPriceInfoHint(),
+      if (facts.isNotEmpty) ...[
+        SizedBox(height: 10.s),
+        _priceMetaRow(facts),
       ],
     ];
   }
 
-  Widget _pourPriceInfoHint() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8.s),
-      onTap: _showPourPriceExplanation,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 2.s),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.info_outline_rounded,
-              size: 14.s,
-              color: AppColors.textMute,
-            ),
-            SizedBox(width: 6.s),
-            Flexible(
-              child: Text(
-                'Почему цена отличается?',
-                style: TextStyle(
-                  color: AppColors.textMute,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.textMute.withValues(alpha: 0.4),
-                ),
+  Widget _subtractPriceSignalCard(_SubtractPromoUiState state) {
+    final rewardCount = _subtractRewardCount(state);
+    final segmentCount = math.max(1, math.min(state.promo.baseAmount, 6));
+    final segmentFill = _subtractDisplayProgress(state, segmentCount);
+    final statusText = _subtractPromoStatusText(state);
+    final rewardUnlocked = rewardCount > 0;
+    final showSuccessState = _subtractShowSuccessState(state);
+    final rewardMultiplier = _subtractRewardMultiplierLabel(state);
+    const progressFill = Color(0xFF5E8A76);
+    const rewardAccent = AppColors.orange;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 12.s),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(14.s),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '${state.promo.baseAmount}+${state.promo.addAmount}',
+                style: TextStyle(color: AppColors.orange, fontSize: 15.sp, fontWeight: FontWeight.w900),
               ),
+              const Spacer(),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 30.s,
+                    height: 30.s,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: rewardUnlocked ? rewardAccent.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.04),
+                      border: Border.all(
+                        color: rewardUnlocked ? rewardAccent.withValues(alpha: 0.24) : Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.card_giftcard_rounded,
+                      size: 16.s,
+                      color: rewardUnlocked ? rewardAccent : AppColors.textMute,
+                    ),
+                  ),
+                  if (rewardMultiplier != null)
+                    Positioned(
+                      right: -8.s,
+                      top: -5.s,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 2.s),
+                        decoration: BoxDecoration(
+                          color: rewardAccent,
+                          borderRadius: BorderRadius.circular(999.s),
+                        ),
+                        child: Text(
+                          rewardMultiplier,
+                          style: TextStyle(color: Colors.black, fontSize: 8.sp, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 10.s),
+          Text(
+            statusText,
+            style: TextStyle(
+              color: showSuccessState ? rewardAccent : AppColors.text,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: 10.s),
+          Row(
+            children: List.generate(segmentCount, (index) {
+              final fill = (segmentFill - index).clamp(0.0, 1.0).toDouble();
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: index == segmentCount - 1 ? 0 : 6.s),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999.s),
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: 8.s,
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: fill,
+                          child: Container(
+                            height: 8.s,
+                            color: progressFill,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
-  }
-
-  Future<void> _showPourPriceExplanation() {
-    return AppDialogs.showMessage(
-      context,
-      title: 'Почему цена отличается?',
-      message:
-          'Цена с пометкой / 1 л показывает стоимость самого напитка за литр. Итоговая сумма может быть выше, потому что при розливе отдельно добавляется стоимость выбранной бутылки или тары.',
-    );
-  }
-
-  Widget _pricingFactsAccent(List<String> facts) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: facts
-          .map(
-            (fact) => Padding(
-              padding: EdgeInsets.only(bottom: 2.s),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: _pricingFactLabel(fact),
-                      style: TextStyle(
-                        color: AppColors.textMute.withValues(alpha: 0.72),
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.45,
-                      ),
-                    ),
-                    TextSpan(
-                      text: fact,
-                      style: TextStyle(
-                        color: AppColors.orange,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
-          .toList(growable: false),
-    );
-  }
-
-  String _pricingFactLabel(String fact) {
-    return fact.contains('%') ? 'КРЕП. ' : 'ОБЪЕМ ';
   }
 
   // ── stock indicator ────────────────────────────────────────
@@ -1511,188 +1595,66 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _pourControls() {
     final liters = _totalLitersFromBottles();
-    final bottles = _configuredBottleCount();
+    final free = _freeFromPromo(liters);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('Объём'),
-        SizedBox(height: 12.s),
+        Row(
+          children: [
+            _sectionLabel('Объём'),
+            const Spacer(),
+            _bottleSummaryBtn(),
+          ],
+        ),
+        SizedBox(height: 10.s),
         _stepper(
           value: _volumeLabel(liters),
-          subtitle: '$bottles бут.',
           canDec: _canAdjustLiters(-1),
           canInc: _canAdjustLiters(1),
           onDec: () => _adjustLiters(-1),
           onInc: () => _adjustLiters(1),
         ),
-        SizedBox(height: 10.s),
-        _bottleSummaryBtn(),
-
-        // ── Bottle breakdown text ──
-        if (_activeBottleCounts().isNotEmpty) ...[
-          SizedBox(height: 10.s),
-          ..._activeBottleCounts().entries.map((entry) {
-            final bottle = _filteredBottles.firstWhere((b) => b.relationId == entry.key);
-            final vol = _volumeForBottle(bottle);
-            final name = _shortBottleName(bottle);
-            final quantity = vol * entry.value;
-            final rawItem = _previewCartItem(quantity: quantity, bottle: bottle, includePromotions: false);
-            final cost = rawItem.subtotalBeforePromotions;
-            return Padding(
-              padding: EdgeInsets.only(bottom: 4.s),
-              child: Row(
-                children: [
-                  Icon(Icons.wine_bar_outlined, size: 13.s, color: AppColors.textMute),
-                  SizedBox(width: 6.s),
-                  Expanded(
-                    child: Text(
-                      '${entry.value}× $name (${_volumeLabel(vol)})',
-                      style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _money(cost),
-                        style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ],
+        if (free > 0) ...[
+          SizedBox(height: 8.s),
+          Row(
+            children: [
+              Icon(Icons.card_giftcard_rounded, size: 15.s, color: AppColors.orange),
+              SizedBox(width: 6.s),
+              Text(
+                '+${_volumeLabel(free)} в подарок',
+                style: TextStyle(
+                  color: AppColors.orange,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            );
-          }),
-        ],
-
-        // ── Inline SUBTRACT promo info ──
-        if (_subtractPromo != null) ...[
-          SizedBox(height: 14.s),
-          _subtractPromoInfo(),
+            ],
+          ),
         ],
       ],
-    );
-  }
-
-  /// Inline free-amount indicator for SUBTRACT promo (inside pour/quantity controls).
-  Widget _subtractPromoInfo() {
-    final promo = _subtractPromo!;
-    final amount = _configuredAmount();
-    final free = _freeFromPromo(amount);
-    final groupSize = promo.baseAmount + promo.addAmount;
-    final nextThreshold = ((amount / groupSize).floor() + 1) * groupSize;
-    final litersToNext = _normalizeDouble(nextThreshold - amount);
-
-    if (free > 0) {
-      return Row(
-        children: [
-          Icon(Icons.card_giftcard_rounded, size: 14.s, color: AppColors.orange),
-          SizedBox(width: 6.s),
-          Text(
-            '${_volumeLabel(free)} бесплатно',
-            style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w700),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Icon(Icons.info_outline_rounded, size: 14.s, color: AppColors.textMute),
-        SizedBox(width: 6.s),
-        Text(
-          'Ещё ${_volumeLabel(litersToNext)} до ${promo.addAmount} л бесплатно',
-          style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  /// Full-width promo banner — shown between product info and controls.
-  Widget _subtractPromoBanner() {
-    final promo = _subtractPromo!;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 12.s),
-      decoration: BoxDecoration(
-        color: AppColors.orange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12.s),
-        border: Border.all(color: AppColors.orange.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.s),
-            decoration: BoxDecoration(
-              color: AppColors.orange.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10.s),
-            ),
-            child: Icon(Icons.card_giftcard_rounded, size: 18.s, color: AppColors.orange),
-          ),
-          SizedBox(width: 12.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${promo.baseAmount}+${promo.addAmount}',
-                  style: TextStyle(color: AppColors.orange, fontSize: 14.sp, fontWeight: FontWeight.w900),
-                ),
-                SizedBox(height: 2.s),
-                Text(
-                  'Купите ${promo.baseAmount} — ${promo.addAmount} в подарок',
-                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _bottleSummaryBtn() {
-    final active = _activeBottleCounts();
-    final parts = <String>[];
-    for (final entry in active.entries) {
-      final bottle = _filteredBottles.firstWhere((b) => b.relationId == entry.key);
-      parts.add('${entry.value}×${_volumeLabel(_volumeForBottle(bottle))}');
-    }
-    final detail = parts.isNotEmpty ? parts.join(' · ') : null;
-
-    return GestureDetector(
-      onTap: _openBottleSheet,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 12.s),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(12.s),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.wine_bar_outlined, color: AppColors.textMute, size: 16.s),
-            SizedBox(width: 9.s),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Настроить тару',
-                    style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w600),
-                  ),
-                  if (detail != null) ...[
-                    SizedBox(height: 2.s),
-                    Text(
-                      detail,
-                      style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999.s),
+        onTap: _openBottleSheet,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 2.s, vertical: 4.s),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.settings_outlined, color: AppColors.orange, size: 15.s),
+              SizedBox(width: 6.s),
+              Text(
+                'Тара',
+                style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w800),
               ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textMute, size: 18.s),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1758,38 +1720,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 Row(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         option.name,
                         style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    if (option.required == 1) ...[
-                      SizedBox(width: 7.s),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 3.s),
-                        decoration: BoxDecoration(
-                          color: AppColors.orange.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(5.s),
-                        ),
-                        child: Text(
-                          'обяз.',
-                          style: TextStyle(color: AppColors.orange, fontSize: 10.sp, fontWeight: FontWeight.w700),
-                        ),
+                    if (option.required == 1)
+                      Text(
+                        'обязательно',
+                        style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
                       ),
-                    ],
                   ],
                 ),
-                SizedBox(height: 9.s),
+                SizedBox(height: 10.s),
                 Wrap(
-                  spacing: 7.s,
-                  runSpacing: 7.s,
+                  spacing: 8.s,
+                  runSpacing: 8.s,
                   children: option.optionItems.map((optionItem) {
-                    final isActive = selected.any((s) => s.relationId == optionItem.relationId);
+                    final active = selected.any((selectedItem) => selectedItem.relationId == optionItem.relationId);
+                    final subtitle = optionItem.price > 0 ? '+${_money(optionItem.price)}' : null;
                     return _chip(
-                      label: optionItem.item_name.isNotEmpty ? optionItem.item_name : 'Вариант',
-                      subtitle: optionItem.price > 0 ? '+${_money(optionItem.price)}' : null,
-                      active: isActive,
+                      label: optionItem.item_name,
+                      subtitle: subtitle,
+                      active: active,
                       onTap: () => _toggleOption(option, optionItem),
                     );
                   }).toList(growable: false),
@@ -1805,9 +1759,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── promotions ─────────────────────────────────────────────────
 
   Widget _promoBlock() {
-    var promotions = _activePromotions;
-    // SUBTRACT promos shown near price + inline in pour controls — skip here
-    promotions = promotions.where((p) => p.discountType != 'SUBTRACT').toList();
+    final promotions = _detailPromotions.where((promotion) => promotion.discountType != 'SUBTRACT').toList(growable: false);
     if (promotions.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1821,39 +1773,57 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           final detail = _promoDetail(promotion);
 
           return Padding(
-            padding: EdgeInsets.only(bottom: 7.s),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10.s),
-                border: Border.all(color: color.withValues(alpha: 0.14)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, size: 16.s, color: color),
-                  SizedBox(width: 8.s),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(color: color, fontSize: 13.sp, fontWeight: FontWeight.w800),
-                        ),
-                        if (detail != null) ...[
-                          SizedBox(height: 3.s),
+            padding: EdgeInsets.only(bottom: 9.s),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 28.s,
+                  height: 28.s,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 15.s, color: color),
+                ),
+                SizedBox(width: 10.s),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8.s,
+                        runSpacing: 6.s,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(999.s),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(color: color, fontSize: 11.sp, fontWeight: FontWeight.w800),
+                            ),
+                          ),
                           Text(
-                            detail,
-                            style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, height: 1.3),
+                            promotion.name,
+                            style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w700),
                           ),
                         ],
+                      ),
+                      if (detail != null) ...[
+                        SizedBox(height: 4.s),
+                        Text(
+                          detail,
+                          style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, height: 1.35),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }),
@@ -1876,7 +1846,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String? _promoDetail(item_model.ItemPromotion promo) {
     if (promo.discountType == 'SUBTRACT') {
-      return 'За каждые ${promo.baseAmount + promo.addAmount} л оплата только за ${promo.baseAmount} л';
+      return 'Добавьте ${_promoAmountLabel(promo.baseAmount.toDouble())} в корзину и получите +${_promoAmountLabel(promo.addAmount.toDouble())} подарком.';
     }
     if (promo.discountType == 'PERCENT') {
       return 'Скидка ${promo.discountValue.round()}% от цены';
@@ -1890,169 +1860,243 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── description ────────────────────────────────────────────────
 
   Widget _descriptionBlock() {
+    final description = widget.item.description?.trim() ?? '';
+    const previewLimit = 190;
+    final canExpand = description.length > previewLimit;
+    final displayText = !canExpand || _descriptionExpanded ? description : '${description.substring(0, previewLimit).trimRight()}...';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('Описание'),
         SizedBox(height: 10.s),
         Text(
-          widget.item.description!,
+          displayText,
           style: TextStyle(color: AppColors.textMute, fontSize: 13.sp, height: 1.6),
         ),
+        if (canExpand) ...[
+          SizedBox(height: 10.s),
+          GestureDetector(
+            onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+            child: Text(
+              _descriptionExpanded ? 'Свернуть' : 'Читать далее',
+              style: TextStyle(
+                color: AppColors.orange,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800,
+                decoration: TextDecoration.underline,
+                decorationColor: AppColors.orange.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  double _previewOptionsTotal() {
+    if (_usesPourFlow) {
+      return _pourFlowOptionsTotal();
+    }
+    return _previewCartItem(
+      quantity: _manualQuantity,
+      includePromotions: false,
+    ).optionsTotal;
+  }
+
+  Future<void> _showPriceBreakdownSheet(double total, double rawTotal, double amount) {
+    final baseTotal = widget.item.price * amount;
+    final extrasTotal = _previewOptionsTotal();
+    final savings = math.max(0.0, rawTotal - total);
+    final free = _freeFromPromo(amount);
+    final labelBase = _priceBreakdownBaseLabel(amount);
+    final giftLabel = free > 0.001 ? '${_promoAmountLabel(free)} в подарок' : null;
+    final bottleDetail = _usesPourFlow ? _activeBottleDetailLabel() : null;
+
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SafeArea(
+        top: false,
+        child: Container(
+          margin: EdgeInsets.fromLTRB(12.s, 0, 12.s, 12.s),
+          padding: EdgeInsets.fromLTRB(18.s, 16.s, 18.s, 18.s),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(16.s),
+            border: Border.all(color: const Color(0xFF333333)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Разбор цены',
+                style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800),
+              ),
+              SizedBox(height: 14.s),
+              if (savings > 0.001) ...[
+                _breakdownRow('Без акции', _money(rawTotal), valueColor: AppColors.textMute),
+                SizedBox(height: 10.s),
+              ],
+              _breakdownRow(
+                labelBase,
+                _money(baseTotal),
+                note: _usesPourFlow ? _money(widget.item.price) : null,
+              ),
+              if (free > 0.001) ...[
+                SizedBox(height: 10.s),
+                _breakdownRow(
+                  giftLabel!,
+                  _money(0),
+                  valueColor: AppColors.orange,
+                ),
+              ],
+              if (extrasTotal > 0.001) ...[
+                SizedBox(height: 10.s),
+                _breakdownRow(
+                  _usesPourFlow ? 'Тара' : 'Опции',
+                  _money(extrasTotal),
+                  note: _usesPourFlow ? bottleDetail : null,
+                ),
+              ],
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 14.s),
+                child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+              ),
+              _breakdownRow('Итого', _money(total), valueColor: AppColors.text),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _breakdownRow(String label, String value, {String? note, Color valueColor = AppColors.text}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+              if (note != null) ...[
+                SizedBox(height: 2.s),
+                Text(
+                  note,
+                  style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.72), fontSize: 11.sp, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ],
+          ),
+        ),
+        SizedBox(width: 12.s),
+        Text(value, style: TextStyle(color: valueColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
       ],
     );
   }
 
   // ── bottom bar ─────────────────────────────────────────────────
 
-  Widget _bottomBar(double total, double rawTotal, double amount, double cartQuantity, EdgeInsets pad) {
+  Widget _bottomBar(double total, double rawTotal, double amount, EdgeInsets pad) {
     final ready = amount > 0;
-    final free = _freeFromPromo(amount);
-    final plannedTotal = _normalizeDouble(cartQuantity + amount);
-
-    // Build subtitle
-    String subtitle;
-    if (_usesPourFlow) {
-      final bottles = _configuredBottleCount();
-      if (free > 0) {
-        subtitle = '${_volumeLabel(amount)} · $bottles бут. (${_volumeLabel(free)} бесплатно)';
-      } else {
-        subtitle = '${_volumeLabel(amount)} · $bottles бут.';
-      }
-    } else {
-      subtitle = _quantityLabel(amount);
-    }
-
     final hasSavings = total < rawTotal - 1;
+    final actionEnabled = !_submitting && ready;
+    final controlHeight = hasSavings ? 72.s : 68.s;
 
     return Container(
       padding: EdgeInsets.fromLTRB(18.s, 14.s, 18.s, 14.s + pad.bottom),
       decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_subtractPromo != null) ...[
-                  _subtractProgressBar(cartQuantity, plannedTotal),
-                  SizedBox(height: 10.s),
-                ],
-                if (hasSavings)
-                  Text(
-                    _money(rawTotal),
-                    style: TextStyle(
-                      color: AppColors.textMute.withValues(alpha: 0.5),
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      decoration: TextDecoration.lineThrough,
-                      decorationColor: AppColors.textMute.withValues(alpha: 0.5),
-                    ),
-                  ),
-                Text(
-                  _money(total),
-                  style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900),
-                ),
-                if (hasSavings) ...[
-                  SizedBox(height: 1.s),
-                  Text(
-                    'Выгода ${_money(rawTotal - total)}',
-                    style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
-                  ),
-                ],
-                SizedBox(height: 2.s),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 14.s),
-          SizedBox(
-            height: 48.s,
-            child: ElevatedButton(
-              onPressed: !_submitting && ready ? _submit : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.orange,
-                foregroundColor: Colors.black,
-                disabledBackgroundColor: AppColors.blue,
-                disabledForegroundColor: AppColors.textMute,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
-                padding: EdgeInsets.symmetric(horizontal: 24.s),
-              ),
-              child: _submitting
-                  ? SizedBox(
-                      width: 18.s,
-                      height: 18.s,
-                      child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                    )
-                  : Text(
-                      'В корзину',
-                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
-                    ),
-            ),
+        color: const Color(0xFF1A1A1A),
+        border: const Border(top: BorderSide(color: Color(0xFF333333), width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 18,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _subtractProgressBar(double cartQuantity, double plannedQuantity) {
-    final promo = _subtractPromo;
-    if (promo == null) return const SizedBox.shrink();
-
-    final base = promo.baseAmount.toDouble();
-    final add = promo.addAmount.toDouble();
-    final group = base + add;
-    if (group <= 0) return const SizedBox.shrink();
-
-    final total = _normalizeDouble(plannedQuantity);
-    final remainderRaw = total <= 0 ? 0 : total % group;
-    final remainder = remainderRaw == 0 && total > 0 ? group : remainderRaw;
-    final progress = total <= 0 ? 0.0 : (remainder / group).clamp(0.0, 1.0);
-
-    final claimLeft = math.max(0.0, group - remainder);
-    final success = claimLeft <= 0.001;
-
-    String label;
-    Color barColor;
-
-    if (total <= 0.001) {
-      label = 'Доб. ${_promoAmountLabel(base)} для подарка';
-      barColor = AppColors.orange;
-    } else if (success) {
-      label = '${_promoAmountLabel(add)} бесплатно ✔';
-      barColor = const Color(0xFF3AC779);
-    } else {
-      label = 'Ещё ${_promoAmountLabel(claimLeft)} до подарка';
-      barColor = AppColors.orange;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3.s),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 4.s,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
-            valueColor: AlwaysStoppedAnimation(barColor),
-          ),
+      child: SizedBox(
+        height: controlHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Material(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(18.s),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18.s),
+                  onTap: () => _showPriceBreakdownSheet(total, rawTotal, amount),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(16.s, 10.s, 22.s, 10.s),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (hasSavings)
+                          Text(
+                            _money(rawTotal),
+                            style: TextStyle(
+                              color: AppColors.textMute.withValues(alpha: 0.62),
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: AppColors.textMute.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _money(total),
+                                style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                            SizedBox(width: 8.s),
+                            Icon(Icons.info_outline_rounded, size: 16.s, color: AppColors.textMute),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 12.s),
+            SizedBox(
+              width: 128.s,
+              child: Material(
+                color: actionEnabled ? AppColors.orange : AppColors.blue,
+                borderRadius: BorderRadius.circular(18.s),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18.s),
+                  onTap: actionEnabled ? _submit : null,
+                  child: Center(
+                    child: _submitting
+                        ? SizedBox(
+                            width: 18.s,
+                            height: 18.s,
+                            child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                          )
+                        : Text(
+                            'В корзину',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w800,
+                              color: actionEnabled ? Colors.black : AppColors.textMute,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 4.s),
-        Text(
-          label,
-          style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
-        ),
-      ],
+      ),
     );
   }
 
@@ -2066,24 +2110,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _thinDivider() {
     return Container(height: 1, color: Colors.white.withValues(alpha: 0.06));
-  }
-
-  Widget _heroMarker({
-    required IconData icon,
-    required Color foreground,
-    required Color background,
-    required Color borderColor,
-  }) {
-    return Container(
-      width: 34.s,
-      height: 34.s,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(10.s),
-        border: Border.all(color: borderColor),
-      ),
-      child: Icon(icon, size: 17.s, color: foreground),
-    );
   }
 
   Widget _sectionLabel(String text) {
@@ -2144,38 +2170,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _stepper({
     required String value,
-    String? subtitle,
     required bool canDec,
     required bool canInc,
     required VoidCallback onDec,
     required VoidCallback onInc,
   }) {
     return Container(
-      padding: EdgeInsets.all(5.s),
+      padding: EdgeInsets.all(4.s),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14.s),
+        borderRadius: BorderRadius.circular(12.s),
       ),
       child: Row(
         children: [
           _stepBtn(Icons.remove_rounded, canDec ? onDec : null),
           Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(color: AppColors.text, fontSize: 22.sp, fontWeight: FontWeight.w900),
-                ),
-                if (subtitle != null)
-                  Padding(
-                    padding: EdgeInsets.only(top: 2.s),
-                    child: Text(
-                      subtitle,
-                      style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-              ],
+            child: Center(
+              child: Text(
+                value,
+                style: TextStyle(color: AppColors.text, fontSize: 17.sp, fontWeight: FontWeight.w800),
+              ),
             ),
           ),
           _stepBtn(Icons.add_rounded, canInc ? onInc : null),
@@ -2192,8 +2206,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(11.s),
         child: SizedBox(
-          width: 40.s,
-          height: 40.s,
+          width: 44.s,
+          height: 44.s,
           child: Icon(
             icon,
             color: onTap != null ? AppColors.text : AppColors.textMute.withValues(alpha: 0.4),

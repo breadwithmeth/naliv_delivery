@@ -10,6 +10,7 @@ import 'package:gradusy24/utils/bonus_rules.dart';
 import 'package:gradusy24/utils/business_provider.dart';
 import 'package:gradusy24/utils/item_name_presentation.dart';
 import 'package:gradusy24/utils/responsive.dart';
+import 'package:gradusy24/utils/subtract_promotion_math.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/smart_cart.dart';
@@ -25,6 +26,21 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  static const Map<int, int> _bagItemIdsByShopId = <int, int>{
+    1: 48044,
+    2: 50848,
+    6: 50837,
+    4: 52317,
+    7: 29503,
+    5: 28399,
+    3: 27295,
+    8: 43914,
+    11: 103935,
+    9: 46063,
+    10: 51676,
+  };
+  static const double _checkoutBagPrice = 30.0;
+
   bool _useBonus = false;
   Map<String, dynamic>? _selectedAddress;
   Map<String, dynamic>? _deliveryData;
@@ -39,8 +55,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _entranceController = TextEditingController();
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
-
-  int get _itemCount => Provider.of<CartProvider>(context, listen: false).displayItemCount;
 
   void _handleBack() {
     final navigator = Navigator.of(context);
@@ -219,6 +233,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
 
     final normalizedAddress = _addressWithDetails();
+    final businessId = _asInt(_businessIdOf(businessProvider.selectedBusiness));
+    if (businessId == null) {
+      await _showNotice('Магазин не выбран', 'Не удалось определить магазин для оформления заказа.');
+      setState(() => _isSubmitting = false);
+      return;
+    }
+    final bagItemId = _bagItemIdForBusinessId(businessId);
+    final orderItems = _orderItemsWithBag(cartProvider, bagItemId: bagItemId);
+    final isPickup = _deliveryType == 'PICKUP';
     if (_deliveryType == 'DELIVERY') {
       await AddressStorageService.saveSelectedAddress(normalizedAddress);
       if (mounted) {
@@ -229,16 +252,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
 
     final body = <String, dynamic>{
-      'business_id': businessProvider.selectedBusiness!['id'],
-      'street': normalizedAddress['street'] ?? normalizedAddress['address'] ?? '',
-      'house': normalizedAddress['house'] ?? '-',
-      'lat': normalizedAddress['lat'] ?? 0.0,
-      'lon': normalizedAddress['lon'] ?? 0.0,
-      'apartment': normalizedAddress['apartment'] ?? '',
-      'entrance': normalizedAddress['entrance'] ?? '',
-      'floor': normalizedAddress['floor'] ?? '',
-      'extra': normalizedAddress['comment'] ?? '',
-      'items': cartProvider.items.map((item) => item.toJsonForOrder()).toList(),
+      'business_id': businessId,
+      'street': isPickup ? '' : normalizedAddress['street'] ?? normalizedAddress['address'] ?? '',
+      'house': isPickup ? '' : normalizedAddress['house'] ?? '-',
+      'lat': isPickup ? 0.0 : normalizedAddress['lat'] ?? 0.0,
+      'lon': isPickup ? 0.0 : normalizedAddress['lon'] ?? 0.0,
+      'apartment': isPickup ? '' : normalizedAddress['apartment'] ?? '',
+      'entrance': isPickup ? '' : normalizedAddress['entrance'] ?? '',
+      'floor': isPickup ? '' : normalizedAddress['floor'] ?? '',
+      'extra': isPickup ? '' : normalizedAddress['comment'] ?? '',
+      'items': orderItems,
       'delivery_type': _deliveryType,
       'delivery_time': _deliveryTime,
       'total_amount': _getTotalWithDelivery(),
@@ -452,13 +475,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
   /// Получить итоговую сумму с учетом доставки
   double _getTotalWithDelivery() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     final itemsTotal = cartProvider.getTotalPrice();
+    final bagCost = _checkoutBagCost(cartProvider.displayGroups, businessProvider.selectedBusiness);
     final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null) ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0 : 0.0;
 
     // Bonuses apply only to items (not delivery).
     final bonusApplied = _useBonus && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
 
-    return (itemsTotal - bonusApplied).clamp(0, double.infinity) + deliveryCost;
+    return (itemsTotal + bagCost - bonusApplied).clamp(0, double.infinity) + deliveryCost;
   }
 
   /// Получить сумму использованных бонусов
@@ -488,6 +513,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final cartProvider = Provider.of<CartProvider>(context);
     final displayGroups = cartProvider.displayGroups;
     final businessProvider = Provider.of<BusinessProvider>(context);
+    final bool hasCheckoutBag = _shouldAddCheckoutBag(displayGroups, businessProvider.selectedBusiness);
+    final double bagCost = hasCheckoutBag ? _checkoutBagPrice : 0.0;
+    final int checkoutItemCount = displayGroups.length + (hasCheckoutBag ? 1 : 0);
     final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
     final itemsTotal = cartProvider.getTotalPrice();
     final totalWithDelivery = _getTotalWithDelivery();
@@ -604,15 +632,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ),
                     ),
                     _thinDivider(),
-                    _sectionTitle('Ваш заказ · $_itemCount поз.'),
+                    _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
                     SizedBox(height: 8.s),
                     for (int i = 0; i < displayGroups.length; i++) ...[
                       if (i > 0) Divider(color: Colors.white.withValues(alpha: 0.05), height: 16.s),
                       _itemTile(displayGroups[i]),
                     ],
+                    if (hasCheckoutBag) ...[
+                      if (displayGroups.isNotEmpty) Divider(color: Colors.white.withValues(alpha: 0.05), height: 16.s),
+                      _bagTile(),
+                    ],
                     _thinDivider(),
                     _summaryRow('Товары', _money(itemsTotal)),
                     SizedBox(height: 6.s),
+                    if (bagCost > 0) ...[
+                      _summaryRow('Пакет', _money(bagCost), valueColor: AppColors.orange),
+                      SizedBox(height: 6.s),
+                    ],
                     if (_deliveryType == 'DELIVERY') ...[
                       _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
                       SizedBox(height: 6.s),
@@ -741,19 +777,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (item.freeQuantity > 0) {
       return item.freeQuantity;
     }
-    for (final promo in item.promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
-        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
-        final groupSize = base + add;
-        if (groupSize > 0 && base > 0 && item.totalQuantity >= groupSize) {
-          final count = item.totalQuantity ~/ groupSize;
-          return (count * add).toDouble();
-        }
-      }
-    }
-    return 0;
+    return subtractPromotionFreeQuantity(item.totalQuantity, item.promotions);
   }
 
   static String _fmtQty(double qty) {
@@ -839,6 +863,91 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
           ],
+        ),
+      ],
+    );
+  }
+
+  int? _bagItemIdForBusiness(Map<String, dynamic>? business) {
+    final businessId = _asInt(_businessIdOf(business));
+    if (businessId == null) {
+      return null;
+    }
+    return _bagItemIdForBusinessId(businessId);
+  }
+
+  int? _bagItemIdForBusinessId(int businessId) {
+    return _bagItemIdsByShopId[businessId];
+  }
+
+  bool _shouldAddCheckoutBag(Iterable<CartDisplayGroup> items, Map<String, dynamic>? business) {
+    final bagItemId = _bagItemIdForBusiness(business);
+    return items.isNotEmpty && bagItemId != null && !_hasExplicitBag(items, bagItemId);
+  }
+
+  double _checkoutBagCost(Iterable<CartDisplayGroup> items, Map<String, dynamic>? business) {
+    return _shouldAddCheckoutBag(items, business) ? _checkoutBagPrice : 0.0;
+  }
+
+  List<Map<String, dynamic>> _orderItemsWithBag(CartProvider cartProvider, {required int? bagItemId}) {
+    final items = cartProvider.items.map((item) => item.toJsonForOrder()).toList(growable: true);
+    if (bagItemId == null) {
+      return items;
+    }
+
+    final hasBag = items.any((item) => _asInt(item['item_id']) == bagItemId);
+    if (!hasBag) {
+      items.add({
+        'item_id': bagItemId,
+        'amount': 1,
+        'options': const <Map<String, dynamic>>[],
+      });
+    }
+    return items;
+  }
+
+  bool _hasExplicitBag(Iterable<CartDisplayGroup> items, int bagItemId) {
+    return items.any((item) {
+      if (item.itemId == bagItemId) {
+        return true;
+      }
+      final snapshot = item.itemSnapshot;
+      final name = snapshot?.name ?? item.name;
+      final normalized = name.toLowerCase().replaceAll('ё', 'е');
+      return normalized.contains('пакет') || normalized.contains('bag');
+    });
+  }
+
+  Widget _bagTile() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42.s,
+          height: 42.s,
+          decoration: BoxDecoration(
+            color: AppColors.cardDark.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(14.s),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          alignment: Alignment.center,
+          child: Icon(Icons.shopping_bag_outlined, color: AppColors.orange, size: 18.s),
+        ),
+        SizedBox(width: 12.s),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Пакет', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 14.sp)),
+              SizedBox(height: 6.s),
+              Text('x1', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        SizedBox(width: 12.s),
+        Text(
+          _money(_checkoutBagPrice),
+          style: TextStyle(color: AppColors.orange, fontSize: 14.sp, fontWeight: FontWeight.w900),
         ),
       ],
     );
@@ -949,6 +1058,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   dynamic _businessIdOf(Map<String, dynamic>? business) {
     return business?['id'] ?? business?['business_id'] ?? business?['businessId'];
+  }
+
+  int? _asInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return int.tryParse(value?.toString() ?? '');
   }
 
   String? _detectBusinessCity(Map<String, dynamic> business, List<String> availableCities) {

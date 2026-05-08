@@ -281,10 +281,6 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
 
   /// Получить сумму заказа из различных возможных полей
   String _getOrderAmount() {
-    if (widget.displayAmount != null) {
-      return widget.displayAmount!.toStringAsFixed(0);
-    }
-
     final orderData = widget.orderData;
 
     // Проверяем различные возможные поля для суммы
@@ -297,10 +293,17 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         orderData['cost_summary']?['total'] ??
         orderData['data']?['total_sum'] ??
         orderData['data']?['total_amount'] ??
-        orderData['data']?['amount'] ??
-        'Не указана';
+        orderData['data']?['amount'];
 
-    return amount.toString();
+    if (amount != null) {
+      return amount.toString();
+    }
+
+    if (widget.displayAmount != null) {
+      return widget.displayAmount!.toStringAsFixed(0);
+    }
+
+    return 'Не указана';
   }
 
   Future<void> _showNotice(String title, String message) {

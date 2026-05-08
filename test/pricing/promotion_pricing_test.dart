@@ -63,12 +63,12 @@ void main() {
       expect(item.totalPrice, 950);
     });
 
-    test('subtract promo keeps bottle price on free liters', () {
+    test('subtract promo keeps paid quantity and surfaces gifted value separately', () {
       final item = CartItem(
         itemId: 1,
         name: 'Beer',
         price: 1000,
-        quantity: 3,
+        quantity: 2,
         stepQuantity: 1,
         selectedVariants: const <Map<String, dynamic>>[
           <String, dynamic>{
@@ -85,8 +85,8 @@ void main() {
         ],
       );
 
-      expect(item.subtotalBeforePromotions, 3150);
-      expect(item.totalPrice, 2150);
+      expect(item.subtotalBeforePromotions, 3100);
+      expect(item.totalPrice, 2100);
     });
   });
 }

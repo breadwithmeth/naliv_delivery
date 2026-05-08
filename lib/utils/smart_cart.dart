@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../model/item.dart' as item_model;
 import '../models/cart_item.dart';
+import 'subtract_promotion_math.dart';
 
 class SmartCartSelection {
   SmartCartSelection(this.item)
@@ -415,7 +416,7 @@ class CartDisplayGroup {
 
   double get totalQuantity => items.fold<double>(0, (sum, item) => sum + item.quantity);
   double get optionsTotal => items.fold<double>(0, (sum, item) => sum + item.optionsTotal);
-  double get subtotalBeforePromotions => (price * totalQuantity) + optionsTotal;
+  double get subtotalBeforePromotions => subtractPromotionDisplayBaseTotal(price, totalQuantity, promotions) + optionsTotal;
 
   double get totalPrice {
     final promotedBase = _applyPromotionsToBaseTotal(price * totalQuantity, totalQuantity, promotions, price);
@@ -553,62 +554,19 @@ class CartDisplayGroup {
   }
 
   static double _freeAmount(double quantity, List<Map<String, dynamic>> promotions) {
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
-        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
-        final groupSize = base + add;
-        if (groupSize > 0 && base > 0 && quantity >= groupSize) {
-          final count = quantity ~/ groupSize;
-          return (count * add).toDouble();
-        }
-      }
-    }
-    return 0;
+    return subtractPromotionFreeQuantity(quantity, promotions);
   }
 
   static double _applyPromotionsToBaseTotal(
-    double baseTotal,
+    double _baseTotal,
     double quantity,
     List<Map<String, dynamic>> promotions,
     double unitPrice,
   ) {
-    var payableQuantity = quantity;
-    var result = baseTotal;
-
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
-        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
-        final groupSize = base + add;
-        if (groupSize > 0 && base > 0 && quantity >= groupSize) {
-          final count = quantity ~/ groupSize;
-          payableQuantity = quantity - (count * add);
-          result = unitPrice * payableQuantity;
-        }
-      }
-    }
-
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'FIXED') {
-        final discount = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        if (discount > 0) {
-          result = (result - (discount * payableQuantity)).clamp(0, double.infinity).toDouble();
-        }
-      }
-    }
-
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'DISCOUNT' || type == 'PERCENT') {
-        final discount = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        result = result * (1 - discount / 100);
-      }
-    }
-
-    return result;
+    return applyPromotionsToPaidBaseTotal(
+      unitPrice: unitPrice,
+      quantity: quantity,
+      promotions: promotions,
+    );
   }
 }

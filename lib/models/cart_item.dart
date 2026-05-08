@@ -1,4 +1,5 @@
 import '../model/item.dart' as item_model;
+import '../utils/subtract_promotion_math.dart';
 
 class CartItem {
   final int itemId;
@@ -166,52 +167,16 @@ class CartItem {
     return total;
   }
 
-  double get subtotalBeforePromotions => (price * quantity) + optionsTotal;
+  double get subtotalBeforePromotions => subtractPromotionDisplayBaseTotal(price, quantity, promotions) + optionsTotal;
 
   /// Вычисляет итоговую цену с учетом акций
   double get totalPrice {
     final optionsSubtotal = optionsTotal;
-    double payableQuantity = quantity;
-    double baseTotal = price * quantity;
-
-    // SUBTRACT акции (учитываем ключи type/baseAmount/addAmount и discount_type/base_amount/add_amount)
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'SUBTRACT') {
-        final base = ((promo['baseAmount'] as num?) ?? (promo['base_amount'] as num?) ?? 0).toInt();
-        final add = ((promo['addAmount'] as num?) ?? (promo['add_amount'] as num?) ?? 0).toInt();
-        final groupSize = base + add;
-        if (groupSize > 0 && base > 0) {
-          // Платим только за полные группы baseAmount, остаток игнорируем
-          if (quantity >= groupSize) {
-            final int count = (quantity ~/ groupSize);
-            payableQuantity = quantity - (count * add);
-            baseTotal = price * payableQuantity;
-          }
-        }
-      }
-    }
-
-    // Денежные скидки применяются только к базовому товару, не к цене тары/опций.
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'FIXED') {
-        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        if (disc > 0) {
-          baseTotal = (baseTotal - (disc * payableQuantity)).clamp(0, double.infinity).toDouble();
-        }
-      }
-    }
-
-    // DISCOUNT акции (учитываем ключи discount и discount_value)
-    for (final promo in promotions) {
-      final type = (promo['type'] as String?) ?? (promo['discount_type'] as String?);
-      if (type == 'DISCOUNT' || type == 'PERCENT') {
-        final disc = ((promo['discount'] as num?) ?? (promo['discount_value'] as num?) ?? 0).toDouble();
-        baseTotal = baseTotal * (1 - disc / 100);
-      }
-    }
-
+    final baseTotal = applyPromotionsToPaidBaseTotal(
+      unitPrice: price,
+      quantity: quantity,
+      promotions: promotions,
+    );
     return baseTotal + optionsSubtotal;
   }
 }
