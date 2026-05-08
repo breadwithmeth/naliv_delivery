@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import '../utils/api.dart';
 import '../utils/business_provider.dart';
 import '../utils/responsive.dart';
-import '../utils/cartFloatingButton.dart';
+import '../utils/cart_floating_button.dart';
 import '../shared/product_card.dart';
-import '../model/item.dart' as ItemModel;
+import '../model/item.dart' as item_model;
 import 'package:naliv_delivery/shared/app_theme.dart';
 
 class SearchPage extends StatefulWidget {
@@ -18,7 +18,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _controller = TextEditingController();
 
-  List<ItemModel.Item> _items = [];
+  List<item_model.Item> _items = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   String? _error;
@@ -48,8 +48,7 @@ class _SearchPageState extends State<SearchPage> {
     if (!_isLoadingMore &&
         _pagination != null &&
         _pagination!.hasNextPage &&
-        _scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200) {
+        _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
@@ -57,8 +56,7 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> _search(String query) async {
     if (query.isEmpty) return;
 
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     final businessId = businessProvider.selectedBusinessId;
 
     setState(() {
@@ -88,9 +86,7 @@ class _SearchPageState extends State<SearchPage> {
         return;
       }
 
-      final mapped = resp.data.items
-          .map((ci) => ItemModel.Item.fromCategoryItem(ci))
-          .toList();
+      final mapped = resp.data.items.map((ci) => item_model.Item.fromCategoryItem(ci)).toList();
 
       setState(() {
         _items = mapped;
@@ -102,17 +98,16 @@ class _SearchPageState extends State<SearchPage> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _loadMore() async {
-    if (_currentQuery.isEmpty ||
-        _pagination == null ||
-        !_pagination!.hasNextPage) {
+    if (_currentQuery.isEmpty || _pagination == null || !_pagination!.hasNextPage) {
       return;
     }
 
@@ -131,9 +126,7 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
 
       if (resp != null) {
-        final mapped = resp.data.items
-            .map((ci) => ItemModel.Item.fromCategoryItem(ci))
-            .toList();
+        final mapped = resp.data.items.map((ci) => item_model.Item.fromCategoryItem(ci)).toList();
 
         setState(() {
           _items.addAll(mapped);
@@ -144,8 +137,9 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
       // Можно показать снэкбар/ошибку догрузки, но основной экран не ломаем
     } finally {
-      if (!mounted) return;
-      setState(() => _isLoadingMore = false);
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
     }
   }
 
@@ -155,11 +149,9 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(AppColors.orange)),
+            CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
             SizedBox(height: 16),
-            Text('Загрузка товаров...',
-                style: TextStyle(color: AppColors.text)),
+            Text('Загрузка товаров...', style: TextStyle(color: AppColors.text)),
           ],
         ),
       );
@@ -172,7 +164,7 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.error_outline,
                 color: AppColors.red,
                 size: 48,
@@ -180,10 +172,7 @@ class _SearchPageState extends State<SearchPage> {
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700),
+                style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -203,7 +192,7 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     if (_items.isEmpty && _controller.text.isNotEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -212,13 +201,10 @@ class _SearchPageState extends State<SearchPage> {
               color: AppColors.textMute,
               size: 48,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               'Товары не найдены',
-              style: const TextStyle(
-                  color: AppColors.text,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700),
+              style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -255,15 +241,14 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
       extendBodyBehindAppBar: true,
-      floatingActionButton: CartFloatingButton(),
+      floatingActionButton: const CartFloatingButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AppColors.text,
-        title:
-            const Text('Поиск', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Поиск', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Stack(
         children: [

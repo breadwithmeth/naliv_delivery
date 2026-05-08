@@ -44,31 +44,23 @@ class CartPage extends StatelessWidget {
             : null,
         title: Column(
           children: [
-            Text('Корзина',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.sp)),
+            Text('Корзина', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.sp)),
             if (businessProvider.selectedBusinessName != null)
               Text(
                 businessProvider.selectedBusiness != null
                     ? '${businessProvider.selectedBusiness!["name"]} — ${businessProvider.selectedBusiness!["address"]}'
                     : 'Выберите магазин',
-                style: TextStyle(
-                    color: AppColors.textMute,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600),
+                style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
           ],
         ),
       ),
-      bottomNavigationBar:
-          items.isNotEmpty ? _bottomBar(context, total, earnedBonuses) : null,
+      bottomNavigationBar: items.isNotEmpty ? _bottomBar(context, total, earnedBonuses) : null,
       body: Stack(
         children: [
           const AppBackground(),
           SafeArea(
-            child: items.isEmpty
-                ? _buildEmptyState()
-                : _buildList(
-                    context, cartProvider, items, total, earnedBonuses),
+            child: items.isEmpty ? _buildEmptyState() : _buildList(context, cartProvider, items, total, earnedBonuses),
           ),
         ],
       ),
@@ -77,60 +69,15 @@ class CartPage extends StatelessWidget {
 
   // ── Filled state ──────────────────────────────────────────────────
 
-  Widget _buildList(BuildContext context, CartProvider cartProvider,
-      List<CartDisplayGroup> items, double total, int earnedBonuses) {
+  Widget _buildList(BuildContext context, CartProvider cartProvider, List<CartDisplayGroup> items, double total, int earnedBonuses) {
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(16.s, 4.s, 16.s, 100.s),
+      padding: EdgeInsets.fromLTRB(16.s, 8.s, 16.s, 112.s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (int i = 0; i < items.length; i++) ...[
-            if (i > 0)
-              Divider(
-                  color: Colors.white.withValues(alpha: 0.05), height: 20.s),
+            if (i > 0) Divider(color: Colors.white.withValues(alpha: 0.05), height: 20.s),
             _cartItemRow(context, cartProvider, items[i]),
-          ],
-          _thinDivider(),
-          _summaryRow('Товары', _money(total)),
-          if (earnedBonuses > 0) ...[
-            SizedBox(height: 6.s),
-            _summaryRow('Бонусы за заказ', '+$earnedBonuses ₸',
-                valueColor: Colors.greenAccent),
-          ],
-          Divider(color: Colors.white.withValues(alpha: 0.08), height: 20.s),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Итого',
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800)),
-              Text(_money(total),
-                  style: TextStyle(
-                      color: AppColors.orange,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w900)),
-            ],
-          ),
-          if (earnedBonuses > 0) ...[
-            SizedBox(height: 10.s),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BonusInfoPage())),
-              child: Row(
-                children: [
-                  Icon(Icons.stars_rounded,
-                      color: AppColors.orange, size: 14.s),
-                  SizedBox(width: 6.s),
-                  Text('Как работают бонусы →',
-                      style: TextStyle(
-                          color: AppColors.orange,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
           ],
         ],
       ),
@@ -144,14 +91,9 @@ class CartPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shopping_cart_outlined,
-              color: AppColors.textMute, size: 52),
+          Icon(Icons.shopping_cart_outlined, color: AppColors.textMute, size: 52),
           SizedBox(height: 12),
-          Text('Ваша корзина пуста',
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700)),
+          Text('Ваша корзина пуста', style: TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -159,8 +101,7 @@ class CartPage extends StatelessWidget {
 
   // ── Cart item (flat row) ──────────────────────────────────────────
 
-  Widget _cartItemRow(
-      BuildContext context, CartProvider cartProvider, CartDisplayGroup item) {
+  Widget _cartItemRow(BuildContext context, CartProvider cartProvider, CartDisplayGroup item) {
     final snapshot = item.itemSnapshot;
     final itemTitle = snapshot != null
         ? presentItemName(
@@ -173,8 +114,7 @@ class CartPage extends StatelessWidget {
             storedPackagingType: item.packagingType,
           );
     final double? maxAmount = item.maxAmount;
-    final bool canIncrease =
-        maxAmount == null || item.totalQuantity < maxAmount;
+    final bool canIncrease = maxAmount == null || item.totalQuantity < maxAmount;
     final bool canDecrease = item.totalQuantity > 0;
     final double freeQty = item.freeQuantity;
     final bool hasFree = freeQty > 0;
@@ -183,9 +123,12 @@ class CartPage extends StatelessWidget {
     final bottleBreakdown = item.bottleBreakdownLabel;
     final canEditBottles = item.selection?.usesPourFlow == true;
     final quantityLabel = _formatQty(item.totalQuantity);
+    final amountLabel = _amountLabel(item, item.totalQuantity);
+    final giftLabel = _amountLabel(item, freeQty);
+    final inlineMeta = bottleBreakdown ?? _subtitleMeta(itemTitle);
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Material(
@@ -196,176 +139,176 @@ class CartPage extends StatelessWidget {
                   ? null
                   : () => Navigator.of(context, rootNavigator: true).push(
                         MaterialPageRoute(
-                            builder: (_) => ProductDetailPage(item: snapshot)),
+                          builder: (_) => ProductDetailPage(
+                            item: snapshot,
+                            initialBaseVariants: item.baseVariants,
+                          ),
+                        ),
                       ),
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 6.s),
+                padding: EdgeInsets.symmetric(vertical: 8.s),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _itemThumb(item.image),
-                    SizedBox(width: 10.s),
+                    SizedBox(width: 12.s),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (itemTitle.attributes.isNotEmpty)
-                            Text(
-                              itemTitle.attributes.join(' • '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: AppColors.textMute,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                          Text(
-                            itemTitle.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: AppColors.text,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w800),
-                          ),
-                          SizedBox(height: 4.s),
-                          Text(
-                            canEditBottles
-                                ? quantityLabel
-                                : '$quantityLabel ${bottleBreakdown != null ? '• $bottleBreakdown' : ''}'
-                                    .trim(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: AppColors.textMute,
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w700),
-                          ),
-                          if (canEditBottles) ...[
-                            SizedBox(height: 6.s),
-                            _bottleEditorChip(
-                                context, cartProvider, item, bottleBreakdown),
-                          ],
-                          SizedBox(height: 4.s),
-                          if (hasSavings) ...[
-                            Row(
+                          Text.rich(
+                            TextSpan(
                               children: [
+                                TextSpan(
+                                  text: itemTitle.name,
+                                  style: TextStyle(
+                                    color: AppColors.text,
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.22,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: ' · $amountLabel',
+                                  style: TextStyle(
+                                    color: AppColors.textMute,
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.22,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (inlineMeta != null && inlineMeta.isNotEmpty) ...[
+                            SizedBox(height: 4.s),
+                            _inlineMetaRow(
+                              context,
+                              cartProvider,
+                              item,
+                              inlineMeta,
+                              canEditBottles,
+                            ),
+                          ],
+                          SizedBox(height: 10.s),
+                          Wrap(
+                            spacing: 8.s,
+                            runSpacing: 2.s,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                _money(item.totalPrice),
+                                style: TextStyle(
+                                  color: AppColors.orange,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              if (hasSavings)
                                 Text(
                                   _money(rawTotal),
                                   style: TextStyle(
-                                    color: AppColors.textMute
-                                        .withValues(alpha: 0.5),
+                                    color: AppColors.textMute.withValues(alpha: 0.52),
                                     fontSize: 11.sp,
+                                    fontWeight: FontWeight.w700,
                                     decoration: TextDecoration.lineThrough,
-                                    decorationColor: AppColors.textMute
-                                        .withValues(alpha: 0.5),
+                                    decorationColor: AppColors.textMute.withValues(alpha: 0.52),
                                   ),
                                 ),
+                            ],
+                          ),
+                          if (hasFree) ...[
+                            SizedBox(height: 8.s),
+                            Row(
+                              children: [
+                                Icon(Icons.auto_awesome_rounded, color: AppColors.orange, size: 12.s),
                                 SizedBox(width: 6.s),
-                                Text(_money(item.totalPrice),
+                                Expanded(
+                                  child: Text(
+                                    '+$giftLabel в подарок',
                                     style: TextStyle(
-                                        color: AppColors.orange,
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w800)),
+                                      color: AppColors.orange,
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                            if (hasFree) ...[
-                              SizedBox(height: 2.s),
-                              Text(
-                                '+ ${_formatQty(freeQty)} в подарок',
-                                style: TextStyle(
-                                    color: AppColors.orange,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ] else
-                            Text(_money(item.totalPrice),
-                                style: TextStyle(
-                                    color: AppColors.orange,
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w700)),
+                          ],
                         ],
                       ),
                     ),
-                    if (snapshot != null) ...[
-                      SizedBox(width: 8.s),
-                      Icon(Icons.chevron_right_rounded,
-                          color: AppColors.textMute, size: 18.s),
-                    ],
                   ],
                 ),
               ),
             ),
           ),
         ),
-        SizedBox(width: 8.s),
-        _quantityControls(
-          value: quantityLabel,
-          onDecrement: canDecrease
-              ? () => cartProvider.decrementDisplayGroup(item)
-              : null,
-          onIncrement: canIncrease
-              ? () => cartProvider.incrementDisplayGroup(item)
-              : null,
+        SizedBox(width: 10.s),
+        Padding(
+          padding: EdgeInsets.only(top: 8.s),
+          child: _quantityControls(
+            value: quantityLabel,
+            onDecrement: canDecrease ? () => cartProvider.decrementDisplayGroup(item) : null,
+            onIncrement: canIncrease ? () => cartProvider.incrementDisplayGroup(item) : null,
+          ),
         ),
       ],
     );
   }
 
-  Widget _bottleEditorChip(
+  Widget _inlineMetaRow(
     BuildContext context,
     CartProvider cartProvider,
     CartDisplayGroup item,
-    String? bottleBreakdown,
+    String meta,
+    bool canEditBottles,
   ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.s),
-        onTap: () => _openBottleEditor(context, cartProvider, item),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 8.s),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(12.s),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
+    final metaText = Text(
+      meta,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: AppColors.textMute,
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+
+    if (!canEditBottles) {
+      return metaText;
+    }
+
+    return Row(
+      children: [
+        Expanded(child: metaText),
+        SizedBox(width: 8.s),
+        GestureDetector(
+          onTap: () => _openBottleEditor(context, cartProvider, item),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.local_drink_outlined,
-                  color: AppColors.orange, size: 14.s),
-              SizedBox(width: 8.s),
-              Expanded(
-                child: Text(
-                  bottleBreakdown == null || bottleBreakdown.isEmpty
-                      ? 'Выбрать тару'
-                      : 'Тара: $bottleBreakdown',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w700),
-                ),
-              ),
-              SizedBox(width: 8.s),
+              Icon(Icons.edit_outlined, color: AppColors.orange, size: 12.s),
+              SizedBox(width: 4.s),
               Text(
                 'Изменить',
                 style: TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w800),
+                  color: AppColors.orange,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
-  void _openBottleEditor(
-      BuildContext context, CartProvider cartProvider, CartDisplayGroup item) {
+  void _openBottleEditor(BuildContext context, CartProvider cartProvider, CartDisplayGroup item) {
     final selection = item.selection;
     if (selection == null || !selection.usesPourFlow) {
       return;
@@ -382,15 +325,13 @@ class CartPage extends StatelessWidget {
         volumeLabel: selection.volumeLabel,
         shortName: (bottle) => _shortBottleName(selection, bottle),
         maxAmount: item.maxAmount ?? double.infinity,
-        onApply: (counts) =>
-            cartProvider.updateDisplayGroupBottleCounts(item, counts),
+        onApply: (counts) => cartProvider.updateDisplayGroupBottleCounts(item, counts),
       ),
     );
   }
 
-  String _shortBottleName(
-      SmartCartSelection selection, item_model.ItemOptionItem bottle) {
-    final label = bottle.item_name.trim();
+  String _shortBottleName(SmartCartSelection selection, item_model.ItemOptionItem bottle) {
+    final label = bottle.itemName.trim();
     if (label.isNotEmpty) {
       return label;
     }
@@ -406,11 +347,8 @@ class CartPage extends StatelessWidget {
         child: image != null && image.isNotEmpty
             ? Image.network(image,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(Icons.inventory_2_outlined,
-                    color: AppColors.textMute.withValues(alpha: 0.6),
-                    size: 22.s))
-            : Icon(Icons.inventory_2_outlined,
-                color: AppColors.textMute.withValues(alpha: 0.6), size: 22.s),
+                errorBuilder: (_, __, ___) => Icon(Icons.inventory_2_outlined, color: AppColors.textMute.withValues(alpha: 0.6), size: 22.s))
+            : Icon(Icons.inventory_2_outlined, color: AppColors.textMute.withValues(alpha: 0.6), size: 22.s),
       ),
     );
   }
@@ -445,11 +383,7 @@ class CartPage extends StatelessWidget {
         _qtyBtn(Icons.remove, onDecrement, false),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 10.s),
-          child: Text(value,
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13.sp)),
+          child: Text(value, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 13.sp)),
         ),
         _qtyBtn(Icons.add, onIncrement, true),
       ],
@@ -468,67 +402,54 @@ class CartPage extends StatelessWidget {
           color: onPressed == null ? bg.withValues(alpha: 0.4) : bg,
           borderRadius: BorderRadius.circular(10.s),
         ),
-        child: Icon(icon,
-            size: 15.s,
-            color: fg.withValues(alpha: onPressed == null ? 0.4 : 1)),
+        child: Icon(icon, size: 15.s, color: fg.withValues(alpha: onPressed == null ? 0.4 : 1)),
       ),
     );
   }
 
   // ── Shared helpers ────────────────────────────────────────────────
 
-  Widget _thinDivider() {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 14.s),
-      child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
-    );
-  }
-
-  Widget _summaryRow(String label, String value,
-      {Color valueColor = AppColors.text}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-        Text(value,
-            style: TextStyle(
-                color: valueColor,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-
   // ── Bottom bar ────────────────────────────────────────────────────
 
   Widget _bottomBar(BuildContext context, double total, int earnedBonuses) {
     return Container(
-      padding: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 10.s),
+      padding: EdgeInsets.fromLTRB(16.s, 12.s, 16.s, 10.s),
       decoration: BoxDecoration(
         color: AppColors.bgDeep,
-        border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: SafeArea(
         top: false,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_money(total),
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w900)),
+                Text('Итого', style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w700)),
+                SizedBox(height: 2.s),
+                Text(_money(total), style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900)),
                 if (earnedBonuses > 0)
-                  Text('+$earnedBonuses ₸ бонусов',
-                      style: TextStyle(
-                          color: AppColors.textMute,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w600)),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BonusInfoPage())),
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 4.s),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome_rounded, color: AppColors.orange, size: 12.s),
+                          SizedBox(width: 5.s),
+                          Text(
+                            '+$earnedBonuses бонусов',
+                            style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
+                          ),
+                          SizedBox(width: 4.s),
+                          Icon(Icons.info_outline_rounded, color: AppColors.textMute, size: 12.s),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
             SizedBox(width: 14.s),
@@ -544,15 +465,13 @@ class CartPage extends StatelessWidget {
     );
   }
 
-  Widget _primaryButton(
-      {required BuildContext context, required String label}) {
+  Widget _primaryButton({required BuildContext context, required String label}) {
     return GestureDetector(
       onTap: () async {
         final loggedIn = await ApiService.isUserLoggedIn();
         if (!context.mounted) return;
         if (loggedIn) {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const CheckoutPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutPage()));
         } else {
           Navigator.push(
             context,
@@ -570,37 +489,51 @@ class CartPage extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 14.s),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(23.s),
-          gradient:
-              const LinearGradient(colors: [Color(0xFF8B1F1E), AppColors.red]),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFC255), AppColors.orange],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 18,
-                offset: const Offset(0, 10)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 10)),
           ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.arrow_forward, color: Colors.white, size: 16.s),
+            Icon(Icons.arrow_forward, color: Colors.black, size: 16.s),
             SizedBox(width: 9.s),
-            Text(label,
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w800)),
+            Text(label, style: TextStyle(color: Colors.black, fontSize: 14.sp, fontWeight: FontWeight.w800)),
           ],
         ),
       ),
     );
   }
 
+  String? _subtitleMeta(ItemTitlePresentation title) {
+    if (title.attributes.isEmpty) {
+      return null;
+    }
+    return title.attributes.join(' • ');
+  }
+
+  String _amountLabel(CartDisplayGroup item, double quantity) {
+    final snapshot = item.itemSnapshot;
+    final unit = snapshot?.unit?.trim();
+    final formatted = _formatQty(quantity);
+    if (item.selection?.usesPourFlow == true) {
+      return '$formatted л';
+    }
+    if (unit != null && unit.isNotEmpty) {
+      return '$formatted $unit';
+    }
+    return '$formatted шт.';
+  }
+
   // ── Utils ─────────────────────────────────────────────────────────
 
   static String _formatQty(double qty) {
-    return (qty - qty.roundToDouble()).abs() < 0.001
-        ? qty.toStringAsFixed(0)
-        : qty.toStringAsFixed(2);
+    return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
   }
 
   static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
@@ -649,16 +582,14 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
     return total;
   }
 
-  int _totalBottles() =>
-      _counts.values.fold<int>(0, (sum, count) => sum + count);
+  int _totalBottles() => _counts.values.fold<int>(0, (sum, count) => sum + count);
 
   void _change(item_model.ItemOptionItem bottle, int delta) {
     final currentLiters = _totalLiters();
     final bottleVolume = widget.volumeForBottle(bottle);
     final currentCount = _counts[bottle.relationId] ?? 0;
     final nextCount = (currentCount + delta).clamp(0, 999);
-    final nextLiters =
-        currentLiters + ((nextCount - currentCount) * bottleVolume);
+    final nextLiters = currentLiters + ((nextCount - currentCount) * bottleVolume);
     if (nextLiters > widget.maxAmount + 0.001) {
       return;
     }
@@ -701,18 +632,12 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
             children: [
               Text(
                 'Изменить тару',
-                style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w800),
+                style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               Text(
                 '${widget.volumeLabel(liters)} · $bottleCount бут.',
-                style: TextStyle(
-                    color: AppColors.textMute,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600),
+                style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -734,10 +659,7 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
                     Expanded(
                       child: Text(
                         widget.shortName(bottle),
-                        style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w700),
+                        style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                     _sheetStepBtn(
@@ -749,10 +671,7 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
                       child: Center(
                         child: Text(
                           '$count',
-                          style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w900),
+                          style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
@@ -775,8 +694,7 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
                 backgroundColor: AppColors.orange,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.s)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
               ),
               child: Text(
                 'Готово',
@@ -791,9 +709,7 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
 
   Widget _sheetStepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
-      color: onTap != null
-          ? AppColors.blue
-          : AppColors.blue.withValues(alpha: 0.4),
+      color: onTap != null ? AppColors.blue : AppColors.blue.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
@@ -804,9 +720,7 @@ class _CartBottleSheetState extends State<_CartBottleSheet> {
           child: Icon(
             icon,
             size: 18.s,
-            color: onTap != null
-                ? AppColors.text
-                : AppColors.textMute.withValues(alpha: 0.4),
+            color: onTap != null ? AppColors.text : AppColors.textMute.withValues(alpha: 0.4),
           ),
         ),
       ),

@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Утилита для тестирования отправки push-уведомлений
@@ -41,14 +43,14 @@ class NotificationTester {
       );
 
       if (response.statusCode == 200) {
-        print('✅ Уведомление отправлено успешно');
+        debugPrint('✅ Уведомление отправлено успешно');
         return true;
       } else {
-        print('❌ Ошибка отправки: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ Ошибка отправки: ${response.statusCode} - ${response.body}');
         return false;
       }
     } catch (e) {
-      print('❌ Ошибка: $e');
+      debugPrint('❌ Ошибка: $e');
       return false;
     }
   }

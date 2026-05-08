@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import '../model/item.dart' as ItemModel;
+import '../model/item.dart' as item_model;
 
 /// Класс для работы с API
 class ApiService {
@@ -1163,7 +1163,7 @@ class ApiService {
 
       // 5) Прочие поля CategoryItemsData
       final categoriesIncluded = <int>[];
-      final subcategoriesCount = 0;
+      const subcategoriesCount = 0;
 
       final typedData = CategoryItemsData(
         category: categoryInfo,
@@ -1477,7 +1477,7 @@ class ApiService {
 
   /// Получить товары акции (типизированная версия)
   /// Получить товары акции (типизированная версия)
-  static Future<List<ItemModel.Item>?> getPromotionItemsTyped({
+  static Future<List<item_model.Item>?> getPromotionItemsTyped({
     required int promotionId,
     int? businessId,
     int page = 1,
@@ -1490,18 +1490,18 @@ class ApiService {
       limit: limit,
     );
     if (list != null) {
-      return list.map((json) => ItemModel.Item.fromJson(json)).toList();
+      return list.map((json) => item_model.Item.fromJson(json)).toList();
     }
     return null;
   }
 
-  static Future<List<ItemModel.Item>?> getAllPromotionItemsTyped({
+  static Future<List<item_model.Item>?> getAllPromotionItemsTyped({
     required int promotionId,
     int? businessId,
     int limit = 50,
     int maxPages = 20,
   }) async {
-    final collected = <ItemModel.Item>[];
+    final collected = <item_model.Item>[];
     var page = 1;
     var totalPages = 1;
 
@@ -1524,7 +1524,7 @@ class ApiService {
 
       final itemsJson = data['items'] as List<dynamic>? ?? const <dynamic>[];
       collected.addAll(
-        itemsJson.whereType<Map>().map((item) => ItemModel.Item.fromJson(Map<String, dynamic>.from(item))),
+        itemsJson.whereType<Map>().map((item) => item_model.Item.fromJson(Map<String, dynamic>.from(item))),
       );
 
       final pagination = data['pagination'];
@@ -2649,7 +2649,7 @@ class Item {
   final int categoryId;
   final int businessId;
   final int amount;
-  final bool is_liked; // По умолчанию не лайкнут
+  final bool isLiked; // По умолчанию не лайкнут
   final List<ItemOption>? options;
 
   Item({
@@ -2659,7 +2659,7 @@ class Item {
     this.image,
     this.description,
     required this.categoryId,
-    required this.is_liked,
+    required this.isLiked,
     required this.businessId,
     required this.amount,
     this.options,
@@ -2675,7 +2675,7 @@ class Item {
       categoryId: ApiService._parseInt(json['category_id']),
       businessId: ApiService._parseInt(json['business_id']),
       amount: ApiService._parseInt(json['amount']),
-      is_liked: json['is_liked'] ?? false, // По умолчанию не лайкнут
+      isLiked: json['is_liked'] ?? false, // По умолчанию не лайкнут
       options: json['options'] != null ? (json['options'] as List).map((option) => ItemOption.fromJson(option)).toList() : null,
     );
   }
@@ -2747,7 +2747,7 @@ class ItemOptionItem {
   final int relationId;
   final int itemId;
   final String priceType; // "ADD" | "REPLACE"
-  final String item_name;
+  final String itemName;
 
   final double price;
   final int parentItemAmount;
@@ -2756,7 +2756,7 @@ class ItemOptionItem {
     required this.relationId,
     required this.itemId,
     required this.priceType,
-    required this.item_name,
+    required this.itemName,
     required this.price,
     required this.parentItemAmount,
   });
@@ -2766,7 +2766,7 @@ class ItemOptionItem {
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
       priceType: json['price_type'] ?? '',
-      item_name: json['item_name'] ?? '',
+      itemName: json['item_name'] ?? '',
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseInt(json['parent_item_amount']),
     );
@@ -3249,7 +3249,7 @@ class CategoryItemVariant {
   final int relationId;
   final int itemId;
   final String priceType; // "add" | "replace"
-  final String? item_name; // может быть null, если не указано
+  final String? itemName; // может быть null, если не указано
   final double price;
   final double parentItemAmount;
 
@@ -3257,7 +3257,7 @@ class CategoryItemVariant {
     required this.relationId,
     required this.itemId,
     required this.priceType,
-    required this.item_name,
+    required this.itemName,
     required this.price,
     required this.parentItemAmount,
   });
@@ -3267,7 +3267,7 @@ class CategoryItemVariant {
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
       priceType: json['price_type'] ?? 'add',
-      item_name: json['item_name'], // может быть null
+      itemName: json['item_name'], // может быть null
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseDouble(json['parent_item_amount']) ?? 0.0,
     );

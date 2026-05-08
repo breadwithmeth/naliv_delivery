@@ -73,6 +73,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Future<void> _clearAllNotifications() async {
     await NotificationService.instance.clearAllNotifications();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Все уведомления очищены'),
@@ -152,6 +153,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     onTap: () async {
                       await NotificationService.instance.enablePushNotifications();
                       await _loadSettings();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Сервис уведомлений переинициализирован'),

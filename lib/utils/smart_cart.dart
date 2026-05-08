@@ -72,7 +72,7 @@ class SmartCartSelection {
       return parentAmount;
     }
 
-    final parsed = _extractVolumeFromText(bottle.item_name);
+    final parsed = _extractVolumeFromText(bottle.itemName);
     if (parsed > 0) {
       return parsed;
     }
@@ -254,7 +254,7 @@ class SmartCartSelection {
         continue;
       }
       final matched = option.optionItems.where((optionItem) {
-        final parsed = _extractVolumeFromText(optionItem.item_name);
+        final parsed = _extractVolumeFromText(optionItem.itemName);
         return parsed > 0 || optionItem.parentItemAmount > 0;
       }).length;
       if (matched == option.optionItems.length) {
@@ -277,11 +277,11 @@ class SmartCartSelection {
       if (parentAmount > 0) {
         return true;
       }
-      return _extractVolumeFromText(optionItem.item_name) > 0;
+      return _extractVolumeFromText(optionItem.itemName) > 0;
     }).toList(growable: true);
     items.sort((left, right) {
-      final leftVolume = left.parentItemAmount > 0 ? left.parentItemAmount : _extractVolumeFromText(left.item_name);
-      final rightVolume = right.parentItemAmount > 0 ? right.parentItemAmount : _extractVolumeFromText(right.item_name);
+      final leftVolume = left.parentItemAmount > 0 ? left.parentItemAmount : _extractVolumeFromText(left.itemName);
+      final rightVolume = right.parentItemAmount > 0 ? right.parentItemAmount : _extractVolumeFromText(right.itemName);
       return leftVolume.compareTo(rightVolume);
     });
     return items;
@@ -349,7 +349,7 @@ class SmartCartSelection {
       'variant_id': optionItem.relationId,
       'relation_id': optionItem.relationId,
       'item_id': optionItem.itemId,
-      'item_name': optionItem.item_name,
+      'item_name': optionItem.itemName,
       'price_type': optionItem.priceType,
       'price': optionItem.price,
       'parent_item_amount': optionItem.parentItemAmount > 0 ? optionItem.parentItemAmount : volumeForBottle(optionItem),
@@ -558,7 +558,7 @@ class CartDisplayGroup {
   }
 
   static double _applyPromotionsToBaseTotal(
-    double _baseTotal,
+    double baseTotal,
     double quantity,
     List<Map<String, dynamic>> promotions,
     double unitPrice,

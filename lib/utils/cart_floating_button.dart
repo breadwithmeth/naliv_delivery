@@ -5,7 +5,7 @@ import '../utils/cart_provider.dart';
 import '../utils/responsive.dart';
 
 class CartFloatingButton extends StatelessWidget {
-  const CartFloatingButton({Key? key}) : super(key: key);
+  const CartFloatingButton({super.key});
 
   static const Color _orange = Color(0xFFF6A10C);
 

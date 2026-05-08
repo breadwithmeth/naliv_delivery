@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gradusy24/model/item.dart';
-import 'package:gradusy24/pages/product_detail_page.dart';
-import 'package:gradusy24/utils/business_provider.dart';
-import 'package:gradusy24/utils/cart_provider.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() {
   group('ProductDetailPage self-bottling', () {
-    testWidgets('uses explicit item unit for non-pour quantity labels',
-        (tester) async {
+    testWidgets('uses explicit item unit for non-pour quantity labels', (tester) async {
       final item = Item(
         itemId: 99,
         name: 'Fresh lemonade',
@@ -27,6 +23,78 @@ void main() {
 
       expect(find.text('1 л.'), findsWidgets);
       expect(find.text('1 шт.'), findsNothing);
+    });
+
+    testWidgets('restores existing catalog quantity from the cart', (tester) async {
+      final item = Item(
+        itemId: 501,
+        name: 'Sparkling water',
+        price: 650,
+        amount: 8,
+        quantity: 1,
+        unit: 'шт.',
+      );
+      final cartProvider = CartProvider()
+        ..incrementCatalogItem(item)
+        ..incrementCatalogItem(item)
+        ..incrementCatalogItem(item);
+
+      await tester.pumpWidget(_wrap(item, cartProvider: cartProvider));
+      await tester.pumpAndSettle();
+
+      expect(find.text('3 шт.'), findsWidgets);
+    });
+
+    testWidgets('restores cart quantity for the selected option when opened from cart', (tester) async {
+      final sugarFree = ItemOptionItem(
+        relationId: 41,
+        itemId: 4101,
+        priceType: 'ADD',
+        itemName: 'Без сахара',
+        price: 0,
+        parentItemAmount: 0,
+      );
+      final sweet = ItemOptionItem(
+        relationId: 42,
+        itemId: 4102,
+        priceType: 'ADD',
+        itemName: 'С сахаром',
+        price: 0,
+        parentItemAmount: 0,
+      );
+      final item = Item(
+        itemId: 502,
+        name: 'Lemonade',
+        price: 900,
+        amount: 10,
+        quantity: 1,
+        unit: 'шт.',
+        options: <ItemOption>[
+          ItemOption(
+            optionId: 7,
+            name: 'Сахар',
+            required: 1,
+            selection: 'SINGLE',
+            optionItems: <ItemOptionItem>[sugarFree, sweet],
+          ),
+        ],
+      );
+      final sweetVariant = <Map<String, dynamic>>[
+        _variantMap(sweet, required: 1, parentItemAmount: 1),
+      ];
+      final cartProvider = CartProvider()..syncItemSelectionQuantity(item, sweetVariant, 2);
+
+      await tester.pumpWidget(
+        _wrap(
+          item,
+          cartProvider: cartProvider,
+          initialBaseVariants: sweetVariant,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 шт.'), findsWidgets);
+      expect(cartProvider.getItem(item.itemId, sweetVariant), isNotNull);
     });
 
     testWidgets('keeps pour flow for promotion payloads that use variants', (tester) async {
@@ -128,9 +196,7 @@ void main() {
       expect(find.text('1×2 л'), findsOneWidget);
     });
 
-    testWidgets(
-        'shows bottle-aware promo totals without discounting bottle price',
-        (tester) async {
+    testWidgets('shows bottle-aware promo totals without discounting bottle price', (tester) async {
       final item = _buildPourItem(
         amount: 5,
         bottles: <ItemOptionItem>[
@@ -138,7 +204,7 @@ void main() {
             relationId: 1,
             itemId: 101,
             priceType: 'FIXED',
-            item_name: '1 л бутылка',
+            itemName: '1 л бутылка',
             price: 50,
             parentItemAmount: 1,
           ),
@@ -146,7 +212,7 @@ void main() {
             relationId: 2,
             itemId: 102,
             priceType: 'FIXED',
-            item_name: '2 л бутылка',
+            itemName: '2 л бутылка',
             price: 120,
             parentItemAmount: 2,
           ),
@@ -182,7 +248,7 @@ void main() {
             relationId: 1,
             itemId: 101,
             priceType: 'FIXED',
-            item_name: '1 л бутылка',
+            itemName: '1 л бутылка',
             price: 50,
             parentItemAmount: 1,
           ),
@@ -190,7 +256,7 @@ void main() {
             relationId: 2,
             itemId: 102,
             priceType: 'FIXED',
-            item_name: '2 л бутылка',
+            itemName: '2 л бутылка',
             price: 100,
             parentItemAmount: 2,
           ),
@@ -230,7 +296,7 @@ void main() {
             relationId: 2,
             itemId: 102,
             priceType: 'FIXED',
-            item_name: '2 л бутылка',
+            itemName: '2 л бутылка',
             price: 100,
             parentItemAmount: 2,
           ),
@@ -249,16 +315,42 @@ void main() {
   });
 }
 
-Widget _wrap(Item item) {
+Widget _wrap(
+  Item item, {
+  CartProvider? cartProvider,
+  List<Map<String, dynamic>>? initialBaseVariants,
+}) {
+  final effectiveCartProvider = cartProvider ?? CartProvider();
+
   return MultiProvider(
     providers: [
-      ChangeNotifierProvider<CartProvider>(create: (_) => CartProvider()),
+      ChangeNotifierProvider<CartProvider>.value(value: effectiveCartProvider),
       ChangeNotifierProvider<BusinessProvider>(create: (_) => BusinessProvider()),
     ],
     child: MaterialApp(
-      home: ProductDetailPage(item: item),
+      home: ProductDetailPage(
+        item: item,
+        initialBaseVariants: initialBaseVariants,
+      ),
     ),
   );
+}
+
+Map<String, dynamic> _variantMap(
+  ItemOptionItem optionItem, {
+  required int required,
+  required double parentItemAmount,
+}) {
+  return <String, dynamic>{
+    'variant_id': optionItem.relationId,
+    'relation_id': optionItem.relationId,
+    'item_id': optionItem.itemId,
+    'item_name': optionItem.itemName,
+    'price_type': optionItem.priceType,
+    'price': optionItem.price,
+    'parent_item_amount': parentItemAmount,
+    'required': required,
+  };
 }
 
 Item _buildPourItem({

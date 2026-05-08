@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
-import 'categoryPage.dart';
+import 'category_page.dart';
 import 'search_page.dart';
 
 class Catalog extends StatefulWidget {
@@ -429,7 +429,7 @@ class _CatalogState extends State<Catalog> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Always 3 columns – keeps tiles compact on small phones
-                  final crossCount = 3;
+                  const crossCount = 3;
                   final spacing = 6.s;
                   final tileWidth = (constraints.maxWidth - (crossCount - 1) * spacing - 10.s) / crossCount;
                   final tileHeight = tileWidth / 0.95;
@@ -523,7 +523,7 @@ class _CatalogState extends State<Catalog> {
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 6)],
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
                 ),
               ),
             ),

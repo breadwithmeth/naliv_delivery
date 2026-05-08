@@ -303,12 +303,18 @@ mixin LocationMixin<T extends StatefulWidget> on State<T> {
   Future<bool> requestLocationAndGetPosition() async {
     // Показываем объяснение пользователю
     bool userAccepted = await LocationPermissionDialog.showPermissionExplanation(context);
+    if (!mounted) {
+      return false;
+    }
     if (!userAccepted) {
       return false;
     }
 
     // Проверяем и запрашиваем разрешения
     LocationPermissionResult result = await locationService.checkAndRequestPermissions();
+    if (!mounted) {
+      return false;
+    }
 
     if (!result.success) {
       // Показываем диалог с ошибкой

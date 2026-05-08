@@ -14,12 +14,18 @@ import '../utils/item_name_presentation.dart';
 import '../utils/liked_items_provider.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/responsive.dart';
+import '../utils/smart_cart.dart';
 import '../utils/subtract_promotion_math.dart';
 
 class ProductDetailPage extends StatefulWidget {
-  const ProductDetailPage({super.key, required this.item});
+  const ProductDetailPage({
+    super.key,
+    required this.item,
+    this.initialBaseVariants,
+  });
 
   final item_model.Item item;
+  final List<Map<String, dynamic>>? initialBaseVariants;
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
@@ -50,6 +56,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late final List<item_model.ItemOptionItem> _filteredBottles;
   late final List<item_model.ItemOption> _visibleOptions;
   late final ItemTitlePresentation _itemTitle;
+  late final List<Map<String, dynamic>> _openedBaseVariants;
 
   final Map<int, List<item_model.ItemOptionItem>> _selectedOptions = {};
   final Map<int, int> _bottleCounts = {};
@@ -62,6 +69,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _likeInProgress = false;
   bool? _isLikedOverride;
   int? _businessId;
+  bool _didRestoreCartState = false;
+  bool _openedCartSelectionExists = false;
   bool get _isLiked => _isLikedOverride ?? false;
 
   double get _minBottleVolume {
@@ -232,8 +241,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     _visibleOptions = (widget.item.options ?? const <item_model.ItemOption>[])
         .where((option) => option.optionId != _containerOption?.optionId)
         .toList(growable: false);
-    _manualQuantity = _initialQuantity();
     _primeDefaultSelections();
+    _openedBaseVariants =
+        widget.initialBaseVariants == null ? _currentBaseVariants() : SmartCartSelection.normalizeVariantMaps(widget.initialBaseVariants!);
+    _manualQuantity = _initialQuantity();
     for (final bottle in _filteredBottles) {
       _bottleCounts[bottle.relationId] = 0;
     }
@@ -248,6 +259,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_didRestoreCartState) {
+      _didRestoreCartState = true;
+      _restoreCartState(context.read<CartProvider>());
+    }
     final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
     final bid = businessProvider.selectedBusinessId;
     if (bid != null && bid != _businessId) {
@@ -306,6 +321,74 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return math.min(step, widget.item.amount!.toDouble());
     }
     return step;
+  }
+
+  void _restoreCartState(CartProvider cart) {
+    final group = _findCartGroup(cart, _openedBaseVariants);
+    if (group == null) {
+      return;
+    }
+
+    _openedCartSelectionExists = true;
+    _applyBaseVariants(group.baseVariants);
+
+    if (_usesPourFlow) {
+      final restoredCounts = group.bottleCounts.isNotEmpty ? group.bottleCounts : _autoBottleBreakdown(group.totalQuantity);
+      for (final bottle in _filteredBottles) {
+        _bottleCounts[bottle.relationId] = restoredCounts[bottle.relationId] ?? 0;
+      }
+      return;
+    }
+
+    _manualQuantity = _normalizeDouble(group.totalQuantity);
+  }
+
+  void _applyBaseVariants(List<Map<String, dynamic>> baseVariants) {
+    final relationIds = baseVariants.map(SmartCartSelection.variantRelationId).whereType<int>().toSet();
+
+    _selectedOptions.clear();
+    for (final option in _visibleOptions) {
+      final matches = option.optionItems.where((optionItem) => relationIds.contains(optionItem.relationId)).toList(growable: false);
+      if (matches.isNotEmpty) {
+        _selectedOptions[option.optionId] = matches;
+        continue;
+      }
+      if (option.required == 1 || option.optionItems.length == 1) {
+        _selectedOptions[option.optionId] = <item_model.ItemOptionItem>[
+          option.optionItems.first,
+        ];
+      }
+    }
+  }
+
+  CartDisplayGroup? _findCartGroup(
+    CartProvider cart,
+    List<Map<String, dynamic>> baseVariants,
+  ) {
+    final displayKey = _displayKeyForBaseVariants(baseVariants);
+    for (final group in cart.displayGroups) {
+      if (group.key == displayKey) {
+        return group;
+      }
+    }
+    return null;
+  }
+
+  String _displayKeyForBaseVariants(List<Map<String, dynamic>> baseVariants) {
+    final normalized = SmartCartSelection.normalizeVariantMaps(baseVariants);
+    final keys = normalized.map(SmartCartSelection.variantStableKey).toList(growable: false)..sort();
+    return '${widget.item.itemId}|${keys.join(';')}';
+  }
+
+  List<Map<String, dynamic>> _currentBaseVariants() {
+    return SmartCartSelection.normalizeVariantMaps(_selectedVariantMaps());
+  }
+
+  bool _sameBaseVariants(
+    List<Map<String, dynamic>> left,
+    List<Map<String, dynamic>> right,
+  ) {
+    return _displayKeyForBaseVariants(left) == _displayKeyForBaseVariants(right);
   }
 
   List<item_model.ItemOptionItem> _filterAllowedBottles() {
@@ -385,7 +468,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   double _extractVolumeFromText(item_model.ItemOptionItem item) {
-    final raw = item.item_name.toLowerCase().replaceAll(',', '.');
+    final raw = item.itemName.toLowerCase().replaceAll(',', '.');
     final match = RegExp(r'(\d+(?:\.\d+)?)\s*(л|l|ml|мл)').firstMatch(raw);
     if (match == null) {
       return 0;
@@ -679,7 +762,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       'variant_id': optionItem.relationId,
       'relation_id': optionItem.relationId,
       'item_id': optionItem.itemId,
-      'item_name': optionItem.item_name,
+      'item_name': optionItem.itemName,
       'price_type': optionItem.priceType,
       'price': optionItem.price,
       'parent_item_amount': optionItem.parentItemAmount > 0 ? optionItem.parentItemAmount : _volumeForBottle(optionItem),
@@ -803,7 +886,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     final cart = context.read<CartProvider>();
-    final promotions = _promotionMaps();
+    final currentBaseVariants = _currentBaseVariants();
+    final currentSelectionExists = _findCartGroup(cart, currentBaseVariants) != null;
+    final shouldReplaceSelection = _openedCartSelectionExists || currentSelectionExists;
 
     setState(() {
       _submitting = true;
@@ -823,53 +908,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           return;
         }
 
-        for (final entry in counts.entries) {
-          if (entry.value <= 0) continue;
-          final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
-          final ok = cart.addItemWithOptions(
-            widget.item.itemId,
-            _itemTitle.name,
-            widget.item.image ?? '',
-            widget.item.price,
-            _volumeForBottle(bottle) * entry.value,
-            _selectedVariantMaps(includeBottle: true, bottle: bottle),
-            promotions,
-            _itemTitle.type,
-            _itemTitle.packagingType,
-            widget.item.toJson(),
+        if (shouldReplaceSelection && !_sameBaseVariants(_openedBaseVariants, currentBaseVariants)) {
+          cart.syncItemBottleCounts(
+            widget.item,
+            _openedBaseVariants,
+            const <int, int>{},
           );
-          added = added || ok;
         }
+
+        cart.syncItemBottleCounts(widget.item, currentBaseVariants, counts);
+        added = counts.values.any((count) => count > 0);
       } else if (widget.item.hasOptions) {
-        added = cart.addItemWithOptions(
-          widget.item.itemId,
-          _itemTitle.name,
-          widget.item.image ?? '',
-          widget.item.price,
+        if (shouldReplaceSelection && !_sameBaseVariants(_openedBaseVariants, currentBaseVariants)) {
+          cart.syncItemSelectionQuantity(
+            widget.item,
+            _openedBaseVariants,
+            0,
+          );
+        }
+        cart.syncItemSelectionQuantity(
+          widget.item,
+          currentBaseVariants,
           _manualQuantity,
-          _selectedVariantMaps(),
-          promotions,
-          _itemTitle.type,
-          _itemTitle.packagingType,
-          widget.item.toJson(),
         );
+        added = _manualQuantity > 0;
       } else {
-        added = cart.addItem(
-          CartItem(
-            itemId: widget.item.itemId,
-            name: _itemTitle.name,
-            price: widget.item.price,
-            quantity: _manualQuantity,
-            stepQuantity: widget.item.effectiveStepQuantity,
-            image: widget.item.image,
-            itemType: _itemTitle.type,
-            packagingType: _itemTitle.packagingType,
-            selectedVariants: const <Map<String, dynamic>>[],
-            promotions: promotions,
-            itemData: widget.item.toJson(),
-            maxAmount: widget.item.amount?.toDouble(),
-          ),
+        cart.syncItemSelectionQuantity(
+          widget.item,
+          const <Map<String, dynamic>>[],
+          _manualQuantity,
         );
+        added = _manualQuantity > 0;
       }
 
       if (!mounted) {
@@ -929,7 +998,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String _shortBottleName(item_model.ItemOptionItem bottle) {
     final volume = _volumeForBottle(bottle);
-    return bottle.item_name.trim().isNotEmpty ? bottle.item_name.trim() : _volumeLabel(volume);
+    return bottle.itemName.trim().isNotEmpty ? bottle.itemName.trim() : _volumeLabel(volume);
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -1741,7 +1810,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     final active = selected.any((selectedItem) => selectedItem.relationId == optionItem.relationId);
                     final subtitle = optionItem.price > 0 ? '+${_money(optionItem.price)}' : null;
                     return _chip(
-                      label: optionItem.item_name,
+                      label: optionItem.itemName,
                       subtitle: subtitle,
                       active: active,
                       onTap: () => _toggleOption(option, optionItem),

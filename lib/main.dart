@@ -143,8 +143,8 @@ class _MainState extends State<Main> with LocationMixin {
           ),
           useMaterial3: true,
           brightness: Brightness.light,
-          scaffoldBackgroundColor: Color(0xffF9F9F9),
-          appBarTheme: AppBarTheme(
+          scaffoldBackgroundColor: const Color(0xffF9F9F9),
+          appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xffF9F9F9),
             foregroundColor: Colors.black,
           ),
@@ -175,12 +175,12 @@ class _MainState extends State<Main> with LocationMixin {
           ),
           useMaterial3: true,
           brightness: Brightness.dark,
-          appBarTheme: AppBarTheme(
+          appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFF0a0a0a),
             surfaceTintColor: Color(0xFF0a0a0a),
             foregroundColor: Colors.white,
           ),
-          scaffoldBackgroundColor: Color(0xFF0a0a0a),
+          scaffoldBackgroundColor: const Color(0xFF0a0a0a),
           colorScheme: const ColorScheme.dark(
               surfaceDim: Colors.white10,
               surface: Color(0xFF0a0a0a),

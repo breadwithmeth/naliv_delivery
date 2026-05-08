@@ -16,7 +16,7 @@ import '../utils/location_service.dart';
 import '../widgets/address_selection_modal_material.dart';
 import 'bonus_info_page.dart';
 import 'bonus_history_page.dart';
-import 'categoryPage.dart';
+import 'category_page.dart';
 import 'login_page.dart';
 import 'orders_history_page.dart';
 import 'promotion_items_page.dart';
@@ -396,7 +396,6 @@ class _MainPageState extends State<MainPage> {
     if (!mounted) return;
     await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
-    final hadSelectedAddress = _selectedAddress != null;
     final selectedAddress = await AddressSelectionModalHelper.show(context);
     if (selectedAddress != null && mounted) {
       await AddressStorageService.saveSelectedAddress(selectedAddress);
@@ -546,7 +545,7 @@ class _MainPageState extends State<MainPage> {
     final currentId = widget.selectedBusiness!['id'] ?? widget.selectedBusiness!['business_id'] ?? widget.selectedBusiness!['businessId'];
     final nearestId = nearest['id'] ?? nearest['business_id'] ?? nearest['businessId'];
     if (currentId == null || nearestId == null || currentId == nearestId) return;
-    final promptKey = '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_${nearestId}';
+    final promptKey = '${coords['lat']!.toStringAsFixed(5)}_${coords['lon']!.toStringAsFixed(5)}_${currentId}_$nearestId';
     if (_lastPromptKey == promptKey) return;
     _lastPromptKey = promptKey;
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
@@ -774,18 +773,20 @@ class _MainPageState extends State<MainPage> {
     const accent = AppColors.orange;
     const accentAlt = AppColors.red;
     final lower = name.toLowerCase();
-    if (lower.contains('пиво'))
+    if (lower.contains('пиво')) {
       return {
         'icon': Icons.sports_bar,
         'color': accent,
         'gradient': const [Color(0xFF2A2214), AppColors.cardDark]
       };
-    if (lower.contains('вино'))
+    }
+    if (lower.contains('вино')) {
       return {
         'icon': Icons.wine_bar,
         'color': accent,
         'gradient': const [Color(0xFF2A1A1C), AppColors.cardDark]
       };
+    }
     if (lower.contains('виски') || lower.contains('коньяк') || lower.contains('бурбон')) {
       return {
         'icon': Icons.local_bar,
@@ -960,43 +961,6 @@ class _MainPageState extends State<MainPage> {
       }
     }
     return _extractCategoryImage(superCategory);
-  }
-
-  Widget _buildCategoryLeading(String? imageUrl, Map<String, dynamic> style, {double size = 28}) {
-    if (imageUrl == null) {
-      return Icon(style['icon'], color: style['color'], size: size * 0.72);
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(size * 0.36),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            color: Colors.white.withValues(alpha: 0.08),
-            alignment: Alignment.center,
-            child: Icon(style['icon'], color: style['color'], size: size * 0.64),
-          ),
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              color: Colors.white.withValues(alpha: 0.08),
-              alignment: Alignment.center,
-              child: SizedBox(
-                width: size * 0.5,
-                height: size * 0.5,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>((style['color'] as Color?) ?? AppColors.orange),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
   }
 
   String _resolveAddressLine() {
@@ -1269,7 +1233,7 @@ class _MainPageState extends State<MainPage> {
                     ? SizedBox(
                         width: 16.s,
                         height: 16.s,
-                        child: CircularProgressIndicator(strokeWidth: 1.6, color: AppColors.orange),
+                        child: const CircularProgressIndicator(strokeWidth: 1.6, color: AppColors.orange),
                       )
                     : Stack(
                         alignment: Alignment.center,
@@ -1756,76 +1720,6 @@ class _MainPageState extends State<MainPage> {
             builder: (_) => CategoryPage(
               category: Category.fromJson(cats.first),
               allCategories: cats.map((c) => Category.fromJson(c)).toList(),
-              businessId: businessId,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16.s),
-          color: AppColors.cardDark,
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildCategoryArtwork(imageUrl, style),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.48, 0.78, 1.0],
-                  colors: [
-                    Colors.transparent,
-                    Colors.transparent,
-                    Color(0x52000000),
-                    Color(0xB3000000),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 9.s,
-              right: 9.s,
-              bottom: 9.s,
-              child: Text(
-                _formatCategoryTitle(name),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: _categoryTitleFontSize(name),
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _categoryTile(Map<String, dynamic> cat, Map<String, dynamic> style, String? imageUrl) {
-    final name = cat['name']?.toString() ?? 'Категория';
-    return GestureDetector(
-      onTap: () {
-        final businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
-        if (businessId == null) {
-          _showMessageDialog('Магазин не выбран', 'Сначала выберите магазин, чтобы открыть категорию.');
-          return;
-        }
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => CategoryPage(
-              category: Category.fromJson(cat),
-              allCategories: _superCategories
-                  .expand((sc) => (sc['categories'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[])
-                  .map((c) => Category.fromJson(c))
-                  .toList(),
               businessId: businessId,
             ),
           ),

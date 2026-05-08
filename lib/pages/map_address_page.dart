@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -558,7 +557,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
           child: _isLocatingUser
               ? Padding(
                   padding: EdgeInsets.all(12.s),
-                  child: CircularProgressIndicator(strokeWidth: 2.2, color: _orange),
+                  child: const CircularProgressIndicator(strokeWidth: 2.2, color: _orange),
                 )
               : Icon(Icons.my_location_rounded, color: _text, size: 18.s),
         ),
@@ -622,6 +621,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
 
 class AddressDetailsPage extends StatefulWidget {
   const AddressDetailsPage({
+    super.key,
     required this.address,
     required this.initialEntrance,
     required this.initialFloor,
@@ -843,7 +843,7 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(16.s)),
-              borderSide: BorderSide(color: _orange),
+              borderSide: const BorderSide(color: _orange),
             ),
           ),
         ),

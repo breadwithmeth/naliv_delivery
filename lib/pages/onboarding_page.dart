@@ -230,7 +230,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                       ),
                     ),
-                    Text(
+                    const Text(
                       'Выберите город',
                       style: TextStyle(
                           color: _text,
@@ -238,7 +238,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                    const Text(
                       'Не получилось определить автоматически. Выберите вручную.',
                       style: TextStyle(
                           color: _textMute, fontWeight: FontWeight.w600),

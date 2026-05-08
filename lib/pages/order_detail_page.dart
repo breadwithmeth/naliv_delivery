@@ -342,9 +342,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.store_mall_directory, color: AppColors.orange),
+            const Icon(Icons.store_mall_directory, color: AppColors.orange),
             SizedBox(width: 7.s),
-            Text('Магазин',
+            const Text('Магазин',
                 style: TextStyle(
                     color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
@@ -387,9 +387,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.location_on_outlined, color: AppColors.orange),
+            const Icon(Icons.location_on_outlined, color: AppColors.orange),
             SizedBox(width: 7.s),
-            Text('Адрес доставки',
+            const Text('Адрес доставки',
                 style: TextStyle(
                     color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
@@ -614,9 +614,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.receipt_long, color: AppColors.orange),
+            const Icon(Icons.receipt_long, color: AppColors.orange),
             SizedBox(width: 7.s),
-            Text('Стоимость',
+            const Text('Стоимость',
                 style: TextStyle(
                     color: AppColors.text, fontWeight: FontWeight.w800)),
           ],
@@ -903,9 +903,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.history, color: AppColors.orange),
+            const Icon(Icons.history, color: AppColors.orange),
             SizedBox(width: 7.s),
-            Text('История статусов',
+            const Text('История статусов',
                 style: TextStyle(
                     color: AppColors.text, fontWeight: FontWeight.w800)),
           ],

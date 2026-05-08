@@ -1,22 +1,22 @@
 import 'dart:async';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 typedef BrowserHistoryListener = void Function();
 
-final Map<BrowserHistoryListener, StreamSubscription<html.PopStateEvent>> _listeners =
-    <BrowserHistoryListener, StreamSubscription<html.PopStateEvent>>{};
-StreamSubscription<html.Event>? _beforeUnloadSubscription;
+final Map<BrowserHistoryListener, StreamSubscription<web.PopStateEvent>> _listeners =
+    <BrowserHistoryListener, StreamSubscription<web.PopStateEvent>>{};
+StreamSubscription<web.BeforeUnloadEvent>? _beforeUnloadSubscription;
 
 void browserHistoryPushFragment(String fragment) {
   final nextUrl = _withFragment(fragment);
   if (_normalizedHash() == fragment) {
     return;
   }
-  html.window.history.pushState(null, html.document.title, nextUrl);
+  web.window.history.pushState(null, web.document.title, nextUrl);
 }
 
 void browserHistoryReplaceFragment(String fragment) {
-  html.window.history.replaceState(null, html.document.title, _withFragment(fragment));
+  web.window.history.replaceState(null, web.document.title, _withFragment(fragment));
 }
 
 String browserHistoryCurrentFragment() => _normalizedHash();
@@ -39,14 +39,13 @@ void browserHistoryReplaceQueryParameters(Map<String, String> queryParameters) {
 }
 
 void browserHistoryBack() {
-  html.window.history.back();
+  web.window.history.back();
 }
 
 void browserHistoryEnableExitWarning() {
-  _beforeUnloadSubscription ??= html.window.onBeforeUnload.listen((event) {
-    final unloadEvent = event as html.BeforeUnloadEvent;
-    unloadEvent.preventDefault();
-    unloadEvent.returnValue = '';
+  _beforeUnloadSubscription ??= web.EventStreamProviders.beforeUnloadEvent.forTarget(web.window).listen((event) {
+    event.preventDefault();
+    event.returnValue = '';
   });
 }
 
@@ -57,7 +56,7 @@ void browserHistoryDisableExitWarning() {
 
 void browserHistoryListen(BrowserHistoryListener listener) {
   _listeners[listener]?.cancel();
-  _listeners[listener] = html.window.onPopState.listen((_) => listener());
+  _listeners[listener] = web.window.onPopState.listen((_) => listener());
 }
 
 void browserHistoryDispose(BrowserHistoryListener listener) {
@@ -65,7 +64,7 @@ void browserHistoryDispose(BrowserHistoryListener listener) {
 }
 
 String _normalizedHash() {
-  final hash = html.window.location.hash;
+  final hash = web.window.location.hash;
   if (hash.isEmpty) {
     return '';
   }
@@ -73,8 +72,8 @@ String _normalizedHash() {
 }
 
 String _withFragment(String fragment) {
-  final path = html.window.location.pathname;
-  final search = html.window.location.search;
+  final path = web.window.location.pathname;
+  final search = web.window.location.search;
   if (fragment.isEmpty) {
     return '$path$search';
   }

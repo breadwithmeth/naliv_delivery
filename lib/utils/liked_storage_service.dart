@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LikedStorageService {
-  static String _keyForBusiness(int businessId) => 'liked_items_${businessId}';
+  static String _keyForBusiness(int businessId) => 'liked_items_$businessId';
 
   static Future<Set<int>> getLikedIds({required int businessId}) async {
     final prefs = await SharedPreferences.getInstance();

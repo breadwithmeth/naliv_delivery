@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/api.dart';
-import '../utils/cartFloatingButton.dart';
+import '../utils/cart_floating_button.dart';
 import '../model/item.dart' as model;
 import '../shared/product_card.dart';
 import '../utils/liked_items_provider.dart';
@@ -104,7 +104,7 @@ class _LikedPageState extends State<LikedPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: CartFloatingButton(),
+      floatingActionButton: const CartFloatingButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
         title: const Text('Понравившиеся'),
@@ -140,10 +140,10 @@ class _LikedPageState extends State<LikedPage> {
     }
 
     if (_items.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.favorite_border, size: 32),
             SizedBox(height: 8),
             Text('Список пуст'),
