@@ -10,6 +10,7 @@ import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/bonus_rules.dart';
 import 'package:naliv_delivery/utils/item_name_presentation.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
 import 'package:provider/provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/smart_cart.dart';
@@ -114,17 +115,19 @@ class CartPage extends StatelessWidget {
             storedPackagingType: item.packagingType,
           );
     final double? maxAmount = item.maxAmount;
-    final bool canIncrease = maxAmount == null || item.totalQuantity < maxAmount;
+    final bool hasSnapshot = snapshot != null;
+    final double nextIncreaseQuantity = hasSnapshot ? _nextDisplayGroupQuantity(item, direction: 1) : item.totalQuantity;
+    final bool canIncrease = hasSnapshot
+        ? nextIncreaseQuantity > item.totalQuantity + subtractPromotionEpsilon &&
+            (maxAmount == null || nextIncreaseQuantity <= maxAmount + subtractPromotionEpsilon)
+        : maxAmount == null || item.totalQuantity < maxAmount;
     final bool canDecrease = item.totalQuantity > 0;
-    final double freeQty = item.freeQuantity;
-    final bool hasFree = freeQty > 0;
     final double rawTotal = item.subtotalBeforePromotions;
     final bool hasSavings = item.totalPrice < rawTotal - 0.001;
     final bottleBreakdown = item.bottleBreakdownLabel;
     final canEditBottles = item.selection?.usesPourFlow == true;
-    final quantityLabel = _formatQty(item.totalQuantity);
+    final quantityLabel = _quantityLabel(item, item.totalQuantity);
     final amountLabel = _amountLabel(item, item.totalQuantity);
-    final giftLabel = _amountLabel(item, freeQty);
     final inlineMeta = bottleBreakdown ?? _subtitleMeta(itemTitle);
 
     return Row(
@@ -219,25 +222,6 @@ class CartPage extends StatelessWidget {
                                 ),
                             ],
                           ),
-                          if (hasFree) ...[
-                            SizedBox(height: 8.s),
-                            Row(
-                              children: [
-                                Icon(Icons.auto_awesome_rounded, color: AppColors.orange, size: 12.s),
-                                SizedBox(width: 6.s),
-                                Expanded(
-                                  child: Text(
-                                    '+$giftLabel в подарок',
-                                    style: TextStyle(
-                                      color: AppColors.orange,
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -252,8 +236,8 @@ class CartPage extends StatelessWidget {
           padding: EdgeInsets.only(top: 8.s),
           child: _quantityControls(
             value: quantityLabel,
-            onDecrement: canDecrease ? () => cartProvider.decrementDisplayGroup(item) : null,
-            onIncrement: canIncrease ? () => cartProvider.incrementDisplayGroup(item) : null,
+            onDecrement: canDecrease ? () => _decrementDisplayGroup(cartProvider, item) : null,
+            onIncrement: canIncrease ? () => _incrementDisplayGroup(cartProvider, item) : null,
           ),
         ),
       ],
@@ -517,10 +501,65 @@ class CartPage extends StatelessWidget {
     return title.attributes.join(' • ');
   }
 
+  void _incrementDisplayGroup(CartProvider cartProvider, CartDisplayGroup item) {
+    final snapshot = item.itemSnapshot;
+    if (snapshot == null) {
+      cartProvider.incrementDisplayGroup(item);
+      return;
+    }
+
+    final nextQuantity = _nextDisplayGroupQuantity(item, direction: 1);
+    if (nextQuantity <= item.totalQuantity + subtractPromotionEpsilon) {
+      return;
+    }
+    if (item.maxAmount != null && nextQuantity > item.maxAmount! + subtractPromotionEpsilon) {
+      return;
+    }
+
+    cartProvider.syncItemSelectionQuantity(snapshot, item.baseVariants, nextQuantity);
+  }
+
+  void _decrementDisplayGroup(CartProvider cartProvider, CartDisplayGroup item) {
+    final snapshot = item.itemSnapshot;
+    if (snapshot == null) {
+      cartProvider.decrementDisplayGroup(item);
+      return;
+    }
+
+    final nextQuantity = _nextDisplayGroupQuantity(item, direction: -1);
+    cartProvider.syncItemSelectionQuantity(snapshot, item.baseVariants, nextQuantity);
+  }
+
+  double _nextDisplayGroupQuantity(CartDisplayGroup item, {required int direction}) {
+    final selection = item.selection;
+    if (selection == null) {
+      return item.totalQuantity;
+    }
+
+    final promoTarget = subtractPromotionBundleTargetQuantity(
+      item.totalQuantity,
+      item.promotions,
+      direction: direction,
+    );
+    if (promoTarget != null) {
+      return promoTarget;
+    }
+
+    return selection.clampQuantity(item.totalQuantity + (selection.defaultStepQuantity * direction));
+  }
+
+  String _quantityLabel(CartDisplayGroup item, double quantity) {
+    return subtractPromotionBundleLabel(
+      quantity,
+      item.promotions,
+      formatQuantity: _formatQty,
+    );
+  }
+
   String _amountLabel(CartDisplayGroup item, double quantity) {
     final snapshot = item.itemSnapshot;
     final unit = snapshot?.unit?.trim();
-    final formatted = _formatQty(quantity);
+    final formatted = _quantityLabel(item, quantity);
     if (item.selection?.usesPourFlow == true) {
       return '$formatted л';
     }

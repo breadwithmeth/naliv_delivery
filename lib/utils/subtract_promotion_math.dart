@@ -131,6 +131,59 @@ double subtractPromotionAmountToNextGift(
   return (baseAmount - remainder).toDouble();
 }
 
+double? subtractPromotionBundleTargetQuantity(
+  double currentQuantity,
+  List<Map<String, dynamic>> promotions, {
+  required int direction,
+}) {
+  final promotion = firstSubtractPromotion(promotions);
+  if (promotion == null || direction == 0) {
+    return null;
+  }
+
+  final baseAmount = _promotionInt(promotion, 'baseAmount', 'base_amount');
+  if (baseAmount <= 0) {
+    return null;
+  }
+
+  final normalizedCurrent = currentQuantity <= subtractPromotionEpsilon ? 0.0 : _normalizePromotionQuantity(currentQuantity);
+  if (direction > 0) {
+    final distanceToNextGift = subtractPromotionAmountToNextGift(
+      normalizedCurrent,
+      baseAmount: baseAmount,
+    );
+    final step = distanceToNextGift <= subtractPromotionEpsilon ? baseAmount.toDouble() : distanceToNextGift;
+    return _normalizePromotionQuantity(normalizedCurrent + step);
+  }
+
+  if (normalizedCurrent <= subtractPromotionEpsilon) {
+    return 0;
+  }
+
+  final remainder = normalizedCurrent % baseAmount;
+  final stepDown = remainder.abs() <= subtractPromotionEpsilon ? baseAmount.toDouble() : remainder;
+  final nextQuantity = normalizedCurrent - stepDown;
+  if (nextQuantity <= subtractPromotionEpsilon) {
+    return 0;
+  }
+
+  return _normalizePromotionQuantity(nextQuantity);
+}
+
+String subtractPromotionBundleLabel(
+  double quantity,
+  List<Map<String, dynamic>> promotions, {
+  required String Function(double quantity) formatQuantity,
+}) {
+  final paidLabel = formatQuantity(quantity);
+  final freeQuantity = subtractPromotionFreeQuantity(quantity, promotions);
+  if (freeQuantity <= subtractPromotionEpsilon) {
+    return paidLabel;
+  }
+
+  return '$paidLabel+${formatQuantity(freeQuantity)}';
+}
+
 bool subtractPromotionUnlocked(
   double quantity, {
   required int baseAmount,
@@ -141,4 +194,8 @@ bool subtractPromotionUnlocked(
 
   final remainder = quantity % baseAmount;
   return remainder.abs() <= subtractPromotionEpsilon;
+}
+
+double _normalizePromotionQuantity(double value) {
+  return double.parse(value.toStringAsFixed(2));
 }

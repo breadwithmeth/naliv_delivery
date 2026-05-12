@@ -388,7 +388,7 @@ class _CatalogState extends State<Catalog> {
           itemBuilder: (_, sectionIndex) {
             final superCat = _superCategories[sectionIndex];
             final title = superCat['name']?.toString() ?? 'Раздел';
-            final List<Map<String, dynamic>> cats = (superCat['categories'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+            final cats = ApiService.mapListFromDynamic(superCat['categories']);
 
             return _section(
               key: ValueKey('catalog-section-$sectionIndex'),

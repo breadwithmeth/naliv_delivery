@@ -71,8 +71,8 @@ class _LikedPageState extends State<LikedPage> {
         return;
       }
 
-      final List<dynamic> list = data['items'] ?? data['liked_items'] ?? [];
-      final newItems = list.cast<Map<String, dynamic>>().map((json) => model.Item.fromJson(json)).toList();
+      final list = ApiService.mapListFromDynamic(data['items'] ?? data['liked_items']);
+      final newItems = list.map(model.Item.fromJson).toList(growable: false);
 
       setState(() {
         _items.addAll(newItems);

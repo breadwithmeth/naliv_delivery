@@ -348,6 +348,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     _selectedOptions.clear();
     for (final option in _visibleOptions) {
+      if (option.optionItems.isEmpty) {
+        continue;
+      }
       final matches = option.optionItems.where((optionItem) => relationIds.contains(optionItem.relationId)).toList(growable: false);
       if (matches.isNotEmpty) {
         _selectedOptions[option.optionId] = matches;

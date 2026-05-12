@@ -773,15 +773,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  static double _freeAmount(CartDisplayGroup item) {
-    if (item.freeQuantity > 0) {
-      return item.freeQuantity;
-    }
-    return subtractPromotionFreeQuantity(item.totalQuantity, item.promotions);
-  }
-
   static String _fmtQty(double qty) {
     return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
+  }
+
+  static String _displayQty(CartDisplayGroup item) {
+    return subtractPromotionBundleLabel(
+      item.totalQuantity,
+      item.promotions,
+      formatQuantity: _fmtQty,
+    );
   }
 
   Widget _itemTile(CartDisplayGroup item) {
@@ -796,8 +797,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
             storedType: item.itemType,
             storedPackagingType: item.packagingType,
           );
-    final double freeQty = _freeAmount(item);
-    final bool hasFree = freeQty > 0;
     final double rawTotal = item.subtotalBeforePromotions;
     final bool hasSavings = item.totalPrice < rawTotal - 0.001;
     final bottleBreakdown = item.bottleBreakdownLabel;
@@ -818,7 +817,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Text('x${_fmtQty(item.totalQuantity)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
+                  Text('x${_displayQty(item)}', style: const TextStyle(color: AppColors.textMute, fontSize: 12)),
                   if (bottleBreakdown != null) ...[
                     SizedBox(width: 6.s),
                     Expanded(
@@ -828,13 +827,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, fontWeight: FontWeight.w600),
                       ),
-                    ),
-                  ],
-                  if (hasFree) ...[
-                    SizedBox(width: 6.s),
-                    Text(
-                      '+ ${_fmtQty(freeQty)} в подарок',
-                      style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ],
@@ -857,11 +849,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
             Text(_money(item.totalPrice), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900)),
-            if (hasFree)
-              Text(
-                '+ ${_fmtQty(freeQty)} в подарок',
-                style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w600),
-              ),
           ],
         ),
       ],

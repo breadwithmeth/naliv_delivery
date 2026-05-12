@@ -13,16 +13,149 @@ class ApiService {
 
   // Ключ для хранения токена аутентификации
   static const String _authTokenKey = 'auth_token';
+  static const String _authTokenExpiryKey = 'token_expiry';
+
+  static DateTime? _decodeTokenExpiry(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        return null;
+      }
+
+      final payload = json.decode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+
+      final exp = payload is Map<String, dynamic> ? payload['exp'] : null;
+      if (exp is int) {
+        return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
+      }
+      if (exp is num) {
+        return DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000, isUtc: true);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error decoding auth token expiry: $e');
+      return null;
+    }
+  }
+
+  static Future<void> _storeAuthToken(SharedPreferences prefs, String token) async {
+    await prefs.setString(_authTokenKey, token);
+
+    final expiry = _decodeTokenExpiry(token);
+    if (expiry == null) {
+      await prefs.remove(_authTokenExpiryKey);
+      return;
+    }
+
+    await prefs.setString(_authTokenExpiryKey, expiry.toIso8601String());
+  }
+
+  static Future<void> _clearStoredAuth(SharedPreferences prefs) async {
+    await prefs.remove(_authTokenKey);
+    await prefs.remove(_authTokenExpiryKey);
+  }
+
+  static Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map(
+        (key, entryValue) => MapEntry(key.toString(), entryValue),
+      );
+    }
+    return null;
+  }
+
+  static List<dynamic> _asList(dynamic value) {
+    if (value is List) {
+      return value;
+    }
+    if (value is Map) {
+      return <dynamic>[value];
+    }
+    return const <dynamic>[];
+  }
+
+  static Map<String, dynamic> mapFromDynamic(dynamic value) {
+    return _asMap(value) ?? <String, dynamic>{};
+  }
+
+  static List<Map<String, dynamic>> mapListFromDynamic(dynamic value) {
+    return _asList(value).map(_asMap).whereType<Map<String, dynamic>>().toList(growable: false);
+  }
+
+  static String? _parseString(dynamic value, {bool allowEmpty = false}) {
+    if (value == null) return null;
+
+    final normalized = value.toString().trim();
+    if (!allowEmpty && (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  static bool _parseBool(dynamic value, {bool defaultValue = false}) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+
+    switch ((_parseString(value) ?? '').toLowerCase()) {
+      case 'true':
+      case '1':
+      case 'yes':
+      case 'y':
+      case 'on':
+        return true;
+      case 'false':
+      case '0':
+      case 'no':
+      case 'n':
+      case 'off':
+        return false;
+      default:
+        return defaultValue;
+    }
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is num) {
+      final milliseconds = value > 100000000000 ? value.toInt() : value.toInt() * 1000;
+      return DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
+    }
+
+    final normalized = _parseString(value);
+    if (normalized == null) return null;
+    return DateTime.tryParse(normalized);
+  }
+
+  static List<int> _parseIntList(dynamic value) {
+    return _asList(value).map((entry) => _parseInt(entry, defaultValue: -1)).where((entry) => entry >= 0).toList(growable: false);
+  }
+
+  static Map<String, dynamic> _normalizeCategoryNode(Map<String, dynamic> raw) {
+    final normalized = Map<String, dynamic>.from(raw);
+    normalized['categories'] = mapListFromDynamic(raw['categories']).map(_normalizeCategoryNode).toList(growable: false);
+    normalized['subcategories'] = mapListFromDynamic(raw['subcategories']).map(_normalizeCategoryNode).toList(growable: false);
+    return normalized;
+  }
 
   /// Безопасное преобразование в double
   static double? _parseDouble(dynamic value) {
     if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) {
-      return double.tryParse(value);
-    }
-    return null;
+    if (value is num) return value.toDouble();
+
+    final normalized = _parseString(value);
+    if (normalized == null) return null;
+
+    return double.tryParse(
+      normalized.replaceAll(' ', '').replaceAll(',', '.'),
+    );
   }
 
   /// Получить понравившиеся пользователю товары
@@ -123,12 +256,14 @@ class ApiService {
   /// Безопасное преобразование в int
   static int _parseInt(dynamic value, {int defaultValue = 0}) {
     if (value == null) return defaultValue;
-    if (value is int) return value;
-    if (value is double) return value.toInt();
-    if (value is String) {
-      return int.tryParse(value) ?? defaultValue;
-    }
-    return defaultValue;
+    if (value is bool) return value ? 1 : 0;
+    if (value is num) return value.toInt();
+
+    final normalized = _parseString(value);
+    if (normalized == null) return defaultValue;
+
+    final compact = normalized.replaceAll(' ', '').replaceAll(',', '.');
+    return int.tryParse(compact) ?? double.tryParse(compact)?.toInt() ?? defaultValue;
   }
 
   static Future<Map<String, dynamic>?> getBusinesses({
@@ -220,7 +355,7 @@ class ApiService {
   static Future<List<Map<String, dynamic>>?> getAllBusinesses() async {
     try {
       final data = await getBusinesses(page: 1, limit: 1000); // Получаем большое количество
-      return data?['businesses']?.cast<Map<String, dynamic>>();
+      return mapListFromDynamic(data?['businesses']);
     } catch (e) {
       debugPrint('Error getting all businesses: $e');
       return null;
@@ -953,7 +1088,7 @@ class ApiService {
           final data = jsonResponse['data'] as Map<String, dynamic>;
           if (data.containsKey('token') && data['token'] is String) {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(_authTokenKey, data['token'] as String);
+            await _storeAuthToken(prefs, data['token'] as String);
           }
           return jsonResponse['data'] as Map<String, dynamic>;
         } else {
@@ -1004,7 +1139,27 @@ class ApiService {
   /// Получить сохраненный токен аутентификации
   static Future<String?> getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_authTokenKey);
+    final token = prefs.getString(_authTokenKey);
+    if (token == null || token.isEmpty) {
+      return null;
+    }
+
+    final storedExpiry = prefs.getString(_authTokenExpiryKey);
+    var expiry = storedExpiry != null ? DateTime.tryParse(storedExpiry)?.toUtc() : null;
+
+    if (expiry == null) {
+      expiry = _decodeTokenExpiry(token);
+      if (expiry != null) {
+        await prefs.setString(_authTokenExpiryKey, expiry.toIso8601String());
+      }
+    }
+
+    if (expiry != null && !DateTime.now().toUtc().isBefore(expiry)) {
+      await _clearStoredAuth(prefs);
+      return null;
+    }
+
+    return token;
   }
 
   /// Проверить, авторизован ли пользователь (наличие токена)
@@ -1123,17 +1278,17 @@ class ApiService {
 
       // Ожидаем структуру вида:
       // { success, data: { items: [...], pagination?: {...} } }
-      final success = raw['success'] == true;
-      final data = (raw['data'] as Map<String, dynamic>? ?? {});
+      final success = _parseBool(raw['success']);
+      final data = mapFromDynamic(raw['data']);
 
       // 1) Items -> List<CategoryItem>
-      final List<dynamic> itemsRaw = (data['items'] as List?) ?? const [];
-      final items = itemsRaw.map((e) => CategoryItem.fromJson(e)).toList();
+      final items = mapListFromDynamic(data['items']).map(CategoryItem.fromJson).toList(growable: false);
 
       // 2) Pagination -> PaginationInfo
       PaginationInfo pagination;
-      if (data['pagination'] is Map) {
-        pagination = PaginationInfo.fromJson(data['pagination'] as Map<String, dynamic>);
+      final paginationData = _asMap(data['pagination']);
+      if (paginationData != null) {
+        pagination = PaginationInfo.fromJson(paginationData);
       } else {
         // fallback, если бэкенд не вернул pagination
         final total = ApiService._parseInt(data['total']) == 0 ? items.length : ApiService._parseInt(data['total']);
@@ -1466,11 +1621,9 @@ class ApiService {
       page: page,
       limit: limit,
     );
-    if (result != null && result['data'] is Map<String, dynamic>) {
-      final data = result['data'] as Map<String, dynamic>;
-      if (data['items'] is List) {
-        return (data['items'] as List).cast<Map<String, dynamic>>();
-      }
+    final data = _asMap(result?['data']);
+    if (data != null) {
+      return mapListFromDynamic(data['items']);
     }
     return null;
   }
@@ -1583,12 +1736,11 @@ class ApiService {
           // Проверяем тип данных
           if (data is List) {
             // Если data это массив, возвращаем его
-            return data.cast<Map<String, dynamic>>();
+            return mapListFromDynamic(data);
           } else if (data is Map<String, dynamic>) {
             // Если data это объект, ищем массив категорий внутри
             if (data.containsKey('categories') && data['categories'] is List) {
-              final List<dynamic> categories = data['categories'];
-              return categories.cast<Map<String, dynamic>>();
+              return mapListFromDynamic(data['categories']);
             } else {
               debugPrint('❌ В объекте data не найден массив categories: $data');
               return [];
@@ -1738,8 +1890,8 @@ class ApiService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
-          final data = jsonResponse['data'] as Map<String, dynamic>;
-          return (data['supercategories'] as List?)?.cast<Map<String, dynamic>>();
+          final data = mapFromDynamic(jsonResponse['data']);
+          return mapListFromDynamic(data['supercategories']).map(_normalizeCategoryNode).toList(growable: false);
         }
         debugPrint('API getSuperCategories error: ${jsonResponse['message']}');
       } else {
@@ -2480,18 +2632,25 @@ class Promotion {
   });
 
   factory Promotion.fromJson(Map<String, dynamic> json) {
+    final startDate = ApiService._parseDateTime(json['start_promotion_date']) ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final endDate = ApiService._parseDateTime(json['end_promotion_date']) ?? startDate;
+
     return Promotion(
-      marketingPromotionId: ApiService._parseInt(json['marketing_promotion_id']),
-      name: json['name'],
-      startPromotionDate: DateTime.parse(json['start_promotion_date']),
-      endPromotionDate: DateTime.parse(json['end_promotion_date']),
-      businessId: ApiService._parseInt(json['business_id']),
-      cover: json['cover'],
-      visible: ApiService._parseInt(json['visible']),
-      isActive: json['is_active'],
-      business: json['business'] != null ? Business.fromJson(json['business']) : null,
-      details: (json['details'] as List? ?? []).map((detail) => PromotionDetail.fromJson(detail)).toList(),
-      stories: json['stories'] != null ? (json['stories'] as List).map((story) => PromotionStory.fromJson(story)).toList() : null,
+      marketingPromotionId: ApiService._parseInt(
+        json['marketing_promotion_id'] ?? json['promotion_id'] ?? json['id'],
+      ),
+      name: ApiService._parseString(json['name']),
+      startPromotionDate: startDate,
+      endPromotionDate: endDate,
+      businessId: ApiService._parseInt(json['business_id'] ?? json['businessId']),
+      cover: ApiService._parseString(json['cover']),
+      visible: ApiService._parseInt(json['visible'], defaultValue: 1),
+      isActive: json.containsKey('is_active') ? ApiService._parseBool(json['is_active']) : null,
+      business: ApiService._asMap(json['business']) != null ? Business.fromJson(ApiService.mapFromDynamic(json['business'])) : null,
+      details: ApiService.mapListFromDynamic(json['details']).map(PromotionDetail.fromJson).toList(growable: false),
+      stories: ApiService.mapListFromDynamic(json['stories']).isEmpty
+          ? null
+          : ApiService.mapListFromDynamic(json['stories']).map(PromotionStory.fromJson).toList(growable: false),
       itemsCount: ApiService._parseInt(json['items_count']),
       daysLeft: ApiService._parseInt(json['days_left']),
     );
@@ -2545,14 +2704,14 @@ class PromotionDetail {
 
   factory PromotionDetail.fromJson(Map<String, dynamic> json) {
     return PromotionDetail(
-      detailId: ApiService._parseInt(json['detail_id']),
-      type: json['type'] ?? '',
+      detailId: ApiService._parseInt(json['detail_id'] ?? json['promotion_detail_id']),
+      type: ApiService._parseString(json['type']) ?? '',
       baseAmount: json['base_amount'] != null ? ApiService._parseInt(json['base_amount']) : null,
       addAmount: json['add_amount'] != null ? ApiService._parseInt(json['add_amount']) : null,
       discount: ApiService._parseDouble(json['discount']),
       itemId: ApiService._parseInt(json['item_id']),
-      name: json['name'] ?? '',
-      item: json['item'] != null ? Item.fromJson(json['item']) : null,
+      name: ApiService._parseString(json['name']) ?? '',
+      item: ApiService._asMap(json['item']) != null ? Item.fromJson(ApiService.mapFromDynamic(json['item'])) : null,
     );
   }
 
@@ -2592,9 +2751,9 @@ class PromotionStory {
   factory PromotionStory.fromJson(Map<String, dynamic> json) {
     return PromotionStory(
       storyId: ApiService._parseInt(json['story_id']),
-      cover: json['cover'] ?? '',
+      cover: ApiService._parseString(json['cover']) ?? '',
       marketingPromotionId: ApiService._parseInt(json['marketing_promotion_id']),
-      promo: json['promo'] ?? '',
+      promo: ApiService._parseString(json['promo']) ?? '',
     );
   }
 
@@ -2666,17 +2825,19 @@ class Item {
   });
 
   factory Item.fromJson(Map<String, dynamic> json) {
+    final options = ApiService.mapListFromDynamic(json['options']).map(ItemOption.fromJson).toList(growable: false);
+
     return Item(
-      itemId: ApiService._parseInt(json['item_id']),
-      name: json['name'] ?? '',
+      itemId: ApiService._parseInt(json['item_id'] ?? json['id']),
+      name: ApiService._parseString(json['name']) ?? '',
       price: ApiService._parseDouble(json['price']) ?? 0.0,
-      image: json['image'],
-      description: json['description'],
-      categoryId: ApiService._parseInt(json['category_id']),
-      businessId: ApiService._parseInt(json['business_id']),
+      image: ApiService._parseString(json['image']) ?? ApiService._parseString(json['img']),
+      description: ApiService._parseString(json['description']),
+      categoryId: ApiService._parseInt(json['category_id'] ?? json['categoryId']),
+      businessId: ApiService._parseInt(json['business_id'] ?? json['businessId']),
       amount: ApiService._parseInt(json['amount']),
-      isLiked: json['is_liked'] ?? false, // По умолчанию не лайкнут
-      options: json['options'] != null ? (json['options'] as List).map((option) => ItemOption.fromJson(option)).toList() : null,
+      isLiked: ApiService._parseBool(json['is_liked']),
+      options: options.isEmpty ? null : options,
     );
   }
 
@@ -2717,12 +2878,16 @@ class ItemOption {
   });
 
   factory ItemOption.fromJson(Map<String, dynamic> json) {
+    final optionItems = ApiService.mapListFromDynamic(
+      json['option_items'] ?? json['variants'],
+    ).map(ItemOptionItem.fromJson).toList(growable: false);
+
     return ItemOption(
       optionId: ApiService._parseInt(json['option_id']),
-      name: json['name'] ?? '',
+      name: ApiService._parseString(json['name']) ?? '',
       required: ApiService._parseInt(json['required']),
-      selection: json['selection'] ?? '',
-      optionItems: (json['option_items'] as List? ?? []).map((item) => ItemOptionItem.fromJson(item)).toList(),
+      selection: ApiService._parseString(json['selection']) ?? '',
+      optionItems: optionItems,
     );
   }
 
@@ -2765,8 +2930,8 @@ class ItemOptionItem {
     return ItemOptionItem(
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
-      priceType: json['price_type'] ?? '',
-      itemName: json['item_name'] ?? '',
+      priceType: ApiService._parseString(json['price_type']) ?? '',
+      itemName: ApiService._parseString(json['item_name'] ?? json['name']) ?? '',
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseInt(json['parent_item_amount']),
     );
@@ -2805,12 +2970,15 @@ class Category {
   });
 
   factory Category.fromJson(Map<String, dynamic> json) {
+    final subcategories = ApiService.mapListFromDynamic(json['subcategories']).map(Category.fromJson).toList(growable: false);
+
     return Category(
-      categoryId: ApiService._parseInt(json['category_id']),
-      name: json['name'] ?? '',
-      parentId: json['parent_id'] != null ? ApiService._parseInt(json['parent_id']) : null,
+      categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
+      name: ApiService._parseString(json['name']) ?? '',
+      parentId:
+          json['parent_id'] != null || json['parent_category'] != null ? ApiService._parseInt(json['parent_id'] ?? json['parent_category']) : null,
       itemsCount: ApiService._parseInt(json['items_count']),
-      subcategories: (json['subcategories'] as List? ?? []).map((subcategory) => Category.fromJson(subcategory)).toList(),
+      subcategories: subcategories,
     );
   }
 
@@ -2887,9 +3055,9 @@ class CategoryItemsResponse {
 
   factory CategoryItemsResponse.fromJson(Map<String, dynamic> json) {
     return CategoryItemsResponse(
-      success: json['success'] ?? false,
-      data: CategoryItemsData.fromJson(json['data'] ?? {}),
-      message: json['message'],
+      success: ApiService._parseBool(json['success']),
+      data: CategoryItemsData.fromJson(ApiService.mapFromDynamic(json['data'])),
+      message: ApiService._parseString(json['message']),
     );
   }
 
@@ -2927,11 +3095,11 @@ class CategoryItemsData {
 
   factory CategoryItemsData.fromJson(Map<String, dynamic> json) {
     return CategoryItemsData(
-      category: CategoryInfo.fromJson(json['category'] ?? {}),
-      business: BusinessInfo.fromJson(json['business'] ?? {}),
-      items: (json['items'] as List? ?? []).map((item) => CategoryItem.fromJson(item)).toList(),
-      pagination: PaginationInfo.fromJson(json['pagination'] ?? {}),
-      categoriesIncluded: (json['categories_included'] as List? ?? []).map((id) => ApiService._parseInt(id)).toList(),
+      category: CategoryInfo.fromJson(ApiService.mapFromDynamic(json['category'])),
+      business: BusinessInfo.fromJson(ApiService.mapFromDynamic(json['business'])),
+      items: ApiService.mapListFromDynamic(json['items']).map(CategoryItem.fromJson).toList(growable: false),
+      pagination: PaginationInfo.fromJson(ApiService.mapFromDynamic(json['pagination'])),
+      categoriesIncluded: ApiService._parseIntList(json['categories_included']),
       subcategoriesCount: ApiService._parseInt(json['subcategories_count']),
     );
   }
@@ -2969,10 +3137,10 @@ class CategoryInfo {
 
   factory CategoryInfo.fromJson(Map<String, dynamic> json) {
     return CategoryInfo(
-      categoryId: ApiService._parseInt(json['category_id']),
-      name: json['name'] ?? '',
-      photo: json['photo'],
-      img: json['img'],
+      categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
+      name: ApiService._parseString(json['name']) ?? '',
+      photo: ApiService._parseString(json['photo']),
+      img: ApiService._parseString(json['img']) ?? ApiService._parseString(json['image']),
     );
   }
 
@@ -3005,9 +3173,9 @@ class BusinessInfo {
 
   factory BusinessInfo.fromJson(Map<String, dynamic> json) {
     return BusinessInfo(
-      businessId: ApiService._parseInt(json['business_id']),
-      name: json['name'] ?? '',
-      address: json['address'],
+      businessId: ApiService._parseInt(json['business_id'] ?? json['id']),
+      name: ApiService._parseString(json['name']) ?? '',
+      address: ApiService._parseString(json['address']),
     );
   }
 
@@ -3060,23 +3228,31 @@ class CategoryItem {
   });
 
   factory CategoryItem.fromJson(Map<String, dynamic> json) {
+    final categoryData = ApiService._asMap(json['category']) ??
+        <String, dynamic>{
+          'category_id': json['category_id'] ?? json['categoryId'],
+          'name': ApiService._parseString(json['category_name'] ?? json['category']) ?? '',
+          'parent_category': json['parent_category'] ?? json['parent_id'],
+        };
+    final options = ApiService.mapListFromDynamic(json['options']).map(CategoryItemOption.fromJson).toList(growable: false);
+    final promotions = ApiService.mapListFromDynamic(json['promotions']).map(CategoryItemPromotion.fromJson).toList(growable: false);
+
     return CategoryItem(
-      itemId: ApiService._parseInt(json['item_id']),
-      name: json['name'] ?? '',
-      description: json['description'],
+      itemId: ApiService._parseInt(json['item_id'] ?? json['id']),
+      name: ApiService._parseString(json['name']) ?? '',
+      description: ApiService._parseString(json['description']),
       price: ApiService._parseDouble(json['price']) ?? 0.0,
-      img: json['img'],
-      code: json['code'],
-      category: ItemCategory.fromJson(json['category'] ?? {}),
-      visible: ApiService._parseInt(json['visible']),
-      unit: json['unit'] ?? json['unit_name'] ?? json['measure'],
+      img: ApiService._parseString(json['img']) ?? ApiService._parseString(json['image']),
+      code: ApiService._parseString(json['code']),
+      category: ItemCategory.fromJson(categoryData),
+      visible: ApiService._parseInt(json['visible'], defaultValue: 1),
+      unit: ApiService._parseString(json['unit'] ?? json['unit_name'] ?? json['measure']),
       quantity: ApiService._parseDouble(json['quantity']) ?? ApiService._parseDouble(json['parent_item_amount']),
       stepQuantity: ApiService._parseDouble(json['quantity_step']) ??
           ApiService._parseDouble(json['step_quantity']) ??
           ApiService._parseDouble(json['parent_item_amount']),
-      options: json['options'] != null ? (json['options'] as List).map((option) => CategoryItemOption.fromJson(option)).toList() : null,
-      promotions:
-          json['promotions'] != null ? (json['promotions'] as List).map((promotion) => CategoryItemPromotion.fromJson(promotion)).toList() : null,
+      options: options.isEmpty ? null : options,
+      promotions: promotions.isEmpty ? null : promotions,
       amount: json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
     );
   }
@@ -3129,9 +3305,10 @@ class ItemCategory {
 
   factory ItemCategory.fromJson(Map<String, dynamic> json) {
     return ItemCategory(
-      categoryId: ApiService._parseInt(json['category_id']),
-      name: json['name'] ?? '',
-      parentCategory: json['parent_category'] != null ? ApiService._parseInt(json['parent_category']) : null,
+      categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
+      name: ApiService._parseString(json['name']) ?? '',
+      parentCategory:
+          json['parent_category'] != null || json['parent_id'] != null ? ApiService._parseInt(json['parent_category'] ?? json['parent_id']) : null,
     );
   }
 
@@ -3171,7 +3348,10 @@ class PaginationInfo {
       page: ApiService._parseInt(json['page'], defaultValue: 1),
       limit: ApiService._parseInt(json['limit'], defaultValue: 20),
       total: ApiService._parseInt(json['total']),
-      totalPages: ApiService._parseInt(json['totalPages']),
+      totalPages: ApiService._parseInt(
+        json['totalPages'] ?? json['total_pages'],
+        defaultValue: 1,
+      ),
     );
   }
 
@@ -3221,10 +3401,10 @@ class CategoryItemOption {
   factory CategoryItemOption.fromJson(Map<String, dynamic> json) {
     return CategoryItemOption(
       optionId: ApiService._parseInt(json['option_id']),
-      name: json['name'] ?? '',
-      required: json['required'] == true || json['required'] == 1,
-      selection: json['selection'] ?? 'single',
-      variants: (json['variants'] as List? ?? []).map((variant) => CategoryItemVariant.fromJson(variant)).toList(),
+      name: ApiService._parseString(json['name']) ?? '',
+      required: ApiService._parseBool(json['required']),
+      selection: ApiService._parseString(json['selection']) ?? 'single',
+      variants: ApiService.mapListFromDynamic(json['variants']).map(CategoryItemVariant.fromJson).toList(growable: false),
     );
   }
 
@@ -3266,8 +3446,8 @@ class CategoryItemVariant {
     return CategoryItemVariant(
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
-      priceType: json['price_type'] ?? 'add',
-      itemName: json['item_name'], // может быть null
+      priceType: ApiService._parseString(json['price_type']) ?? 'add',
+      itemName: ApiService._parseString(json['item_name'] ?? json['name']),
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseDouble(json['parent_item_amount']) ?? 0.0,
     );
@@ -3308,13 +3488,17 @@ class CategoryItemPromotion {
   });
 
   factory CategoryItemPromotion.fromJson(Map<String, dynamic> json) {
+    final promotionMeta = ApiService.mapFromDynamic(json['promotion']);
+
     return CategoryItemPromotion(
-      detailId: ApiService._parseInt(json['detail_id']),
-      type: json['type'] ?? '',
-      baseAmount: json['base_amount'] != null ? ApiService._parseInt(json['base_amount']) : null,
-      addAmount: json['add_amount'] != null ? ApiService._parseInt(json['add_amount']) : null,
-      discount: ApiService._parseDouble(json['discount']),
-      name: json['name'] ?? '',
+      detailId: ApiService._parseInt(
+        json['detail_id'] ?? json['promotion_id'] ?? promotionMeta['detail_id'],
+      ),
+      type: ApiService._parseString(json['type'] ?? promotionMeta['type']) ?? '',
+      baseAmount: json['base_amount'] != null || json['baseAmount'] != null ? ApiService._parseInt(json['base_amount'] ?? json['baseAmount']) : null,
+      addAmount: json['add_amount'] != null || json['addAmount'] != null ? ApiService._parseInt(json['add_amount'] ?? json['addAmount']) : null,
+      discount: ApiService._parseDouble(json['discount'] ?? json['discount_value']),
+      name: ApiService._parseString(json['name'] ?? promotionMeta['name']) ?? '',
     );
   }
 

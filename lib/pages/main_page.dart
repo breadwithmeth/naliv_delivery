@@ -638,7 +638,7 @@ class _MainPageState extends State<MainPage> {
         return category;
       }
 
-      final rawSubcategories = (categoryMap['subcategories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+      final rawSubcategories = ApiService.mapListFromDynamic(categoryMap['subcategories']);
       for (final subcategoryMap in rawSubcategories) {
         final subcategory = Category.fromJson(subcategoryMap);
         if (subcategory.categoryId == targetId) {
@@ -657,7 +657,7 @@ class _MainPageState extends State<MainPage> {
         continue;
       }
 
-      final nestedCategoryMaps = (superCategoryMap['categories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+      final nestedCategoryMaps = ApiService.mapListFromDynamic(superCategoryMap['categories']);
       for (final categoryMap in nestedCategoryMaps) {
         final categoryId = _mapIntValue(categoryMap, const <String>['category_id', 'id']);
         if (categoryId != _beerCategoryId) {
@@ -698,7 +698,7 @@ class _MainPageState extends State<MainPage> {
 
     for (final superCategoryMap in _superCategories) {
       final superCategory = Category.fromJson(superCategoryMap);
-      final nestedCategoryMaps = (superCategoryMap['categories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>().toList();
+      final nestedCategoryMaps = ApiService.mapListFromDynamic(superCategoryMap['categories']);
       final nestedCategories = nestedCategoryMaps.map(Category.fromJson).toList();
       final matchingNestedCategories = nestedCategories.where((category) => _draftBeerMatchScore(category.name) > 0).toList();
 
@@ -953,7 +953,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   String? _extractSuperCategoryImage(Map<String, dynamic> superCategory) {
-    final nestedCategories = (superCategory['categories'] as List<dynamic>? ?? const <dynamic>[]).whereType<Map<String, dynamic>>();
+    final nestedCategories = ApiService.mapListFromDynamic(superCategory['categories']);
     for (final category in nestedCategories) {
       final imageUrl = _extractCategoryImage(category);
       if (imageUrl != null) {
@@ -1705,7 +1705,7 @@ class _MainPageState extends State<MainPage> {
 
   Widget _superCategoryTile(Map<String, dynamic> superCat, Map<String, dynamic> style, String? imageUrl) {
     final name = superCat['name']?.toString() ?? 'Раздел';
-    final cats = (superCat['categories'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final cats = ApiService.mapListFromDynamic(superCat['categories']);
     return GestureDetector(
       onTap: () {
         final businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];

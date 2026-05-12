@@ -12,8 +12,10 @@ import '../utils/cart_provider.dart';
 import '../utils/item_name_presentation.dart';
 import '../utils/liked_items_provider.dart';
 import '../utils/liked_storage_service.dart';
+import '../utils/promotion_grouping.dart';
 import '../utils/responsive.dart';
 import '../utils/smart_cart.dart';
+import '../utils/subtract_promotion_math.dart';
 import 'product_detail_page.dart';
 import 'search_page.dart';
 
@@ -280,7 +282,7 @@ class _TapBoardPageState extends State<TapBoardPage> {
   }
 
   bool _hasActivePromotions(item_model.Item item) {
-    return (item.promotions ?? const <item_model.ItemPromotion>[]).any((promotion) => promotion.isActive);
+    return itemHasActivePromotion(item);
   }
 
   bool _isItemAvailable(item_model.Item item) {
@@ -631,12 +633,7 @@ class _TapBoardPageState extends State<TapBoardPage> {
         padding: EdgeInsets.fromLTRB(0, 6.s, 0, 120.s),
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         itemCount: orderedItems.length + (_isLoadingMore ? 1 : 0),
-        separatorBuilder: (_, __) => Divider(
-          color: Colors.white.withValues(alpha: 0.06),
-          height: 1,
-          indent: 14.s,
-          endIndent: 14.s,
-        ),
+        separatorBuilder: (_, index) => _itemSeparator(orderedItems, index),
         itemBuilder: (context, index) {
           if (index == orderedItems.length) {
             return Padding(
@@ -650,6 +647,49 @@ class _TapBoardPageState extends State<TapBoardPage> {
           return _TapBoardItemRow(item: orderedItems[index]);
         },
       ),
+    );
+  }
+
+  Widget _itemSeparator(List<item_model.Item> orderedItems, int index) {
+    if (hasPromotionBoundaryAfter(orderedItems, index)) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(14.s, 12.s, 14.s, 12.s),
+        child: Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color: AppColors.orange.withValues(alpha: 0.38),
+                height: 1,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10.s),
+              child: Text(
+                'Выгодные предложения выше',
+                style: TextStyle(
+                  color: AppColors.orange.withValues(alpha: 0.88),
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: Colors.white.withValues(alpha: 0.1),
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Divider(
+      color: Colors.white.withValues(alpha: 0.06),
+      height: 1,
+      indent: 14.s,
+      endIndent: 14.s,
     );
   }
 
@@ -759,12 +799,63 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
 
   void _incrementCatalogItem(CartProvider cartProvider, item_model.Item item) {
     _armCartMotion();
-    cartProvider.incrementCatalogItem(item);
+    final selection = SmartCartSelection(item);
+    final currentQuantity = cartProvider.getCatalogQuantity(item);
+    final nextQuantity = _nextCatalogQuantity(item, selection, currentQuantity, direction: 1);
+    if (nextQuantity <= currentQuantity + subtractPromotionEpsilon) {
+      return;
+    }
+    if (item.amount != null && nextQuantity > item.amount!.toDouble() + subtractPromotionEpsilon) {
+      return;
+    }
+
+    cartProvider.syncItemSelectionQuantity(item, selection.defaultNonBottleVariants, nextQuantity);
   }
 
   void _decrementCatalogItem(CartProvider cartProvider, item_model.Item item) {
     _armCartMotion();
-    cartProvider.decrementCatalogItem(item);
+    final selection = SmartCartSelection(item);
+    final currentQuantity = cartProvider.getCatalogQuantity(item);
+    if (currentQuantity <= subtractPromotionEpsilon) {
+      return;
+    }
+
+    final nextQuantity = _nextCatalogQuantity(item, selection, currentQuantity, direction: -1);
+    cartProvider.syncItemSelectionQuantity(item, selection.defaultNonBottleVariants, nextQuantity);
+  }
+
+  double _nextCatalogQuantity(
+    item_model.Item item,
+    SmartCartSelection selection,
+    double currentQuantity, {
+    required int direction,
+  }) {
+    final promoTarget = subtractPromotionBundleTargetQuantity(
+      currentQuantity,
+      _activeSubtractPromotionMaps(item),
+      direction: direction,
+    );
+    if (promoTarget != null) {
+      return promoTarget;
+    }
+
+    return selection.clampQuantity(currentQuantity + (selection.defaultStepQuantity * direction));
+  }
+
+  List<Map<String, dynamic>> _activeSubtractPromotionMaps(item_model.Item item) {
+    return _subtractPromotions(_activePromotions(item)).map((promotion) => promotion.toJson()).toList(growable: false);
+  }
+
+  String _catalogQuantityLabel(item_model.Item item, double quantity) {
+    return subtractPromotionBundleLabel(
+      quantity,
+      _activeSubtractPromotionMaps(item),
+      formatQuantity: _formatQty,
+    );
+  }
+
+  static String _formatQty(double quantity) {
+    return (quantity - quantity.roundToDouble()).abs() < 0.001 ? quantity.toStringAsFixed(0) : quantity.toStringAsFixed(2);
   }
 
   @override
@@ -938,7 +1029,7 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
                         ),
                         SizedBox(width: 8.s),
                         SizedBox(
-                          width: 104.s,
+                          width: 128.s,
                           child: _cartSection(item),
                         ),
                       ],
@@ -1228,14 +1319,17 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
         final totalQuantity = cartProvider.getCatalogQuantity(item);
         final num? maxAmount = item.amount;
         final selection = SmartCartSelection(item);
+        final nextQuantity = _nextCatalogQuantity(item, selection, totalQuantity, direction: 1);
+        final previousQuantity = totalQuantity > subtractPromotionEpsilon ? _nextCatalogQuantity(item, selection, totalQuantity, direction: -1) : 0.0;
         final bool canDecrease = totalQuantity > 0;
-        final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
-        final bool decrementRemovesItem = canDecrease && totalQuantity <= selection.defaultStepQuantity + 0.001;
+        final bool canIncrease = nextQuantity > totalQuantity + subtractPromotionEpsilon &&
+            (maxAmount == null || nextQuantity <= maxAmount.toDouble() + subtractPromotionEpsilon);
+        final bool decrementRemovesItem = canDecrease && previousQuantity <= subtractPromotionEpsilon;
 
         return _quantityControls(
           item,
           cartProvider,
-          totalQuantity,
+          _catalogQuantityLabel(item, totalQuantity),
           canDecrease,
           canIncrease,
           decrementRemovesItem,
@@ -1248,13 +1342,12 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
   Widget _quantityControls(
     item_model.Item item,
     CartProvider cartProvider,
-    double totalQuantity,
+    String quantityLabel,
     bool canDecrease,
     bool canIncrease,
     bool decrementRemovesItem,
     bool animate,
   ) {
-    final quantityLabel = totalQuantity == totalQuantity.roundToDouble() ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2);
     final shellDuration = animate ? const Duration(milliseconds: 220) : Duration.zero;
     final valueDuration = animate ? const Duration(milliseconds: 170) : Duration.zero;
     final buttonSize = 32.s;
@@ -1320,10 +1413,16 @@ class _TapBoardItemRowState extends State<_TapBoardItemRow> {
                             child: SlideTransition(position: offset, child: child),
                           );
                         },
-                        child: Text(
-                          canDecrease ? quantityLabel : '',
-                          key: ValueKey(canDecrease ? quantityLabel : 'empty'),
-                          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w800, color: AppColors.orange),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4.s),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              canDecrease ? quantityLabel : '',
+                              key: ValueKey(canDecrease ? quantityLabel : 'empty'),
+                              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w800, color: AppColors.orange),
+                            ),
+                          ),
                         ),
                       ),
                     ),

@@ -55,24 +55,27 @@ class Item {
   factory Item.fromJson(Map<String, dynamic> json) {
     final stepQuantityValue = _parseDouble(json['step_quantity']) ?? _parseDouble(json['quantity_step']) ?? _parseDouble(json['parent_item_amount']);
     final quantityValue = _parseDouble(json['quantity']) ?? _parseDouble(json['parent_item_amount']);
+    final categoryData = _asMap(json['category']);
+    final options = _mapListFromDynamic(json['options']).map(ItemOption.fromJson).toList(growable: false);
+    final promotions = _mapListFromDynamic(json['promotions']).map(ItemPromotion.fromJson).toList(growable: false);
 
     return Item(
-      itemId: _parseInt(json['item_id']),
-      name: json['name'] ?? '',
-      description: json['description'],
+      itemId: _parseInt(json['item_id'] ?? json['id']),
+      name: _parseString(json['name']) ?? '',
+      description: _parseString(json['description']),
       price: _parseDouble(json['price']) ?? 0.0,
-      image: json['image'] ?? json['img'], // Поддержка обоих вариантов
-      code: json['code'],
-      unit: json['unit'] ?? json['unit_name'] ?? json['measure'],
+      image: _parseString(json['image']) ?? _parseString(json['img']), // Поддержка обоих вариантов
+      code: _parseString(json['code']),
+      unit: _parseString(json['unit'] ?? json['unit_name'] ?? json['measure']),
       quantity: quantityValue,
-      categoryId: _parseInt(json['category_id']),
-      category: json['category'] != null ? ItemCategory.fromJson(json['category']) : null,
-      businessId: _parseInt(json['business_id']),
-      visible: _parseInt(json['visible']),
+      categoryId: _parseInt(json['category_id'] ?? json['categoryId']),
+      category: categoryData != null ? ItemCategory.fromJson(categoryData) : null,
+      businessId: _parseInt(json['business_id'] ?? json['businessId']),
+      visible: json['visible'] != null ? _parseInt(json['visible']) : null,
       amount: _parseDouble(json['amount']),
       stepQuantity: stepQuantityValue,
-      options: json['options'] != null ? (json['options'] as List).map((option) => ItemOption.fromJson(option)).toList() : null,
-      promotions: json['promotions'] != null ? (json['promotions'] as List).map((promotion) => ItemPromotion.fromJson(promotion)).toList() : null,
+      options: options.isEmpty ? null : options,
+      promotions: promotions.isEmpty ? null : promotions,
     );
   }
 
@@ -93,7 +96,7 @@ class Item {
     if (stepQuantity == null && categoryItem.options != null && categoryItem.options!.isNotEmpty) {
       final firstOption = categoryItem.options!.first;
       if (firstOption.variants != null && firstOption.variants!.isNotEmpty) {
-        stepQuantity = firstOption.variants!.first.parentItemAmount.toDouble();
+        stepQuantity = _parseDouble(firstOption.variants!.first.parentItemAmount);
       }
     }
 
@@ -225,16 +228,58 @@ class Item {
 
   // Utility functions
   static int _parseInt(dynamic value) {
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
+    if (value is bool) return value ? 1 : 0;
+    if (value is num) return value.toInt();
+
+    final normalized = _parseString(value);
+    if (normalized == null) return 0;
+
+    final compact = normalized.replaceAll(' ', '').replaceAll(',', '.');
+    return int.tryParse(compact) ?? double.tryParse(compact)?.toInt() ?? 0;
+  }
+
+  static String? _parseString(dynamic value, {bool allowEmpty = false}) {
+    if (value == null) return null;
+
+    final normalized = value.toString().trim();
+    if (!allowEmpty && (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  static Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map(
+        (key, entryValue) => MapEntry(key.toString(), entryValue),
+      );
+    }
+    return null;
+  }
+
+  static List<dynamic> _asList(dynamic value) {
+    if (value is List) return value;
+    if (value is Map) return <dynamic>[value];
+    return const <dynamic>[];
+  }
+
+  static List<Map<String, dynamic>> _mapListFromDynamic(dynamic value) {
+    return _asList(value).map(_asMap).whereType<Map<String, dynamic>>().toList(growable: false);
   }
 
   static double? _parseDouble(dynamic value) {
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
-    return null;
+    if (value is num) return value.toDouble();
+
+    final normalized = _parseString(value);
+    if (normalized == null) return null;
+
+    return double.tryParse(
+      normalized.replaceAll(' ', '').replaceAll(',', '.'),
+    );
   }
 }
 
@@ -257,12 +302,14 @@ class ItemCategory {
   });
 
   factory ItemCategory.fromJson(Map<String, dynamic> json) {
+    final subcategories = Item._mapListFromDynamic(json['subcategories']).map(ItemCategory.fromJson).toList(growable: false);
+
     return ItemCategory(
-      categoryId: Item._parseInt(json['category_id']),
-      name: json['name'] ?? '',
-      parentId: Item._parseInt(json['parent_id'] ?? json['parent_category']),
+      categoryId: Item._parseInt(json['category_id'] ?? json['id']),
+      name: Item._parseString(json['name']) ?? '',
+      parentId: json['parent_id'] != null || json['parent_category'] != null ? Item._parseInt(json['parent_id'] ?? json['parent_category']) : null,
       itemsCount: Item._parseInt(json['items_count']),
-      subcategories: json['subcategories'] != null ? (json['subcategories'] as List).map((cat) => ItemCategory.fromJson(cat)).toList() : null,
+      subcategories: subcategories.isEmpty ? null : subcategories,
     );
   }
 
@@ -314,14 +361,16 @@ class ItemOption {
   });
 
   factory ItemOption.fromJson(Map<String, dynamic> json) {
-    final optionItemsJson = (json['option_items'] as List?) ?? (json['variants'] as List?) ?? const <dynamic>[];
+    final optionItemsJson = Item._mapListFromDynamic(
+      json['option_items'] ?? json['variants'],
+    );
 
     return ItemOption(
       optionId: Item._parseInt(json['option_id']),
-      name: json['name'] ?? '',
+      name: Item._parseString(json['name']) ?? '',
       required: Item._parseInt(json['required']),
-      selection: json['selection'] ?? '',
-      optionItems: optionItemsJson.map((item) => ItemOptionItem.fromJson(item as Map<String, dynamic>)).toList(),
+      selection: Item._parseString(json['selection']) ?? '',
+      optionItems: optionItemsJson.map(ItemOptionItem.fromJson).toList(growable: false),
     );
   }
 
@@ -380,8 +429,8 @@ class ItemOptionItem {
     return ItemOptionItem(
       relationId: Item._parseInt(json['relation_id']),
       itemId: Item._parseInt(json['item_id']),
-      priceType: json['price_type'] ?? '',
-      itemName: json['item_name'] ?? json['name'] ?? '', // Добавлено поле для имени товара
+      priceType: Item._parseString(json['price_type']) ?? '',
+      itemName: Item._parseString(json['item_name'] ?? json['name']) ?? '', // Добавлено поле для имени товара
       price: Item._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: Item._parseDouble(json['parent_item_amount']) ?? 0.0,
     );
@@ -444,21 +493,21 @@ class ItemPromotion {
   });
 
   factory ItemPromotion.fromJson(Map<String, dynamic> json) {
-    final rawType = json['discount_type'] ?? json['type'] ?? '';
+    final rawType = Item._parseString(json['discount_type'] ?? json['type']) ?? '';
     final rawValue = Item._parseDouble(json['discount_value']) ?? Item._parseDouble(json['discount']) ?? 0.0;
     // Map API "DISCOUNT" type to internal "PERCENT"
     final mappedType = rawType == 'DISCOUNT' ? 'PERCENT' : rawType;
 
     return ItemPromotion(
       promotionId: Item._parseInt(json['promotion_id'] ?? json['detail_id']),
-      name: json['name'] ?? '',
-      description: json['description'],
+      name: Item._parseString(json['name']) ?? '',
+      description: Item._parseString(json['description']),
       discountType: mappedType,
       discountValue: rawValue,
       baseAmount: Item._parseInt(json['base_amount'] ?? json['baseAmount']),
       addAmount: Item._parseInt(json['add_amount'] ?? json['addAmount']),
-      startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date']) : null,
-      endDate: json['end_date'] != null ? DateTime.tryParse(json['end_date']) : null,
+      startDate: DateTime.tryParse(Item._parseString(json['start_date']) ?? ''),
+      endDate: DateTime.tryParse(Item._parseString(json['end_date']) ?? ''),
     );
   }
 
@@ -565,10 +614,10 @@ class ItemVariant {
   factory ItemVariant.fromJson(Map<String, dynamic> json) {
     return ItemVariant(
       variantId: Item._parseInt(json['variant_id']),
-      name: json['name'] ?? '',
+      name: Item._parseString(json['name']) ?? '',
       priceModifier: Item._parseDouble(json['price_modifier']),
-      image: json['image'],
-      attributes: json['attributes'],
+      image: Item._parseString(json['image']),
+      attributes: Item._asMap(json['attributes']),
     );
   }
 
