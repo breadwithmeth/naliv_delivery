@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class AddCardWebViewPage extends StatefulWidget {
@@ -13,14 +16,29 @@ class AddCardWebViewPage extends StatefulWidget {
 }
 
 class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   String? _currentUrl;
+
+  bool get _isWeb => kIsWeb;
+  Uri? get _initialUri => Uri.tryParse(widget.initialUrl);
 
   @override
   void initState() {
     super.initState();
     _currentUrl = widget.initialUrl;
+
+    if (_isWeb) {
+      _isLoading = false;
+      return;
+    }
+
+    final uri = _initialUri;
+    if (uri == null) {
+      _isLoading = false;
+      return;
+    }
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
@@ -48,12 +66,34 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(widget.initialUrl));
+      ..loadRequest(uri);
   }
 
   Future<void> _closeAndRefresh() async {
     if (!mounted) return;
     Navigator.of(context).pop(true);
+  }
+
+  Future<void> _openInBrowser() async {
+    final uri = _initialUri;
+    if (uri == null) return;
+
+    final launched = await launchUrl(
+      uri,
+      mode: _isWeb
+          ? LaunchMode.platformDefault
+          : defaultTargetPlatform == TargetPlatform.iOS
+              ? LaunchMode.inAppWebView
+              : LaunchMode.externalApplication,
+    );
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось открыть ссылку. Попробуйте еще раз.'),
+        ),
+      );
+    }
   }
 
   String _hostLabel() {
@@ -82,11 +122,18 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
         title: const Text('Добавление карты',
             style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
-          IconButton(
-            tooltip: 'Обновить',
-            onPressed: () => _controller.reload(),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
+          if (!_isWeb)
+            IconButton(
+              tooltip: 'Обновить',
+              onPressed: () => _controller?.reload(),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          if (_isWeb)
+            IconButton(
+              tooltip: 'Открыть в браузере',
+              onPressed: _openInBrowser,
+              icon: const Icon(Icons.open_in_browser_rounded),
+            ),
           IconButton(
             tooltip: 'Закрыть',
             onPressed: _closeAndRefresh,
@@ -141,7 +188,109 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                         child: Stack(
                           children: [
                             Positioned.fill(
-                              child: WebViewWidget(controller: _controller),
+                              child: _isWeb
+                                  ? Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 24.s),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.warning_amber_rounded,
+                                              size: 52,
+                                              color: AppColors.orange,
+                                            ),
+                                            SizedBox(height: 12.s),
+                                            Text(
+                                              'Веб-просмотр недоступен в браузере. Откройте форму банка во внешней вкладке.',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: AppColors.text,
+                                                fontSize: 14.sp,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            SizedBox(height: 16.s),
+                                            ElevatedButton(
+                                              onPressed: _openInBrowser,
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.orange,
+                                                foregroundColor: Colors.black,
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 14.s,
+                                                    horizontal: 24.s),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          18.s),
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                  'Открыть в браузере',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  : _controller != null
+                                      ? WebViewWidget(controller: _controller!)
+                                      : Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 24.s),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.error_outline,
+                                                  size: 52,
+                                                  color: AppColors.orange,
+                                                ),
+                                                SizedBox(height: 12.s),
+                                                Text(
+                                                  'Не удалось загрузить страницу. Попробуйте еще раз или откройте ссылку во внешнем браузере.',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: AppColors.text,
+                                                    fontSize: 14.sp,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 16.s),
+                                                ElevatedButton(
+                                                  onPressed: _openInBrowser,
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        AppColors.orange,
+                                                    foregroundColor:
+                                                        Colors.black,
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 14.s,
+                                                            horizontal: 24.s),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              18.s),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                      'Открыть в браузере',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w800)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                             ),
                             if (_isLoading)
                               Positioned.fill(
@@ -164,7 +313,7 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _closeAndRefresh,
+                      onPressed: _isWeb ? _openInBrowser : _closeAndRefresh,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.orange,
                         foregroundColor: Colors.black,
@@ -172,8 +321,12 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18.s)),
                       ),
-                      child: const Text('Готово, обновить карты',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
+                      child: Text(
+                        _isWeb
+                            ? 'Открыть в браузере'
+                            : 'Готово, обновить карты',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                 ),

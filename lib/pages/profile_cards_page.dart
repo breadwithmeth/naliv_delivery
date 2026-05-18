@@ -14,7 +14,8 @@ class ProfileCardsPage extends StatefulWidget {
   State<ProfileCardsPage> createState() => _ProfileCardsPageState();
 }
 
-class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBindingObserver {
+class _ProfileCardsPageState extends State<ProfileCardsPage>
+    with WidgetsBindingObserver {
   static const String _webAddCardWindowName = 'gradusy24_add_card';
 
   bool _isLoading = true;
@@ -46,7 +47,8 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
     }
   }
 
-  Future<void> _load({bool showRefreshFeedback = false, int? previousCount}) async {
+  Future<void> _load(
+      {bool showRefreshFeedback = false, int? previousCount}) async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -54,7 +56,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
 
     try {
       final data = await ApiService.getFullInfo();
-      final cards = (data?['cards'] as List<dynamic>? ?? <dynamic>[]).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final cards = (data?['cards'] as List<dynamic>? ?? <dynamic>[])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
       if (!mounted) return;
       setState(() {
         _cards = cards;
@@ -63,7 +67,8 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
       if (showRefreshFeedback) {
         final previous = previousCount ?? 0;
         if (_cards.length > previous) {
-          _setCardFeedback('Новая карта сохранена и готова к оплате.', _ProfileCardFeedbackTone.success);
+          _setCardFeedback('Новая карта сохранена и готова к оплате.',
+              _ProfileCardFeedbackTone.success);
         } else {
           _setCardFeedback(
             'Мы обновили список карт. Если новая карта еще не появилась, завершите привязку в форме банка и попробуйте обновить список снова.',
@@ -108,18 +113,22 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
     final link = result.link!;
     final uri = Uri.tryParse(link);
     if (uri == null) {
-      _setCardFeedback('Получена некорректная ссылка для добавления карты. Попробуйте еще раз.', _ProfileCardFeedbackTone.error);
+      _setCardFeedback(
+          'Получена некорректная ссылка для добавления карты. Попробуйте еще раз.',
+          _ProfileCardFeedbackTone.error);
       return;
     }
 
     if (_supportsEmbeddedCardFlow) {
       if (!mounted) return;
-      _setCardFeedback('Открываем защищенную форму банка для привязки карты.', _ProfileCardFeedbackTone.info);
+      _setCardFeedback('Открываем защищенную форму банка для привязки карты.',
+          _ProfileCardFeedbackTone.info);
       final shouldRefresh = await Navigator.of(context).push<bool>(
         MaterialPageRoute(builder: (_) => AddCardWebViewPage(initialUrl: link)),
       );
       if (shouldRefresh == true && mounted) {
-        await _load(showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
+        await _load(
+            showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
       }
       return;
     }
@@ -138,18 +147,25 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
         return;
       }
 
-      _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _ProfileCardFeedbackTone.error);
+      _setCardFeedback('Не удалось открыть форму банка для привязки карты.',
+          _ProfileCardFeedbackTone.error);
       return;
     }
 
     if (await canLaunchUrl(uri)) {
       _awaitingCardAdd = true;
-      _setCardFeedback('Открываем форму банка. После возвращения список карт обновится автоматически.', _ProfileCardFeedbackTone.info);
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      _setCardFeedback(
+          'Открываем форму банка. После возвращения список карт обновится автоматически.',
+          _ProfileCardFeedbackTone.info);
+      final mode = defaultTargetPlatform == TargetPlatform.iOS
+          ? LaunchMode.inAppWebView
+          : LaunchMode.externalApplication;
+      await launchUrl(uri, mode: mode);
       return;
     }
 
-    _setCardFeedback('Не удалось открыть форму банка для привязки карты.', _ProfileCardFeedbackTone.error);
+    _setCardFeedback('Не удалось открыть форму банка для привязки карты.',
+        _ProfileCardFeedbackTone.error);
   }
 
   Future<String?> _reserveWebAddCardWindow() async {
@@ -176,9 +192,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-      case TargetPlatform.iOS:
       case TargetPlatform.macOS:
         return true;
+      case TargetPlatform.iOS:
       case TargetPlatform.fuchsia:
       case TargetPlatform.linux:
       case TargetPlatform.windows:
@@ -199,7 +215,8 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
-    const scrollPhysics = AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics());
+    const scrollPhysics =
+        AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics());
 
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
@@ -207,7 +224,8 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.text,
-        title: const Text('Мои карты', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Мои карты',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         scrolledUnderElevation: 0,
       ),
       body: Stack(
@@ -224,7 +242,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
                       SizedBox(
                         height: 520,
                         child: Center(
-                          child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
+                          child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation(AppColors.orange)),
                         ),
                       ),
                     ],
@@ -245,8 +265,10 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
                           )
                         : ListView.builder(
                             physics: scrollPhysics,
-                            padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 24.s),
-                            itemCount: _revealedCount.clamp(0, _cards.length) + (_cardFeedback != null ? 2 : 1),
+                            padding:
+                                EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 24.s),
+                            itemCount: _revealedCount.clamp(0, _cards.length) +
+                                (_cardFeedback != null ? 2 : 1),
                             itemBuilder: (_, i) {
                               if (i == 0 && _cardFeedback != null) {
                                 return Padding(
@@ -256,7 +278,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
                               }
 
                               final offset = _cardFeedback != null ? 1 : 0;
-                              if (i == offset + _revealedCount.clamp(0, _cards.length)) {
+                              if (i ==
+                                  offset +
+                                      _revealedCount.clamp(0, _cards.length)) {
                                 return _addCardButton();
                               }
 
@@ -274,7 +298,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
   }
 
   Widget _animatedCardTile(Map<String, dynamic> card) {
-    final id = card['id']?.toString() ?? card['mask']?.toString() ?? card.hashCode.toString();
+    final id = card['id']?.toString() ??
+        card['mask']?.toString() ??
+        card.hashCode.toString();
     return TweenAnimationBuilder<double>(
       key: ValueKey('card_$id'),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -292,7 +318,9 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
 
   Widget _cardTile(Map<String, dynamic> card) {
     final mask = card['mask']?.toString() ?? '••••';
-    final brand = card['brand']?.toString() ?? card['payment_system']?.toString() ?? 'Карта';
+    final brand = card['brand']?.toString() ??
+        card['payment_system']?.toString() ??
+        'Карта';
 
     return Container(
       margin: EdgeInsets.only(bottom: 10.s),
@@ -310,9 +338,16 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(mask, style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900)),
+                Text(mask,
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w900)),
                 SizedBox(height: 4.s),
-                Text(brand, style: const TextStyle(color: AppColors.textMute, fontWeight: FontWeight.w700)),
+                Text(brand,
+                    style: const TextStyle(
+                        color: AppColors.textMute,
+                        fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -328,9 +363,12 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.credit_card_off_outlined, color: AppColors.textMute, size: 48),
+            const Icon(Icons.credit_card_off_outlined,
+                color: AppColors.textMute, size: 48),
             const SizedBox(height: 12),
-            const Text('Добавленных карт нет', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+            const Text('Добавленных карт нет',
+                style: TextStyle(
+                    color: AppColors.text, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             const Text(
               'Добавьте карту в защищенной форме банка, и она появится здесь после обновления списка.',
@@ -352,11 +390,14 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
   Widget _addCardButton({bool expanded = true}) {
     final button = OutlinedButton.icon(
       icon: const Icon(Icons.add, color: AppColors.orange),
-      label: const Text('Добавить новую карту', style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
+      label: const Text('Добавить новую карту',
+          style:
+              TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: AppColors.orange, width: 1.2),
         padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
         backgroundColor: Colors.white.withValues(alpha: 0.02),
       ),
       onPressed: _addCard,
@@ -402,7 +443,11 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
           Expanded(
             child: Text(
               feedback.message,
-              style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.35),
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35),
             ),
           ),
         ],
@@ -419,11 +464,15 @@ class _ProfileCardsPageState extends State<ProfileCardsPage> with WidgetsBinding
           children: [
             const Icon(Icons.error_outline, color: AppColors.red),
             SizedBox(height: 12.s),
-            Text(_error ?? 'Ошибка', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+            Text(_error ?? 'Ошибка',
+                style: const TextStyle(
+                    color: AppColors.text, fontWeight: FontWeight.w800)),
             SizedBox(height: 10.s),
             ElevatedButton(
               onPressed: _load,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: Colors.black),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black),
               child: const Text('Повторить'),
             ),
           ],
