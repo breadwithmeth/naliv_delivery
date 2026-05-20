@@ -95,7 +95,6 @@ class _MainPageState extends State<MainPage> {
   String? _bonusesError;
   String? _activeCardUuid;
   String? _qrPayload;
-  Timer? _qrTimer;
   List<Map<String, dynamic>> _activeOrders = <Map<String, dynamic>>[];
 
   int _currentPromoIndex = 0;
@@ -154,7 +153,6 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _addressSubscription?.cancel();
-    _stopQrUpdates();
     super.dispose();
   }
 
@@ -291,7 +289,6 @@ class _MainPageState extends State<MainPage> {
           _bonusesError = 'Авторизуйтесь, чтобы видеть бонусы';
           _isLoadingBonuses = false;
         });
-        _stopQrUpdates();
         return;
       }
 
@@ -304,19 +301,12 @@ class _MainPageState extends State<MainPage> {
         _isLoadingBonuses = false;
         _bonusesError = success ? null : (data['message']?.toString() ?? 'Не удалось загрузить бонусы');
       });
-
-      if (success && cardUuid != null) {
-        _restartQrUpdates();
-      } else {
-        _stopQrUpdates();
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _bonusesError = 'Ошибка загрузки бонусов: $e';
         _isLoadingBonuses = false;
       });
-      _stopQrUpdates();
     }
   }
 
@@ -576,25 +566,7 @@ class _MainPageState extends State<MainPage> {
   // ─── QR / Bonus Helpers ──────────────────────────────────
   String? _buildQrPayload(String? cardUuid) {
     if (cardUuid == null) return null;
-    final minuteBucket = DateTime.now().millisecondsSinceEpoch ~/ 60000;
-    return '$cardUuid:$minuteBucket';
-  }
-
-  void _restartQrUpdates() {
-    _qrTimer?.cancel();
-    _qrTimer = Timer.periodic(const Duration(minutes: 1), (_) => _updateQrPayload());
-  }
-
-  void _stopQrUpdates() {
-    _qrTimer?.cancel();
-    _qrTimer = null;
-  }
-
-  void _updateQrPayload() {
-    if (!mounted) return;
-    setState(() {
-      _qrPayload = _buildQrPayload(_activeCardUuid);
-    });
+    return cardUuid;
   }
 
   int? _selectedBusinessId() {
@@ -2028,13 +2000,6 @@ class _MainPageState extends State<MainPage> {
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 11.sp, fontWeight: FontWeight.w600),
                 ),
               ],
-            ),
-          ),
-          SizedBox(height: 7.s),
-          Center(
-            child: Text(
-              'QR обновляется каждую минуту',
-              style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 10.sp),
             ),
           ),
         ] else if (cardUuid == null)
