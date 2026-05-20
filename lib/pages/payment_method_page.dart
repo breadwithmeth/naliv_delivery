@@ -6,6 +6,7 @@ import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
+import 'package:naliv_delivery/utils/web_window.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -160,7 +161,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
     _cardCountBeforeAdd = _cards?.length ?? 0;
 
-    final webWindowName = await _reserveWebAddCardWindow();
+    final webWindowHandle = _reserveWebAddCardWindow();
 
     if (_supportsEmbeddedCardFlow) {
       if (!mounted) return;
@@ -180,9 +181,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     }
 
     if (kIsWeb) {
-      final opened = await launchUrl(
-        uri,
-        webOnlyWindowName: webWindowName ?? '_self',
+      final opened = navigateReservedWebWindow(
+        webWindowHandle,
+        uri.toString(),
+        windowName: _webAddCardWindowName,
       );
       if (opened) {
         _awaitingCardAdd = true;
@@ -216,15 +218,12 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         _CardFeedbackTone.error);
   }
 
-  Future<String?> _reserveWebAddCardWindow() async {
+  Object? _reserveWebAddCardWindow() {
     if (!kIsWeb) return null;
 
-    final opened = await launchUrl(
-      Uri.parse('about:blank'),
-      webOnlyWindowName: _webAddCardWindowName,
-    );
+    final windowHandle = reserveWebNamedWindow(_webAddCardWindowName);
 
-    if (!opened && mounted) {
+    if (windowHandle == null && mounted) {
       _setCardFeedback(
         'Браузер заблокировал открытие вкладки для формы банка. Разрешите всплывающие окна и попробуйте снова.',
         _CardFeedbackTone.error,
@@ -232,7 +231,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       return null;
     }
 
-    return _webAddCardWindowName;
+    return windowHandle;
   }
 
   bool get _supportsEmbeddedCardFlow {

@@ -6,6 +6,7 @@ import 'add_card_webview_page.dart';
 import '../shared/app_theme.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
+import '../utils/web_window.dart';
 
 class ProfileCardsPage extends StatefulWidget {
   const ProfileCardsPage({super.key});
@@ -102,7 +103,7 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
   Future<void> _addCard() async {
     _cardCountBeforeAdd = _cards.length;
 
-    final webWindowName = await _reserveWebAddCardWindow();
+    final webWindowHandle = _reserveWebAddCardWindow();
 
     final result = await ApiService.generateAddCardLinkResult();
     if (!result.success || result.link == null) {
@@ -134,9 +135,10 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
     }
 
     if (kIsWeb) {
-      final opened = await launchUrl(
-        uri,
-        webOnlyWindowName: webWindowName ?? '_self',
+      final opened = navigateReservedWebWindow(
+        webWindowHandle,
+        uri.toString(),
+        windowName: _webAddCardWindowName,
       );
       if (opened) {
         _awaitingCardAdd = true;
@@ -168,15 +170,11 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
         _ProfileCardFeedbackTone.error);
   }
 
-  Future<String?> _reserveWebAddCardWindow() async {
+  Object? _reserveWebAddCardWindow() {
     if (!kIsWeb) return null;
 
-    final opened = await launchUrl(
-      Uri.parse('about:blank'),
-      webOnlyWindowName: _webAddCardWindowName,
-    );
-
-    if (!opened) {
+    final windowHandle = reserveWebNamedWindow(_webAddCardWindowName);
+    if (windowHandle == null) {
       _setCardFeedback(
         'Браузер заблокировал открытие вкладки для формы банка. Разрешите всплывающие окна и попробуйте снова.',
         _ProfileCardFeedbackTone.error,
@@ -184,7 +182,7 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
       return null;
     }
 
-    return _webAddCardWindowName;
+    return windowHandle;
   }
 
   bool get _supportsEmbeddedCardFlow {
