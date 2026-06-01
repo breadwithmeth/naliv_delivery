@@ -1212,6 +1212,47 @@ class ApiService {
     }
   }
 
+  /// Проверка промокода для авторизованного пользователя
+  /// Возвращает результат в формате { success, data?, error? }
+  static Future<Map<String, dynamic>> validatePromoCode(
+    Map<String, dynamic> body,
+  ) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API validatePromoCode: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final uri = Uri.parse('$baseUrl/orders/validate-promo-code');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      );
+
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP validatePromoCode error: ${response.statusCode} - ${response.reasonPhrase}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ?? jsonResponse['message'] ?? 'Ошибка сервера',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network validatePromoCode error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
   /// Поиск товаров по имени
   /// Поиск товаров по имени (сырой ответ API)
   /// Поддерживает пагинацию как на /categories/:id/items

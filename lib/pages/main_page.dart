@@ -97,7 +97,6 @@ class _MainPageState extends State<MainPage> {
   String? _bonusesError;
   String? _activeCardUuid;
   String? _qrPayload;
-  Timer? _qrTimer;
   List<Map<String, dynamic>> _activeOrders = <Map<String, dynamic>>[];
 
   int _currentPromoIndex = 0;
@@ -157,7 +156,6 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _addressSubscription?.cancel();
-    _stopQrUpdates();
     super.dispose();
   }
 
@@ -294,7 +292,6 @@ class _MainPageState extends State<MainPage> {
           _bonusesError = 'Авторизуйтесь, чтобы видеть бонусы';
           _isLoadingBonuses = false;
         });
-        _stopQrUpdates();
         return;
       }
 
@@ -307,19 +304,12 @@ class _MainPageState extends State<MainPage> {
         _isLoadingBonuses = false;
         _bonusesError = success ? null : (data['message']?.toString() ?? 'Не удалось загрузить бонусы');
       });
-
-      if (success && cardUuid != null) {
-        _restartQrUpdates();
-      } else {
-        _stopQrUpdates();
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _bonusesError = 'Ошибка загрузки бонусов: $e';
         _isLoadingBonuses = false;
       });
-      _stopQrUpdates();
     }
   }
 
@@ -579,25 +569,7 @@ class _MainPageState extends State<MainPage> {
   // ─── QR / Bonus Helpers ──────────────────────────────────
   String? _buildQrPayload(String? cardUuid) {
     if (cardUuid == null) return null;
-    final minuteBucket = DateTime.now().millisecondsSinceEpoch ~/ 60000;
-    return '$cardUuid:$minuteBucket';
-  }
-
-  void _restartQrUpdates() {
-    _qrTimer?.cancel();
-    _qrTimer = Timer.periodic(const Duration(minutes: 1), (_) => _updateQrPayload());
-  }
-
-  void _stopQrUpdates() {
-    _qrTimer?.cancel();
-    _qrTimer = null;
-  }
-
-  void _updateQrPayload() {
-    if (!mounted) return;
-    setState(() {
-      _qrPayload = _buildQrPayload(_activeCardUuid);
-    });
+    return cardUuid;
   }
 
   int? _selectedBusinessId() {
@@ -988,7 +960,7 @@ class _MainPageState extends State<MainPage> {
     final cityLabel = widget.selectedCity ?? 'Все города';
     final selected = widget.selectedBusiness;
     if (selected == null) {
-      return widget.businesses.isEmpty ? '$cityLabel — Нет магазинов' : '$cityLabel — Выберите магазин';
+      return widget.businesses.isEmpty ? '$cityLabel — в данный момент доставка не возможна' : '$cityLabel — Выберите магазин';
     }
 
     final shopName = (selected['name'] ?? selected['title'] ?? 'Магазин').toString();
@@ -1988,13 +1960,6 @@ class _MainPageState extends State<MainPage> {
               ],
             ),
           ),
-          SizedBox(height: 7.s),
-          Center(
-            child: Text(
-              'QR обновляется каждую минуту',
-              style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 10.sp),
-            ),
-          ),
         ] else if (cardUuid == null)
           Padding(
             padding: EdgeInsets.only(top: 7.s),
@@ -2051,7 +2016,7 @@ class _MainPageState extends State<MainPage> {
           SizedBox(width: 9.s),
           Expanded(
             child: Text(
-              'В городе ${widget.selectedCity} пока не найдено доступных магазинов. Можно выбрать другой город.',
+              'В данный момент доставка не возможна.',
               style: TextStyle(color: AppColors.text, height: 1.3, fontWeight: FontWeight.w600, fontSize: 12.sp),
             ),
           ),
@@ -2410,7 +2375,7 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
                         children: [
                           Icon(Icons.store_mall_directory, color: AppColors.textMute, size: 32),
                           SizedBox(height: 10),
-                          Text('Магазины не найдены', style: TextStyle(color: AppColors.text, fontSize: 15)),
+                          Text('в данный момент доставка не возможна', style: TextStyle(color: AppColors.text, fontSize: 15)),
                         ],
                       ),
                     )

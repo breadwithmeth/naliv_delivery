@@ -55,6 +55,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _entranceController = TextEditingController();
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
+  final TextEditingController _promoCodeController = TextEditingController();
+  bool _isValidatingPromo = false;
+  Map<String, dynamic>? _appliedPromoData;
 
   void _handleBack() {
     final navigator = Navigator.of(context);
@@ -71,6 +74,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _entranceController.dispose();
     _floorController.dispose();
     _apartmentController.dispose();
+    _promoCodeController.dispose();
     super.dispose();
   }
 
@@ -269,6 +273,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (_useBonus) 'bonus_amount': _getUsedBonuses(),
       if (_selectedDeliveryDateTime != null) 'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
       'saved_card_id': 1,
+      if (_appliedPromoData != null) 'promo_code': _promoCodeController.text.trim(),
     };
     try {
       final result = await ApiService.createUserOrder(body);
@@ -479,11 +484,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final itemsTotal = cartProvider.getTotalPrice();
     final bagCost = _checkoutBagCost(cartProvider.displayGroups, businessProvider.selectedBusiness);
     final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null) ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0 : 0.0;
+    final promoDeliveryPrice = (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
+    final effectiveDeliveryCost = _deliveryType == 'DELIVERY' ? (promoDeliveryPrice ?? deliveryCost) : 0.0;
+    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
 
     // Bonuses apply only to items (not delivery).
     final bonusApplied = _useBonus && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
 
-    return (itemsTotal + bagCost - bonusApplied).clamp(0, double.infinity) + deliveryCost;
+    return (itemsTotal + bagCost - promoDiscount - bonusApplied).clamp(0, double.infinity) + effectiveDeliveryCost;
   }
 
   /// Получить сумму использованных бонусов
@@ -518,6 +526,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final int checkoutItemCount = displayGroups.length + (hasCheckoutBag ? 1 : 0);
     final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
     final itemsTotal = cartProvider.getTotalPrice();
+    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    final promoDeliveryPrice = (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
+    final effectiveDeliveryCost = _deliveryType == 'DELIVERY' ? (promoDeliveryPrice ?? deliveryCost) : 0.0;
     final totalWithDelivery = _getTotalWithDelivery();
     final earnedBonuses = _getEarnedBonuses();
     final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
@@ -632,6 +643,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ),
                     ),
                     _thinDivider(),
+                    _promoCodeSection(),
+                    _thinDivider(),
                     _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
                     SizedBox(height: 8.s),
                     for (int i = 0; i < displayGroups.length; i++) ...[
@@ -650,7 +663,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       SizedBox(height: 6.s),
                     ],
                     if (_deliveryType == 'DELIVERY') ...[
-                      _summaryRow('Доставка', deliveryCost > 0 ? _money(deliveryCost) : '—'),
+                      _summaryRow('Доставка', effectiveDeliveryCost > 0 ? _money(effectiveDeliveryCost) : '—'),
+                      SizedBox(height: 6.s),
+                    ],
+                    if (promoDiscount > 0) ...[
+                      _summaryRow('Промокод', '-${_money(promoDiscount)}', valueColor: Colors.greenAccent),
                       SizedBox(height: 6.s),
                     ],
                     if (bonusUsed > 0) ...[
@@ -1144,6 +1161,124 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  Widget _promoCodeSection() {
+    final appliedCode = (_appliedPromoData?['promo_code'] ?? _promoCodeController.text.trim()).toString();
+    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Промокод', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+        SizedBox(height: 8.s),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _promoCodeController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) {
+                  if (_appliedPromoData != null) {
+                    setState(() => _appliedPromoData = null);
+                  }
+                },
+                style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
+                decoration: InputDecoration(
+                  hintText: 'Введите промокод',
+                  hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+                  isDense: true,
+                  filled: true,
+                  fillColor: AppColors.card,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.orange, width: 1),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8.s),
+            SizedBox(
+              height: 44.s,
+              child: TextButton(
+                onPressed: _isValidatingPromo ? null : _validateAndApplyPromoCode,
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(horizontal: 14.s),
+                ),
+                child: Text(_isValidatingPromo ? 'Проверка…' : 'Применить', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp)),
+              ),
+            ),
+          ],
+        ),
+        if (_appliedPromoData != null) ...[
+          SizedBox(height: 8.s),
+          Text(
+            'Применен: $appliedCode${promoDiscount > 0 ? ' (−${_money(promoDiscount)})' : ''}',
+            style: TextStyle(color: Colors.greenAccent, fontSize: 12.sp, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _validateAndApplyPromoCode() async {
+    final code = _promoCodeController.text.trim();
+    if (code.isEmpty) {
+      await _showNotice('Промокод', 'Введите промокод.');
+      return;
+    }
+
+    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessId = _asInt(_businessIdOf(businessProvider.selectedBusiness));
+    if (businessId == null) {
+      await _showNotice('Магазин не выбран', 'Сначала выберите магазин.');
+      return;
+    }
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final bagItemId = _bagItemIdForBusinessId(businessId);
+    final orderItems = _orderItemsWithBag(cartProvider, bagItemId: bagItemId);
+    final itemsForPromo = orderItems
+        .map((item) => <String, dynamic>{
+              'item_id': _asInt(item['item_id']) ?? 0,
+              'amount': item['amount'] is num ? item['amount'] : num.tryParse(item['amount']?.toString() ?? '0') ?? 0,
+            })
+        .where((item) => item['item_id'] != 0 && (item['amount'] as num) > 0)
+        .toList(growable: false);
+
+    final deliveryCost = (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+    final subtotal = cartProvider.getTotalPrice() + _checkoutBagCost(cartProvider.displayGroups, businessProvider.selectedBusiness);
+
+    setState(() => _isValidatingPromo = true);
+    try {
+      final result = await ApiService.validatePromoCode({
+        'promo_code': code,
+        'business_id': businessId,
+        'order_subtotal': subtotal,
+        'delivery_price': _deliveryType == 'DELIVERY' ? deliveryCost : 0,
+        'items': itemsForPromo,
+      });
+      if (!mounted) return;
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+        setState(() {
+          _appliedPromoData = data;
+        });
+      } else {
+        setState(() => _appliedPromoData = null);
+        final error = result['error'];
+        final message = error is Map ? error['message']?.toString() : error?.toString();
+        await _showNotice('Промокод не применён', message?.isNotEmpty == true ? message! : 'Проверьте условия промокода.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isValidatingPromo = false);
+      }
+    }
+  }
+
   static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
 
   int _calculateEarnedBonuses(Iterable<CartDisplayGroup> items) {
@@ -1312,7 +1447,7 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
                         children: [
                           Icon(Icons.store_mall_directory, color: AppColors.textMute, size: 32),
                           SizedBox(height: 10),
-                          Text('Магазины не найдены', style: TextStyle(color: AppColors.text, fontSize: 15)),
+                          Text('в данный момент доставка не возможна', style: TextStyle(color: AppColors.text, fontSize: 15)),
                         ],
                       ),
                     )
