@@ -511,7 +511,7 @@ class ItemPromotion {
     );
   }
 
-  /// Создание из CategoryItemPromotion для совместимости
+  /// Создание из CategoryItemPromotion для совместимости2
   factory ItemPromotion.fromCategoryItemPromotion(dynamic categoryPromotion) {
     if (categoryPromotion is Map<String, dynamic>) {
       return ItemPromotion.fromJson(categoryPromotion);

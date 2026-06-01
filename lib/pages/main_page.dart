@@ -971,7 +971,7 @@ class _MainPageState extends State<MainPage> {
     final cityLabel = widget.selectedCity ?? 'Все города';
     final selected = widget.selectedBusiness;
     if (selected == null) {
-      return widget.businesses.isEmpty ? '$cityLabel — Нет магазинов' : '$cityLabel — Выберите магазин';
+      return widget.businesses.isEmpty ? '$cityLabel — в данный момент доставка не возможна' : '$cityLabel — Выберите магазин';
     }
 
     final shopName = (selected['name'] ?? selected['title'] ?? 'Магазин').toString();
@@ -2058,7 +2058,7 @@ class _MainPageState extends State<MainPage> {
           SizedBox(width: 9.s),
           Expanded(
             child: Text(
-              'В городе ${widget.selectedCity} пока не найдено доступных магазинов. Можно выбрать другой город.',
+              'В данный момент доставка не возможна.',
               style: TextStyle(color: AppColors.text, height: 1.3, fontWeight: FontWeight.w600, fontSize: 12.sp),
             ),
           ),
@@ -2420,7 +2420,7 @@ class _ShopCitySheetState extends State<_ShopCitySheet> {
                         children: [
                           Icon(Icons.store_mall_directory, color: AppColors.textMute, size: 32),
                           SizedBox(height: 10),
-                          Text('Магазины не найдены', style: TextStyle(color: AppColors.text, fontSize: 15)),
+                          Text('в данный момент доставка не возможна', style: TextStyle(color: AppColors.text, fontSize: 15)),
                         ],
                       ),
                     )
