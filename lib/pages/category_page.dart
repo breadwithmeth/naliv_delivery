@@ -38,6 +38,7 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   static const Duration _cacheTtl = Duration(minutes: 5);
+  static const int _categorySelectorColumns = 8;
   static final Map<String, _CategoryItemsCacheEntry> _categoryItemsCache = <String, _CategoryItemsCacheEntry>{};
 
   // ─── Palette (matches mainPage) ──────────────────────────
@@ -515,30 +516,44 @@ class _CategoryPageState extends State<CategoryPage> {
     final subs = _selectedCategory?.subcategories ?? [];
     return Padding(
       padding: EdgeInsets.only(top: 7.s),
-      child: SizedBox(
-        height: 38.s,
-        child: ListView.separated(
-          padding: EdgeInsets.symmetric(horizontal: 14.s),
-          scrollDirection: Axis.horizontal,
-          itemCount: subs.length + 1,
-          separatorBuilder: (_, __) => SizedBox(width: 7.s),
-          itemBuilder: (_, i) {
-            if (i == 0) {
-              return _chip(
-                label: 'Все',
-                selected: _selectedSubcategory == null,
-                onTap: () => _onSubcategorySelected(null),
-              );
-            }
-            final sub = subs[i - 1];
-            return _chip(
-              label: sub.name,
-              selected: _selectedSubcategory?.categoryId == sub.categoryId,
-              onTap: () => _onSubcategorySelected(sub),
-              count: sub.itemsCount > 0 ? sub.itemsCount : null,
-            );
-          },
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = 14.s;
+          final spacing = 6.s;
+          final chipWidth = (constraints.maxWidth - horizontalPadding * 2 - (_categorySelectorColumns - 1) * spacing) / _categorySelectorColumns;
+
+          return SizedBox(
+            height: 36.s,
+            child: ListView.separated(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              scrollDirection: Axis.horizontal,
+              itemCount: subs.length + 1,
+              separatorBuilder: (_, __) => SizedBox(width: spacing),
+              itemBuilder: (_, i) {
+                if (i == 0) {
+                  return SizedBox(
+                    width: chipWidth,
+                    child: _chip(
+                      label: 'Все',
+                      selected: _selectedSubcategory == null,
+                      onTap: () => _onSubcategorySelected(null),
+                    ),
+                  );
+                }
+                final sub = subs[i - 1];
+                return SizedBox(
+                  width: chipWidth,
+                  child: _chip(
+                    label: sub.name,
+                    selected: _selectedSubcategory?.categoryId == sub.categoryId,
+                    onTap: () => _onSubcategorySelected(sub),
+                    count: sub.itemsCount > 0 ? sub.itemsCount : null,
+                  ),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
   }
@@ -548,7 +563,7 @@ class _CategoryPageState extends State<CategoryPage> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 9.s),
+        padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 8.s),
         decoration: BoxDecoration(
           color: selected ? _orange : _card,
           borderRadius: BorderRadius.circular(11.s),
@@ -557,18 +572,22 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.black : _text,
-                fontWeight: FontWeight.w700,
-                fontSize: 12.sp,
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected ? Colors.black : _text,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 10.sp,
+                ),
               ),
             ),
             if (count != null) ...[
-              SizedBox(width: 5.s),
+              SizedBox(width: 3.s),
               Text(
                 '$count',
                 style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/add_card_webview_page.dart';
+import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
@@ -308,13 +309,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
         final errorMessage = result['error'] is Map ? result['error']['message'] : result['error'].toString();
 
         if (mounted) {
-          await _showNotice('Ошибка оплаты', 'Ошибка оплаты: $errorMessage');
+          await _showPaymentFailureNotice(errorMessage);
         }
       }
     } catch (e) {
       if (mounted) Navigator.of(context, rootNavigator: true).pop();
       if (mounted) {
-        await _showNotice('Ошибка оплаты', 'Произошла ошибка: $e');
+        await _showPaymentFailureNotice('Произошла ошибка: $e');
       }
     } finally {
       if (mounted) {
@@ -357,6 +358,40 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> with WidgetsBindi
       context,
       title: title,
       message: message,
+    );
+  }
+
+  Future<void> _showPaymentFailureNotice(String message) {
+    return AppDialogs.show<void>(
+      context,
+      title: 'Ошибка оплаты',
+      content: Text('Ошибка оплаты: $message'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
+          child: const Text('Понятно'),
+        ),
+        TextButton.icon(
+          onPressed: () {
+            final navigator = Navigator.of(context);
+            Navigator.of(context, rootNavigator: true).pop();
+            navigator.push(
+              MaterialPageRoute(
+                builder: (_) => HelpChatPage(
+                  order: widget.orderData,
+                  entryPoint: 'payment_failure',
+                  initialTopic: 'Ошибка оплаты',
+                  paymentError: message,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.support_agent_rounded, size: 18),
+          label: const Text('Написать в поддержку'),
+          style: TextButton.styleFrom(foregroundColor: AppColors.orange),
+        ),
+      ],
     );
   }
 

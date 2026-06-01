@@ -3,30 +3,9 @@ import 'package:intl/intl.dart';
 
 import '../shared/app_theme.dart';
 import '../utils/api.dart';
+import '../utils/order_ui_helpers.dart' as order_ui;
 import '../utils/responsive.dart';
 import 'order_detail_page.dart';
-
-const Map<String, String> _orderStatusLabels = <String, String>{
-  '0': 'Новый заказ',
-  '1': 'Принят магазином',
-  '11': 'Просмотрен',
-  '12': 'Собирается',
-  '2': 'Готов к выдаче',
-  '21': 'Передан курьеру',
-  '3': 'Доставляется',
-  '31': 'Курьер рядом',
-  '4': 'Доставлен',
-  '5': 'Отменен',
-  '50': 'Отменен пользователем',
-  '51': 'Отменен магазином',
-  '52': 'Отменен: нет в наличии',
-  '6': 'Ошибка платежа',
-  '60': 'Ожидает оплаты',
-  '61': 'Оплата в обработке',
-  '66': 'Не оплачен',
-  '7': 'Возврат начат',
-  '71': 'Возврат завершен',
-};
 
 class OrdersHistoryPage extends StatefulWidget {
   final List<Map<String, dynamic>>? initialActiveOrders;
@@ -432,6 +411,12 @@ class OrderPreviewCard extends StatelessWidget {
     return '${value.toStringAsFixed(0)} ₸';
   }
 
+  num? _asNum(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value;
+    return num.tryParse(value.toString());
+  }
+
   Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
@@ -445,19 +430,6 @@ class OrderPreviewCard extends StatelessWidget {
     return value.map(_asMap).whereType<Map<String, dynamic>>().toList();
   }
 
-  String _resolveStatusText(Map<String, dynamic>? status) {
-    if (status == null) return 'Статус уточняется';
-
-    final explicitText = status['status_description']?.toString() ?? status['status_name']?.toString();
-    if (explicitText != null && explicitText.trim().isNotEmpty) {
-      return explicitText;
-    }
-
-    final code = status['status']?.toString();
-    if (code == null || code.isEmpty) return 'Статус уточняется';
-    return _orderStatusLabels[code] ?? 'Статус $code';
-  }
-
   @override
   Widget build(BuildContext context) {
     final business = _asMap(order['business']);
@@ -465,18 +437,27 @@ class OrderPreviewCard extends StatelessWidget {
     final itemsSummary = _resolveItemsSummary(order);
     final costSummary = _resolveCostSummary(order);
     final address = _asMap(order['delivery_address']);
+    final isCanceled = order_ui.isOrderCanceled(order);
 
     final title = '#${order['order_id'] ?? '—'}';
     final businessName = business?['name']?.toString() ?? 'Магазин не указан';
-    final statusText = _resolveStatusText(currentStatus);
-    final statusColor = _parseStatusColor(currentStatus?['status_color']?.toString());
+    final statusText = order_ui.resolveOrderStatusText(order, status: currentStatus);
+    final statusColor = isCanceled ? AppColors.red : _parseStatusColor(currentStatus?['status_color']?.toString());
     final dateText = _formatDate(order['log_timestamp']?.toString() ?? order['created_at']?.toString());
     final itemsCount = (itemsSummary?['items_count'] as num?)?.toInt();
     final totalAmount = (itemsSummary?['total_amount'] as num?)?.toInt();
-    final deliveryPrice = costSummary?['delivery_price'] as num?;
+    final deliveryPrice = _asNum(costSummary?['delivery_price']);
+    final totalSum = _resolveOrderTotal(costSummary, itemsSummary);
+    final deliveryTypeText = order_ui.resolveDeliveryTypeText(order);
+    final businessAddress = business?['address']?.toString().trim();
+    final deliveryAddress = address?['address']?.toString().trim();
+    final itemsText = [
+      if (itemsCount != null) '$itemsCount поз.',
+      if (totalAmount != null) '$totalAmount шт.',
+    ].join(' • ');
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16.s),
+      borderRadius: BorderRadius.circular(18.s),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -485,8 +466,21 @@ class OrderPreviewCard extends StatelessWidget {
         );
       },
       child: Container(
-        decoration: AppDecorations.card(radius: 16.s),
-        padding: EdgeInsets.all(12.s),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(18.s),
+          border: Border.all(
+            color: (isCanceled ? AppColors.red : AppColors.orange).withValues(alpha: isCanceled ? 0.26 : 0.14),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.26),
+              blurRadius: 18,
+              offset: Offset(0, 10.s),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(13.s),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -499,61 +493,78 @@ class OrderPreviewCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900),
                       ),
-                      SizedBox(height: 4.s),
+                      SizedBox(height: 5.s),
                       Text(
                         businessName,
-                        style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w800),
                       ),
+                      if (businessAddress != null && businessAddress.isNotEmpty) ...[
+                        SizedBox(height: 4.s),
+                        _inlineInfo(Icons.storefront_outlined, businessAddress),
+                      ],
                     ],
                   ),
                 ),
-                SizedBox(width: 9.s),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
-                  decoration: AppDecorations.pill(color: statusColor.withValues(alpha: 0.18)),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 11.sp),
-                  ),
+                SizedBox(width: 10.s),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _statusBadge(statusText, statusColor, isCanceled: isCanceled),
+                    if (totalSum != null) ...[
+                      SizedBox(height: 8.s),
+                      Text(
+                        _formatMoney(totalSum),
+                        style: TextStyle(color: AppColors.orange, fontSize: 15.sp, fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
-            SizedBox(height: 9.s),
-            Wrap(
-              spacing: 7.s,
-              runSpacing: 7.s,
+            SizedBox(height: 12.s),
+            Divider(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+            SizedBox(height: 11.s),
+            Row(
               children: [
-                _metaChip(Icons.schedule, dateText),
-                _metaChip(Icons.local_shipping_outlined, order['delivery_type']?.toString() ?? 'Не указан'),
-                if (itemsCount != null) _metaChip(Icons.shopping_bag_outlined, '$itemsCount поз.'),
-                if (totalAmount != null) _metaChip(Icons.layers_outlined, '$totalAmount шт.'),
-                if (deliveryPrice != null) _metaChip(Icons.payments_outlined, 'Доставка ${_formatMoney(deliveryPrice)}'),
+                Expanded(child: _summaryTile(Icons.schedule_rounded, 'Дата', dateText)),
+                SizedBox(width: 9.s),
+                Expanded(child: _summaryTile(Icons.local_shipping_outlined, 'Тип', deliveryTypeText)),
               ],
             ),
-            if (address != null && (address['address']?.toString().trim().isNotEmpty ?? false)) ...[
-              SizedBox(height: 9.s),
+            if (itemsText.isNotEmpty || deliveryPrice != null) ...[
+              SizedBox(height: 8.s),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.location_on_outlined, color: AppColors.textMute, size: 14.s),
-                  SizedBox(width: 5.s),
-                  Expanded(
-                    child: Text(
-                      address['address'].toString(),
-                      style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                  if (itemsText.isNotEmpty) Expanded(child: _summaryTile(Icons.shopping_bag_outlined, 'Товары', itemsText)),
+                  if (itemsText.isNotEmpty && deliveryPrice != null) SizedBox(width: 9.s),
+                  if (deliveryPrice != null)
+                    Expanded(
+                      child: _summaryTile(Icons.payments_outlined, 'Доставка', _formatMoney(deliveryPrice)),
                     ),
-                  ),
                 ],
               ),
             ],
-            SizedBox(height: 10.s),
+            if (address != null && !order_ui.isPickupAddress(address) && (deliveryAddress?.isNotEmpty ?? false)) ...[
+              SizedBox(height: 10.s),
+              _inlineInfo(Icons.location_on_outlined, deliveryAddress!, label: 'Куда'),
+            ],
+            SizedBox(height: 12.s),
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                'Открыть детали',
-                style: TextStyle(color: AppColors.orange.withValues(alpha: 0.95), fontWeight: FontWeight.w800),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Открыть детали',
+                    style: TextStyle(color: AppColors.orange.withValues(alpha: 0.95), fontWeight: FontWeight.w900),
+                  ),
+                  SizedBox(width: 5.s),
+                  Icon(Icons.chevron_right_rounded, color: AppColors.orange, size: 18.s),
+                ],
               ),
             ),
           ],
@@ -562,22 +573,102 @@ class OrderPreviewCard extends StatelessWidget {
     );
   }
 
-  Widget _metaChip(IconData icon, String text) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
-      decoration: AppDecorations.pill(color: AppColors.cardDark.withValues(alpha: 0.95)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppColors.textMute, size: 12.s),
-          SizedBox(width: 5.s),
-          Text(
-            text,
-            style: TextStyle(color: AppColors.text, fontSize: 11.sp, fontWeight: FontWeight.w700),
-          ),
-        ],
+  Widget _statusBadge(String text, Color color, {required bool isCanceled}) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: 124.s),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
+        decoration: AppDecorations.pill(color: color.withValues(alpha: isCanceled ? 0.24 : 0.2)),
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: isCanceled ? const Color(0xFFFF7B6E) : color, fontWeight: FontWeight.w900, fontSize: 11.sp),
+        ),
       ),
     );
+  }
+
+  Widget _summaryTile(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28.s,
+          height: 28.s,
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(9.s),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          child: Icon(icon, color: AppColors.textMute, size: 14.s),
+        ),
+        SizedBox(width: 7.s),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textMute, fontSize: 10.sp, fontWeight: FontWeight.w700),
+              ),
+              SizedBox(height: 2.s),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.text, fontSize: 11.sp, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _inlineInfo(IconData icon, String text, {String? label}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.textMute, size: 14.s),
+        SizedBox(width: 5.s),
+        if (label != null) ...[
+          Text(
+            '$label: ',
+            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w800),
+          ),
+        ],
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600, height: 1.25),
+          ),
+        ),
+      ],
+    );
+  }
+
+  num? _resolveOrderTotal(Map<String, dynamic>? costSummary, Map<String, dynamic>? itemsSummary) {
+    final explicitTotal = _asNum(costSummary?['total_sum']) ?? _asNum(costSummary?['total']) ?? _asNum(costSummary?['order_total']);
+    if (explicitTotal != null) return explicitTotal;
+
+    final itemsTotal = _asNum(costSummary?['items_total']);
+    if (itemsTotal != null) {
+      return itemsTotal + (_asNum(costSummary?['delivery_price']) ?? 0) - (_asNum(costSummary?['bonus_used']) ?? 0);
+    }
+
+    final items = _asMapList(itemsSummary?['items_preview'] ?? itemsSummary?['items']);
+    if (items.isEmpty) return null;
+
+    return items.fold<num>(0, (sum, item) {
+      final amount = _asNum(item['amount']) ?? 0;
+      final price = _asNum(item['price']) ?? _asNum(item['total_cost']) ?? _asNum(item['total']) ?? _asNum(item['sum']) ?? 0;
+      return sum + (amount > 0 && item['price'] != null ? amount * price : price);
+    });
   }
 
   Color _parseStatusColor(String? raw) {
@@ -609,8 +700,8 @@ class OrderPreviewCard extends StatelessWidget {
     final mappedSummary = _asMap(summary);
     if (mappedSummary != null) return mappedSummary;
 
-    final deliveryPrice = order['delivery_price'] as num?;
-    final bonusUsed = order['bonus_used'] as num?;
+    final deliveryPrice = _asNum(order['delivery_price']);
+    final bonusUsed = _asNum(order['bonus_used']);
     if (deliveryPrice == null && bonusUsed == null) return null;
 
     return {

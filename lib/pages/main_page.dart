@@ -19,6 +19,7 @@ import 'bonus_history_page.dart';
 import 'category_page.dart';
 import 'login_page.dart';
 import 'orders_history_page.dart';
+import 'product_detail_page.dart';
 import 'promotion_items_page.dart';
 import 'search_page.dart';
 import 'tap_board_page.dart';
@@ -56,6 +57,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  static const int _categoryGridColumns = 8;
   static const int _draftBeerSupercategoryId = 4;
   static const int _beerCategoryId = 36;
   static const int _draftBeerCategoryId = 53;
@@ -101,6 +103,7 @@ class _MainPageState extends State<MainPage> {
   int _currentPromoIndex = 0;
 
   double get _contentSidePadding => 16.s;
+  double get _sectionGap => 14.s;
 
   // ─── Lifecycle ───────────────────────────────────────────
   @override
@@ -879,40 +882,26 @@ class _MainPageState extends State<MainPage> {
     return value;
   }
 
-  String _formatCategoryTitle(String rawName) {
+  String _compactCategoryTitle(String rawName) {
     final normalized = rawName.trim();
     if (normalized.isEmpty) return 'Раздел';
 
+    final lower = normalized.toLowerCase();
+    if (lower.contains('слабо')) return 'Слабо\nалк.';
+    if (lower.contains('безалк')) return 'Безалк.';
+    if (lower.contains('еда') && lower.contains('закус')) return 'Еда и\nзакуски';
+    if (lower.contains('креп')) return 'Крепк.\nалк.';
+    if (lower.contains('табак') || lower.contains('табач')) return 'Табак';
+    if (lower.contains('аксес')) return 'Аксесс.';
+
     final words = normalized.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
-    if (words.length < 2) return normalized;
-    if (words.length == 2 && normalized.length >= 14) {
-      return '${words.first}\n${words.last}';
-    }
-
-    if (normalized.length < 18 || words.length > 4) {
-      return normalized;
-    }
-
-    var bestIndex = 1;
-    var bestDelta = normalized.length;
-    for (var index = 1; index < words.length; index++) {
-      final left = words.take(index).join(' ');
-      final right = words.skip(index).join(' ');
-      final delta = (left.length - right.length).abs();
-      if (delta < bestDelta) {
-        bestDelta = delta;
-        bestIndex = index;
-      }
-    }
-
-    return '${words.take(bestIndex).join(' ')}\n${words.skip(bestIndex).join(' ')}';
+    if (words.length >= 2) return words.take(2).join('\n');
+    if (normalized.length > 9) return '${normalized.substring(0, 8)}.';
+    return normalized;
   }
 
-  double _categoryTitleFontSize(String rawName) {
-    final normalized = rawName.trim();
-    if (normalized.length >= 24) return 9.8.sp;
-    if (normalized.length >= 18) return 10.3.sp;
-    return 11.sp;
+  double _categoryTitleFontSize() {
+    return 9.0;
   }
 
   String _promotionTitle(Promotion promo) {
@@ -1310,17 +1299,12 @@ class _MainPageState extends State<MainPage> {
         : isEnabled
             ? 'Открыть подборку'
             : 'Скоро подключим';
-    final subtitle = !hasBusiness
-        ? 'Выберите магазин, и мы сразу откроем ветку с разливным пивом.'
-        : shortcut != null
-            ? 'Быстрый вход в ${shortcut.target.name.toLowerCase()} без лишнего поиска по каталогу.'
-            : 'Быстрый вход появится здесь, как только категория будет доступна в магазине.';
     final metaLabel = shortcut != null
         ? shortcut.itemCount > 0
             ? '${shortcut.itemCount} позиций'
             : shortcut.branchCategories.length > 1
-                ? '${shortcut.branchCategories.length} ветки'
-                : 'Быстрый вход'
+                ? _formatDraftCategoryCount(shortcut.branchCategories.length)
+                : 'Подборка'
         : hasBusiness
             ? 'Ожидаем категорию'
             : 'Нужен магазин';
@@ -1329,187 +1313,133 @@ class _MainPageState extends State<MainPage> {
         : shortcut != null
             ? 'Пиво / ${shortcut.target.name}'
             : 'Подключим автоматически, когда категория появится.';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader('Сегодня на кране'),
-        SizedBox(height: 10.s),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(24.s),
-            onTap: widget.isLoadingBusinesses
-                ? null
-                : isEnabled
-                    ? _openDraftBeerShortcut
-                    : (!hasBusiness ? _showBusinessSelectorSheet : null),
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24.s),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.24),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomCenter,
-                  colors: isEnabled
-                      ? const [Color(0xFF2C241D), Color(0xFF211B17), Color(0xFF161616)]
-                      : const [Color(0xFF24211F), Color(0xFF1D1B1A), Color(0xFF151515)],
-                  stops: const [0.0, 0.45, 1.0],
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20.s, 20.s, 18.s, 18.s),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -12.s,
-                      top: -30.s,
-                      child: Container(
-                        width: 144.s,
-                        height: 144.s,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.orange.withValues(alpha: isEnabled ? 0.10 : 0.05),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: -20.s,
-                      bottom: -42.s,
-                      child: Container(
-                        width: 132.s,
-                        height: 132.s,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.blue.withValues(alpha: 0.16),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 16.s,
-                      top: 16.s,
-                      child: Transform.rotate(
-                        angle: -0.10,
-                        child: Icon(
-                          Icons.sports_bar_rounded,
-                          size: 54.s,
-                          color: Colors.white.withValues(alpha: isEnabled ? 0.16 : 0.10),
-                        ),
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            _draftBeerPill('Быстрый вход', highlighted: true),
-                            const Spacer(),
-                            Text(
-                              metaLabel,
-                              style: TextStyle(
-                                color: AppColors.textMute.withValues(alpha: 0.82),
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18.s),
+        onTap: widget.isLoadingBusinesses
+            ? null
+            : isEnabled
+                ? _openDraftBeerShortcut
+                : (!hasBusiness ? _showBusinessSelectorSheet : null),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18.s),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isEnabled
+                  ? const [Color(0xFF2A2119), Color(0xFF1C1815), Color(0xFF151515)]
+                  : const [Color(0xFF24211F), Color(0xFF1D1B1A), Color(0xFF151515)],
+              stops: const [0.0, 0.48, 1.0],
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(14.s),
+            child: Row(
+              children: [
+                _draftBeerArtwork(isEnabled: isEnabled),
+                SizedBox(width: 12.s),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Сегодня на кране',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900, height: 1.05),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 12.s),
-                        Text(
-                          'Сегодня на кране',
-                          style: TextStyle(color: AppColors.text, fontSize: 23.sp, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -0.3),
-                        ),
-                        SizedBox(height: 9.s),
-                        Padding(
-                          padding: EdgeInsets.only(top: 2.s, right: 72.s),
-                          child: Text(
-                            subtitle,
-                            style: TextStyle(color: AppColors.text.withValues(alpha: 0.8), fontSize: 12.sp, fontWeight: FontWeight.w600, height: 1.4),
                           ),
-                        ),
-                        SizedBox(height: 14.s),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                secondaryLine,
-                                style: TextStyle(
-                                    color: AppColors.textMute.withValues(alpha: 0.78), fontSize: 11.sp, fontWeight: FontWeight.w600, height: 1.35),
-                              ),
+                          SizedBox(width: 8.s),
+                          Container(
+                            width: 30.s,
+                            height: 30.s,
+                            decoration: BoxDecoration(
+                              color: isEnabled ? AppColors.orange : Colors.white.withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
                             ),
-                            SizedBox(width: 12.s),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              padding: EdgeInsets.symmetric(horizontal: 14.s, vertical: 10.s),
-                              decoration: BoxDecoration(
-                                color: isEnabled ? AppColors.orange : Colors.white.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: Colors.white.withValues(alpha: isEnabled ? 0.0 : 0.08)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    actionLabel,
-                                    style: TextStyle(
-                                      color: isEnabled ? Colors.black : AppColors.text,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 12.sp,
-                                    ),
-                                  ),
-                                  SizedBox(width: 6.s),
-                                  Icon(
-                                    !hasBusiness ? Icons.storefront_rounded : Icons.arrow_forward_rounded,
-                                    color: isEnabled ? Colors.black : AppColors.text,
-                                    size: 15.s,
-                                  ),
-                                ],
-                              ),
+                            child: Icon(
+                              !hasBusiness ? Icons.storefront_rounded : Icons.arrow_forward_rounded,
+                              color: isEnabled ? Colors.black : AppColors.text,
+                              size: 16.s,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 6.s),
+                      Text(
+                        secondaryLine,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.82), fontSize: 11.sp, fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 4.s),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            metaLabel,
+                            style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w900),
+                          ),
+                          SizedBox(width: 8.s),
+                          Container(
+                              width: 3.s,
+                              height: 3.s,
+                              decoration: BoxDecoration(color: AppColors.textMute.withValues(alpha: 0.4), shape: BoxShape.circle)),
+                          SizedBox(width: 8.s),
+                          Flexible(
+                            child: Text(
+                              actionLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: AppColors.text.withValues(alpha: 0.7), fontSize: 11.sp, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _draftBeerPill(String label, {IconData? icon, bool highlighted = false}) {
+  Widget _draftBeerArtwork({required bool isEnabled}) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
+      width: 54.s,
+      height: 54.s,
       decoration: BoxDecoration(
-        color: highlighted ? AppColors.orange.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: highlighted ? 0.04 : 0.07)),
+        color: AppColors.orange.withValues(alpha: isEnabled ? 0.12 : 0.06),
+        borderRadius: BorderRadius.circular(16.s),
+        border: Border.all(color: AppColors.orange.withValues(alpha: isEnabled ? 0.18 : 0.08)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12.s, color: highlighted ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.85)),
-            SizedBox(width: 5.s),
-          ],
-          Text(
-            label,
-            style: TextStyle(color: AppColors.text.withValues(alpha: 0.9), fontWeight: FontWeight.w700, fontSize: 10.sp),
-          ),
-        ],
+      child: Icon(
+        Icons.sports_bar_rounded,
+        size: 26.s,
+        color: AppColors.orange.withValues(alpha: isEnabled ? 0.9 : 0.35),
       ),
     );
+  }
+
+  String _formatDraftCategoryCount(int count) {
+    final mod10 = count % 10;
+    final mod100 = count % 100;
+    final word = mod10 == 1 && mod100 != 11
+        ? 'раздел'
+        : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+            ? 'раздела'
+            : 'разделов';
+    return '$count $word';
   }
 
   // ─── Promotions ──────────────────────────────────────────
@@ -1540,18 +1470,18 @@ class _MainPageState extends State<MainPage> {
           itemCount: _promotions.length,
           itemBuilder: (_, i, __) => _promotionCard(_promotions[i]),
           options: CarouselOptions(
-            height: 180.s,
-            viewportFraction: 0.92,
+            height: 158.s,
+            viewportFraction: 0.90,
             autoPlay: true,
             autoPlayInterval: const Duration(seconds: 5),
             enlargeCenterPage: true,
             enlargeStrategy: CenterPageEnlargeStrategy.scale,
-            enlargeFactor: 0.18,
+            enlargeFactor: 0.10,
             padEnds: true,
             onPageChanged: (index, _) => setState(() => _currentPromoIndex = index),
           ),
         ),
-        SizedBox(height: 12.s),
+        SizedBox(height: 10.s),
         // Dot indicators
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1594,7 +1524,7 @@ class _MainPageState extends State<MainPage> {
               )
           : null,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 5.s),
+        margin: EdgeInsets.symmetric(vertical: 4.s),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18.s),
         ),
@@ -1645,7 +1575,7 @@ class _MainPageState extends State<MainPage> {
                       promoTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900, height: 1.2),
+                      style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900, height: 1.18),
                     ),
                     if (promoSubtitle.isNotEmpty) ...[
                       SizedBox(height: 4.s),
@@ -1683,22 +1613,40 @@ class _MainPageState extends State<MainPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Категории'),
-        SizedBox(height: 10.s),
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10.s,
-          crossAxisSpacing: 10.s,
-          childAspectRatio: 0.92,
-          children: _superCategories.map((sc) {
-            final name = sc['name']?.toString() ?? 'Раздел';
-            final style = _getCategoryIconAndColor(name);
-            final imageUrl = _extractSuperCategoryImage(sc);
-            return _superCategoryTile(sc, style, imageUrl);
-          }).toList(),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: _contentSidePadding),
+          child: _sectionHeader('Категории'),
         ),
+        SizedBox(height: 10.s),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: _contentSidePadding),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = _superCategories.length < _categoryGridColumns ? _superCategories.length : _categoryGridColumns;
+              final spacing = columns >= _categoryGridColumns ? 2.s : 6.s;
+              final tileWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              final labelHeight = 28.s;
+              final artworkHeight = tileWidth.clamp(48.s, 66.s).toDouble();
+              final tileHeight = artworkHeight + 6.s + labelHeight;
+
+              return GridView.count(
+                crossAxisCount: columns,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10.s,
+                crossAxisSpacing: spacing,
+                childAspectRatio: tileWidth / tileHeight,
+                children: _superCategories.map((sc) {
+                  final name = sc['name']?.toString() ?? 'Раздел';
+                  final style = _getCategoryIconAndColor(name);
+                  final imageUrl = _extractSuperCategoryImage(sc);
+                  return _superCategoryTile(sc, style, imageUrl);
+                }).toList(),
+              );
+            },
+          ),
+        ),
+        SizedBox(height: 4.s),
       ],
     );
   }
@@ -1707,6 +1655,7 @@ class _MainPageState extends State<MainPage> {
     final name = superCat['name']?.toString() ?? 'Раздел';
     final cats = ApiService.mapListFromDynamic(superCat['categories']);
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         final businessId = widget.selectedBusiness?['id'] ?? widget.selectedBusiness?['business_id'] ?? widget.selectedBusiness?['businessId'];
         if (businessId == null) {
@@ -1726,44 +1675,36 @@ class _MainPageState extends State<MainPage> {
         );
       },
       child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16.s),
-          color: AppColors.cardDark,
-        ),
-        child: Stack(
-          fit: StackFit.expand,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(9.s)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildCategoryArtwork(imageUrl, style),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.48, 0.78, 1.0],
-                  colors: [
-                    Colors.transparent,
-                    Colors.transparent,
-                    Color(0x52000000),
-                    Color(0xB3000000),
-                  ],
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11.s),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                    borderRadius: BorderRadius.circular(11.s),
+                  ),
+                  child: _buildCategoryArtwork(imageUrl, style),
                 ),
               ),
             ),
-            Positioned(
-              left: 9.s,
-              right: 9.s,
-              bottom: 9.s,
+            SizedBox(height: 6.s),
+            SizedBox(
+              height: 28.s,
               child: Text(
-                _formatCategoryTitle(name),
+                _compactCategoryTitle(name),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: _categoryTitleFontSize(name),
+                  color: AppColors.text.withValues(alpha: 0.92),
+                  fontSize: _categoryTitleFontSize(),
                   fontWeight: FontWeight.w800,
-                  height: 1.2,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+                  height: 1.08,
                 ),
               ),
             ),
@@ -1786,74 +1727,84 @@ class _MainPageState extends State<MainPage> {
         child: showLoader
             ? SizedBox(width: 18.s, height: 18.s, child: const CircularProgressIndicator(color: AppColors.orange, strokeWidth: 2))
             : Icon(style['icon'] as IconData? ?? Icons.category,
-                color: (style['color'] as Color? ?? AppColors.orange).withValues(alpha: 0.5), size: 32.s),
+                color: (style['color'] as Color? ?? AppColors.orange).withValues(alpha: 0.5), size: 22.s),
       ),
     );
   }
 
-  // ─── Recently in Cart ────────────────────────────────────
+  // ─── Popular Discovery ───────────────────────────────────
   Widget _productDiscoveryRow() {
-    final cart = Provider.of<CartProvider>(context);
-    if (cart.items.isEmpty) return const SizedBox.shrink();
-    final items = cart.items.take(10).toList();
+    final items = _popularDiscoveryItems();
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('В корзине'),
+        _sectionHeader('Популярное сейчас'),
         SizedBox(height: 8.s),
         SizedBox(
-          height: 145.s,
+          height: 150.s,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
             separatorBuilder: (_, __) => SizedBox(width: 8.s),
             itemBuilder: (_, i) {
               final item = items[i];
-              return Container(
-                width: 125.s,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(14.s),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(9.s),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10.s),
-                          child: item.image != null
-                              ? Image.network(item.image!, width: double.infinity, fit: BoxFit.cover)
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                        colors: [AppColors.blue, AppColors.cardDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                                    borderRadius: BorderRadius.circular(10.s),
+              return GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductDetailPage(item: item))),
+                child: Container(
+                  width: 118.s,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(14.s),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(9.s),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10.s),
+                            child: item.image != null
+                                ? Image.network(item.image!, width: double.infinity, fit: BoxFit.cover)
+                                : Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [AppColors.blue, AppColors.cardDark],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10.s),
+                                    ),
+                                    child: Center(
+                                      child: Icon(Icons.image_outlined, color: AppColors.textMute.withValues(alpha: 0.3), size: 24.s),
+                                    ),
                                   ),
-                                  child: Center(child: Icon(Icons.image_outlined, color: AppColors.textMute.withValues(alpha: 0.3), size: 24.s)),
-                                ),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 7.s),
-                      Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w800),
-                      ),
-                      SizedBox(height: 2.s),
-                      Text(
-                        '${item.quantity} шт',
-                        style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.8), fontSize: 10.sp, fontWeight: FontWeight.w600),
-                      ),
-                      SizedBox(height: 3.s),
-                      Text(
-                        '${item.totalPrice.toStringAsFixed(0)} ₸',
-                        style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900, fontSize: 13.sp),
-                      ),
-                    ],
+                        SizedBox(height: 7.s),
+                        Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w800),
+                        ),
+                        SizedBox(height: 2.s),
+                        Text(
+                          item.category?.name ?? 'Популярное',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.8), fontSize: 10.sp, fontWeight: FontWeight.w600),
+                        ),
+                        SizedBox(height: 3.s),
+                        Text(
+                          '${item.price.toStringAsFixed(0)} ₸',
+                          style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w900, fontSize: 13.sp),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -1862,6 +1813,22 @@ class _MainPageState extends State<MainPage> {
         ),
       ],
     );
+  }
+
+  List<item_model.Item> _popularDiscoveryItems() {
+    final seen = <int>{};
+    final items = <item_model.Item>[];
+
+    for (final promo in _promotions) {
+      final promoItems = _promotionItemsById[promo.marketingPromotionId] ?? const <item_model.Item>[];
+      for (final item in promoItems) {
+        if (item.itemId == 0 || !seen.add(item.itemId)) continue;
+        items.add(item);
+        if (items.length >= 10) return items;
+      }
+    }
+
+    return items;
   }
 
   // ─── Bonuses ─────────────────────────────────────────────
@@ -1882,31 +1849,22 @@ class _MainPageState extends State<MainPage> {
             Expanded(
               child: Text('Бонусная карта', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800)),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BonusInfoPage()));
-              },
+            TextButton.icon(
+              onPressed: isLoginRequired
+                  ? _openLoginPage
+                  : () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BonusInfoPage()));
+                    },
+              icon: Icon(isLoginRequired ? Icons.login_rounded : Icons.info_outline_rounded, size: 14.s),
+              label: Text(isLoginRequired ? 'Войти' : 'Подробнее', style: TextStyle(fontSize: 12.sp)),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.orange,
-                textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp),
+                textStyle: const TextStyle(fontWeight: FontWeight.w900),
                 padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 6.s),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Подробнее'),
             ),
-            if (isLoginRequired)
-              TextButton.icon(
-                onPressed: _openLoginPage,
-                icon: Icon(Icons.login_rounded, size: 14.s),
-                label: Text('Войти', style: TextStyle(fontSize: 13.sp)),
-                style: TextButton.styleFrom(foregroundColor: AppColors.orange, textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-              )
-            else
-              IconButton(
-                onPressed: _isLoadingBonuses ? null : _loadBonuses,
-                icon: Icon(Icons.refresh_rounded, color: AppColors.textMute, size: 18.s),
-              ),
           ],
         ),
         SizedBox(height: 8.s),
@@ -2213,38 +2171,35 @@ class _MainPageState extends State<MainPage> {
                 // ── Search ──
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(bottom: 7.s),
+                    padding: EdgeInsets.only(bottom: _sectionGap),
                     child: _searchBar(),
                   ),
                 ),
+                // ── Promotions ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 0, _contentSidePadding, 10.s),
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, _sectionGap),
+                  sliver: SliverToBoxAdapter(child: _promotionsSection()),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 0, _contentSidePadding, _sectionGap),
                   sliver: SliverToBoxAdapter(child: _draftBeerShortcutSection()),
                 ),
                 // ── Empty city banner ──
                 if (widget.selectedCity != null && widget.businesses.isEmpty)
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(_contentSidePadding, 0, _contentSidePadding, 10.s),
+                    padding: EdgeInsets.fromLTRB(_contentSidePadding, 0, _contentSidePadding, _sectionGap),
                     sliver: SliverToBoxAdapter(child: _emptyCityBanner()),
                   ),
-                // ── Promotions ──
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 0, 7.s),
-                  sliver: SliverToBoxAdapter(child: _promotionsSection()),
-                ),
                 // ── Supercategories ──
+                SliverToBoxAdapter(child: _superCategoriesSection()),
+                // ── Product discovery row ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 10.s, _contentSidePadding, 0),
-                  sliver: SliverToBoxAdapter(child: _superCategoriesSection()),
-                ),
-                // ── Cart discovery row ──
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 16.s, _contentSidePadding, 0),
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, _sectionGap, _contentSidePadding, 0),
                   sliver: SliverToBoxAdapter(child: _productDiscoveryRow()),
                 ),
                 // ── Bonuses ──
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(_contentSidePadding, 16.s, _contentSidePadding, bottomPadding),
+                  padding: EdgeInsets.fromLTRB(_contentSidePadding, _sectionGap, _contentSidePadding, bottomPadding),
                   sliver: SliverToBoxAdapter(child: _bonusesSection()),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
@@ -21,8 +22,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage>
-    with SingleTickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   static const String _hiddenAddressesKey = 'profile_hidden_addresses';
 
   late final Future<Map<String, dynamic>?> _profileFuture;
@@ -38,8 +38,7 @@ class _ProfilePageState extends State<ProfilePage>
     _checkAuth();
     _loadTelemetryConsent();
     _loadHiddenAddresses();
-    _staggerCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900));
+    _staggerCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
   }
 
   @override
@@ -50,8 +49,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   Future<void> _loadHiddenAddresses() async {
     final prefs = await SharedPreferences.getInstance();
-    final ids =
-        (prefs.getStringList(_hiddenAddressesKey) ?? <String>[]).toSet();
+    final ids = (prefs.getStringList(_hiddenAddressesKey) ?? <String>[]).toSet();
     if (!mounted) return;
     setState(() => _hiddenAddressIds = ids);
   }
@@ -103,10 +101,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   // ── Helpers ───────────────────────────────────────────────
 
-  Widget _thinDivider() => Divider(
-      height: 1,
-      thickness: 0.5,
-      color: AppColors.textMute.withValues(alpha: 0.12));
+  Widget _thinDivider() => Divider(height: 1, thickness: 0.5, color: AppColors.textMute.withValues(alpha: 0.12));
 
   Widget _tapRow({
     required IconData icon,
@@ -127,28 +122,16 @@ class _ProfilePageState extends State<ProfilePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700)),
+                  Text(title, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
                   if (subtitle != null) ...[
                     SizedBox(height: 2.s),
                     Text(subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: AppColors.textMute,
-                            fontSize: 12.sp,
-                            height: 1.3)),
+                        maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.3)),
                   ],
                 ],
               ),
             ),
-            trailing ??
-                Icon(Icons.chevron_right,
-                    color: AppColors.textMute.withValues(alpha: 0.5),
-                    size: 20.s),
+            trailing ?? Icon(Icons.chevron_right, color: AppColors.textMute.withValues(alpha: 0.5), size: 20.s),
           ],
         ),
       ),
@@ -169,8 +152,7 @@ class _ProfilePageState extends State<ProfilePage>
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AppColors.text,
-        title: const Text('Профиль',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Профиль', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Stack(
         children: [
@@ -179,18 +161,15 @@ class _ProfilePageState extends State<ProfilePage>
             future: _profileFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(
-                    child: CircularProgressIndicator(color: AppColors.orange));
+                return const Center(child: CircularProgressIndicator(color: AppColors.orange));
               }
               if (snapshot.hasError || snapshot.data == null) {
                 return _loginPrompt();
               }
               final data = snapshot.data!;
               final user = data['user'] as Map<String, dynamic>;
-              final addresses = (data['addresses'] as List<dynamic>)
-                  .cast<Map<String, dynamic>>();
-              final cards =
-                  (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
+              final addresses = (data['addresses'] as List<dynamic>).cast<Map<String, dynamic>>();
+              final cards = (data['cards'] as List<dynamic>).cast<Map<String, dynamic>>();
 
               TelemetryConsentService.applyUserContext(
                 id: (user['id'] ?? user['user_id'])?.toString(),
@@ -212,24 +191,39 @@ class _ProfilePageState extends State<ProfilePage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── User header ──
-                      _staggered(0, 7, _userHeader(user)),
-                      _staggered(1, 7, _thinDivider()),
+                      _staggered(0, 9, _userHeader(user)),
+                      _staggered(1, 9, _thinDivider()),
                       // ── Navigation rows ──
                       _staggered(
                           2,
-                          7,
+                          9,
                           _tapRow(
                             icon: Icons.receipt_long_rounded,
                             title: 'История заказов',
                             subtitle: 'Активные и завершённые заказы',
-                            onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (_) => const OrdersHistoryPage())),
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OrdersHistoryPage())),
                           )),
-                      _staggered(3, 7, _thinDivider()),
-                      _staggered(4, 7, _addressRow(addresses)),
-                      _staggered(5, 7, _thinDivider()),
-                      _staggered(6, 7, _cardsRow(cards)),
+                      _staggered(3, 9, _thinDivider()),
+                      _staggered(
+                          4,
+                          9,
+                          _tapRow(
+                            icon: Icons.support_agent_rounded,
+                            title: 'Поддержка',
+                            subtitle: 'Вопросы по заказам и оплате',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const HelpChatPage(
+                                  entryPoint: 'profile',
+                                  initialTopic: 'Поддержка',
+                                ),
+                              ),
+                            ),
+                          )),
+                      _staggered(5, 9, _thinDivider()),
+                      _staggered(6, 9, _addressRow(addresses)),
+                      _staggered(7, 9, _thinDivider()),
+                      _staggered(8, 9, _cardsRow(cards)),
                       _thinDivider(),
                       _telemetryRow(),
                       _thinDivider(),
@@ -254,17 +248,11 @@ class _ProfilePageState extends State<ProfilePage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.person_outline_rounded,
-              size: 48.s, color: AppColors.textMute.withValues(alpha: 0.5)),
+          Icon(Icons.person_outline_rounded, size: 48.s, color: AppColors.textMute.withValues(alpha: 0.5)),
           SizedBox(height: 12.s),
-          Text('Войдите в аккаунт',
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700)),
+          Text('Войдите в аккаунт', style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w700)),
           SizedBox(height: 4.s),
-          Text('Для просмотра профиля',
-              style: TextStyle(color: AppColors.textMute, fontSize: 13.sp)),
+          Text('Для просмотра профиля', style: TextStyle(color: AppColors.textMute, fontSize: 13.sp)),
           SizedBox(height: 18.s),
           SizedBox(
             width: 180.s,
@@ -274,16 +262,9 @@ class _ProfilePageState extends State<ProfilePage>
               borderRadius: BorderRadius.circular(14.s),
               child: InkWell(
                 borderRadius: BorderRadius.circular(14.s),
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const LoginPage(redirectTabIndex: 4))),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage(redirectTabIndex: 4))),
                 child: Center(
-                  child: Text('Войти',
-                      style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black)),
+                  child: Text('Войти', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800, color: Colors.black)),
                 ),
               ),
             ),
@@ -307,29 +288,19 @@ class _ProfilePageState extends State<ProfilePage>
               shape: BoxShape.circle,
               color: AppColors.orange.withValues(alpha: 0.15),
             ),
-            child:
-                Icon(Icons.person_rounded, color: AppColors.orange, size: 26.s),
+            child: Icon(Icons.person_rounded, color: AppColors.orange, size: 26.s),
           ),
           SizedBox(width: 14.s),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user['name'] ?? '',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w800)),
+                Text(user['name'] ?? '', style: TextStyle(color: AppColors.text, fontSize: 17.sp, fontWeight: FontWeight.w800)),
                 SizedBox(height: 2.s),
-                Text(user['login'] ?? '',
-                    style:
-                        TextStyle(color: AppColors.textMute, fontSize: 13.sp)),
+                Text(user['login'] ?? '', style: TextStyle(color: AppColors.textMute, fontSize: 13.sp)),
                 if (user['date_of_birth'] != null) ...[
                   SizedBox(height: 2.s),
-                  Text(user['date_of_birth'],
-                      style: TextStyle(
-                          color: AppColors.textMute.withValues(alpha: 0.6),
-                          fontSize: 12.sp)),
+                  Text(user['date_of_birth'], style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.6), fontSize: 12.sp)),
                 ],
               ],
             ),
@@ -342,25 +313,16 @@ class _ProfilePageState extends State<ProfilePage>
   // ── Address row ──────────────────────────────────────────
 
   Widget _addressRow(List<Map<String, dynamic>> addresses) {
-    final visible = addresses
-        .where((a) => !_hiddenAddressIds.contains(_addressId(a)))
-        .toList();
+    final visible = addresses.where((a) => !_hiddenAddressIds.contains(_addressId(a))).toList();
     final count = visible.length;
-    final preview = count > 0
-        ? (visible.first['address']?.toString() ?? '')
-        : 'Нет сохранённых адресов';
+    final preview = count > 0 ? (visible.first['address']?.toString() ?? '') : 'Нет сохранённых адресов';
 
     return _tapRow(
       icon: Icons.location_on_rounded,
       title: 'Адреса',
-      subtitle: count == 0
-          ? 'Нет сохранённых адресов'
-          : '$count адрес(ов) · $preview',
+      subtitle: count == 0 ? 'Нет сохранённых адресов' : '$count адрес(ов) · $preview',
       onTap: () {
-        Navigator.of(context)
-            .push(
-                MaterialPageRoute(builder: (_) => const ProfileAddressesPage()))
-            .then((_) => _loadHiddenAddresses());
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileAddressesPage())).then((_) => _loadHiddenAddresses());
       },
     );
   }
@@ -369,17 +331,13 @@ class _ProfilePageState extends State<ProfilePage>
 
   Widget _cardsRow(List<Map<String, dynamic>> cards) {
     final count = cards.length;
-    final preview = count > 0
-        ? (cards.first['mask']?.toString() ?? '••••')
-        : 'Добавленных карт нет';
+    final preview = count > 0 ? (cards.first['mask']?.toString() ?? '••••') : 'Добавленных карт нет';
 
     return _tapRow(
       icon: Icons.credit_card_rounded,
       title: 'Карты',
-      subtitle:
-          count == 0 ? 'Добавленных карт нет' : '$count карт(ы) · $preview',
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const ProfileCardsPage())),
+      subtitle: count == 0 ? 'Добавленных карт нет' : '$count карт(ы) · $preview',
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCardsPage())),
     );
   }
 
@@ -402,17 +360,9 @@ class _ProfilePageState extends State<ProfilePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Сбор информации',
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700)),
+                  Text('Сбор информации', style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
                   SizedBox(height: 2.s),
-                  Text('Анонимные отчёты об ошибках',
-                      style: TextStyle(
-                          color: AppColors.textMute,
-                          fontSize: 12.sp,
-                          height: 1.3)),
+                  Text('Анонимные отчёты об ошибках', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.3)),
                 ],
               ),
             ),
@@ -443,18 +393,12 @@ class _ProfilePageState extends State<ProfilePage>
           await AuthService.clearToken();
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-                builder: (_) =>
-                    const AuthenticationWrapper(initialTabIndex: 0)),
+            MaterialPageRoute(builder: (_) => const AuthenticationWrapper(initialTabIndex: 0)),
             (route) => false,
           );
         },
         icon: Icon(Icons.logout_rounded, size: 18.s, color: AppColors.red),
-        label: Text('Выйти',
-            style: TextStyle(
-                color: AppColors.red,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600)),
+        label: Text('Выйти', style: TextStyle(color: AppColors.red, fontSize: 14.sp, fontWeight: FontWeight.w600)),
       ),
     );
   }
