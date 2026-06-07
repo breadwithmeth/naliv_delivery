@@ -198,6 +198,80 @@
       animation: sp-fact-cycle 14s step-end infinite;
     }
 
+    #ios-app-open {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background: rgba(18, 18, 18, 0.94);
+      color: #ffffff;
+    }
+
+    #ios-app-open[hidden] {
+      display: none;
+    }
+
+    .ios-app-open-panel {
+      width: min(100%, 360px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .ios-app-open-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    .ios-app-open-title {
+      margin: 6px 0 0;
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+
+    .ios-app-open-text {
+      margin: 0;
+      color: #c9d1dc;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .ios-app-open-actions {
+      width: 100%;
+      display: grid;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .ios-app-open-button {
+      width: 100%;
+      min-height: 48px;
+      border: 0;
+      border-radius: 12px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .ios-app-open-button.primary {
+      background: #f6a10c;
+      color: #121212;
+    }
+
+    .ios-app-open-button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
     /* ── keyframes ─────────── */
     @keyframes sp-icon-in {
       from {
@@ -285,6 +359,96 @@
 </head>
 
 <body>
+  <div id="ios-app-open" hidden>
+    <div class="ios-app-open-panel" role="dialog" aria-modal="true" aria-labelledby="ios-app-open-title">
+      <img class="ios-app-open-icon" src="icons/Icon-192.png" alt="">
+      <h1 id="ios-app-open-title" class="ios-app-open-title">Открыть Градусы24</h1>
+      <p class="ios-app-open-text">На iPhone и iPad удобнее продолжить в приложении.</p>
+      <div class="ios-app-open-actions">
+        <button id="ios-app-open-button" class="ios-app-open-button primary" type="button">Открыть приложение</button>
+        <button id="ios-app-continue-button" class="ios-app-open-button secondary" type="button">Продолжить в браузере</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var openAttemptKey = "gradusy24_ios_open_attempted";
+      var dismissedKey = "gradusy24_ios_open_dismissed";
+
+      function isIOS() {
+        var ua = navigator.userAgent || "";
+        return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      }
+
+      function shouldSkip() {
+        var params = new URLSearchParams(window.location.search);
+        return !isIOS() || window.navigator.standalone === true || params.get("web") === "1";
+      }
+
+      function appUrl() {
+        return "gradusy24://app" + window.location.pathname + window.location.search + window.location.hash;
+      }
+
+      function openApp() {
+        window.location.href = appUrl();
+      }
+
+      function getSessionValue(key) {
+        try {
+          return sessionStorage.getItem(key);
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function setSessionValue(key, value) {
+        try {
+          sessionStorage.setItem(key, value);
+        } catch (_) {
+          // Opening the native app is best-effort; storage failures should not block the site.
+        }
+      }
+
+      function hidePrompt() {
+        var prompt = document.getElementById("ios-app-open");
+        if (prompt) {
+          prompt.hidden = true;
+        }
+      }
+
+      if (shouldSkip()) {
+        return;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var prompt = document.getElementById("ios-app-open");
+        var openButton = document.getElementById("ios-app-open-button");
+        var continueButton = document.getElementById("ios-app-continue-button");
+        if (!prompt || !openButton || !continueButton) {
+          return;
+        }
+
+        if (getSessionValue(dismissedKey) !== "1") {
+          prompt.hidden = false;
+        }
+
+        openButton.addEventListener("click", function () {
+          setSessionValue(openAttemptKey, "1");
+          openApp();
+        });
+
+        continueButton.addEventListener("click", function () {
+          setSessionValue(dismissedKey, "1");
+          hidePrompt();
+        });
+
+        if (getSessionValue(openAttemptKey) !== "1" && getSessionValue(dismissedKey) !== "1") {
+          setSessionValue(openAttemptKey, "1");
+          setTimeout(openApp, 250);
+        }
+      });
+    })();
+  </script>
   <div id="splash" aria-hidden="true">
     <div class="sp-icon">
       <div class="sp-icon-inner">

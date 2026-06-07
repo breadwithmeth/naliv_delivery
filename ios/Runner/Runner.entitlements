@@ -8,5 +8,9 @@
 	<array>
 		<string>group.com.example.nalivDelivery.onesignal</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.gradusy24.kz</string>
+	</array>
 </dict>
 </plist>
