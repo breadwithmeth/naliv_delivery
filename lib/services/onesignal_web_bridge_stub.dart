@@ -7,6 +7,14 @@ class OneSignalWebBridge {
 
   static Future<String?> getPushToken() async => null;
 
+  static Future<String?> getOneSignalId() async => null;
+
+  static Future<bool> getPermissionGranted() async => false;
+
+  static Future<bool> getOptedIn() async => false;
+
+  static Future<bool> setChangeHandler(void Function() onChange) async => false;
+
   static Future<bool> login(String externalId) async => false;
 
   static Future<bool> logout() async => false;

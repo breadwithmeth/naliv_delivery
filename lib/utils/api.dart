@@ -22,7 +22,8 @@ class ApiService {
         return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
       }
       if (exp is num) {
-        return DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000, isUtc: true);
+        return DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000,
+            isUtc: true);
       }
       return null;
     } catch (e) {
@@ -49,7 +50,8 @@ class ApiService {
     }
   }
 
-  static Future<void> _storeAuthToken(SharedPreferences prefs, String token) async {
+  static Future<void> _storeAuthToken(
+      SharedPreferences prefs, String token) async {
     await prefs.setString(_authTokenKey, token);
 
     final expiry = _decodeTokenExpiry(token);
@@ -93,14 +95,18 @@ class ApiService {
   }
 
   static List<Map<String, dynamic>> mapListFromDynamic(dynamic value) {
-    return _asList(value).map(_asMap).whereType<Map<String, dynamic>>().toList(growable: false);
+    return _asList(value)
+        .map(_asMap)
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
   }
 
   static String? _parseString(dynamic value, {bool allowEmpty = false}) {
     if (value == null) return null;
 
     final normalized = value.toString().trim();
-    if (!allowEmpty && (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
+    if (!allowEmpty &&
+        (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
       return null;
     }
 
@@ -134,7 +140,8 @@ class ApiService {
     if (value == null) return null;
     if (value is DateTime) return value;
     if (value is num) {
-      final milliseconds = value > 100000000000 ? value.toInt() : value.toInt() * 1000;
+      final milliseconds =
+          value > 100000000000 ? value.toInt() : value.toInt() * 1000;
       return DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
     }
 
@@ -144,13 +151,20 @@ class ApiService {
   }
 
   static List<int> _parseIntList(dynamic value) {
-    return _asList(value).map((entry) => _parseInt(entry, defaultValue: -1)).where((entry) => entry >= 0).toList(growable: false);
+    return _asList(value)
+        .map((entry) => _parseInt(entry, defaultValue: -1))
+        .where((entry) => entry >= 0)
+        .toList(growable: false);
   }
 
   static Map<String, dynamic> _normalizeCategoryNode(Map<String, dynamic> raw) {
     final normalized = Map<String, dynamic>.from(raw);
-    normalized['categories'] = mapListFromDynamic(raw['categories']).map(_normalizeCategoryNode).toList(growable: false);
-    normalized['subcategories'] = mapListFromDynamic(raw['subcategories']).map(_normalizeCategoryNode).toList(growable: false);
+    normalized['categories'] = mapListFromDynamic(raw['categories'])
+        .map(_normalizeCategoryNode)
+        .toList(growable: false);
+    normalized['subcategories'] = mapListFromDynamic(raw['subcategories'])
+        .map(_normalizeCategoryNode)
+        .toList(growable: false);
     return normalized;
   }
 
@@ -243,7 +257,8 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           // Ожидаем, что в data будет новое значение is_liked или сам liked_item
-          if (jsonResponse['data'] is Map && jsonResponse['data']['is_liked'] != null) {
+          if (jsonResponse['data'] is Map &&
+              jsonResponse['data']['is_liked'] != null) {
             return jsonResponse['data']['is_liked'] == true;
           }
           // fallback: возможно success=true означает теперь лайк стоит
@@ -272,7 +287,9 @@ class ApiService {
     if (normalized == null) return defaultValue;
 
     final compact = normalized.replaceAll(' ', '').replaceAll(',', '.');
-    return int.tryParse(compact) ?? double.tryParse(compact)?.toInt() ?? defaultValue;
+    return int.tryParse(compact) ??
+        double.tryParse(compact)?.toInt() ??
+        defaultValue;
   }
 
   static Future<Map<String, dynamic>?> getBusinesses({
@@ -306,11 +323,13 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           return jsonResponse['data'];
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -341,16 +360,21 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           final cities = jsonResponse['data']?['cities'];
           if (cities is List) {
-            return cities.whereType<Map>().map((city) => Map<String, dynamic>.from(city)).toList();
+            return cities
+                .whereType<Map>()
+                .map((city) => Map<String, dynamic>.from(city))
+                .toList();
           }
           return const [];
         }
 
-        debugPrint('API getAvailableCities error: ${jsonResponse['message'] ?? 'Unknown error'}');
+        debugPrint(
+            'API getAvailableCities error: ${jsonResponse['message'] ?? 'Unknown error'}');
         return null;
       }
 
-      debugPrint('HTTP Error getAvailableCities: ${response.statusCode} - ${response.reasonPhrase}');
+      debugPrint(
+          'HTTP Error getAvailableCities: ${response.statusCode} - ${response.reasonPhrase}');
       return null;
     } catch (e) {
       debugPrint('Network Error getAvailableCities: $e');
@@ -363,7 +387,8 @@ class ApiService {
   /// Возвращает только массив бизнесов
   static Future<List<Map<String, dynamic>>?> getAllBusinesses() async {
     try {
-      final data = await getBusinesses(page: 1, limit: 1000); // Получаем большое количество
+      final data = await getBusinesses(
+          page: 1, limit: 1000); // Получаем большое количество
       return mapListFromDynamic(data?['businesses']);
     } catch (e) {
       debugPrint('Error getting all businesses: $e');
@@ -394,11 +419,13 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           return jsonResponse['data'];
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -418,7 +445,8 @@ class ApiService {
     String country = 'Казахстан',
   }) async {
     try {
-      final searchQuery = _buildAddressSearchQuery(query, city: city, country: country);
+      final searchQuery =
+          _buildAddressSearchQuery(query, city: city, country: country);
 
       // Формируем URL с query параметрами
       final uri = Uri.parse('$baseUrl/addresses/search').replace(
@@ -445,14 +473,18 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           // Extract features array or use empty list
           final List<dynamic> features = jsonResponse['data']['features'] ?? [];
-          final List<Map<String, dynamic>> addresses = features.cast<Map<String, dynamic>>();
-          return _filterAddressResults(addresses, city: city, country: country, requireCityMatch: true);
+          final List<Map<String, dynamic>> addresses =
+              features.cast<Map<String, dynamic>>();
+          return _filterAddressResults(addresses,
+              city: city, country: country, requireCityMatch: true);
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -506,7 +538,8 @@ class ApiService {
 
         if (kDebugMode) {
           debugPrint('Reverse geocode request: lat=$lat, lon=$lon');
-          debugPrint('Reverse geocode raw response:\n${_prettyJsonEncoder.convert(jsonResponse)}');
+          debugPrint(
+              'Reverse geocode raw response:\n${_prettyJsonEncoder.convert(jsonResponse)}');
         }
 
         // Проверяем успешность запроса
@@ -520,11 +553,13 @@ class ApiService {
             return <Map<String, dynamic>>[];
           }
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -557,10 +592,12 @@ class ApiService {
     // Если указаны координаты
     if (lat != null && lon != null) {
       final results = await searchAddressByCoordinates(lat, lon);
-      return _filterAddressResults(results, city: city, country: country, requireCityMatch: true);
+      return _filterAddressResults(results,
+          city: city, country: country, requireCityMatch: true);
     }
 
-    debugPrint('Error: Either query or coordinates (lat, lon) must be provided');
+    debugPrint(
+        'Error: Either query or coordinates (lat, lon) must be provided');
     return null;
   }
 
@@ -669,7 +706,8 @@ class ApiService {
     return (normalized == null || normalized.isEmpty) ? null : normalized;
   }
 
-  static bool isKazakhstanAddress(Map<String, dynamic>? rawAddress, {String country = 'Казахстан'}) {
+  static bool isKazakhstanAddress(Map<String, dynamic>? rawAddress,
+      {String country = 'Казахстан'}) {
     if (rawAddress == null) return false;
     return _isCountryMatch(rawAddress, country);
   }
@@ -685,12 +723,18 @@ class ApiService {
 
     final street = address['street']?.toString().trim();
     final house = address['house']?.toString().trim();
-    if ((base == null || base.trim().isEmpty) && street != null && street.isNotEmpty) {
+    if ((base == null || base.trim().isEmpty) &&
+        street != null &&
+        street.isNotEmpty) {
       final normalizedStreet = _shortenStreetPrefix(street);
-      base = house != null && house.isNotEmpty ? '$normalizedStreet, $house' : normalizedStreet;
+      base = house != null && house.isNotEmpty
+          ? '$normalizedStreet, $house'
+          : normalizedStreet;
     }
 
-    final parts = <String>[(base == null || base.trim().isEmpty) ? emptyText : base.trim()];
+    final parts = <String>[
+      (base == null || base.trim().isEmpty) ? emptyText : base.trim()
+    ];
     final details = <String>[];
 
     final entrance = address['entrance']?.toString().trim();
@@ -715,20 +759,24 @@ class ApiService {
     return parts.join(' • ');
   }
 
-  static Map<String, dynamic>? _extractGeoFeature(Map<String, dynamic> rawAddress) {
+  static Map<String, dynamic>? _extractGeoFeature(
+      Map<String, dynamic> rawAddress) {
     if (rawAddress['type'] == 'Feature') {
       return rawAddress;
     }
 
     final features = rawAddress['features'];
-    if (features is List && features.isNotEmpty && features.first is Map<String, dynamic>) {
+    if (features is List &&
+        features.isNotEmpty &&
+        features.first is Map<String, dynamic>) {
       return features.first as Map<String, dynamic>;
     }
 
     return null;
   }
 
-  static Map<dynamic, dynamic>? _extractGeocoding(Map<String, dynamic>? rawAddress) {
+  static Map<dynamic, dynamic>? _extractGeocoding(
+      Map<String, dynamic>? rawAddress) {
     if (rawAddress == null) return null;
 
     final feature = _extractGeoFeature(rawAddress) ?? rawAddress;
@@ -784,7 +832,10 @@ class ApiService {
       return true;
     }
 
-    return tokens.contains('kazakhstan') || tokens.contains('казахстан') || tokens.contains('қазақстан') || tokens.contains('kz');
+    return tokens.contains('kazakhstan') ||
+        tokens.contains('казахстан') ||
+        tokens.contains('қазақстан') ||
+        tokens.contains('kz');
   }
 
   static bool _isSelectedCityMatch(Map<String, dynamic> item, String city) {
@@ -829,7 +880,10 @@ class ApiService {
     for (final value in rawTexts) {
       final text = value?.toString().trim();
       if (text == null || text.isEmpty) continue;
-      tokens.addAll(text.split(',').map(_normalizeAddressToken).where((token) => token.isNotEmpty));
+      tokens.addAll(text
+          .split(',')
+          .map(_normalizeAddressToken)
+          .where((token) => token.isNotEmpty));
     }
 
     return tokens;
@@ -882,7 +936,9 @@ class ApiService {
       return null;
     }
 
-    if (normalizedPreferredCity.isNotEmpty && normalizedCity.isNotEmpty && normalizedPreferredCity != normalizedCity) {
+    if (normalizedPreferredCity.isNotEmpty &&
+        normalizedCity.isNotEmpty &&
+        normalizedPreferredCity != normalizedCity) {
       return null;
     }
 
@@ -892,7 +948,8 @@ class ApiService {
       parts.add('$streetLabel, $houseNumber');
     } else if (street != null) {
       parts.add(streetLabel);
-    } else if (district != null && _normalizeAddressToken(district) != normalizedCity) {
+    } else if (district != null &&
+        _normalizeAddressToken(district) != normalizedCity) {
       parts.add(district);
     }
 
@@ -933,13 +990,15 @@ class ApiService {
           normalized == 'kz') {
         continue;
       }
-      if (normalizedPreferredCity.isNotEmpty && normalized == normalizedPreferredCity) {
+      if (normalizedPreferredCity.isNotEmpty &&
+          normalized == normalizedPreferredCity) {
         continue;
       }
       if (normalized.startsWith('город ') || normalized.startsWith('г ')) {
         continue;
       }
-      if (compactParts.any((existing) => _normalizeAddressToken(existing) == normalized)) {
+      if (compactParts
+          .any((existing) => _normalizeAddressToken(existing) == normalized)) {
         continue;
       }
       compactParts.add(_shortenStreetPrefix(trimmed));
@@ -958,12 +1017,19 @@ class ApiService {
       return raw;
     }
 
-    final normalized = raw.replaceFirst(RegExp(r'^(улица|ул\.?)(\s+)', caseSensitive: false), 'Ул. ');
-    return normalized.replaceFirst(RegExp(r'^(ул\.?)(\s+)', caseSensitive: false), 'Ул. ');
+    final normalized = raw.replaceFirst(
+        RegExp(r'^(улица|ул\.?)(\s+)', caseSensitive: false), 'Ул. ');
+    return normalized.replaceFirst(
+        RegExp(r'^(ул\.?)(\s+)', caseSensitive: false), 'Ул. ');
   }
 
   static String _normalizeAddressToken(dynamic value) {
-    return value?.toString().trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') ?? '';
+    return value
+            ?.toString()
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'\s+'), ' ') ??
+        '';
   }
 
   static String? _firstNonEmptyString(List<dynamic> values) {
@@ -996,28 +1062,36 @@ class ApiService {
         final success = jsonResponse?['success'] == true;
         return AuthCodeSendResult(
           success: success,
-          message: jsonResponse?['message']?.toString() ?? (success ? 'Код отправлен.' : 'Не удалось отправить код.'),
+          message: jsonResponse?['message']?.toString() ??
+              (success ? 'Код отправлен.' : 'Не удалось отправить код.'),
           statusCode: response.statusCode,
         );
       }
 
-      final message = jsonResponse?['error']?['message']?.toString() ?? jsonResponse?['message']?.toString() ?? 'Не удалось отправить код.';
+      final message = jsonResponse?['error']?['message']?.toString() ??
+          jsonResponse?['message']?.toString() ??
+          'Не удалось отправить код.';
       return AuthCodeSendResult(
         success: false,
         message: message,
         statusCode: response.statusCode,
-        cooldownSeconds: response.statusCode == 429 ? _extractAuthCodeCooldownSeconds(response.headers['retry-after'], message) : null,
+        cooldownSeconds: response.statusCode == 429
+            ? _extractAuthCodeCooldownSeconds(
+                response.headers['retry-after'], message)
+            : null,
       );
     } catch (e) {
       debugPrint('Error sendAuthCode: $e');
       return const AuthCodeSendResult(
         success: false,
-        message: 'Не удалось отправить код. Проверьте соединение и попробуйте еще раз.',
+        message:
+            'Не удалось отправить код. Проверьте соединение и попробуйте еще раз.',
       );
     }
   }
 
-  static int? _extractAuthCodeCooldownSeconds(String? retryAfter, String? message) {
+  static int? _extractAuthCodeCooldownSeconds(
+      String? retryAfter, String? message) {
     final retryAfterSeconds = _parseRetryAfterSeconds(retryAfter);
     if (retryAfterSeconds != null && retryAfterSeconds > 0) {
       return retryAfterSeconds;
@@ -1058,7 +1132,9 @@ class ApiService {
     }
 
     var totalSeconds = 0;
-    for (final match in RegExp(r'(\d+)\s*(час(?:а|ов)?|мину(?:та|ты|ту|т)|секунд(?:а|ы|у)?|сек)').allMatches(normalized)) {
+    for (final match in RegExp(
+            r'(\d+)\s*(час(?:а|ов)?|мину(?:та|ты|ту|т)|секунд(?:а|ы|у)?|сек)')
+        .allMatches(normalized)) {
       final value = int.tryParse(match.group(1) ?? '');
       final unit = match.group(2) ?? '';
       if (value == null || value <= 0) {
@@ -1079,7 +1155,8 @@ class ApiService {
 
   /// Проверка одноразового кода для аутентификации
   /// Возвращает данные пользователя при успешной верификации или null
-  static Future<Map<String, dynamic>?> verifyAuthCode(String phoneNumber, String oneTimeCode) async {
+  static Future<Map<String, dynamic>?> verifyAuthCode(
+      String phoneNumber, String oneTimeCode) async {
     final uri = Uri.parse('$baseUrl/auth/verify-code');
     try {
       final response = await http.post(
@@ -1154,7 +1231,8 @@ class ApiService {
     }
 
     final storedExpiry = prefs.getString(_authTokenExpiryKey);
-    var expiry = storedExpiry != null ? DateTime.tryParse(storedExpiry)?.toUtc() : null;
+    var expiry =
+        storedExpiry != null ? DateTime.tryParse(storedExpiry)?.toUtc() : null;
 
     if (expiry == null) {
       expiry = _decodeTokenExpiry(token);
@@ -1208,6 +1286,90 @@ class ApiService {
           'client_id',
           'clientId',
         ]);
+  }
+
+  static Future<bool> upsertOneSignalSubscription(
+    Map<String, dynamic> payload,
+  ) async {
+    final token = await getAuthToken();
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+
+    final uri = Uri.parse('$baseUrl/users/onesignal-subscription');
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (response.body.trim().isEmpty) {
+          return true;
+        }
+
+        final decoded = json.decode(response.body);
+        final jsonResponse = _asMap(decoded);
+        if (jsonResponse == null) {
+          return true;
+        }
+
+        if (jsonResponse['success'] == false) {
+          debugPrint(
+            'API upsertOneSignalSubscription error: ${jsonResponse['message']}',
+          );
+          return false;
+        }
+        return true;
+      }
+
+      debugPrint(
+        'HTTP upsertOneSignalSubscription error: ${response.statusCode}',
+      );
+      return false;
+    } catch (e) {
+      debugPrint('Network upsertOneSignalSubscription error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteOneSignalSubscription(String subscriptionId) async {
+    final token = await getAuthToken();
+    if (token == null || token.isEmpty) {
+      debugPrint('API deleteOneSignalSubscription: no auth token');
+      return false;
+    }
+
+    final encodedSubscriptionId = Uri.encodeComponent(subscriptionId);
+    final uri = Uri.parse(
+      '$baseUrl/users/onesignal-subscription/$encodedSubscriptionId',
+    );
+
+    try {
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return true;
+      }
+
+      debugPrint(
+        'HTTP deleteOneSignalSubscription error: ${response.statusCode}',
+      );
+      return false;
+    } catch (e) {
+      debugPrint('Network deleteOneSignalSubscription error: $e');
+      return false;
+    }
   }
 
   static String? _firstString(
@@ -1266,10 +1428,15 @@ class ApiService {
         // так как оно может содержать и data, и message
         return jsonResponse;
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         debugPrint('Error body: ${response.body}');
         // Возвращаем ответ с ошибкой, чтобы UI мог ее обработать
-        return {'success': false, 'error': jsonResponse['error'] ?? 'Ошибка сервера', 'statusCode': response.statusCode};
+        return {
+          'success': false,
+          'error': jsonResponse['error'] ?? 'Ошибка сервера',
+          'statusCode': response.statusCode
+        };
       }
     } catch (e) {
       debugPrint('Network Error: $e');
@@ -1305,11 +1472,14 @@ class ApiService {
         return jsonResponse;
       }
 
-      debugPrint('HTTP validatePromoCode error: ${response.statusCode} - ${response.reasonPhrase}');
+      debugPrint(
+          'HTTP validatePromoCode error: ${response.statusCode} - ${response.reasonPhrase}');
       debugPrint('Error body: ${response.body}');
       return {
         'success': false,
-        'error': jsonResponse['error'] ?? jsonResponse['message'] ?? 'Ошибка сервера',
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Ошибка сервера',
         'statusCode': response.statusCode,
       };
     } catch (e) {
@@ -1388,7 +1558,9 @@ class ApiService {
       final data = mapFromDynamic(raw['data']);
 
       // 1) Items -> List<CategoryItem>
-      final items = mapListFromDynamic(data['items']).map(CategoryItem.fromJson).toList(growable: false);
+      final items = mapListFromDynamic(data['items'])
+          .map(CategoryItem.fromJson)
+          .toList(growable: false);
 
       // 2) Pagination -> PaginationInfo
       PaginationInfo pagination;
@@ -1397,7 +1569,9 @@ class ApiService {
         pagination = PaginationInfo.fromJson(paginationData);
       } else {
         // fallback, если бэкенд не вернул pagination
-        final total = ApiService._parseInt(data['total']) == 0 ? items.length : ApiService._parseInt(data['total']);
+        final total = ApiService._parseInt(data['total']) == 0
+            ? items.length
+            : ApiService._parseInt(data['total']);
         final totalPages = (total / limit).ceil().clamp(1, 999999);
         pagination = PaginationInfo(
           page: page,
@@ -1457,7 +1631,8 @@ class ApiService {
     String country = 'Казахстан',
   }) async {
     try {
-      final addressesData = await searchAddressByText(query, city: city, country: country);
+      final addressesData =
+          await searchAddressByText(query, city: city, country: country);
       if (addressesData != null) {
         return addressesData.map((json) => Address.fromJson(json)).toList();
       }
@@ -1508,7 +1683,8 @@ class ApiService {
   }) async {
     // Если указан текстовый запрос
     if (query != null && query.isNotEmpty) {
-      final addressesData = await searchAddressByText(query, city: city, country: country);
+      final addressesData =
+          await searchAddressByText(query, city: city, country: country);
       if (addressesData != null) {
         return addressesData.map((json) => Address.fromJson(json)).toList();
       }
@@ -1529,7 +1705,8 @@ class ApiService {
       return null;
     }
 
-    debugPrint('Error: Either query or coordinates (lat, lon) must be provided');
+    debugPrint(
+        'Error: Either query or coordinates (lat, lon) must be provided');
     return null;
   }
 
@@ -1598,11 +1775,13 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           return jsonResponse;
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -1689,7 +1868,8 @@ class ApiService {
       if (businessId != null) {
         queryParams['business_id'] = businessId.toString();
       }
-      final uri = Uri.parse('$baseUrl/promotions/$promotionId/items').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/promotions/$promotionId/items')
+          .replace(queryParameters: queryParams);
       final response = await http.get(
         uri,
         headers: {
@@ -1702,10 +1882,12 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           return jsonResponse;
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
       }
     } catch (e) {
       debugPrint('Network Error: $e');
@@ -1783,12 +1965,14 @@ class ApiService {
 
       final itemsJson = data['items'] as List<dynamic>? ?? const <dynamic>[];
       collected.addAll(
-        itemsJson.whereType<Map>().map((item) => item_model.Item.fromJson(Map<String, dynamic>.from(item))),
+        itemsJson.whereType<Map>().map((item) =>
+            item_model.Item.fromJson(Map<String, dynamic>.from(item))),
       );
 
       final pagination = data['pagination'];
       if (pagination is Map<String, dynamic>) {
-        final parsedTotalPages = _parseInt(pagination['totalPages'] ?? pagination['total_pages']);
+        final parsedTotalPages =
+            _parseInt(pagination['totalPages'] ?? pagination['total_pages']);
         totalPages = parsedTotalPages > 0 ? parsedTotalPages : page;
       } else {
         totalPages = page;
@@ -1856,11 +2040,13 @@ class ApiService {
             return [];
           }
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -1937,11 +2123,13 @@ class ApiService {
         if (jsonResponse['success'] == true) {
           return jsonResponse;
         } else {
-          debugPrint('API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
+          debugPrint(
+              'API Error: ${jsonResponse['message'] ?? 'Unknown error'}');
           return null;
         }
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         return null;
       }
     } catch (e) {
@@ -1997,7 +2185,9 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           final data = mapFromDynamic(jsonResponse['data']);
-          return mapListFromDynamic(data['supercategories']).map(_normalizeCategoryNode).toList(growable: false);
+          return mapListFromDynamic(data['supercategories'])
+              .map(_normalizeCategoryNode)
+              .toList(growable: false);
         }
         debugPrint('API getSuperCategories error: ${jsonResponse['message']}');
       } else {
@@ -2012,7 +2202,8 @@ class ApiService {
   /// Получить список сохранённых карт пользователя
   /// [source] - опциональный параметр для фильтрации по источнику
   /// Возвращает список карт или null
-  static Future<List<Map<String, dynamic>>?> getUserCards({String? source}) async {
+  static Future<List<Map<String, dynamic>>?> getUserCards(
+      {String? source}) async {
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API getUserCards: no auth token');
@@ -2084,16 +2275,19 @@ class ApiService {
           if (link == null || link.trim().isEmpty) {
             return const AddCardLinkResult(
               success: false,
-              message: 'Банк не вернул ссылку для привязки карты. Попробуйте еще раз чуть позже.',
+              message:
+                  'Банк не вернул ссылку для привязки карты. Попробуйте еще раз чуть позже.',
             );
           }
           return AddCardLinkResult(
             success: true,
             link: link,
-            message: jsonResponse['message']?.toString() ?? 'Ссылка на привязку карты готова.',
+            message: jsonResponse['message']?.toString() ??
+                'Ссылка на привязку карты готова.',
           );
         } else {
-          debugPrint('API generateAddCardLink error: ${jsonResponse['error']?['message']}');
+          debugPrint(
+              'API generateAddCardLink error: ${jsonResponse['error']?['message']}');
           return AddCardLinkResult(
             success: false,
             message: jsonResponse['error']?['message']?.toString() ??
@@ -2107,18 +2301,21 @@ class ApiService {
         String? message;
         try {
           final Map<String, dynamic> errorJson = json.decode(response.body);
-          message = errorJson['error']?['message']?.toString() ?? errorJson['message']?.toString();
+          message = errorJson['error']?['message']?.toString() ??
+              errorJson['message']?.toString();
         } catch (_) {}
         return AddCardLinkResult(
           success: false,
-          message: message ?? 'Не удалось получить ссылку для добавления карты. Попробуйте еще раз.',
+          message: message ??
+              'Не удалось получить ссылку для добавления карты. Попробуйте еще раз.',
         );
       }
     } catch (e) {
       debugPrint('Network Error generateAddCardLink: $e');
       return const AddCardLinkResult(
         success: false,
-        message: 'Не удалось связаться с сервисом привязки карты. Проверьте соединение и попробуйте еще раз.',
+        message:
+            'Не удалось связаться с сервисом привязки карты. Проверьте соединение и попробуйте еще раз.',
       );
     }
   }
@@ -2186,9 +2383,14 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonResponse;
       } else {
-        debugPrint('HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
+        debugPrint(
+            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
         debugPrint('Error body: ${response.body}');
-        return {'success': false, 'error': jsonResponse['error'] ?? 'Ошибка оплаты', 'statusCode': response.statusCode};
+        return {
+          'success': false,
+          'error': jsonResponse['error'] ?? 'Ошибка оплаты',
+          'statusCode': response.statusCode
+        };
       }
     } catch (e) {
       debugPrint('Network Error: $e');
@@ -2419,13 +2621,15 @@ class ApiService {
   }
 
   static bool _isRecentActiveOrder(Map<String, dynamic> order) {
-    final rawTimestamp = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
+    final rawTimestamp =
+        order['log_timestamp']?.toString() ?? order['created_at']?.toString();
     if (rawTimestamp == null || rawTimestamp.isEmpty) return true;
 
     final parsed = DateTime.tryParse(rawTimestamp);
     if (parsed == null) return true;
 
-    return DateTime.now().difference(parsed.toLocal()) < const Duration(hours: 2);
+    return DateTime.now().difference(parsed.toLocal()) <
+        const Duration(hours: 2);
   }
 
   static Map<String, dynamic>? _asStringKeyedMap(dynamic value) {
@@ -2433,13 +2637,18 @@ class ApiService {
       return value;
     }
     if (value is Map) {
-      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
+      return value
+          .map((key, entryValue) => MapEntry(key.toString(), entryValue));
     }
     return null;
   }
 
-  static List<Map<String, dynamic>> _asStringKeyedMapList(List<dynamic> source) {
-    return source.map(_asStringKeyedMap).whereType<Map<String, dynamic>>().toList();
+  static List<Map<String, dynamic>> _asStringKeyedMapList(
+      List<dynamic> source) {
+    return source
+        .map(_asStringKeyedMap)
+        .whereType<Map<String, dynamic>>()
+        .toList();
   }
 
   static Future<Map<String, dynamic>?> getCourierLocation(int orderId) async {
@@ -2511,7 +2720,8 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse['success'] == true && jsonResponse['data'] is Map<String, dynamic>) {
+        if (jsonResponse['success'] == true &&
+            jsonResponse['data'] is Map<String, dynamic>) {
           return jsonResponse['data'] as Map<String, dynamic>;
         } else {
           debugPrint('API Error calculateDelivery: ${jsonResponse['message']}');
@@ -2524,7 +2734,6 @@ class ApiService {
     }
     return null;
   }
-
 }
 
 /// Модель для адреса
@@ -2670,8 +2879,10 @@ class Promotion {
   });
 
   factory Promotion.fromJson(Map<String, dynamic> json) {
-    final startDate = ApiService._parseDateTime(json['start_promotion_date']) ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    final endDate = ApiService._parseDateTime(json['end_promotion_date']) ?? startDate;
+    final startDate = ApiService._parseDateTime(json['start_promotion_date']) ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final endDate =
+        ApiService._parseDateTime(json['end_promotion_date']) ?? startDate;
 
     return Promotion(
       marketingPromotionId: ApiService._parseInt(
@@ -2680,15 +2891,24 @@ class Promotion {
       name: ApiService._parseString(json['name']),
       startPromotionDate: startDate,
       endPromotionDate: endDate,
-      businessId: ApiService._parseInt(json['business_id'] ?? json['businessId']),
+      businessId:
+          ApiService._parseInt(json['business_id'] ?? json['businessId']),
       cover: ApiService._parseString(json['cover']),
       visible: ApiService._parseInt(json['visible'], defaultValue: 1),
-      isActive: json.containsKey('is_active') ? ApiService._parseBool(json['is_active']) : null,
-      business: ApiService._asMap(json['business']) != null ? Business.fromJson(ApiService.mapFromDynamic(json['business'])) : null,
-      details: ApiService.mapListFromDynamic(json['details']).map(PromotionDetail.fromJson).toList(growable: false),
+      isActive: json.containsKey('is_active')
+          ? ApiService._parseBool(json['is_active'])
+          : null,
+      business: ApiService._asMap(json['business']) != null
+          ? Business.fromJson(ApiService.mapFromDynamic(json['business']))
+          : null,
+      details: ApiService.mapListFromDynamic(json['details'])
+          .map(PromotionDetail.fromJson)
+          .toList(growable: false),
       stories: ApiService.mapListFromDynamic(json['stories']).isEmpty
           ? null
-          : ApiService.mapListFromDynamic(json['stories']).map(PromotionStory.fromJson).toList(growable: false),
+          : ApiService.mapListFromDynamic(json['stories'])
+              .map(PromotionStory.fromJson)
+              .toList(growable: false),
       itemsCount: ApiService._parseInt(json['items_count']),
       daysLeft: ApiService._parseInt(json['days_left']),
     );
@@ -2706,7 +2926,8 @@ class Promotion {
       if (isActive != null) 'is_active': isActive,
       if (business != null) 'business': business!.toJson(),
       'details': details.map((detail) => detail.toJson()).toList(),
-      if (stories != null) 'stories': stories!.map((story) => story.toJson()).toList(),
+      if (stories != null)
+        'stories': stories!.map((story) => story.toJson()).toList(),
       'items_count': itemsCount,
       'days_left': daysLeft,
     };
@@ -2742,14 +2963,21 @@ class PromotionDetail {
 
   factory PromotionDetail.fromJson(Map<String, dynamic> json) {
     return PromotionDetail(
-      detailId: ApiService._parseInt(json['detail_id'] ?? json['promotion_detail_id']),
+      detailId: ApiService._parseInt(
+          json['detail_id'] ?? json['promotion_detail_id']),
       type: ApiService._parseString(json['type']) ?? '',
-      baseAmount: json['base_amount'] != null ? ApiService._parseInt(json['base_amount']) : null,
-      addAmount: json['add_amount'] != null ? ApiService._parseInt(json['add_amount']) : null,
+      baseAmount: json['base_amount'] != null
+          ? ApiService._parseInt(json['base_amount'])
+          : null,
+      addAmount: json['add_amount'] != null
+          ? ApiService._parseInt(json['add_amount'])
+          : null,
       discount: ApiService._parseDouble(json['discount']),
       itemId: ApiService._parseInt(json['item_id']),
       name: ApiService._parseString(json['name']) ?? '',
-      item: ApiService._asMap(json['item']) != null ? Item.fromJson(ApiService.mapFromDynamic(json['item'])) : null,
+      item: ApiService._asMap(json['item']) != null
+          ? Item.fromJson(ApiService.mapFromDynamic(json['item']))
+          : null,
     );
   }
 
@@ -2790,7 +3018,8 @@ class PromotionStory {
     return PromotionStory(
       storyId: ApiService._parseInt(json['story_id']),
       cover: ApiService._parseString(json['cover']) ?? '',
-      marketingPromotionId: ApiService._parseInt(json['marketing_promotion_id']),
+      marketingPromotionId:
+          ApiService._parseInt(json['marketing_promotion_id']),
       promo: ApiService._parseString(json['promo']) ?? '',
     );
   }
@@ -2863,16 +3092,21 @@ class Item {
   });
 
   factory Item.fromJson(Map<String, dynamic> json) {
-    final options = ApiService.mapListFromDynamic(json['options']).map(ItemOption.fromJson).toList(growable: false);
+    final options = ApiService.mapListFromDynamic(json['options'])
+        .map(ItemOption.fromJson)
+        .toList(growable: false);
 
     return Item(
       itemId: ApiService._parseInt(json['item_id'] ?? json['id']),
       name: ApiService._parseString(json['name']) ?? '',
       price: ApiService._parseDouble(json['price']) ?? 0.0,
-      image: ApiService._parseString(json['image']) ?? ApiService._parseString(json['img']),
+      image: ApiService._parseString(json['image']) ??
+          ApiService._parseString(json['img']),
       description: ApiService._parseString(json['description']),
-      categoryId: ApiService._parseInt(json['category_id'] ?? json['categoryId']),
-      businessId: ApiService._parseInt(json['business_id'] ?? json['businessId']),
+      categoryId:
+          ApiService._parseInt(json['category_id'] ?? json['categoryId']),
+      businessId:
+          ApiService._parseInt(json['business_id'] ?? json['businessId']),
       amount: ApiService._parseInt(json['amount']),
       isLiked: ApiService._parseBool(json['is_liked']),
       options: options.isEmpty ? null : options,
@@ -2889,7 +3123,8 @@ class Item {
       'category_id': categoryId,
       'business_id': businessId,
       'amount': amount,
-      if (options != null) 'options': options!.map((option) => option.toJson()).toList(),
+      if (options != null)
+        'options': options!.map((option) => option.toJson()).toList(),
     };
   }
 
@@ -2969,7 +3204,8 @@ class ItemOptionItem {
       relationId: ApiService._parseInt(json['relation_id']),
       itemId: ApiService._parseInt(json['item_id']),
       priceType: ApiService._parseString(json['price_type']) ?? '',
-      itemName: ApiService._parseString(json['item_name'] ?? json['name']) ?? '',
+      itemName:
+          ApiService._parseString(json['item_name'] ?? json['name']) ?? '',
       price: ApiService._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: ApiService._parseInt(json['parent_item_amount']),
     );
@@ -3008,13 +3244,16 @@ class Category {
   });
 
   factory Category.fromJson(Map<String, dynamic> json) {
-    final subcategories = ApiService.mapListFromDynamic(json['subcategories']).map(Category.fromJson).toList(growable: false);
+    final subcategories = ApiService.mapListFromDynamic(json['subcategories'])
+        .map(Category.fromJson)
+        .toList(growable: false);
 
     return Category(
       categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
       name: ApiService._parseString(json['name']) ?? '',
-      parentId:
-          json['parent_id'] != null || json['parent_category'] != null ? ApiService._parseInt(json['parent_id'] ?? json['parent_category']) : null,
+      parentId: json['parent_id'] != null || json['parent_category'] != null
+          ? ApiService._parseInt(json['parent_id'] ?? json['parent_category'])
+          : null,
       itemsCount: ApiService._parseInt(json['items_count']),
       subcategories: subcategories,
     );
@@ -3026,7 +3265,8 @@ class Category {
       'name': name,
       if (parentId != null) 'parent_id': parentId,
       'items_count': itemsCount,
-      'subcategories': subcategories.map((subcategory) => subcategory.toJson()).toList(),
+      'subcategories':
+          subcategories.map((subcategory) => subcategory.toJson()).toList(),
     };
   }
 
@@ -3133,10 +3373,15 @@ class CategoryItemsData {
 
   factory CategoryItemsData.fromJson(Map<String, dynamic> json) {
     return CategoryItemsData(
-      category: CategoryInfo.fromJson(ApiService.mapFromDynamic(json['category'])),
-      business: BusinessInfo.fromJson(ApiService.mapFromDynamic(json['business'])),
-      items: ApiService.mapListFromDynamic(json['items']).map(CategoryItem.fromJson).toList(growable: false),
-      pagination: PaginationInfo.fromJson(ApiService.mapFromDynamic(json['pagination'])),
+      category:
+          CategoryInfo.fromJson(ApiService.mapFromDynamic(json['category'])),
+      business:
+          BusinessInfo.fromJson(ApiService.mapFromDynamic(json['business'])),
+      items: ApiService.mapListFromDynamic(json['items'])
+          .map(CategoryItem.fromJson)
+          .toList(growable: false),
+      pagination: PaginationInfo.fromJson(
+          ApiService.mapFromDynamic(json['pagination'])),
       categoriesIncluded: ApiService._parseIntList(json['categories_included']),
       subcategoriesCount: ApiService._parseInt(json['subcategories_count']),
     );
@@ -3178,7 +3423,8 @@ class CategoryInfo {
       categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
       name: ApiService._parseString(json['name']) ?? '',
       photo: ApiService._parseString(json['photo']),
-      img: ApiService._parseString(json['img']) ?? ApiService._parseString(json['image']),
+      img: ApiService._parseString(json['img']) ??
+          ApiService._parseString(json['image']),
     );
   }
 
@@ -3269,29 +3515,39 @@ class CategoryItem {
     final categoryData = ApiService._asMap(json['category']) ??
         <String, dynamic>{
           'category_id': json['category_id'] ?? json['categoryId'],
-          'name': ApiService._parseString(json['category_name'] ?? json['category']) ?? '',
+          'name': ApiService._parseString(
+                  json['category_name'] ?? json['category']) ??
+              '',
           'parent_category': json['parent_category'] ?? json['parent_id'],
         };
-    final options = ApiService.mapListFromDynamic(json['options']).map(CategoryItemOption.fromJson).toList(growable: false);
-    final promotions = ApiService.mapListFromDynamic(json['promotions']).map(CategoryItemPromotion.fromJson).toList(growable: false);
+    final options = ApiService.mapListFromDynamic(json['options'])
+        .map(CategoryItemOption.fromJson)
+        .toList(growable: false);
+    final promotions = ApiService.mapListFromDynamic(json['promotions'])
+        .map(CategoryItemPromotion.fromJson)
+        .toList(growable: false);
 
     return CategoryItem(
       itemId: ApiService._parseInt(json['item_id'] ?? json['id']),
       name: ApiService._parseString(json['name']) ?? '',
       description: ApiService._parseString(json['description']),
       price: ApiService._parseDouble(json['price']) ?? 0.0,
-      img: ApiService._parseString(json['img']) ?? ApiService._parseString(json['image']),
+      img: ApiService._parseString(json['img']) ??
+          ApiService._parseString(json['image']),
       code: ApiService._parseString(json['code']),
       category: ItemCategory.fromJson(categoryData),
       visible: ApiService._parseInt(json['visible'], defaultValue: 1),
-      unit: ApiService._parseString(json['unit'] ?? json['unit_name'] ?? json['measure']),
-      quantity: ApiService._parseDouble(json['quantity']) ?? ApiService._parseDouble(json['parent_item_amount']),
+      unit: ApiService._parseString(
+          json['unit'] ?? json['unit_name'] ?? json['measure']),
+      quantity: ApiService._parseDouble(json['quantity']) ??
+          ApiService._parseDouble(json['parent_item_amount']),
       stepQuantity: ApiService._parseDouble(json['quantity_step']) ??
           ApiService._parseDouble(json['step_quantity']) ??
           ApiService._parseDouble(json['parent_item_amount']),
       options: options.isEmpty ? null : options,
       promotions: promotions.isEmpty ? null : promotions,
-      amount: json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
+      amount:
+          json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
     );
   }
 
@@ -3309,8 +3565,10 @@ class CategoryItem {
       if (quantity != null) 'quantity': quantity,
       if (stepQuantity != null) 'quantity_step': stepQuantity,
       if (amount != null) 'amount': amount,
-      if (options != null) 'options': options!.map((option) => option.toJson()).toList(),
-      if (promotions != null) 'promotions': promotions!.map((promo) => promo.toJson()).toList(),
+      if (options != null)
+        'options': options!.map((option) => option.toJson()).toList(),
+      if (promotions != null)
+        'promotions': promotions!.map((promo) => promo.toJson()).toList(),
     };
   }
 
@@ -3345,8 +3603,10 @@ class ItemCategory {
     return ItemCategory(
       categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
       name: ApiService._parseString(json['name']) ?? '',
-      parentCategory:
-          json['parent_category'] != null || json['parent_id'] != null ? ApiService._parseInt(json['parent_category'] ?? json['parent_id']) : null,
+      parentCategory: json['parent_category'] != null ||
+              json['parent_id'] != null
+          ? ApiService._parseInt(json['parent_category'] ?? json['parent_id'])
+          : null,
     );
   }
 
@@ -3442,7 +3702,9 @@ class CategoryItemOption {
       name: ApiService._parseString(json['name']) ?? '',
       required: ApiService._parseBool(json['required']),
       selection: ApiService._parseString(json['selection']) ?? 'single',
-      variants: ApiService.mapListFromDynamic(json['variants']).map(CategoryItemVariant.fromJson).toList(growable: false),
+      variants: ApiService.mapListFromDynamic(json['variants'])
+          .map(CategoryItemVariant.fromJson)
+          .toList(growable: false),
     );
   }
 
@@ -3487,7 +3749,8 @@ class CategoryItemVariant {
       priceType: ApiService._parseString(json['price_type']) ?? 'add',
       itemName: ApiService._parseString(json['item_name'] ?? json['name']),
       price: ApiService._parseDouble(json['price']) ?? 0.0,
-      parentItemAmount: ApiService._parseDouble(json['parent_item_amount']) ?? 0.0,
+      parentItemAmount:
+          ApiService._parseDouble(json['parent_item_amount']) ?? 0.0,
     );
   }
 
@@ -3532,11 +3795,18 @@ class CategoryItemPromotion {
       detailId: ApiService._parseInt(
         json['detail_id'] ?? json['promotion_id'] ?? promotionMeta['detail_id'],
       ),
-      type: ApiService._parseString(json['type'] ?? promotionMeta['type']) ?? '',
-      baseAmount: json['base_amount'] != null || json['baseAmount'] != null ? ApiService._parseInt(json['base_amount'] ?? json['baseAmount']) : null,
-      addAmount: json['add_amount'] != null || json['addAmount'] != null ? ApiService._parseInt(json['add_amount'] ?? json['addAmount']) : null,
-      discount: ApiService._parseDouble(json['discount'] ?? json['discount_value']),
-      name: ApiService._parseString(json['name'] ?? promotionMeta['name']) ?? '',
+      type:
+          ApiService._parseString(json['type'] ?? promotionMeta['type']) ?? '',
+      baseAmount: json['base_amount'] != null || json['baseAmount'] != null
+          ? ApiService._parseInt(json['base_amount'] ?? json['baseAmount'])
+          : null,
+      addAmount: json['add_amount'] != null || json['addAmount'] != null
+          ? ApiService._parseInt(json['add_amount'] ?? json['addAmount'])
+          : null,
+      discount:
+          ApiService._parseDouble(json['discount'] ?? json['discount_value']),
+      name:
+          ApiService._parseString(json['name'] ?? promotionMeta['name']) ?? '',
     );
   }
 

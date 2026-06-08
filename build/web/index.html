@@ -47,6 +47,23 @@
     (function () {
       var oneSignalAppId = "f9a3bf44-4a96-4859-99a9-37aa2b579577";
       var initPromise = null;
+      var changeHandler = null;
+      var listenersRegistered = false;
+
+      function notifyChange() {
+        if (typeof changeHandler === "function") {
+          changeHandler();
+        }
+      }
+
+      function registerChangeListeners(OneSignal) {
+        if (listenersRegistered) {
+          return;
+        }
+        listenersRegistered = true;
+        OneSignal.User.PushSubscription.addEventListener("change", notifyChange);
+        OneSignal.Notifications.addEventListener("permissionChange", notifyChange);
+      }
 
       function withOneSignal(callback, fallback) {
         return new Promise(function (resolve) {
@@ -65,6 +82,7 @@
               }
 
               await initPromise;
+              registerChangeListeners(OneSignal);
               resolve(await callback(OneSignal));
             } catch (error) {
               console.error("OneSignal web error", error);
@@ -107,6 +125,27 @@
           return withOneSignal(async function (OneSignal) {
             return OneSignal.User.PushSubscription.token || null;
           }, null);
+        },
+        getOneSignalId: function () {
+          return withOneSignal(async function (OneSignal) {
+            return OneSignal.User.onesignalId || null;
+          }, null);
+        },
+        getPermissionGranted: function () {
+          return withOneSignal(async function (OneSignal) {
+            return OneSignal.Notifications.permission === true;
+          }, false);
+        },
+        getOptedIn: function () {
+          return withOneSignal(async function (OneSignal) {
+            return OneSignal.User.PushSubscription.optedIn === true;
+          }, false);
+        },
+        setChangeHandler: function (callback) {
+          changeHandler = callback;
+          return withOneSignal(async function () {
+            return true;
+          }, false);
         },
         login: function (externalId) {
           return withOneSignal(async function (OneSignal) {

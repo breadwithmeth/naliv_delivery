@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
@@ -15,11 +19,17 @@ class NotificationService {
       '3da3fda3-1598-4617-970f-62621f3263ee';
   static const String _oneSignalIOSAppId =
       'f9a3bf44-4a96-4859-99a9-37aa2b579577';
+  static const String _deviceIdKey = 'onesignal_device_id';
 
   bool _isInitialized = false;
   bool _webPushSupported = false;
   String? _webSubscriptionId;
   String? _webPushToken;
+  String? _webOneSignalId;
+  String? _mobileOneSignalId;
+  OnPushSubscriptionChangeObserver? _pushSubscriptionObserver;
+  OnNotificationPermissionChangeObserver? _permissionObserver;
+  OnUserChangeObserver? _userObserver;
 
   bool get _isWeb => kIsWeb;
   bool get _isAndroid =>
@@ -51,6 +61,9 @@ class NotificationService {
     if (_isWeb) {
       try {
         _webPushSupported = await OneSignalWebBridge.initialize();
+        await OneSignalWebBridge.setChangeHandler(() {
+          unawaited(syncSubscriptionWithBackend());
+        });
         await _refreshWebSubscription();
         debugPrint(
           'OneSignal web initialized: supported=$_webPushSupported, subscription=$subscriptionId',
@@ -60,6 +73,7 @@ class NotificationService {
       }
 
       _isInitialized = true;
+      unawaited(syncSubscriptionWithBackend(ensureInitialized: false));
       return;
     }
 
@@ -80,6 +94,7 @@ class NotificationService {
 
       _isInitialized = true;
       debugPrint('OneSignal initialized: appId=$_mobileOneSignalAppId');
+      unawaited(syncSubscriptionWithBackend(ensureInitialized: false));
     } catch (e) {
       debugPrint('OneSignal initialization error: $e');
     }
@@ -93,6 +108,7 @@ class NotificationService {
         final granted = await OneSignalWebBridge.requestPermission();
         _webPushSupported = granted || _webPushSupported;
         await _refreshWebSubscription();
+        unawaited(syncSubscriptionWithBackend());
         debugPrint(
           'OneSignal web permission: $granted, subscription: $subscriptionId',
         );
@@ -115,6 +131,7 @@ class NotificationService {
       if (granted) {
         await OneSignal.User.pushSubscription.optIn();
       }
+      unawaited(syncSubscriptionWithBackend());
       debugPrint(
         'OneSignal permission: $granted, subscription: $subscriptionId',
       );
@@ -143,15 +160,21 @@ class NotificationService {
       if (_isWeb) {
         final synced = await OneSignalWebBridge.login(externalId);
         await _refreshWebSubscription();
+        final backendSynced = await syncSubscriptionWithBackend(
+          externalIdOverride: externalId,
+        );
         debugPrint(
           'OneSignal web external id ${synced ? 'set' : 'skipped'}: $externalId',
         );
-        return synced;
+        return synced && backendSynced;
       }
 
       await OneSignal.login(externalId);
+      final backendSynced = await syncSubscriptionWithBackend(
+        externalIdOverride: externalId,
+      );
       debugPrint('OneSignal external id set: $externalId');
-      return true;
+      return backendSynced;
     } catch (e) {
       debugPrint('OneSignal external id error: $e');
       return false;
@@ -208,14 +231,24 @@ class NotificationService {
     await initialize();
 
     if (_isWeb) {
+      await _refreshWebSubscription();
+    }
+    final currentSubscriptionId = subscriptionId;
+    if (currentSubscriptionId != null && currentSubscriptionId.isNotEmpty) {
+      await ApiService.deleteOneSignalSubscription(currentSubscriptionId);
+    }
+
+    if (_isWeb) {
       await OneSignalWebBridge.logout();
       _webSubscriptionId = null;
       _webPushToken = null;
+      _webOneSignalId = null;
       return;
     }
 
     if (!_isMobilePushSupported) return;
     await OneSignal.logout();
+    _mobileOneSignalId = null;
   }
 
   Future<String?> getCurrentSubscriptionId() async {
@@ -232,6 +265,22 @@ class NotificationService {
         event.notification.additionalData ?? <String, dynamic>{},
       );
     });
+
+    _pushSubscriptionObserver ??= (_) {
+      unawaited(syncSubscriptionWithBackend());
+    };
+    OneSignal.User.pushSubscription.addObserver(_pushSubscriptionObserver!);
+
+    _permissionObserver ??= (_) {
+      unawaited(syncSubscriptionWithBackend());
+    };
+    OneSignal.Notifications.addPermissionObserver(_permissionObserver!);
+
+    _userObserver ??= (state) {
+      _mobileOneSignalId = state.current.onesignalId;
+      unawaited(syncSubscriptionWithBackend());
+    };
+    OneSignal.User.addObserver(_userObserver!);
   }
 
   void _handleNotificationData(Map<String, dynamic> data) {
@@ -289,6 +338,108 @@ class NotificationService {
     if (!_isWeb) return;
     _webSubscriptionId = await OneSignalWebBridge.getSubscriptionId();
     _webPushToken = await OneSignalWebBridge.getPushToken();
+    _webOneSignalId = await OneSignalWebBridge.getOneSignalId();
+  }
+
+  Future<bool> syncSubscriptionWithBackend({
+    String? externalIdOverride,
+    bool ensureInitialized = true,
+  }) async {
+    if (!_isWeb && !_isMobilePushSupported) {
+      return false;
+    }
+
+    if (ensureInitialized) {
+      await initialize();
+    }
+
+    if (_isWeb) {
+      await _refreshWebSubscription();
+    }
+
+    final currentSubscriptionId = subscriptionId;
+    if (currentSubscriptionId == null || currentSubscriptionId.isEmpty) {
+      debugPrint('OneSignal backend sync skipped: subscription id is empty');
+      return false;
+    }
+
+    final externalId = externalIdOverride ?? await _resolveExternalId();
+    final payload = <String, dynamic>{
+      'subscriptionId': currentSubscriptionId,
+      'onesignalId': _isWeb ? _webOneSignalId : _mobileOneSignalId,
+      'externalId': externalId,
+      'deviceId': await _getStableDeviceId(),
+      'deviceType': _deviceType,
+      'permissionGranted': await _permissionGranted(),
+      'optedIn': await _optedIn(),
+    };
+
+    final synced = await ApiService.upsertOneSignalSubscription(payload);
+    debugPrint(
+      'OneSignal backend sync ${synced ? 'completed' : 'failed'}: subscription=$currentSubscriptionId',
+    );
+    return synced;
+  }
+
+  Future<String> _getStableDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_deviceIdKey);
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final generated = _generateUuidV4();
+    await prefs.setString(_deviceIdKey, generated);
+    return generated;
+  }
+
+  String _generateUuidV4() {
+    final random = _secureRandom();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0'));
+    final value = hex.join();
+    return '${value.substring(0, 8)}-'
+        '${value.substring(8, 12)}-'
+        '${value.substring(12, 16)}-'
+        '${value.substring(16, 20)}-'
+        '${value.substring(20)}';
+  }
+
+  Random _secureRandom() {
+    try {
+      return Random.secure();
+    } catch (_) {
+      return Random();
+    }
+  }
+
+  String get _deviceType {
+    if (_isWeb) return 'web';
+    if (_isIOS) return 'ios';
+    if (_isAndroid) return 'android';
+    return defaultTargetPlatform.name;
+  }
+
+  Future<bool> _permissionGranted() async {
+    if (_isWeb) {
+      return OneSignalWebBridge.getPermissionGranted();
+    }
+    if (_isMobilePushSupported) {
+      return OneSignal.Notifications.permission;
+    }
+    return false;
+  }
+
+  Future<bool> _optedIn() async {
+    if (_isWeb) {
+      return OneSignalWebBridge.getOptedIn();
+    }
+    if (_isMobilePushSupported) {
+      return OneSignal.User.pushSubscription.optedIn ?? false;
+    }
+    return false;
   }
 
   String _topicTag(String topic) => 'notification_$topic';

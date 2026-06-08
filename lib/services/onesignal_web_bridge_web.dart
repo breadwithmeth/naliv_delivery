@@ -4,6 +4,7 @@ import 'dart:js_interop_unsafe';
 
 class OneSignalWebBridge {
   static const Duration _timeout = Duration(seconds: 10);
+  static JSExportedDartFunction? _changeHandler;
 
   static JSObject? get _bridge {
     final bridge = globalContext['GradusyOneSignal'];
@@ -44,6 +45,26 @@ class OneSignalWebBridge {
       _call<String>('getSubscriptionId');
 
   static Future<String?> getPushToken() async => _call<String>('getPushToken');
+
+  static Future<String?> getOneSignalId() async =>
+      _call<String>('getOneSignalId');
+
+  static Future<bool> getPermissionGranted() async =>
+      (await _call<bool>('getPermissionGranted')) ?? false;
+
+  static Future<bool> getOptedIn() async =>
+      (await _call<bool>('getOptedIn')) ?? false;
+
+  static Future<bool> setChangeHandler(void Function() onChange) async {
+    _changeHandler = (() {
+      onChange();
+    }).toJS;
+    return (await _call<bool>(
+          'setChangeHandler',
+          <Object?>[_changeHandler],
+        )) ??
+        false;
+  }
 
   static Future<bool> login(String externalId) async =>
       (await _call<bool>('login', <Object?>[externalId])) ?? false;
