@@ -3,13 +3,13 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"flutter_bootstrap.js": "14ad30c23d1f3d3a51c2350291d34ffe",
-"version.json": "89479d014a3253b0556bd8fda1b693fd",
+const RESOURCES = {"flutter_bootstrap.js": "5b7fdb43d101f425ff46688375dfd925",
+"version.json": "5b756d32f215b272cdb4906be4f30f71",
 "splash/img/light-background.png": "2353ae0a32d84733e6c2da6db68abfb6",
 "index.html": "8862801239a5400fe36fc4091cc7b9ba",
 "/": "8862801239a5400fe36fc4091cc7b9ba",
 "50x.html": "edc3f3dfd8daf4cf602837224dc6ff38",
-"main.dart.js": "221ab9f4eef0f010ee0e6e5d1e6d34e3",
+"main.dart.js": "b69a6a42ea3aff5b9af0db81f4c69321",
 ".well-known/apple-app-site-association": "d7ecf9fb4dd598bbc27f5e8b10527817",
 "404.html": "9a5bf6cebdfd99ed2243d52119f1a4e5",
 "onesignal/OneSignalSDKWorker.js": "8e3ee21f321e4291e1671535f04679c8",
