@@ -51,10 +51,8 @@ dependencies:
   
   carousel_slider: ^5.1.2
   flutter_svg: ^2.2.4
-  firebase_core: ^3.15.2
-  firebase_messaging: ^15.2.10
-  flutter_local_notifications: ^19.5.0
   sentry_flutter: ^9.16.1
+  onesignal_flutter: ^5.1.2
   package_info_plus: ^9.0.1
   webview_flutter: ^4.13.1
   web: ^1.1.1
@@ -327,5 +325,3 @@ flutter_native_splash:
   #info_plist_files:
   #  - 'ios/Runner/Info-Debug.plist'
   #  - 'ios/Runner/Info-Release.plist'
-
-

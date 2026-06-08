@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -48,6 +49,7 @@ class AuthService {
   }
 
   static Future<void> clearToken() async {
+    await NotificationService.instance.logoutUser();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_tokenExpiryKey);

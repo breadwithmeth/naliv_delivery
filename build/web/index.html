@@ -40,6 +40,102 @@
   </script>
   <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer=""></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer=""></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+
+    (function () {
+      var oneSignalAppId = "3da3fda3-1598-4617-970f-62621f3263ee";
+      var initPromise = null;
+
+      function withOneSignal(callback, fallback) {
+        return new Promise(function (resolve) {
+          window.OneSignalDeferred.push(async function (OneSignal) {
+            try {
+              if (!initPromise) {
+                initPromise = OneSignal.init({
+                  appId: oneSignalAppId,
+                  safari_web_id: "web.onesignal.auto.0d033746-9b8a-4e2f-a0e7-88cee0acb9dd",
+                  serviceWorkerPath: "onesignal/OneSignalSDKWorker.js",
+                  serviceWorkerParam: { scope: "/onesignal/" },
+                  allowLocalhostAsSecureOrigin: true,
+                  notifyButton: {
+                    enable: true
+                  }
+                });
+              }
+
+              await initPromise;
+              resolve(await callback(OneSignal));
+            } catch (error) {
+              console.error("OneSignal web error", error);
+              resolve(fallback);
+            }
+          });
+        });
+      }
+
+      window.GradusyOneSignal = {
+        init: function () {
+          return withOneSignal(async function (OneSignal) {
+            return await OneSignal.Notifications.isPushSupported();
+          }, false);
+        },
+        requestPermission: function () {
+          return withOneSignal(async function (OneSignal) {
+            if (!(await OneSignal.Notifications.isPushSupported())) {
+              return false;
+            }
+
+            if (!OneSignal.Notifications.permission) {
+              await OneSignal.Notifications.requestPermission();
+            }
+
+            if (OneSignal.Notifications.permission) {
+              await OneSignal.User.PushSubscription.optIn();
+            }
+
+            return OneSignal.Notifications.permission === true &&
+              OneSignal.User.PushSubscription.optedIn === true;
+          }, false);
+        },
+        getSubscriptionId: function () {
+          return withOneSignal(async function (OneSignal) {
+            return OneSignal.User.PushSubscription.id || null;
+          }, null);
+        },
+        getPushToken: function () {
+          return withOneSignal(async function (OneSignal) {
+            return OneSignal.User.PushSubscription.token || null;
+          }, null);
+        },
+        login: function (externalId) {
+          return withOneSignal(async function (OneSignal) {
+            await OneSignal.login(externalId);
+            return true;
+          }, false);
+        },
+        logout: function () {
+          return withOneSignal(async function (OneSignal) {
+            await OneSignal.logout();
+            return true;
+          }, false);
+        },
+        addTag: function (key, value) {
+          return withOneSignal(async function (OneSignal) {
+            await OneSignal.User.addTag(key, String(value));
+            return true;
+          }, false);
+        },
+        removeTag: function (key) {
+          return withOneSignal(async function (OneSignal) {
+            await OneSignal.User.removeTag(key);
+            return true;
+          }, false);
+        }
+      };
+    })();
+  </script>
   <script>
     if (
       navigator.userAgent.indexOf("Safari") !== -1 &&
@@ -372,7 +468,6 @@
   </div>
   <script>
     (function () {
-      var openAttemptKey = "gradusy24_ios_open_attempted";
       var dismissedKey = "gradusy24_ios_open_dismissed";
 
       function isIOS() {
@@ -433,7 +528,6 @@
         }
 
         openButton.addEventListener("click", function () {
-          setSessionValue(openAttemptKey, "1");
           openApp();
         });
 
@@ -441,11 +535,6 @@
           setSessionValue(dismissedKey, "1");
           hidePrompt();
         });
-
-        if (getSessionValue(openAttemptKey) !== "1" && getSessionValue(dismissedKey) !== "1") {
-          setSessionValue(openAttemptKey, "1");
-          setTimeout(openApp, 250);
-        }
       });
     })();
   </script>
@@ -496,13 +585,6 @@
         }, 300);
       }, 2800);
     })();
-  </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      });
-    }
   </script>
   <script src="flutter_bootstrap.js" async=""></script>
 </body>

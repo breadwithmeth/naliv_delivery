@@ -17,16 +17,7 @@ class ApiService {
 
   static DateTime? _decodeTokenExpiry(String token) {
     try {
-      final parts = token.split('.');
-      if (parts.length != 3) {
-        return null;
-      }
-
-      final payload = json.decode(
-        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-      );
-
-      final exp = payload is Map<String, dynamic> ? payload['exp'] : null;
+      final exp = _decodeTokenPayload(token)?['exp'];
       if (exp is int) {
         return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
       }
@@ -36,6 +27,24 @@ class ApiService {
       return null;
     } catch (e) {
       debugPrint('Error decoding auth token expiry: $e');
+      return null;
+    }
+  }
+
+  static Map<String, dynamic>? _decodeTokenPayload(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        return null;
+      }
+
+      final payload = json.decode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+
+      return _asMap(payload);
+    } catch (e) {
+      debugPrint('Error decoding auth token payload: $e');
       return null;
     }
   }
@@ -1160,6 +1169,62 @@ class ApiService {
     }
 
     return token;
+  }
+
+  static Future<String?> getCurrentUserExternalId() async {
+    final token = await getAuthToken();
+    if (token == null || token.isEmpty) {
+      return null;
+    }
+
+    final payload = _decodeTokenPayload(token);
+    final tokenUserId = _firstString(payload, const [
+      'sub',
+      'user_id',
+      'userId',
+      'id',
+      'client_id',
+      'clientId',
+    ]);
+    if (tokenUserId != null) {
+      return tokenUserId;
+    }
+
+    final fullInfo = await getFullInfo();
+    final user = _asMap(fullInfo?['user']);
+    return _firstString(user, const [
+          'id',
+          'user_id',
+          'userId',
+          'client_id',
+          'clientId',
+          'phone_number',
+          'phone',
+        ]) ??
+        _firstString(fullInfo, const [
+          'id',
+          'user_id',
+          'userId',
+          'client_id',
+          'clientId',
+        ]);
+  }
+
+  static String? _firstString(
+    Map<String, dynamic>? source,
+    List<String> keys,
+  ) {
+    if (source == null) {
+      return null;
+    }
+
+    for (final key in keys) {
+      final value = _parseString(source[key]);
+      if (value != null) {
+        return value;
+      }
+    }
+    return null;
   }
 
   /// Проверить, авторизован ли пользователь (наличие токена)
@@ -2460,74 +2525,6 @@ class ApiService {
     return null;
   }
 
-  /// Отправить FCM токен на сервер
-  /// [fcmToken] - Firebase Cloud Messaging токен
-  /// Возвращает true при успешной отправке
-  static Future<bool> updateFCMToken(String fcmToken) async {
-    final token = await getAuthToken();
-    if (token == null) {
-      debugPrint('API updateFCMToken: no auth token');
-      return false;
-    }
-
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/users/fcm-token'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({'fcm_token': fcmToken, 'fcmToken': fcmToken}),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse['success'] == true) {
-          debugPrint('✅ FCM токен успешно отправлен на сервер');
-          return true;
-        } else {
-          debugPrint('❌ Ошибка API updateFCMToken: ${jsonResponse['message']}');
-        }
-      } else {
-        debugPrint('❌ HTTP Error updateFCMToken: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('❌ Network Error updateFCMToken: $e');
-    }
-    return false;
-  }
-
-  /// Удалить FCM токен с сервера (при выходе из аккаунта)
-  /// Возвращает true при успешном удалении
-  static Future<bool> removeFCMToken() async {
-    final token = await getAuthToken();
-    if (token == null) {
-      debugPrint('API removeFCMToken: no auth token');
-      return false;
-    }
-
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/users/fcm-token'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ FCM токен успешно удален с сервера');
-        return true;
-      } else {
-        debugPrint('❌ HTTP Error removeFCMToken: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('❌ Network Error removeFCMToken: $e');
-    }
-    return false;
-  }
 }
 
 /// Модель для адреса
