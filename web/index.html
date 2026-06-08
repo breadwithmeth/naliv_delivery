@@ -45,7 +45,7 @@
     window.OneSignalDeferred = window.OneSignalDeferred || [];
 
     (function () {
-      var oneSignalAppId = "3da3fda3-1598-4617-970f-62621f3263ee";
+      var oneSignalAppId = "f9a3bf44-4a96-4859-99a9-37aa2b579577";
       var initPromise = null;
 
       function withOneSignal(callback, fallback) {
@@ -55,7 +55,6 @@
               if (!initPromise) {
                 initPromise = OneSignal.init({
                   appId: oneSignalAppId,
-                  safari_web_id: "web.onesignal.auto.0d033746-9b8a-4e2f-a0e7-88cee0acb9dd",
                   serviceWorkerPath: "onesignal/OneSignalSDKWorker.js",
                   serviceWorkerParam: { scope: "/onesignal/" },
                   allowLocalhostAsSecureOrigin: true,

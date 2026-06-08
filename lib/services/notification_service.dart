@@ -11,7 +11,10 @@ class NotificationService {
   static NotificationService get instance => _instance;
   NotificationService._internal();
 
-  static const String _oneSignalAppId = '3da3fda3-1598-4617-970f-62621f3263ee';
+  static const String _oneSignalAndroidAppId =
+      '3da3fda3-1598-4617-970f-62621f3263ee';
+  static const String _oneSignalIOSAppId =
+      'f9a3bf44-4a96-4859-99a9-37aa2b579577';
 
   bool _isInitialized = false;
   bool _webPushSupported = false;
@@ -23,6 +26,8 @@ class NotificationService {
       !_isWeb && defaultTargetPlatform == TargetPlatform.android;
   bool get _isIOS => !_isWeb && defaultTargetPlatform == TargetPlatform.iOS;
   bool get _isMobilePushSupported => _isAndroid || _isIOS;
+  String get _mobileOneSignalAppId =>
+      _isIOS ? _oneSignalIOSAppId : _oneSignalAndroidAppId;
 
   bool get isWebVapidKeyConfigured => _isWeb;
 
@@ -69,12 +74,12 @@ class NotificationService {
         OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
       }
 
-      await OneSignal.initialize(_oneSignalAppId);
+      await OneSignal.initialize(_mobileOneSignalAppId);
       await OneSignal.User.setLanguage('ru');
       _setupEventHandlers();
 
       _isInitialized = true;
-      debugPrint('OneSignal initialized');
+      debugPrint('OneSignal initialized: appId=$_mobileOneSignalAppId');
     } catch (e) {
       debugPrint('OneSignal initialization error: $e');
     }
