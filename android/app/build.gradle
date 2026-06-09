@@ -13,10 +13,14 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-def hasReleaseSigning = keystoreProperties['storeFile'] && file(keystoreProperties['storeFile']).exists()
+def hasReleaseSigning = keystoreProperties['storeFile'] && rootProject.file(keystoreProperties['storeFile']).exists()
+
+if (!hasReleaseSigning && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+    throw new GradleException("Release signing is not configured. Copy android/key.properties.example to android/key.properties and fill passwords.")
+}
 
 android {
-    namespace "com.naliv.delivery"
+    namespace "kz.gradusy24.app"
     compileSdkVersion = flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -35,7 +39,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.naliv.delivery"
+        applicationId1.2.111adusy24.app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode 123
@@ -46,14 +50,14 @@ android {
         release {
             keyAlias keystoreProperties['keyAlias']
             keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storeFile keystoreProperties['storeFile'] ? rootProject.file(keystoreProperties['storeFile']) : null
             storePassword keystoreProperties['storePassword']
         }
     }
 
     buildTypes {
         release {
-            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.release
             shrinkResources false
             minifyEnabled false
         }

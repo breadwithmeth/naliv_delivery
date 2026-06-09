@@ -7,7 +7,7 @@ import '../model/item.dart' as item_model;
 /// Класс для работы с API
 class ApiService {
   static const String baseUrl = 'https://njt25.naliv.kz/api';
-  // static const String baseUrl = 'http://192.168.100.63:3009/api';
+  //static const String baseUrl = 'http://192.168.100.4:3009/api';
   // static const String baseUrl = 'http://localhost:3000/api';
   static const JsonEncoder _prettyJsonEncoder = JsonEncoder.withIndent('  ');
 
@@ -2396,6 +2396,106 @@ class ApiService {
       debugPrint('Network Error: $e');
       return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
     }
+  }
+
+  /// Создать оплату заказа через Kaspi QR.
+  ///
+  /// Для мобильного приложения используется [method] = `link`; в этом случае
+  /// API возвращает `data.paymentLink`, который нужно открыть на фронте.
+  static Future<Map<String, dynamic>> createKaspiQrPayment(
+    String orderId, {
+    String method = 'link',
+  }) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API createKaspiQrPayment: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final uri = Uri.parse('$baseUrl/orders/$orderId/kaspi-qr/pay');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'method': method}),
+      );
+
+      final jsonResponse = _decodeResponseMap(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint(
+          'HTTP createKaspiQrPayment error: ${response.statusCode} - ${response.reasonPhrase}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Ошибка создания оплаты Kaspi',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network createKaspiQrPayment error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  /// Проверить статус оплаты заказа через Kaspi QR.
+  static Future<Map<String, dynamic>> getKaspiQrPaymentStatus(
+    String orderId,
+  ) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getKaspiQrPaymentStatus: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final uri = Uri.parse('$baseUrl/orders/$orderId/kaspi-qr/status');
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final jsonResponse = _decodeResponseMap(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint(
+          'HTTP getKaspiQrPaymentStatus error: ${response.statusCode} - ${response.reasonPhrase}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Ошибка проверки статуса Kaspi',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network getKaspiQrPaymentStatus error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Map<String, dynamic> _decodeResponseMap(String responseBody) {
+    if (responseBody.trim().isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final decoded = json.decode(responseBody);
+    return mapFromDynamic(decoded);
   }
 
   static Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {

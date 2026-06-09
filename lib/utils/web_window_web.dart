@@ -21,3 +21,12 @@ bool navigateReservedWebWindow(
 
   return web.window.open(url, windowName) != null;
 }
+
+void closeReservedWebWindow(Object? windowHandle) {
+  if (windowHandle == null) return;
+
+  try {
+    final dynamic reservedWindow = windowHandle;
+    reservedWindow.close();
+  } catch (_) {}
+}

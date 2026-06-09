@@ -25,9 +25,13 @@ class PaymentMethodPage extends StatefulWidget {
 class _PaymentMethodPageState extends State<PaymentMethodPage>
     with WidgetsBindingObserver {
   static const String _webAddCardWindowName = 'gradusy24_add_card';
+  static const String _webKaspiPaymentWindowName = 'gradusy24_kaspi_payment';
+  static const String _kaspiCompactAsset = 'assets/Compact.png';
+  static const String _kaspiGoldTrailAsset = 'assets/Gold_trail.png';
 
   List<Map<String, dynamic>>? _cards;
   bool _isLoading = true;
+  _PaymentMethodType? _selectedPaymentMethod;
   String? _selectedCardId;
   bool _awaitingCardAdd = false;
   bool _isPaying = false;
@@ -70,11 +74,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       setState(() {
         _cards = cards;
         _isLoading = false;
-        if (_cards != null && _cards!.isNotEmpty) {
-          _selectedCardId = _cards!.first['halyk_id'].toString();
-        } else {
-          _selectedCardId = null;
-        }
+        _syncSelectedPaymentMethod(_cards ?? const <Map<String, dynamic>>[]);
       });
       if (showRefreshFeedback) {
         final previous = previousCount ?? 0;
@@ -96,6 +96,40 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       });
       await _showNotice('Карты не загружены', 'Ошибка загрузки карт: $e');
     }
+  }
+
+  void _syncSelectedPaymentMethod(List<Map<String, dynamic>> cards) {
+    final hasCards = cards.isNotEmpty;
+    final hasSelectedCard = _selectedCardId != null &&
+        cards.any((card) => _cardIdOf(card) == _selectedCardId);
+
+    if (_selectedPaymentMethod == _PaymentMethodType.kaspi) {
+      return;
+    }
+
+    if (_selectedPaymentMethod == _PaymentMethodType.card && hasSelectedCard) {
+      return;
+    }
+
+    if (hasCards) {
+      _selectedPaymentMethod = _PaymentMethodType.card;
+      _selectedCardId = _cardIdOf(cards.first);
+      return;
+    }
+
+    _selectedPaymentMethod = _PaymentMethodType.kaspi;
+    _selectedCardId = null;
+  }
+
+  String? _cardIdOf(Map<String, dynamic> card) {
+    final id = card['halyk_id'] ?? card['card_id'] ?? card['id'];
+    final normalized = id?.toString().trim();
+    if (normalized == null ||
+        normalized.isEmpty ||
+        normalized.toLowerCase() == 'null') {
+      return null;
+    }
+    return normalized;
   }
 
   Future<void> _prepareAddCardLink() async {
@@ -250,14 +284,33 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     }
   }
 
-  Future<void> _pay() async {
+  Future<void> _pay({_PaymentMethodType? paymentMethod}) async {
     if (_isPaying || _isLoading) return;
-    if (_selectedCardId == null) {
+    final selectedMethod =
+        paymentMethod ?? _selectedPaymentMethod ?? _PaymentMethodType.kaspi;
+
+    if (selectedMethod == _PaymentMethodType.card && _selectedCardId == null) {
       if (mounted) {
         await _showNotice(
             'Карта не выбрана', 'Пожалуйста, выберите карту для оплаты.');
       }
       return;
+    }
+
+    final orderId = _orderId();
+    if (orderId == null) {
+      if (mounted) {
+        await _showNotice('Заказ не найден', 'ID заказа не найден.');
+      }
+      return;
+    }
+
+    Object? kaspiWindowHandle;
+    if (selectedMethod == _PaymentMethodType.kaspi) {
+      kaspiWindowHandle = _reserveWebKaspiPaymentWindow();
+      if (kIsWeb && kaspiWindowHandle == null) {
+        return;
+      }
     }
 
     if (mounted) {
@@ -266,85 +319,341 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       });
     }
 
-    // Показываем индикатор загрузки в фирменном стиле
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AppDialogs.dialog(
-          title: 'Оплата',
-          content: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.orange)),
-                ),
-                SizedBox(width: 12),
-                Text('Проводим оплату...'),
-              ],
-            ),
-          ),
-        ),
-      );
+    var progressDialogShown = false;
+    void closeProgressDialog() {
+      if (!progressDialogShown || !mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      progressDialogShown = false;
     }
 
+    if (mounted) {
+      _showPaymentProgressDialog(selectedMethod);
+      progressDialogShown = true;
+    }
+
+    var kaspiPaymentOpened = false;
     try {
-      final orderId = widget.orderData['order_id']?.toString() ??
-          widget.orderData['order_uuid']?.toString();
-      if (orderId == null || orderId.isEmpty) {
-        if (mounted) Navigator.of(context, rootNavigator: true).pop();
-        if (mounted) {
-          await _showNotice('Заказ не найден', 'ID заказа не найден.');
+      if (selectedMethod == _PaymentMethodType.card) {
+        final result = await ApiService.payOrder(orderId, _selectedCardId!);
+
+        closeProgressDialog();
+
+        if (result['success'] == true) {
+          final paymentData = ApiService.mapFromDynamic(result['data']);
+          await _finishSuccessfulPayment(
+            orderId,
+            paymentData['payment_status']?.toString(),
+          );
+        } else if (mounted) {
+          await _showPaymentFailureNotice(
+              _paymentErrorMessage(result['error']));
         }
+
         return;
       }
 
-      final result = await ApiService.payOrder(orderId, _selectedCardId!);
-
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
-
-      if (result['success'] == true) {
-        // Успешная оплата
-        final paymentData = result['data'];
-        final paymentStatus = paymentData['payment_status'];
-
-        if (mounted) {
-          Provider.of<CartProvider>(context, listen: false).clearCart();
-          await _showNotice(
-            'Оплата прошла',
-            'Заказ #$orderId успешно оплачен. Статус: $paymentStatus.',
-          );
-          await AppNavigator.goToHomeTab(0);
-        }
-      } else {
-        // Ошибка оплаты
-        final errorMessage = result['error'] is Map
-            ? result['error']['message']
-            : result['error'].toString();
-
-        if (mounted) {
-          await _showPaymentFailureNotice(errorMessage);
-        }
-      }
+      kaspiPaymentOpened = await _payWithKaspi(
+        orderId,
+        kaspiWindowHandle,
+        closeProgressDialog,
+      );
+      closeProgressDialog();
     } catch (e) {
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      closeProgressDialog();
       if (mounted) {
         await _showPaymentFailureNotice('Произошла ошибка: $e');
       }
     } finally {
+      closeProgressDialog();
       if (mounted) {
         setState(() {
           _isPaying = false;
         });
       }
+      if (selectedMethod == _PaymentMethodType.kaspi && !kaspiPaymentOpened) {
+        closeReservedWebWindow(kaspiWindowHandle);
+      }
     }
+  }
+
+  Future<bool> _payWithKaspi(
+    String orderId,
+    Object? webKaspiWindowHandle,
+    VoidCallback closeProgressDialog,
+  ) async {
+    final result =
+        await ApiService.createKaspiQrPayment(orderId, method: 'link');
+
+    if (result['success'] != true) {
+      if (mounted) {
+        closeProgressDialog();
+        await _showPaymentFailureNotice(_paymentErrorMessage(result['error']));
+      }
+      return false;
+    }
+
+    final paymentData = ApiService.mapFromDynamic(result['data']);
+    final initialStatus = paymentData['payment_status']?.toString();
+    if (_isKaspiStatusCompleted(paymentData)) {
+      closeProgressDialog();
+      await _finishSuccessfulPayment(orderId, initialStatus);
+      return false;
+    }
+
+    final paymentLink = _nonEmptyString(paymentData['paymentLink']);
+    if (paymentLink == null) {
+      if (mounted) {
+        closeProgressDialog();
+        await _showPaymentFailureNotice(
+            'Kaspi.kz не вернул ссылку для оплаты.');
+      }
+      return false;
+    }
+
+    final opened =
+        await _openKaspiPaymentLink(paymentLink, webKaspiWindowHandle);
+    if (!opened) {
+      if (mounted) {
+        closeProgressDialog();
+        await _showPaymentFailureNotice(
+            'Не удалось открыть ссылку оплаты Kaspi.kz.');
+      }
+      return false;
+    }
+
+    _setCardFeedback(
+      'Ссылка Kaspi.kz открыта. Ожидаем подтверждение оплаты.',
+      _CardFeedbackTone.info,
+    );
+
+    final statusResult = await _pollKaspiPaymentStatus(orderId, paymentData);
+    if (!mounted) return true;
+
+    if (statusResult == null || statusResult['success'] != true) {
+      closeProgressDialog();
+      await _showNotice(
+        'Статус не получен',
+        'Ссылка Kaspi.kz открыта, но статус оплаты пока не удалось проверить. Если вы оплатили заказ, он обновится после подтверждения.',
+      );
+      return true;
+    }
+
+    final statusData = ApiService.mapFromDynamic(statusResult['data']);
+    final paymentStatus = statusData['payment_status']?.toString();
+
+    if (_isKaspiStatusCompleted(statusData)) {
+      closeProgressDialog();
+      await _finishSuccessfulPayment(orderId, paymentStatus);
+      return true;
+    }
+
+    if (_isKaspiStatusFailed(statusData)) {
+      closeProgressDialog();
+      await _showPaymentFailureNotice(
+        statusResult['message']?.toString() ??
+            'Оплата Kaspi.kz не была завершена.',
+      );
+      return true;
+    }
+
+    closeProgressDialog();
+    await _showNotice(
+      'Ожидаем оплату',
+      'Ссылка Kaspi.kz открыта. Если вы уже оплатили заказ, статус обновится после подтверждения.',
+    );
+    return true;
+  }
+
+  Future<Map<String, dynamic>?> _pollKaspiPaymentStatus(
+    String orderId,
+    Map<String, dynamic> paymentData,
+  ) async {
+    final behaviorOptions =
+        ApiService.mapFromDynamic(paymentData['behaviorOptions']);
+    final intervalSeconds = _positiveInt(
+      behaviorOptions['StatusPollingInterval'],
+      fallback: 5,
+    ).clamp(2, 30).toInt();
+    final timeoutSeconds = _positiveInt(
+      behaviorOptions['PaymentConfirmationTimeout'],
+      fallback: 65,
+    ).clamp(intervalSeconds, 180).toInt();
+    final startedAt = DateTime.now();
+
+    Map<String, dynamic>? latestResult;
+    while (DateTime.now().difference(startedAt).inSeconds < timeoutSeconds) {
+      await Future.delayed(Duration(seconds: intervalSeconds));
+      if (!mounted) return latestResult;
+
+      latestResult = await ApiService.getKaspiQrPaymentStatus(orderId);
+      if (latestResult['success'] != true) {
+        continue;
+      }
+
+      final statusData = ApiService.mapFromDynamic(latestResult['data']);
+      if (_isKaspiStatusCompleted(statusData) ||
+          _isKaspiStatusFailed(statusData)) {
+        return latestResult;
+      }
+    }
+
+    return latestResult;
+  }
+
+  Object? _reserveWebKaspiPaymentWindow() {
+    if (!kIsWeb) return null;
+
+    final windowHandle = reserveWebNamedWindow(_webKaspiPaymentWindowName);
+    if (windowHandle == null && mounted) {
+      _setCardFeedback(
+        'Браузер заблокировал открытие вкладки Kaspi.kz. Разрешите всплывающие окна и попробуйте снова.',
+        _CardFeedbackTone.error,
+      );
+      return null;
+    }
+
+    return windowHandle;
+  }
+
+  Future<bool> _openKaspiPaymentLink(
+    String link,
+    Object? webWindowHandle,
+  ) async {
+    final uri = Uri.tryParse(link);
+    if (uri == null) return false;
+
+    if (kIsWeb) {
+      return navigateReservedWebWindow(
+        webWindowHandle,
+        uri.toString(),
+        windowName: _webKaspiPaymentWindowName,
+      );
+    }
+
+    if (await canLaunchUrl(uri)) {
+      return launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+
+    return false;
+  }
+
+  void _showPaymentProgressDialog(_PaymentMethodType paymentMethod) {
+    final isKaspi = paymentMethod == _PaymentMethodType.kaspi;
+    final title = isKaspi ? 'Kaspi.kz' : 'Оплата';
+    final message =
+        isKaspi ? 'Создаем ссылку и проверяем оплату...' : 'Проводим оплату...';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AppDialogs.dialog(
+        title: title,
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.orange)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(message)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _finishSuccessfulPayment(
+    String orderId,
+    String? paymentStatus,
+  ) async {
+    if (!mounted) return;
+
+    Provider.of<CartProvider>(context, listen: false).clearCart();
+    await _showNotice(
+      'Оплата прошла',
+      'Заказ #$orderId успешно оплачен. Статус: ${paymentStatus ?? 'completed'}.',
+    );
+    if (mounted) {
+      await AppNavigator.goToHomeTab(0);
+    }
+  }
+
+  String? _orderId() {
+    final raw = widget.orderData['order_id'] ??
+        widget.orderData['order_uuid'] ??
+        widget.orderData['id'];
+    final normalized = raw?.toString().trim();
+    if (normalized == null ||
+        normalized.isEmpty ||
+        normalized.toLowerCase() == 'null') {
+      return null;
+    }
+    return normalized;
+  }
+
+  String _paymentErrorMessage(dynamic error) {
+    if (error is Map) {
+      return error['message']?.toString() ?? error.toString();
+    }
+    return error?.toString() ?? 'Ошибка оплаты';
+  }
+
+  String? _nonEmptyString(dynamic value) {
+    final normalized = value?.toString().trim();
+    if (normalized == null ||
+        normalized.isEmpty ||
+        normalized.toLowerCase() == 'null') {
+      return null;
+    }
+    return normalized;
+  }
+
+  int _positiveInt(dynamic value, {required int fallback}) {
+    if (value is num && value > 0) {
+      return value.toInt();
+    }
+
+    final parsed = int.tryParse(value?.toString() ?? '');
+    return parsed != null && parsed > 0 ? parsed : fallback;
+  }
+
+  bool _isKaspiStatusCompleted(Map<String, dynamic> data) {
+    const completedStatuses = <String>{
+      'completed',
+      'paid',
+      'processed',
+      'success',
+      'succeeded',
+    };
+    return completedStatuses
+            .contains(_normalizedStatus(data['payment_status'])) ||
+        completedStatuses.contains(_normalizedStatus(data['kaspi_status']));
+  }
+
+  bool _isKaspiStatusFailed(Map<String, dynamic> data) {
+    const failedStatuses = <String>{
+      'failed',
+      'rejected',
+      'canceled',
+      'cancelled',
+      'expired',
+      'error',
+      'declined',
+    };
+    return failedStatuses.contains(_normalizedStatus(data['payment_status'])) ||
+        failedStatuses.contains(_normalizedStatus(data['kaspi_status']));
+  }
+
+  String _normalizedStatus(dynamic value) {
+    return value?.toString().trim().toLowerCase().replaceAll('-', '_') ?? '';
   }
 
   /// Получить сумму заказа из различных возможных полей
@@ -466,10 +775,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                                 color: AppColors.orange))
                         : _cardsSection(),
                   ),
-                  SizedBox(height: 14.s),
-                  _payButton(),
-                  SizedBox(height: 12.s),
-                  _footerBadge(),
+                  if (_selectedPaymentMethod == _PaymentMethodType.card) ...[
+                    SizedBox(height: 14.s),
+                    _payButton(),
+                  ],
                 ],
               ),
             ),
@@ -484,15 +793,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       width: double.infinity,
       padding: EdgeInsets.all(14.s),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.s),
-        gradient:
-            const LinearGradient(colors: [AppColors.bgTop, AppColors.cardDark]),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: AppColors.cardDark.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(12.s),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 18,
-              offset: const Offset(0, 10)),
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 10,
+              offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -528,21 +836,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   Widget _cardsSection() {
     if (_cards == null || _cards!.isEmpty) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      return ListView(
+        padding: EdgeInsets.zero,
         children: [
-          Icon(Icons.credit_card_off_outlined,
-              color: AppColors.textMute.withValues(alpha: 0.8), size: 50.s),
+          _kaspiTile(),
           SizedBox(height: 10.s),
-          const Text('Карт пока нет',
-              style: TextStyle(
-                  color: AppColors.text, fontWeight: FontWeight.w800)),
-          SizedBox(height: 7.s),
-          Text('Добавьте карту, чтобы оплатить заказ',
-              style:
-                  TextStyle(color: AppColors.textMute.withValues(alpha: 0.9))),
-          SizedBox(height: 14.s),
-          _addCardButton(expanded: false),
+          _emptyCardsNotice(),
+          SizedBox(height: 10.s),
+          _addCardButton(),
         ],
       );
     }
@@ -550,71 +851,189 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemBuilder: (context, index) {
-        if (index == _cards!.length) {
+        if (index == 0) {
+          return _kaspiTile();
+        }
+        if (index == _cards!.length + 1) {
           return _addCardButton();
         }
-        final card = _cards![index];
+        final card = _cards![index - 1];
         return _cardTile(card);
       },
       separatorBuilder: (_, __) => SizedBox(height: 10.s),
-      itemCount: _cards!.length + 1,
+      itemCount: _cards!.length + 2,
+    );
+  }
+
+  Widget _kaspiTile() {
+    final bool isSelected = _selectedPaymentMethod == _PaymentMethodType.kaspi;
+
+    return InkWell(
+      onTap: _isLoading || _isPaying
+          ? null
+          : () {
+              setState(() {
+                _selectedPaymentMethod = _PaymentMethodType.kaspi;
+              });
+              _pay(paymentMethod: _PaymentMethodType.kaspi);
+            },
+      borderRadius: BorderRadius.circular(8.s),
+      child: _kaspiTileContent(
+        isSelected: isSelected,
+        isLoading: isSelected && _isPaying,
+      ),
+    );
+  }
+
+  Widget _kaspiTileContent({
+    required bool isSelected,
+    bool isLoading = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: 60.s,
+      padding: EdgeInsets.symmetric(horizontal: 15.s, vertical: 1.s),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.s),
+        border: Border.all(
+          color: isSelected
+              ? AppColors.orange.withValues(alpha: 0.85)
+              : Colors.white.withValues(alpha: 0.005),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10.s),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Image.asset(
+                      _kaspiCompactAsset,
+                      height: 30.s,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Kaspi.kz',
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10.s),
+                Image.asset(
+                  _kaspiGoldTrailAsset,
+                  width: 60.s,
+                  height: 54.s,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Kaspi Gold',
+                ),
+              ],
+            ),
+            if (isLoading)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.16),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyCardsNotice() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.s),
+      decoration: AppDecorations.card(
+          radius: 12.s, color: AppColors.cardDark.withValues(alpha: 0.94)),
+      child: Row(
+        children: [
+          Icon(Icons.credit_card_off_outlined,
+              color: AppColors.textMute.withValues(alpha: 0.85), size: 22.s),
+          SizedBox(width: 10.s),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Карт пока нет',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800)),
+                SizedBox(height: 3.s),
+                Text('Можно оплатить через Kaspi.kz или привязать карту',
+                    style: TextStyle(
+                        color: AppColors.textMute,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _cardTile(Map<String, dynamic> card) {
-    final id = card['halyk_id']?.toString();
+    final id = _cardIdOf(card);
     final mask = card['card_mask']?.toString() ?? 'Неизвестная карта';
     final holder = card['payer_name']?.toString();
-    final bool isSelected = _selectedCardId == id;
+    final bool isSelected = _selectedPaymentMethod == _PaymentMethodType.card &&
+        _selectedCardId == id;
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedCardId = id;
-        });
-      },
-      borderRadius: BorderRadius.circular(16.s),
+      onTap: id == null
+          ? null
+          : () {
+              setState(() {
+                _selectedPaymentMethod = _PaymentMethodType.card;
+                _selectedCardId = id;
+              });
+            },
+      borderRadius: BorderRadius.circular(12.s),
       child: Container(
         padding: EdgeInsets.all(12.s),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16.s),
-          gradient: LinearGradient(
-            colors: isSelected
-                ? [AppColors.cardDark, AppColors.blue]
-                : [
-                    AppColors.cardDark.withValues(alpha: 0.9),
-                    AppColors.card.withValues(alpha: 0.9)
-                  ],
-          ),
+          color: isSelected
+              ? AppColors.blue.withValues(alpha: 0.96)
+              : AppColors.cardDark.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(12.s),
           border: Border.all(
               color: isSelected
-                  ? AppColors.orange.withValues(alpha: 0.7)
-                  : Colors.white.withValues(alpha: 0.06)),
+                  ? AppColors.orange.withValues(alpha: 0.68)
+                  : Colors.white.withValues(alpha: 0.08)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 16,
-                offset: const Offset(0, 12)),
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 10,
+                offset: const Offset(0, 6)),
           ],
         ),
         child: Row(
           children: [
-            Container(
-              width: 24.s,
-              height: 24.s,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: isSelected
-                        ? AppColors.orange
-                        : Colors.white.withValues(alpha: 0.4),
-                    width: 2),
-                color: isSelected ? AppColors.orange : Colors.transparent,
-              ),
-              child: isSelected
-                  ? Icon(Icons.check, size: 14.s, color: Colors.black)
-                  : null,
-            ),
+            _selectionIndicator(isSelected),
             SizedBox(width: 12.s),
             Expanded(
               child: Column(
@@ -641,6 +1060,25 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     );
   }
 
+  Widget _selectionIndicator(bool isSelected) {
+    return Container(
+      width: 24.s,
+      height: 24.s,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: isSelected
+                ? AppColors.orange
+                : Colors.white.withValues(alpha: 0.4),
+            width: 2),
+        color: isSelected ? AppColors.orange : Colors.transparent,
+      ),
+      child: isSelected
+          ? Icon(Icons.check, size: 14.s, color: Colors.black)
+          : null,
+    );
+  }
+
   Widget _addCardButton({bool expanded = true}) {
     final hasPreparedLink = _preparedAddCardLink != null;
     final bool isBusy = _isPreparingAddCardLink;
@@ -655,15 +1093,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
               ),
             )
           : Icon(
-              hasPreparedLink ? Icons.link_outlined : Icons.link,
+              hasPreparedLink ? Icons.link_outlined : Icons.add_card_outlined,
               color: AppColors.orange,
             ),
       label: Text(
         isBusy
             ? 'Получаем ссылку...'
-            : (hasPreparedLink
-                ? 'Привязать карту'
-                : 'Получить ссылку для привязки'),
+            : (hasPreparedLink ? 'Привязать карту' : 'Добавить карту'),
         style: const TextStyle(
           color: AppColors.orange,
           fontWeight: FontWeight.w800,
@@ -673,7 +1109,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         side: const BorderSide(color: AppColors.orange, width: 1.2),
         padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
         shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
         backgroundColor: Colors.white.withValues(alpha: 0.02),
       ),
       onPressed: isBusy
@@ -707,7 +1143,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       padding: EdgeInsets.all(12.s),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16.s),
+        borderRadius: BorderRadius.circular(12.s),
         border: Border.all(color: accent.withValues(alpha: 0.35)),
       ),
       child: Row(
@@ -731,7 +1167,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   Widget _payButton() {
-    final bool disabled = _isLoading || _isPaying || _selectedCardId == null;
+    final selectedMethod = _selectedPaymentMethod;
+    final bool disabled = _isLoading ||
+        _isPaying ||
+        selectedMethod == null ||
+        (selectedMethod == _PaymentMethodType.card && _selectedCardId == null);
     return GestureDetector(
       onTap: disabled ? null : _pay,
       child: Opacity(
@@ -740,14 +1180,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           width: double.infinity,
           padding: EdgeInsets.symmetric(vertical: 14.s),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24.s),
+            borderRadius: BorderRadius.circular(12.s),
             gradient: const LinearGradient(
                 colors: [Color(0xFF8B1F1E), AppColors.red]),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10)),
+                  color: Colors.black.withValues(alpha: 0.24),
+                  blurRadius: 12,
+                  offset: const Offset(0, 7)),
             ],
           ),
           child: Row(
@@ -775,39 +1215,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       ),
     );
   }
-
-  Widget _footerBadge() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(height: 4.s),
-        CircleAvatar(
-          radius: 22.s,
-          backgroundColor: Colors.transparent,
-          child: CircleAvatar(
-            radius: 20.s,
-            backgroundColor: Colors.black,
-            child: const Text('24',
-                style: TextStyle(
-                    color: AppColors.orange, fontWeight: FontWeight.w800)),
-          ),
-        ),
-        SizedBox(height: 9.s),
-        Text('ВСЕГДА В ВАШЕМ КРУГУ',
-            style: TextStyle(
-                color: AppColors.orange,
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w800)),
-        SizedBox(height: 3.s),
-        Text('ӘРҚАШАН СІЗДІҢ АРАҢЫЗДА',
-            style: TextStyle(
-                color: AppColors.textMute,
-                fontSize: 9.sp,
-                fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
 }
+
+enum _PaymentMethodType { card, kaspi }
 
 enum _CardFeedbackTone { success, error, info }
 

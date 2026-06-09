@@ -7,3 +7,5 @@ bool navigateReservedWebWindow(
 }) {
   return false;
 }
+
+void closeReservedWebWindow(Object? windowHandle) {}
