@@ -19,7 +19,8 @@ class Catalog extends StatefulWidget {
 }
 
 class _CatalogState extends State<Catalog> {
-  static const int _categoryGridColumns = 8;
+  static const int _navChipColumns = 7;
+  static const int _categoryGridColumns = 4;
 
   // ─── Palette (matches mainPage) ──────────────────────────
   static const Color _bgDeep = Color(0xFF121212);
@@ -264,10 +265,10 @@ class _CatalogState extends State<Catalog> {
         builder: (context, constraints) {
           final horizontalPadding = 14.s;
           final spacing = 6.s;
-          final chipWidth = (constraints.maxWidth - horizontalPadding * 2 - (_categoryGridColumns - 1) * spacing) / _categoryGridColumns;
+          final chipWidth = (constraints.maxWidth - horizontalPadding * 2 - (_navChipColumns - 1) * spacing) / _navChipColumns;
 
           return SizedBox(
-            height: 36.s,
+            height: 40.s,
             child: ListView.separated(
               controller: _chipScrollController,
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -284,10 +285,10 @@ class _CatalogState extends State<Catalog> {
                     onTap: () => _scrollToSection(i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 8.s),
+                      padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 9.s),
                       decoration: BoxDecoration(
                         color: isActive ? _orange : _card,
-                        borderRadius: BorderRadius.circular(10.s),
+                        borderRadius: BorderRadius.circular(11.s),
                         border: Border.all(color: isActive ? _orange : Colors.white.withValues(alpha: 0.03)),
                       ),
                       child: Center(
@@ -299,7 +300,7 @@ class _CatalogState extends State<Catalog> {
                           style: TextStyle(
                             color: isActive ? Colors.black : _text,
                             fontWeight: FontWeight.w800,
-                            fontSize: 10.sp,
+                            fontSize: 10.5.sp,
                           ),
                         ),
                       ),
@@ -447,9 +448,9 @@ class _CatalogState extends State<Catalog> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   const crossCount = _categoryGridColumns;
-                  final spacing = 4.s;
+                  final spacing = 6.s;
                   final tileWidth = (constraints.maxWidth - (crossCount - 1) * spacing) / crossCount;
-                  final tileHeight = tileWidth / 0.72;
+                  final tileHeight = tileWidth;
 
                   return Wrap(
                     spacing: spacing,
