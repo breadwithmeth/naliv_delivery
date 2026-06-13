@@ -40,10 +40,18 @@ class CartItem {
       image: json['image'] as String?,
       itemType: json['itemType'] as String?,
       packagingType: json['packagingType'] as String?,
-      selectedVariants: (json['selectedVariants'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
-      promotions: (json['promotions'] as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
-      itemData: json['itemData'] is Map ? Map<String, dynamic>.from(json['itemData'] as Map) : null,
-      maxAmount: json['maxAmount'] != null ? (json['maxAmount'] as num).toDouble() : null,
+      selectedVariants: (json['selectedVariants'] as List<dynamic>)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      promotions: (json['promotions'] as List<dynamic>)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      itemData: json['itemData'] is Map
+          ? Map<String, dynamic>.from(json['itemData'] as Map)
+          : null,
+      maxAmount: json['maxAmount'] != null
+          ? (json['maxAmount'] as num).toDouble()
+          : null,
     );
   }
 
@@ -108,13 +116,17 @@ class CartItem {
   }
 
   Map<String, dynamic> toJsonForOrder() {
+    final freeQuantity = subtractPromotionFreeQuantity(quantity, promotions);
     return {
       'item_id': itemId,
-      'amount': quantity,
+      'amount': quantity + freeQuantity,
       'options': selectedVariants.map((variant) {
         // API ожидает option_item_relation_id
         // Ищем ID варианта в разных возможных полях
-        final relationId = variant['variant_id'] ?? variant['relation_id'] ?? variant['variant']?['relation_id'] ?? variant['variant']?['variant_id'];
+        final relationId = variant['variant_id'] ??
+            variant['relation_id'] ??
+            variant['variant']?['relation_id'] ??
+            variant['variant']?['variant_id'];
         return {
           'option_item_relation_id': relationId,
           'amount': 1, // Обычно количество опций 1, если не указано иное
@@ -150,7 +162,8 @@ class CartItem {
     for (final variant in selectedVariants) {
       double? parentAmt;
       double? varPrice;
-      if (variant.containsKey('parent_item_amount') && variant.containsKey('price')) {
+      if (variant.containsKey('parent_item_amount') &&
+          variant.containsKey('price')) {
         parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
         varPrice = (variant['price'] as num?)?.toDouble();
       } else if (variant.containsKey('variant') && variant['variant'] is Map) {
@@ -167,7 +180,9 @@ class CartItem {
     return total;
   }
 
-  double get subtotalBeforePromotions => subtractPromotionDisplayBaseTotal(price, quantity, promotions) + optionsTotal;
+  double get subtotalBeforePromotions =>
+      subtractPromotionDisplayBaseTotal(price, quantity, promotions) +
+      optionsTotal;
 
   /// Вычисляет итоговую цену с учетом акций
   double get totalPrice {

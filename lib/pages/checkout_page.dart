@@ -1303,6 +1303,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => FocusScope.of(context).unfocus(),
       style: TextStyle(
           color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
       decoration: InputDecoration(
