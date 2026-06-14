@@ -117,7 +117,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       return;
     }
 
-    _selectedPaymentMethod = _PaymentMethodType.kaspi;
+    _selectedPaymentMethod = null;
     _selectedCardId = null;
   }
 
@@ -286,8 +286,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   Future<void> _pay({_PaymentMethodType? paymentMethod}) async {
     if (_isPaying || _isLoading) return;
-    final selectedMethod =
-        paymentMethod ?? _selectedPaymentMethod ?? _PaymentMethodType.kaspi;
+    final selectedMethod = paymentMethod ?? _selectedPaymentMethod;
+    if (selectedMethod == null) {
+      if (mounted) {
+        await _showNotice(
+            'Способ оплаты не выбран', 'Пожалуйста, выберите способ оплаты.');
+      }
+      return;
+    }
 
     if (selectedMethod == _PaymentMethodType.card && _selectedCardId == null) {
       if (mounted) {
@@ -866,22 +872,34 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   Widget _kaspiTile() {
-    final bool isSelected = _selectedPaymentMethod == _PaymentMethodType.kaspi;
-
-    return InkWell(
-      onTap: _isLoading || _isPaying
-          ? null
-          : () {
-              setState(() {
-                _selectedPaymentMethod = _PaymentMethodType.kaspi;
-              });
-              _pay(paymentMethod: _PaymentMethodType.kaspi);
-            },
-      borderRadius: BorderRadius.circular(8.s),
-      child: _kaspiTileContent(
-        isSelected: isSelected,
-        isLoading: isSelected && _isPaying,
-      ),
+    return Column(
+      children: [
+        SizedBox(height: 6.s),
+        Stack(
+          children: [
+            _kaspiTileContent(
+              isSelected: false,
+              isLoading: false,
+            ),
+            Positioned.fill(
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(12.s),
+                ),
+                child: Text("Скоро в приложении",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                    )),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
