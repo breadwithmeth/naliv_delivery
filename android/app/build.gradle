@@ -39,7 +39,7 @@ android {
     }
 
     defaultConfig {
-        applicationId1.2.111adusy24.app"
+        applicationId1.2.112adusy24.app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode 123

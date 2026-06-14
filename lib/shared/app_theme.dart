@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color bgDeep = Color(0xFF121212);
-  static const Color bgTop = Color(0xFF161616);
-  static const Color card = Color(0xFF1E1E1E);
-  static const Color cardDark = Color(0xFF181818);
-  static const Color blue = Color(0xFF242A32);
-  static const Color orange = Color(0xFFF6A10C);
+  static const Color bgDeep = Color(0xFF0A0A0A);
+  static const Color bgTop = Color(0xFF0E0E0E);
+  static const Color card = Color(0xFF141414);
+  static const Color cardDark = Color(0xFF101010);
+  static const Color blue = Color(0xFF1A1F26);
+  static const Color orange = Color(0xFFFF6800);
   static const Color red = Color(0xFFC23B30);
   static const Color text = Colors.white;
   static const Color textMute = Color(0xFF9FB0C8);
 }
 
 class AppDecorations {
-  static BoxDecoration card({double radius = 18, Color? color, bool shadow = true}) {
+  static BoxDecoration card(
+      {double radius = 18, Color? color, bool shadow = true}) {
     return BoxDecoration(
       color: color ?? AppColors.card,
       borderRadius: BorderRadius.circular(radius),
@@ -54,12 +55,14 @@ class AppDialogs {
       title: title != null
           ? Text(
               title,
-              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                  color: AppColors.text, fontWeight: FontWeight.w800),
             )
           : null,
       content: content,
       actions: actions,
-      contentTextStyle: const TextStyle(color: AppColors.textMute, fontSize: 14),
+      contentTextStyle:
+          const TextStyle(color: AppColors.textMute, fontSize: 14),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
       contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -76,7 +79,8 @@ class AppDialogs {
     return showDialog<T>(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: (ctx) => dialog(title: title, content: content, actions: actions),
+      builder: (ctx) =>
+          dialog(title: title, content: content, actions: actions),
     );
   }
 
@@ -96,7 +100,8 @@ class AppDialogs {
           <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
-              child: const Text('Понятно', style: TextStyle(color: AppColors.orange)),
+              child: const Text('Понятно',
+                  style: TextStyle(color: AppColors.orange)),
             ),
           ],
     );
@@ -125,7 +130,10 @@ class AppBackground extends StatelessWidget {
                   gradient: RadialGradient(
                     center: const Alignment(-0.4, -0.6),
                     radius: 1.2,
-                    colors: [Colors.white.withValues(alpha: 0.04), Colors.transparent],
+                    colors: [
+                      Colors.white.withValues(alpha: 0.04),
+                      Colors.transparent
+                    ],
                     stops: const [0.0, 1.0],
                   ),
                 ),
@@ -137,7 +145,10 @@ class AppBackground extends StatelessWidget {
                   gradient: RadialGradient(
                     center: const Alignment(0.6, 0.8),
                     radius: 1.4,
-                    colors: [Colors.white.withValues(alpha: 0.03), Colors.transparent],
+                    colors: [
+                      Colors.white.withValues(alpha: 0.03),
+                      Colors.transparent
+                    ],
                     stops: const [0.0, 1.0],
                   ),
                 ),

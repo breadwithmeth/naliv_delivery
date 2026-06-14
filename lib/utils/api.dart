@@ -2631,7 +2631,7 @@ class ApiService {
     }
     queryParams['page'] = page.toString();
     if (pageSize != null) {
-      queryParams['per_page'] = pageSize.toString();
+      queryParams['limit'] = pageSize.toString();
     }
 
     final uri = Uri.parse('$baseUrl/orders/my-orders').replace(
