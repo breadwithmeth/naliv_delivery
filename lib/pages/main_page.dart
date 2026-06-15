@@ -542,7 +542,7 @@ class _MainPageState extends State<MainPage> {
     if (_lastPromptKey == promptKey) return;
     _lastPromptKey = promptKey;
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final hasItems = cartProvider.items.isNotEmpty;
+    final hasItems = cartProvider.hasActiveItems;
     final shouldSwitch = await showDialog<bool>(
       context: context,
       barrierDismissible: false,

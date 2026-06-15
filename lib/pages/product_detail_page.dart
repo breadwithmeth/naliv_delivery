@@ -50,6 +50,8 @@ class _SubtractPromoUiState {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
+  static const double _headerWeightPriceQuantityKg = 0.1;
+
   // ── state ─────────────────────────────────────────────────────
   late final item_model.ItemOption? _containerOption;
   late final List<item_model.ItemOptionItem> _bottleVariants;
@@ -511,6 +513,41 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final rounded = value.roundToDouble();
     final text = rounded == value ? rounded.toStringAsFixed(0) : value.toStringAsFixed(2);
     return '$text ₸';
+  }
+
+  bool _shouldShowFixedWeightPriceUnderImage() {
+    if (_usesPourFlow) {
+      return false;
+    }
+
+    final normalizedUnit = widget.item.unit?.toLowerCase().replaceAll('.', '').trim();
+    if (normalizedUnit != null && normalizedUnit.isNotEmpty) {
+      if (normalizedUnit.contains('кг') || normalizedUnit.contains('kg')) {
+        return true;
+      }
+      if (normalizedUnit.contains('шт') ||
+          normalizedUnit.contains('pcs') ||
+          normalizedUnit.contains('л') ||
+          normalizedUnit.contains('ml') ||
+          normalizedUnit.contains('мл')) {
+        return false;
+      }
+    }
+
+    final quantity = widget.item.quantity;
+    if (quantity != null && quantity > 0 && quantity < 1 && (quantity - 1).abs() > 0.001) {
+      return true;
+    }
+
+    final step = widget.item.effectiveStepQuantity;
+    return step > 0 && step < 1 && _quantityUnit().toLowerCase().contains('кг');
+  }
+
+  double _priceUnderImage(double price) {
+    if (!_shouldShowFixedWeightPriceUnderImage()) {
+      return price;
+    }
+    return _normalizeDouble(price * _headerWeightPriceQuantityKg);
   }
 
   String _volumeLabel(double value) {
@@ -1411,13 +1448,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   List<Widget> _priceDisplay() {
     final promo = _discountPromo;
     final facts = _priceFacts();
+    final basePrice = _priceUnderImage(widget.item.price);
 
     if (promo != null) {
-      final discounted = promo.calculateDiscountedPrice(widget.item.price);
-      final savings = promo.calculateSavings(widget.item.price);
+      final discounted = _priceUnderImage(promo.calculateDiscountedPrice(widget.item.price));
+      final savings = _priceUnderImage(promo.calculateSavings(widget.item.price));
       return [
         Text(
-          _money(widget.item.price),
+          _money(basePrice),
           style: TextStyle(
             color: AppColors.textMute.withValues(alpha: 0.5),
             fontSize: 15.sp,
@@ -1474,7 +1512,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: _primaryPriceText(widget.item.price),
+            child: _primaryPriceText(basePrice),
           ),
         ],
       ),

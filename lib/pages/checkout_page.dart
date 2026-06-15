@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/bonus_info_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
@@ -17,9 +19,18 @@ import '../utils/smart_cart.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'cart_page.dart';
 
+enum _DiscountOption { bonuses, promoCode }
+
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
-  const CheckoutPage({super.key});
+  final String? initialDeliveryType;
+  final Map<String, dynamic>? initialAddress;
+
+  const CheckoutPage({
+    super.key,
+    this.initialDeliveryType,
+    this.initialAddress,
+  });
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -58,6 +69,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _promoCodeController = TextEditingController();
   bool _isValidatingPromo = false;
   Map<String, dynamic>? _appliedPromoData;
+  _DiscountOption _discountOption = _DiscountOption.bonuses;
+
+  bool get _hasAppliedPromo => _appliedPromoData != null;
+
+  bool get _shouldApplyBonuses => _useBonus && !_hasAppliedPromo && _bonusData?['success'] == true;
 
   void _handleBack() {
     final navigator = Navigator.of(context);
@@ -81,12 +97,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    final initialType = widget.initialDeliveryType?.trim().toUpperCase();
+    if (initialType == 'PICKUP' || initialType == 'DELIVERY') {
+      _deliveryType = initialType!;
+    }
     _initAddressSelection();
     _loadUserBonuses();
   }
 
   Future<void> _initAddressSelection() async {
-    final address = await AddressStorageService.getSelectedAddress();
+    final address = widget.initialAddress ?? await AddressStorageService.getSelectedAddress();
     if (mounted && address != null) {
       setState(() {
         _selectedAddress = address;
@@ -269,11 +289,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'delivery_type': _deliveryType,
       'delivery_time': _deliveryTime,
       'total_amount': _getTotalWithDelivery(),
-      'use_bonuses': _useBonus,
-      if (_useBonus) 'bonus_amount': _getUsedBonuses(),
+      'use_bonuses': _shouldApplyBonuses,
+      if (_shouldApplyBonuses) 'bonus_amount': _getUsedBonuses(),
       if (_selectedDeliveryDateTime != null) 'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
       'saved_card_id': 1,
-      if (_appliedPromoData != null) 'promo_code': _promoCodeController.text.trim(),
+      if (_hasAppliedPromo) 'promo_code': _promoCodeController.text.trim(),
     };
     try {
       final result = await ApiService.createUserOrder(body);
@@ -489,14 +509,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
 
     // Bonuses apply only to items (not delivery).
-    final bonusApplied = _useBonus && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
+    final bonusApplied = _shouldApplyBonuses && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
 
     return (itemsTotal + bagCost - promoDiscount - bonusApplied).clamp(0, double.infinity) + effectiveDeliveryCost;
   }
 
   /// Получить сумму использованных бонусов
   double _getUsedBonuses() {
-    if (!_useBonus || _bonusData == null || _bonusData!['success'] != true) {
+    if (!_shouldApplyBonuses) {
+      return 0.0;
+    }
+
+    return _getBonusUsageLimit();
+  }
+
+  double _getBonusUsageLimit() {
+    if (_bonusData == null || _bonusData!['success'] != true) {
       return 0.0;
     }
 
@@ -508,18 +536,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final availableBonuses = (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
 
     // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (30%), или сумма товаров
-    return [availableBonuses, maxBonusUsage, itemsTotal].reduce((a, b) => a < b ? a : b);
+    return math.min(itemsTotal, math.min(availableBonuses, maxBonusUsage));
   }
 
   int _getEarnedBonuses() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    return _calculateEarnedBonuses(cartProvider.displayGroups);
+    return _calculateEarnedBonuses(cartProvider.activeDisplayGroups);
   }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
-    final displayGroups = cartProvider.displayGroups;
+    final displayGroups = cartProvider.activeDisplayGroups;
     final businessProvider = Provider.of<BusinessProvider>(context);
     final bool hasCheckoutBag = _shouldAddCheckoutBag(displayGroups, businessProvider.selectedBusiness);
     final double bagCost = hasCheckoutBag ? _checkoutBagPrice : 0.0;
@@ -532,7 +560,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final totalWithDelivery = _getTotalWithDelivery();
     final earnedBonuses = _getEarnedBonuses();
     final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
-    final double bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
+    final double bonusUsed = _shouldApplyBonuses ? _getUsedBonuses() : 0.0;
 
     return PopScope(
       canPop: false,
@@ -609,41 +637,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       onTap: _showDeliveryTimeSelection,
                     ),
                     _thinDivider(),
-                    Row(
-                      children: [
-                        Icon(Icons.stars_rounded, color: AppColors.orange, size: 18.s),
-                        SizedBox(width: 10.s),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Списать бонусы', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-                              if (canUseBonus)
-                                _buildBonusSubtitle()
-                              else
-                                const Text('Проверяем баланс…', style: TextStyle(color: AppColors.textMute, fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _useBonus,
-                          activeThumbColor: Colors.black,
-                          activeTrackColor: AppColors.orange,
-                          inactiveThumbColor: AppColors.text,
-                          inactiveTrackColor: AppColors.blue,
-                          onChanged: canUseBonus ? (v) => setState(() => _useBonus = v) : null,
-                        ),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BonusInfoPage())),
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 28.s, top: 2.s),
-                        child: Text('Как работают бонусы →', style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w600)),
-                      ),
-                    ),
-                    _thinDivider(),
-                    _promoCodeSection(),
+                    _discountSection(canUseBonus: canUseBonus),
                     _thinDivider(),
                     _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
                     SizedBox(height: 8.s),
@@ -720,6 +714,284 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 14.s),
       child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+    );
+  }
+
+  Widget _discountSection({required bool canUseBonus}) {
+    final selectedOption = _hasAppliedPromo ? _DiscountOption.promoCode : _discountOption;
+    final promoMode = selectedOption == _DiscountOption.promoCode;
+    final bonusData = _bonusData?['data'];
+    final totalBonuses = (bonusData?['totalBonuses'] as num?)?.toDouble() ?? 0.0;
+    final availableUsage = _getBonusUsageLimit();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Скидка на заказ'),
+        SizedBox(height: 8.s),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(14.s),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark.withValues(alpha: 0.86),
+            borderRadius: BorderRadius.circular(18.s),
+            border: Border.all(color: AppColors.orange.withValues(alpha: 0.10)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 38.s,
+                    height: 38.s,
+                    decoration: BoxDecoration(
+                      color: AppColors.orange.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      promoMode ? Icons.confirmation_number_outlined : Icons.stars_rounded,
+                      color: AppColors.orange,
+                      size: 19.s,
+                    ),
+                  ),
+                  SizedBox(width: 10.s),
+                  Expanded(
+                    child: promoMode
+                        ? _discountHeaderCopy('Промокод', _appliedPromoData != null ? appliedPromoLabel : 'Добавьте код скидки')
+                        : _discountHeaderCopy(
+                            'Бонусы',
+                            canUseBonus ? 'Баланс ${_money(totalBonuses)} • доступно ${_money(availableUsage)}' : _bonusStateText(),
+                          ),
+                  ),
+                  SizedBox(width: 10.s),
+                  if (!promoMode)
+                    _bonusActionButton(canUseBonus: canUseBonus)
+                  else if (_appliedPromoData != null)
+                    _discountPill(
+                      text: _promoBadgeText(),
+                      color: Colors.greenAccent,
+                    ),
+                ],
+              ),
+              SizedBox(height: 12.s),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: promoMode
+                    ? _promoCodePane(canUseBonus: canUseBonus, key: const ValueKey(_DiscountOption.promoCode))
+                    : _bonusDiscountPane(canUseBonus: canUseBonus, key: const ValueKey(_DiscountOption.bonuses)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _discountHeaderCopy(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w900)),
+        SizedBox(height: 3.s),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.2, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  Widget _discountPill({required String text, required Color color}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 6.s),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Text(text, style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.w900)),
+    );
+  }
+
+  Widget _bonusActionButton({required bool canUseBonus}) {
+    return TextButton(
+      onPressed: canUseBonus ? () => _toggleBonuses(canUseBonus) : null,
+      style: TextButton.styleFrom(
+        backgroundColor: _shouldApplyBonuses ? Colors.transparent : AppColors.orange,
+        foregroundColor: _shouldApplyBonuses ? AppColors.orange : Colors.black,
+        disabledForegroundColor: AppColors.textMute,
+        padding: EdgeInsets.symmetric(horizontal: 13.s, vertical: 9.s),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.s),
+          side: _shouldApplyBonuses ? const BorderSide(color: AppColors.orange) : BorderSide.none,
+        ),
+      ),
+      child: Text(_shouldApplyBonuses ? 'Убрать' : 'Списать', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w900)),
+    );
+  }
+
+  String get appliedPromoLabel {
+    final appliedCode = (_appliedPromoData?['promo_code'] ?? _promoCodeController.text.trim()).toString();
+    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    return '$appliedCode${promoDiscount > 0 ? ' • −${_money(promoDiscount)}' : ''}';
+  }
+
+  String _promoBadgeText() {
+    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    return promoDiscount > 0 ? '-${_money(promoDiscount)}' : 'Активен';
+  }
+
+  void _selectDiscountOption(_DiscountOption option, {required bool canUseBonus}) {
+    setState(() {
+      _discountOption = option;
+      if (option == _DiscountOption.bonuses) {
+        _useBonus = false;
+        _promoCodeController.clear();
+        _appliedPromoData = null;
+      } else {
+        _useBonus = false;
+      }
+    });
+  }
+
+  void _toggleBonuses(bool canUseBonus) {
+    if (!canUseBonus) return;
+
+    setState(() {
+      _discountOption = _DiscountOption.bonuses;
+      _appliedPromoData = null;
+      _promoCodeController.clear();
+      _useBonus = !_useBonus;
+    });
+  }
+
+  Widget _bonusDiscountPane({required bool canUseBonus, Key? key}) {
+    return Row(
+      key: key,
+      children: [
+        Expanded(
+          child: _shouldApplyBonuses
+              ? Text(
+                  'Будет списано ${_money(_getUsedBonuses())}',
+                  style: TextStyle(color: Colors.greenAccent, fontSize: 12.sp, fontWeight: FontWeight.w800),
+                )
+              : Text(
+                  canUseBonus ? 'Бонусы пока не применяются' : _bonusStateText(),
+                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                ),
+        ),
+        SizedBox(width: 10.s),
+        _discountChipButton(
+          label: 'Промокод',
+          icon: Icons.confirmation_number_outlined,
+          onTap: () => _selectDiscountOption(_DiscountOption.promoCode, canUseBonus: canUseBonus),
+        ),
+      ],
+    );
+  }
+
+  Widget _discountChipButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 7.s),
+        decoration: BoxDecoration(
+          color: AppColors.bgDeep.withValues(alpha: 0.36),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.orange, size: 14.s),
+            SizedBox(width: 5.s),
+            Text(label, style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _bonusStateText() {
+    if (_bonusData == null) {
+      return 'Проверяем бонусы…';
+    }
+    return 'Бонусы сейчас недоступны';
+  }
+
+  Widget _promoCodePane({required bool canUseBonus, Key? key}) {
+    return Column(
+      key: key,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _promoCodeController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) {
+                  setState(() {
+                    _appliedPromoData = null;
+                    _discountOption = _DiscountOption.promoCode;
+                  });
+                },
+                style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
+                decoration: InputDecoration(
+                  hintText: 'Введите промокод',
+                  hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+                  isDense: true,
+                  filled: true,
+                  fillColor: AppColors.bgDeep.withValues(alpha: 0.32),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.orange, width: 1),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8.s),
+            SizedBox(
+              height: 44.s,
+              child: TextButton(
+                onPressed: _isValidatingPromo ? null : _validateAndApplyPromoCode,
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(horizontal: 14.s),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
+                ),
+                child: Text(_isValidatingPromo ? 'Проверка…' : 'ОК', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.sp)),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10.s),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            _discountChipButton(
+              label: 'Бонусы',
+              icon: Icons.stars_rounded,
+              onTap: () => _selectDiscountOption(_DiscountOption.bonuses, canUseBonus: canUseBonus),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -894,7 +1166,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   List<Map<String, dynamic>> _orderItemsWithBag(CartProvider cartProvider, {required int? bagItemId}) {
-    final items = cartProvider.items.map((item) => item.toJsonForOrder()).toList(growable: true);
+    final items = cartProvider.items.where((item) => item.quantity > 0).map((item) => item.toJsonForOrder()).toList(growable: true);
     if (bagItemId == null) {
       return items;
     }
@@ -1136,94 +1408,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _buildBonusSubtitle() {
-    if (_bonusData == null || _bonusData!['success'] != true) {
-      return const Text('Загрузка...', style: TextStyle(color: AppColors.textMute));
+  Future<void> _validateAndApplyPromoCode() async {
+    if (_shouldApplyBonuses) {
+      await _showNotice(
+        'Выберите один способ скидки',
+        'Используйте либо бонусы, либо промокод. Отключите бонусы, чтобы применить промокод.',
+      );
+      return;
     }
 
-    final bonusData = _bonusData!['data'];
-    final totalBonuses = bonusData['totalBonuses'] ?? 0;
-
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final itemsTotal = cartProvider.getTotalPrice();
-    final maxBonusUsage = itemsTotal * 0.30;
-    final availableToUse = totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('На балансе: $totalBonuses ₸', style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w800)),
-        Text(
-          'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸',
-          style: const TextStyle(color: AppColors.textMute, fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  Widget _promoCodeSection() {
-    final appliedCode = (_appliedPromoData?['promo_code'] ?? _promoCodeController.text.trim()).toString();
-    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Промокод', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
-        SizedBox(height: 8.s),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _promoCodeController,
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (_) {
-                  if (_appliedPromoData != null) {
-                    setState(() => _appliedPromoData = null);
-                  }
-                },
-                style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
-                decoration: InputDecoration(
-                  hintText: 'Введите промокод',
-                  hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
-                  isDense: true,
-                  filled: true,
-                  fillColor: AppColors.card,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.orange, width: 1),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 8.s),
-            SizedBox(
-              height: 44.s,
-              child: TextButton(
-                onPressed: _isValidatingPromo ? null : _validateAndApplyPromoCode,
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 14.s),
-                ),
-                child: Text(_isValidatingPromo ? 'Проверка…' : 'Применить', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp)),
-              ),
-            ),
-          ],
-        ),
-        if (_appliedPromoData != null) ...[
-          SizedBox(height: 8.s),
-          Text(
-            'Применен: $appliedCode${promoDiscount > 0 ? ' (−${_money(promoDiscount)})' : ''}',
-            style: TextStyle(color: Colors.greenAccent, fontSize: 12.sp, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Future<void> _validateAndApplyPromoCode() async {
     final code = _promoCodeController.text.trim();
     if (code.isEmpty) {
       await _showNotice('Промокод', 'Введите промокод.');
@@ -1264,6 +1457,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (result['success'] == true) {
         final data = result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
         setState(() {
+          _discountOption = _DiscountOption.promoCode;
+          _useBonus = false;
           _appliedPromoData = data;
         });
       } else {

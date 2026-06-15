@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
+import 'package:naliv_delivery/pages/checkout_page.dart';
+import 'package:naliv_delivery/services/repeat_order_service.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
+import 'package:provider/provider.dart';
 import '../utils/responsive.dart';
 
 class OrderDetailPage extends StatefulWidget {
@@ -19,6 +24,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Map<String, dynamic>? _courierLocation;
   bool _isLoading = true;
   bool _isLoadingCourier = false;
+  bool _isRepeating = false;
   String? _error;
   String? _courierError;
 
@@ -104,6 +110,102 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         _isLoadingCourier = false;
       });
     }
+  }
+
+  Future<void> _repeatOrder() async {
+    if (_isRepeating) return;
+
+    final sourceOrder = _orderDetails ?? widget.order;
+    final shouldContinue = await _confirmReplaceCart(sourceOrder);
+    if (shouldContinue != true || !mounted) return;
+
+    setState(() {
+      _isRepeating = true;
+    });
+
+    try {
+      final cartProvider = context.read<CartProvider>();
+      final businessProvider = context.read<BusinessProvider>();
+      final result = await RepeatOrderService.repeatOrderIntoCart(
+        sourceOrder: sourceOrder,
+        cartProvider: cartProvider,
+        businessProvider: businessProvider,
+      );
+      if (!mounted) return;
+
+      if (result.hasSkippedItems) {
+        await AppDialogs.showMessage(
+          context,
+          title: 'Часть позиций пропущена',
+          message: 'Не все позиции из прошлого заказа удалось восстановить. Проверьте состав перед подтверждением.',
+        );
+      }
+      if (!mounted) return;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CheckoutPage(
+            initialDeliveryType: result.deliveryType,
+            initialAddress: result.restoredAddress,
+          ),
+        ),
+      );
+    } on RepeatOrderException catch (e) {
+      if (!mounted) return;
+      await AppDialogs.showMessage(
+        context,
+        title: 'Не удалось повторить заказ',
+        message: e.message,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      await AppDialogs.showMessage(
+        context,
+        title: 'Не удалось повторить заказ',
+        message: 'Попробуйте ещё раз чуть позже.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRepeating = false;
+        });
+      }
+    }
+  }
+
+  Future<bool?> _confirmReplaceCart(Map<String, dynamic> order) {
+    final cartProvider = context.read<CartProvider>();
+    if (!cartProvider.hasActiveItems) {
+      return Future<bool?>.value(true);
+    }
+
+    final currentBusiness = context.read<BusinessProvider>().selectedBusiness;
+    final targetBusiness = RepeatOrderService.extractBusiness(order);
+    final currentBusinessId = currentBusiness?['id'] ?? currentBusiness?['business_id'] ?? currentBusiness?['businessId'];
+    final targetBusinessId = targetBusiness?['id'] ?? targetBusiness?['business_id'] ?? targetBusiness?['businessId'];
+    final targetBusinessName = targetBusiness?['name']?.toString() ?? 'другой магазин';
+    final isDifferentBusiness = targetBusinessId != null && currentBusinessId != targetBusinessId;
+
+    return AppDialogs.show<bool>(
+      context,
+      title: 'Заменить корзину?',
+      content: Text(
+        isDifferentBusiness
+            ? 'Текущая корзина будет очищена, а магазин сменится на $targetBusinessName.'
+            : 'Текущая корзина будет очищена и заменена товарами из этого заказа.',
+        style: const TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Отмена', style: TextStyle(color: AppColors.text)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Продолжить', style: TextStyle(color: AppColors.orange)),
+        ),
+      ],
+    );
   }
 
   @override
@@ -348,6 +450,30 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               SizedBox(width: 5.s),
               Text('Тип доставки: $deliveryType', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
             ],
+          ),
+          SizedBox(height: 12.s),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isRepeating ? null : _repeatOrder,
+              icon: _isRepeating
+                  ? SizedBox(
+                      width: 18.s,
+                      height: 18.s,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(AppColors.orange),
+                      ),
+                    )
+                  : const Icon(Icons.replay_rounded, size: 18),
+              label: Text(_isRepeating ? 'Собираем заказ...' : 'Повторить заказ'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.orange,
+                side: const BorderSide(color: AppColors.orange, width: 1.2),
+                padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+              ),
+            ),
           ),
         ],
       ),

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../services/repeat_order_service.dart';
 import '../shared/app_theme.dart';
 import '../utils/api.dart';
+import '../utils/business_provider.dart';
+import '../utils/cart_provider.dart';
 import '../utils/order_ui_helpers.dart' as order_ui;
 import '../utils/responsive.dart';
+import 'checkout_page.dart';
 import 'order_detail_page.dart';
 
 class OrdersHistoryPage extends StatefulWidget {
@@ -30,6 +35,7 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   bool _hasMoreHistory = true;
   int _historyPage = 1;
   final int _pageSize = 10;
+  String? _repeatingOrderId;
   String? _error;
 
   @override
@@ -157,6 +163,102 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
   String _orderIdentity(Map<String, dynamic> order) {
     return order['order_uuid']?.toString() ?? order['order_id']?.toString() ?? '';
+  }
+
+  Future<void> _repeatOrder(Map<String, dynamic> order) async {
+    final orderKey = _orderIdentity(order);
+    if (_repeatingOrderId != null) return;
+
+    final shouldContinue = await _confirmReplaceCart(order);
+    if (shouldContinue != true || !mounted) return;
+
+    setState(() {
+      _repeatingOrderId = orderKey;
+    });
+
+    try {
+      final cartProvider = context.read<CartProvider>();
+      final businessProvider = context.read<BusinessProvider>();
+      final result = await RepeatOrderService.repeatOrderIntoCart(
+        sourceOrder: order,
+        cartProvider: cartProvider,
+        businessProvider: businessProvider,
+      );
+      if (!mounted) return;
+
+      if (result.hasSkippedItems) {
+        await AppDialogs.showMessage(
+          context,
+          title: 'Часть позиций пропущена',
+          message: 'Не все позиции из прошлого заказа удалось восстановить. Проверьте состав перед подтверждением.',
+        );
+      }
+      if (!mounted) return;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CheckoutPage(
+            initialDeliveryType: result.deliveryType,
+            initialAddress: result.restoredAddress,
+          ),
+        ),
+      );
+    } on RepeatOrderException catch (e) {
+      if (!mounted) return;
+      await AppDialogs.showMessage(
+        context,
+        title: 'Не удалось повторить заказ',
+        message: e.message,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      await AppDialogs.showMessage(
+        context,
+        title: 'Не удалось повторить заказ',
+        message: 'Попробуйте ещё раз чуть позже.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _repeatingOrderId = null;
+        });
+      }
+    }
+  }
+
+  Future<bool?> _confirmReplaceCart(Map<String, dynamic> order) {
+    final cartProvider = context.read<CartProvider>();
+    if (!cartProvider.hasActiveItems) {
+      return Future<bool?>.value(true);
+    }
+
+    final currentBusiness = context.read<BusinessProvider>().selectedBusiness;
+    final targetBusiness = RepeatOrderService.extractBusiness(order);
+    final currentBusinessId = currentBusiness?['id'] ?? currentBusiness?['business_id'] ?? currentBusiness?['businessId'];
+    final targetBusinessId = targetBusiness?['id'] ?? targetBusiness?['business_id'] ?? targetBusiness?['businessId'];
+    final targetBusinessName = targetBusiness?['name']?.toString() ?? 'другой магазин';
+    final isDifferentBusiness = targetBusinessId != null && currentBusinessId != targetBusinessId;
+
+    return AppDialogs.show<bool>(
+      context,
+      title: 'Заменить корзину?',
+      content: Text(
+        isDifferentBusiness
+            ? 'Текущая корзина будет очищена, а магазин сменится на $targetBusinessName.'
+            : 'Текущая корзина будет очищена и заменена товарами из этого заказа.',
+        style: const TextStyle(color: AppColors.textMute),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Отмена', style: TextStyle(color: AppColors.text)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Продолжить', style: TextStyle(color: AppColors.orange)),
+        ),
+      ],
+    );
   }
 
   DateTime _orderTimestamp(Map<String, dynamic> order) {
@@ -294,7 +396,11 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
           SizedBox(height: 9.s),
           ..._activeOrders.map((order) => Padding(
                 padding: EdgeInsets.only(bottom: 9.s),
-                child: OrderPreviewCard(order: order),
+                child: OrderPreviewCard(
+                  order: order,
+                  onRepeat: () => _repeatOrder(order),
+                  isRepeating: _repeatingOrderId == _orderIdentity(order),
+                ),
               )),
           SizedBox(height: 12.s),
         ],
@@ -327,7 +433,11 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
             return Padding(
               padding: EdgeInsets.only(bottom: 9.s),
-              child: OrderPreviewCard(order: entry.order!),
+              child: OrderPreviewCard(
+                order: entry.order!,
+                onRepeat: () => _repeatOrder(entry.order!),
+                isRepeating: _repeatingOrderId == _orderIdentity(entry.order!),
+              ),
             );
           }),
         if (_isLoadingMore) ...[
@@ -392,8 +502,15 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
 class OrderPreviewCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final VoidCallback? onRepeat;
+  final bool isRepeating;
 
-  const OrderPreviewCard({super.key, required this.order});
+  const OrderPreviewCard({
+    super.key,
+    required this.order,
+    this.onRepeat,
+    this.isRepeating = false,
+  });
 
   DateTime? _parseDate(String? raw) {
     if (raw == null || raw.isEmpty) return null;
@@ -553,19 +670,42 @@ class OrderPreviewCard extends StatelessWidget {
               _inlineInfo(Icons.location_on_outlined, deliveryAddress!, label: 'Куда'),
             ],
             SizedBox(height: 12.s),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Открыть детали',
-                    style: TextStyle(color: AppColors.orange.withValues(alpha: 0.95), fontWeight: FontWeight.w900),
+            Row(
+              children: [
+                if (onRepeat != null)
+                  OutlinedButton.icon(
+                    onPressed: isRepeating ? null : onRepeat,
+                    icon: isRepeating
+                        ? SizedBox(
+                            width: 14.s,
+                            height: 14.s,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(AppColors.orange),
+                            ),
+                          )
+                        : Icon(Icons.replay_rounded, size: 16.s),
+                    label: Text(isRepeating ? 'Собираем...' : 'Повторить заказ'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.orange,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
+                    ),
                   ),
-                  SizedBox(width: 5.s),
-                  Icon(Icons.chevron_right_rounded, color: AppColors.orange, size: 18.s),
-                ],
-              ),
+                const Spacer(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Открыть детали',
+                      style: TextStyle(color: AppColors.orange.withValues(alpha: 0.95), fontWeight: FontWeight.w900),
+                    ),
+                    SizedBox(width: 5.s),
+                    Icon(Icons.chevron_right_rounded, color: AppColors.orange, size: 18.s),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

@@ -25,6 +25,25 @@ void main() {
       expect(find.text('1 шт.'), findsNothing);
     });
 
+    testWidgets('shows fixed 100 gram price under image for weight items', (tester) async {
+      final item = Item(
+        itemId: 100,
+        name: 'Gouda cheese',
+        price: 5000,
+        amount: 10,
+        quantity: 0.250,
+        unit: 'кг.',
+      );
+
+      await tester.pumpWidget(_wrap(item));
+      await tester.pumpAndSettle();
+
+      expect(find.text('500 ₸'), findsOneWidget);
+      expect(find.text('0.250 кг.'), findsWidgets);
+      expect(find.text('1250 ₸'), findsWidgets);
+      expect(find.text('5000 ₸'), findsNothing);
+    });
+
     testWidgets('restores existing catalog quantity from the cart', (tester) async {
       final item = Item(
         itemId: 501,

@@ -19,8 +19,6 @@ class Catalog extends StatefulWidget {
 }
 
 class _CatalogState extends State<Catalog> {
-  static const int _categoryGridColumns = 8;
-
   // ─── Palette (matches mainPage) ──────────────────────────
   static const Color _bgDeep = Color(0xFF121212);
   static const Color _bgTop = Color(0xFF161616);
@@ -193,6 +191,29 @@ class _CatalogState extends State<Catalog> {
     _scrollChipIntoView(index);
   }
 
+  int _categoryGridCrossAxisCount(double width) {
+    if (width >= 920) return 7;
+    if (width >= 760) return 6;
+    if (width >= 560) return 5;
+    return 4;
+  }
+
+  double _categoryTileAspectRatio(double width) {
+    if (width >= 760) return 0.84;
+    if (width >= 560) return 0.8;
+    return 0.74;
+  }
+
+  double _navChipMinWidth(double width) {
+    if (width >= 760) return 96.s;
+    if (width >= 560) return 84.s;
+    return 72.s;
+  }
+
+  double _navChipMaxWidth(double width) {
+    return (width * 0.28).clamp(_navChipMinWidth(width), 132.s).toDouble();
+  }
+
   // ═══════════════════════════════════════════════════════════
   //  U I
   // ═══════════════════════════════════════════════════════════
@@ -264,10 +285,11 @@ class _CatalogState extends State<Catalog> {
         builder: (context, constraints) {
           final horizontalPadding = 14.s;
           final spacing = 6.s;
-          final chipWidth = (constraints.maxWidth - horizontalPadding * 2 - (_categoryGridColumns - 1) * spacing) / _categoryGridColumns;
+          final minChipWidth = _navChipMinWidth(constraints.maxWidth);
+          final maxChipWidth = _navChipMaxWidth(constraints.maxWidth);
 
           return SizedBox(
-            height: 36.s,
+            height: 40.s,
             child: ListView.separated(
               controller: _chipScrollController,
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -277,18 +299,30 @@ class _CatalogState extends State<Catalog> {
               itemBuilder: (_, i) {
                 final isActive = i == _activeSuperIndex;
                 final label = _superCategories[i]['name']?.toString() ?? 'Раздел';
-                return SizedBox(
+                return ConstrainedBox(
                   key: _chipKeys.length > i ? _chipKeys[i] : null,
-                  width: chipWidth,
+                  constraints: BoxConstraints(
+                    minWidth: minChipWidth,
+                    maxWidth: maxChipWidth,
+                  ),
                   child: GestureDetector(
                     onTap: () => _scrollToSection(i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 8.s),
+                      padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 9.s),
                       decoration: BoxDecoration(
                         color: isActive ? _orange : _card,
-                        borderRadius: BorderRadius.circular(10.s),
-                        border: Border.all(color: isActive ? _orange : Colors.white.withValues(alpha: 0.03)),
+                        borderRadius: BorderRadius.circular(12.s),
+                        border: Border.all(color: isActive ? _orange : Colors.white.withValues(alpha: 0.05)),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: _orange.withValues(alpha: 0.18),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Center(
                         child: Text(
@@ -443,13 +477,13 @@ class _CatalogState extends State<Catalog> {
             )
           else
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10.s),
+              padding: EdgeInsets.symmetric(horizontal: 14.s),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  const crossCount = _categoryGridColumns;
-                  final spacing = 4.s;
+                  final crossCount = _categoryGridCrossAxisCount(constraints.maxWidth);
+                  final spacing = 8.s;
                   final tileWidth = (constraints.maxWidth - (crossCount - 1) * spacing) / crossCount;
-                  final tileHeight = tileWidth / 0.72;
+                  final tileHeight = tileWidth / _categoryTileAspectRatio(constraints.maxWidth);
 
                   return Wrap(
                     spacing: spacing,
@@ -491,9 +525,16 @@ class _CatalogState extends State<Catalog> {
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(9.s),
+          borderRadius: BorderRadius.circular(13.s),
           color: _cardDark,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -517,20 +558,20 @@ class _CatalogState extends State<Catalog> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.35, 1.0],
+                    stops: const [0.0, 0.45, 1.0],
                     colors: [
-                      Colors.black.withValues(alpha: 0.55),
-                      Colors.black.withValues(alpha: 0.12),
-                      Colors.black.withValues(alpha: 0.35),
+                      Colors.black.withValues(alpha: 0.18),
+                      Colors.black.withValues(alpha: 0.04),
+                      Colors.black.withValues(alpha: 0.72),
                     ],
                   ),
                 ),
               ),
             ),
             Positioned(
-              left: 5.s,
-              top: 5.s,
-              right: 5.s,
+              left: 9.s,
+              right: 9.s,
+              bottom: 9.s,
               child: Text(
                 name,
                 maxLines: 2,
@@ -539,8 +580,8 @@ class _CatalogState extends State<Catalog> {
                   color: _text,
                   fontSize: _categoryTileFontSize(name),
                   fontWeight: FontWeight.w800,
-                  height: 1.2,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
+                  height: 1.12,
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
                 ),
               ),
             ),
@@ -552,19 +593,25 @@ class _CatalogState extends State<Catalog> {
 
   Widget _tilePlaceholder({bool showLoader = false}) {
     return Container(
-      color: _cardDark,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF282828), Color(0xFF171717)],
+        ),
+      ),
       child: Center(
         child: showLoader
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: _orange, strokeWidth: 2))
-            : Icon(Icons.liquor_rounded, color: _textMute.withValues(alpha: 0.2), size: 24.s),
+            : Icon(Icons.liquor_rounded, color: _textMute.withValues(alpha: 0.25), size: 28.s),
       ),
     );
   }
 
   double _categoryTileFontSize(String name) {
     final length = name.trim().length;
-    if (length >= 20) return 9.sp;
-    if (length >= 14) return 9.5.sp;
+    if (length >= 24) return 9.sp;
+    if (length >= 16) return 9.5.sp;
     return 10.sp;
   }
 }

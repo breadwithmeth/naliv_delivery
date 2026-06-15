@@ -107,6 +107,39 @@ void main() {
       expect(cartProvider.getCatalogQuantity(item), 4);
     });
 
+    testWidgets('single item decrements to zero, then trash removes it', (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final item = Item(
+        itemId: 704,
+        name: 'Ginger ale',
+        price: 700,
+        amount: 8,
+        quantity: 1,
+        unit: 'шт.',
+      );
+      final cartProvider = CartProvider()..incrementCatalogItem(item);
+
+      await tester.pumpWidget(_wrap(cartProvider));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.remove).first);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Ginger ale'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      expect(cartProvider.getCatalogQuantity(item), 0);
+
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Ginger ale'), findsNothing);
+      expect(find.text('Ваша корзина пуста'), findsOneWidget);
+    });
+
     testWidgets('lays out bottle-edit cart rows without exceptions', (tester) async {
       tester.view.physicalSize = const Size(430, 932);
       tester.view.devicePixelRatio = 1.0;

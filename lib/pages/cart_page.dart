@@ -25,8 +25,9 @@ class CartPage extends StatelessWidget {
     final cartProvider = Provider.of<CartProvider>(context);
     final businessProvider = Provider.of<BusinessProvider>(context);
     final items = cartProvider.displayGroups;
+    final activeItems = cartProvider.activeDisplayGroups;
     final total = cartProvider.getTotalPrice();
-    final earnedBonuses = _calculateEarnedBonuses(items);
+    final earnedBonuses = _calculateEarnedBonuses(activeItems);
 
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
@@ -56,7 +57,7 @@ class CartPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: items.isNotEmpty ? _bottomBar(context, total, earnedBonuses) : null,
+      bottomNavigationBar: cartProvider.hasActiveItems ? _bottomBar(context, total, earnedBonuses) : null,
       body: Stack(
         children: [
           const AppBackground(),
@@ -121,6 +122,7 @@ class CartPage extends StatelessWidget {
         ? nextIncreaseQuantity > item.totalQuantity + subtractPromotionEpsilon &&
             (maxAmount == null || nextIncreaseQuantity <= maxAmount + subtractPromotionEpsilon)
         : maxAmount == null || item.totalQuantity < maxAmount;
+    final bool isPendingRemoval = item.totalQuantity <= subtractPromotionEpsilon;
     final bool canDecrease = item.totalQuantity > 0;
     final double rawTotal = item.subtotalBeforePromotions;
     final bool hasSavings = item.totalPrice < rawTotal - 0.001;
@@ -236,7 +238,8 @@ class CartPage extends StatelessWidget {
           padding: EdgeInsets.only(top: 8.s),
           child: _quantityControls(
             value: quantityLabel,
-            onDecrement: canDecrease ? () => _decrementDisplayGroup(cartProvider, item) : null,
+            decrementIcon: isPendingRemoval ? Icons.delete_outline : Icons.remove,
+            onDecrement: isPendingRemoval ? () => cartProvider.removeDisplayGroup(item) : (canDecrease ? () => _decrementDisplayGroup(cartProvider, item) : null),
             onIncrement: canIncrease ? () => _incrementDisplayGroup(cartProvider, item) : null,
           ),
         ),
@@ -358,13 +361,14 @@ class CartPage extends StatelessWidget {
 
   Widget _quantityControls({
     required String value,
+    required IconData decrementIcon,
     required VoidCallback? onDecrement,
     required VoidCallback? onIncrement,
   }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _qtyBtn(Icons.remove, onDecrement, false),
+        _qtyBtn(decrementIcon, onDecrement, false),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 10.s),
           child: Text(value, style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 13.sp)),

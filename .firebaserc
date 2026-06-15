@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "naliv-web"
-  }
+    "default": "naliv-web",
+    "staging": "naliv-web-test"
+  },
+  "targets": {},
+  "etags": {}
 }

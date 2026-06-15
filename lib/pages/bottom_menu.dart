@@ -150,7 +150,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
 
     _initialCheckoutHandled = true;
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    if (cartProvider.items.isEmpty) {
+    if (!cartProvider.hasActiveItems) {
       return;
     }
 
@@ -273,7 +273,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     if (city == _selectedCity) return;
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    if (cartProvider.items.isNotEmpty) {
+    if (cartProvider.hasActiveItems) {
       final shouldProceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -570,7 +570,7 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final currentKm = (currentDistM / 1000).toStringAsFixed(2);
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final hasCartItems = cartProvider.items.isNotEmpty;
+    final hasCartItems = cartProvider.hasActiveItems;
 
     final shouldSwitch = await showDialog<bool>(
       context: context,

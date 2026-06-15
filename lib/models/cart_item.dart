@@ -141,7 +141,7 @@ class CartItem {
       }
     }
     final adjusted = (newQuantity / step).floor() * step;
-    quantity = adjusted;
+    quantity = adjusted < 0 ? 0 : adjusted;
   }
 
   double get optionsTotal {

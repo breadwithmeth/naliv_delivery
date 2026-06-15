@@ -9,6 +9,8 @@ import 'smart_cart.dart';
 
 /// Провайдер управления корзиной
 class CartProvider extends ChangeNotifier {
+  static const double _quantityEpsilon = 0.001;
+
   final List<CartItem> _items = [];
   final Map<String, int> _displayOrderByKey = <String, int>{};
   int _nextDisplayOrder = 0;
@@ -46,7 +48,12 @@ class CartProvider extends ChangeNotifier {
     return groups;
   }
 
-  int get displayItemCount => displayGroups.length;
+  List<CartDisplayGroup> get activeDisplayGroups =>
+      displayGroups.where((group) => group.totalQuantity > _quantityEpsilon).toList(growable: false);
+
+  bool get hasActiveItems => activeDisplayGroups.isNotEmpty;
+
+  int get displayItemCount => activeDisplayGroups.length;
 
   /// Добавить товар. Возвращает false, если обязательные опции не выбраны
   bool addItem(CartItem newItem) {
@@ -122,7 +129,6 @@ class CartProvider extends ChangeNotifier {
     final item = getItem(itemId, variants);
     if (item == null) return false;
     item.updateQuantity(newQuantity);
-    if (item.quantity <= 0) _items.remove(item);
     return true;
   }
 
@@ -189,6 +195,19 @@ class CartProvider extends ChangeNotifier {
 
   void decrementDisplayGroup(CartDisplayGroup group) {
     _adjustExistingGroup(group, direction: -1);
+  }
+
+  void removeDisplayGroup(CartDisplayGroup group) {
+    final matching = _items.where((item) => CartDisplayGroup.displayKeyForCartItem(item) == group.key).toList(growable: false);
+    if (matching.isEmpty) {
+      return;
+    }
+
+    for (final item in matching) {
+      _removeItemInternal(item.itemId, item.selectedVariants);
+    }
+    _mergeExactDuplicates();
+    _persistAndNotify();
   }
 
   void updateDisplayGroupBottleCounts(CartDisplayGroup group, Map<int, int> bottleCounts) {
@@ -364,9 +383,7 @@ class CartProvider extends ChangeNotifier {
 
     final clampedTarget = selection.clampQuantity(targetQuantity);
     if (clampedTarget <= 0) {
-      for (final item in matching) {
-        _removeItemInternal(item.itemId, item.selectedVariants);
-      }
+      _keepDisplayGroupAtZero(matching);
       _persistAndNotify();
       return;
     }
@@ -425,7 +442,13 @@ class CartProvider extends ChangeNotifier {
     double targetQuantity,
   ) {
     final clampedTarget = selection.clampQuantity(targetQuantity);
-    final bottleCounts = clampedTarget <= 0 ? const <int, int>{} : selection.autoBottleBreakdown(clampedTarget);
+    if (clampedTarget <= 0) {
+      _keepDisplayGroupAtZero(matching);
+      _persistAndNotify();
+      return;
+    }
+
+    final bottleCounts = selection.autoBottleBreakdown(clampedTarget);
     final existingByBottle = <int, List<CartItem>>{};
 
     for (final item in matching) {
@@ -521,6 +544,12 @@ class CartProvider extends ChangeNotifier {
       return;
     }
 
+    if (totalLiters <= _quantityEpsilon) {
+      _keepDisplayGroupAtZero(matching);
+      _persistAndNotify();
+      return;
+    }
+
     for (final bottle in selection.filteredBottles) {
       final bottleId = bottle.relationId;
       final rawCount = bottleCounts[bottleId] ?? 0;
@@ -565,6 +594,19 @@ class CartProvider extends ChangeNotifier {
 
     _mergeExactDuplicates();
     _persistAndNotify();
+  }
+
+  void _keepDisplayGroupAtZero(List<CartItem> matching) {
+    if (matching.isEmpty) {
+      return;
+    }
+
+    final primary = matching.first;
+    _updateQuantityInternal(primary.itemId, 0, primary.selectedVariants);
+    for (final duplicate in matching.skip(1)) {
+      _removeItemInternal(duplicate.itemId, duplicate.selectedVariants);
+    }
+    _mergeExactDuplicates();
   }
 
   /// Добавление товара с опциями в корзину
