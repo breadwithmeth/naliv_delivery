@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/cart_page.dart';
 import 'package:naliv_delivery/pages/catalog.dart';
@@ -698,39 +699,51 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
     final isCartTab = _currentIndex == 3;
     return SafeArea(
       top: false,
-      child: SizedBox(
-        height: 84.s,
+      bottom: false,
+
+      child: Container(
+        color: Colors.transparent,
+        height: 72.s,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
               child: Container(
-                margin: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 14.s),
-                padding: EdgeInsets.symmetric(horizontal: 16.s),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [_bgTop, _bgDeep],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                margin: EdgeInsets.fromLTRB(14.s, 8.s, 14.s, 10.s),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22.s),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 14.s),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _bgTop.withValues(alpha: 0.78),
+                            _bgDeep.withValues(alpha: 0.9),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _navItem(icon: Icons.home_outlined, label: 'Главная', index: 0),
+                          _navItem(icon: Icons.widgets_outlined, label: 'Каталог', index: 1),
+                          SizedBox(width: 50.s),
+                          _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
+                          _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
+                        ],
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(26.s),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12.s, offset: Offset(0, 8.s))],
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _navItem(icon: Icons.home_outlined, label: 'Главная', index: 0),
-                    _navItem(icon: Icons.widgets_outlined, label: 'Каталог', index: 1),
-                    SizedBox(width: 58.s),
-                    _navItem(icon: Icons.favorite_border, label: 'Избранное', index: 2),
-                    _navItem(icon: Icons.person_outline, label: 'Профиль', index: 4),
-                  ],
                 ),
               ),
             ),
             Positioned(
-              top: isCartTab ? 6.s : -12.s,
+              top: isCartTab ? 5.s : -8.s,
               left: 0,
               right: 0,
               child: Center(
@@ -739,8 +752,8 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                     final itemCount = cart.displayItemCount;
                     final total = cart.getTotalPrice();
                     final hasItems = itemCount > 0;
-                    final buttonSize = isCartTab ? 48.s : 62.s;
-                    final iconSize = isCartTab ? 19.s : 23.s;
+                    final buttonSize = isCartTab ? 42.s : 54.s;
+                    final iconSize = isCartTab ? 18.s : 21.s;
 
                     return GestureDetector(
                       onTap: () => _onTabTapped(3),
@@ -786,13 +799,13 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
                                 ),
                             ],
                           ),
-                          SizedBox(height: isCartTab ? 4.s : 5.s),
+                          SizedBox(height: isCartTab ? 3.s : 4.s),
                           if (isCartTab)
                             Text(
                               'Корзина',
                               style: TextStyle(
                                 color: _orange,
-                                fontSize: 10.sp,
+                                fontSize: 9.5.sp,
                                 fontWeight: FontWeight.w800,
                               ),
                             )
@@ -842,15 +855,15 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(7.s),
+            padding: EdgeInsets.all(5.s),
             decoration: BoxDecoration(
               color: isActive ? _orange.withValues(alpha: 0.12) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12.s),
+              borderRadius: BorderRadius.circular(10.s),
             ),
-            child: Icon(icon, color: isActive ? _orange : _textMute, size: 22.s),
+            child: Icon(icon, color: isActive ? _orange : _textMute, size: 20.s),
           ),
-          SizedBox(height: 3.s),
-          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 10.sp, fontWeight: FontWeight.w700)),
+          SizedBox(height: 2.s),
+          Text(label, style: TextStyle(color: isActive ? _text : _textMute, fontSize: 9.5.sp, fontWeight: FontWeight.w700)),
         ],
       ),
     );

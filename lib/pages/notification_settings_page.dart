@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/notification_service.dart';
 import '../utils/responsive.dart';
 
@@ -6,14 +7,15 @@ class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
   @override
-  State<NotificationSettingsPage> createState() => _NotificationSettingsPageState();
+  State<NotificationSettingsPage> createState() =>
+      _NotificationSettingsPageState();
 }
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _orderNotifications = true;
   bool _promoNotifications = true;
   bool _deliveryNotifications = true;
-  String? _fcmToken;
+  String? _subscriptionId;
 
   @override
   void initState() {
@@ -23,9 +25,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Future<void> _loadSettings() async {
     // TODO: Загрузить настройки из SharedPreferences
-    final token = NotificationService.instance.fcmToken;
+    final subscriptionId =
+        await NotificationService.instance.getCurrentSubscriptionId();
+    if (!mounted) return;
     setState(() {
-      _fcmToken = token;
+      _subscriptionId = subscriptionId;
     });
   }
 
@@ -105,14 +109,16 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   const SizedBox(height: 16),
                   SwitchListTile(
                     title: const Text('Уведомления о заказах'),
-                    subtitle: const Text('Статус заказа, подтверждение, готовность'),
+                    subtitle:
+                        const Text('Статус заказа, подтверждение, готовность'),
                     value: _orderNotifications,
                     onChanged: _toggleOrderNotifications,
                     secondary: const Icon(Icons.shopping_cart),
                   ),
                   SwitchListTile(
                     title: const Text('Акции и предложения'),
-                    subtitle: const Text('Новые акции, скидки, специальные предложения'),
+                    subtitle: const Text(
+                        'Новые акции, скидки, специальные предложения'),
                     value: _promoNotifications,
                     onChanged: _togglePromoNotifications,
                     secondary: const Icon(Icons.local_offer),
@@ -151,12 +157,14 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     subtitle: const Text('Перезапустить сервис уведомлений'),
                     leading: const Icon(Icons.refresh),
                     onTap: () async {
-                      await NotificationService.instance.enablePushNotifications();
+                      await NotificationService.instance
+                          .enablePushNotifications();
                       await _loadSettings();
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Сервис уведомлений переинициализирован'),
+                          content:
+                              Text('Сервис уведомлений переинициализирован'),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -179,17 +187,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   ),
                   const SizedBox(height: 16),
                   ListTile(
-                    title: const Text('FCM Token'),
-                    subtitle: Text(_fcmToken ?? 'Не получен'),
+                    title: const Text('OneSignal Subscription ID'),
+                    subtitle: Text(_subscriptionId ?? 'Не получен'),
                     leading: const Icon(Icons.token),
-                    trailing: _fcmToken != null
+                    trailing: _subscriptionId != null
                         ? IconButton(
                             icon: const Icon(Icons.copy),
-                            onPressed: () {
-                              // TODO: Скопировать токен в буфер обмена
+                            onPressed: () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: _subscriptionId!),
+                              );
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Токен скопирован в буфер обмена'),
+                                  content: Text('ID скопирован в буфер обмена'),
                                   duration: Duration(seconds: 2),
                                 ),
                               );

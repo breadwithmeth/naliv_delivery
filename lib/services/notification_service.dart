@@ -1,484 +1,446 @@
-import 'dart:convert';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/api.dart';
-import '../firebase_options.dart';
+
 import 'package:naliv_delivery/utils/app_navigator.dart';
+import 'package:naliv_delivery/utils/api.dart';
+import 'onesignal_web_bridge_stub.dart'
+    if (dart.library.js_interop) 'onesignal_web_bridge_web.dart';
 
-/// Глобальная функция для обработки фоновых сообщений
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await NotificationService.instance.prepareForBackgroundMessageHandling();
-  debugPrint('Обработка фонового сообщения: ${message.messageId}');
-  await NotificationService.instance.showNotification(message);
-}
-
-/// Сервис для управления push-уведомлениями
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   static NotificationService get instance => _instance;
   NotificationService._internal();
-  static const String _webVapidKey = String.fromEnvironment('FIREBASE_WEB_VAPID_KEY');
 
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static const String _oneSignalAndroidAppId =
+      '3da3fda3-1598-4617-970f-62621f3263ee';
+  static const String _oneSignalIOSAppId =
+      'f9a3bf44-4a96-4859-99a9-37aa2b579577';
+  static const String _deviceIdKey = 'onesignal_device_id';
 
   bool _isInitialized = false;
-  bool _tokenRefreshRegistered = false;
-  String? _fcmToken;
+  bool _webPushSupported = false;
+  String? _webSubscriptionId;
+  String? _webPushToken;
+  String? _webOneSignalId;
+  String? _mobileOneSignalId;
+  OnPushSubscriptionChangeObserver? _pushSubscriptionObserver;
+  OnNotificationPermissionChangeObserver? _permissionObserver;
+  OnUserChangeObserver? _userObserver;
 
   bool get _isWeb => kIsWeb;
-  bool get _isAndroid => !_isWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _isAndroid =>
+      !_isWeb && defaultTargetPlatform == TargetPlatform.android;
   bool get _isIOS => !_isWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  bool get _isMobilePushSupported => _isAndroid || _isIOS;
+  String get _mobileOneSignalAppId =>
+      _isIOS ? _oneSignalIOSAppId : _oneSignalAndroidAppId;
 
-  /// Инициализация сервиса уведомлений
+  bool get isWebVapidKeyConfigured => _isWeb;
+
+  String? get oneSignalId => _isWeb
+      ? _webSubscriptionId
+      : _isMobilePushSupported
+          ? OneSignal.User.pushSubscription.id
+          : null;
+
+  String? get pushToken => _isWeb
+      ? _webPushToken
+      : _isMobilePushSupported
+          ? OneSignal.User.pushSubscription.token
+          : null;
+
+  String? get subscriptionId => oneSignalId;
+
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    try {
-      await _ensureFirebaseInitialized();
-
-      debugPrint('🔔 Инициализация сервиса уведомлений...');
-
-      if (_isWeb) {
-        final supported = await FirebaseMessaging.instance.isSupported();
-        if (!supported) {
-          debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
-          _isInitialized = true;
-          return;
-        }
+    if (_isWeb) {
+      try {
+        _webPushSupported = await OneSignalWebBridge.initialize();
+        await OneSignalWebBridge.setChangeHandler(() {
+          unawaited(syncSubscriptionWithBackend());
+        });
+        await _refreshWebSubscription();
+        debugPrint(
+          'OneSignal web initialized: supported=$_webPushSupported, subscription=$subscriptionId',
+        );
+      } catch (e) {
+        debugPrint('OneSignal web initialization error: $e');
       }
-
-      // Инициализация локальных уведомлений
-      await _initializeLocalNotifications();
-
-      // Восстанавливаем ранее полученный токен, если он уже был сохранён.
-      await _loadTokenFromStorage();
-      await syncTokenWithServerIfNeeded();
-
-      // Настройка обработчиков сообщений
-      _setupMessageHandlers();
-
-      // Обработка уведомлений при запуске приложения
-      await _handleInitialMessage();
 
       _isInitialized = true;
-      debugPrint('✅ Сервис уведомлений инициализирован');
-    } catch (e) {
-      debugPrint('❌ Ошибка инициализации уведомлений: $e');
+      unawaited(syncSubscriptionWithBackend(ensureInitialized: false));
+      return;
     }
-  }
 
-  Future<void> prepareForBackgroundMessageHandling() async {
-    await _ensureFirebaseInitialized();
-    await _initializeLocalNotifications();
-  }
-
-  Future<void> _ensureFirebaseInitialized() async {
-    if (Firebase.apps.isNotEmpty) return;
-
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
-
-  /// Инициализация локальных уведомлений
-  Future<void> _initializeLocalNotifications() async {
-    if (_isWeb) return;
-
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-
-    await _localNotifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
-
-    // Создание канала уведомлений для Android
-    if (_isAndroid) {
-      const channel = AndroidNotificationChannel(
-        'gradusy24_orders',
-        'Заказы Градусы24',
-        description: 'Уведомления о статусе заказов',
-        importance: Importance.high,
-        playSound: true,
-        enableVibration: true,
-      );
-
-      await _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
+    if (!_isMobilePushSupported) {
+      debugPrint('OneSignal mobile push is not supported on this platform');
+      _isInitialized = true;
+      return;
     }
-  }
 
-  /// Запрос разрешений на уведомления
-  Future<bool> _requestPermissions() async {
     try {
-      if (_isWeb) {
-        final settings = await _firebaseMessaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-          provisional: false,
-        );
-
-        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
+      if (kDebugMode) {
+        OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
       }
 
-      if (_isIOS) {
-        final settings = await _firebaseMessaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-          provisional: false,
-        );
+      await OneSignal.initialize(_mobileOneSignalAppId);
+      await OneSignal.User.setLanguage('ru');
+      _setupEventHandlers();
 
-        await _localNotifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
-              alert: true,
-              badge: true,
-              sound: true,
-            );
-
-        return settings.authorizationStatus == AuthorizationStatus.authorized || settings.authorizationStatus == AuthorizationStatus.provisional;
-      }
-
-      if (_isAndroid) {
-        final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-
-        final granted = await androidImplementation?.requestNotificationsPermission();
-        return granted ?? true;
-      }
-
-      return true;
+      _isInitialized = true;
+      debugPrint('OneSignal initialized: appId=$_mobileOneSignalAppId');
+      unawaited(syncSubscriptionWithBackend(ensureInitialized: false));
     } catch (e) {
-      debugPrint('❌ Ошибка запроса разрешений на уведомления: $e');
-      return false;
+      debugPrint('OneSignal initialization error: $e');
     }
   }
 
   Future<bool> enablePushNotifications() async {
-    try {
+    if (_isWeb) {
       await initialize();
 
-      if (_isWeb) {
-        if (_webVapidKey.trim().isEmpty) {
-          debugPrint('🔕 Web push временно пропущен: не задан FIREBASE_WEB_VAPID_KEY');
-          return false;
-        }
-
-        final supported = await FirebaseMessaging.instance.isSupported();
-        if (!supported) {
-          debugPrint('🔕 Firebase Messaging не поддерживается в этом браузере');
-          return false;
-        }
-      }
-
-      final granted = await _requestPermissions();
-      if (!granted) {
-        debugPrint('🔕 Разрешение на уведомления не выдано');
-        return false;
-      }
-
-      return await _getFCMToken();
-    } catch (e) {
-      debugPrint('❌ Ошибка включения push-уведомлений: $e');
-      return false;
-    }
-  }
-
-  /// Получение FCM токена
-  Future<bool> _getFCMToken() async {
-    try {
-      if (_isWeb && _webVapidKey.trim().isEmpty) {
-        debugPrint('❌ Для web push не задан FIREBASE_WEB_VAPID_KEY');
-        return false;
-      }
-
-      _fcmToken = _isWeb ? await _firebaseMessaging.getToken(vapidKey: _webVapidKey) : await _firebaseMessaging.getToken();
-      if (_fcmToken != null) {
-        debugPrint('📱 FCM Token: $_fcmToken');
-        await _saveTokenToStorage(_fcmToken!);
-        final synced = await syncTokenWithServerIfNeeded();
-        if (!synced) {
-          debugPrint('ℹ️ FCM токен сохранён локально и будет повторно отправлен после авторизации');
-        }
-      } else {
-        debugPrint('❌ FCM token не был получен');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('❌ Ошибка получения FCM токена: $e');
-      return false;
-    }
-
-    // Обновление токена
-    if (!_tokenRefreshRegistered) {
-      _tokenRefreshRegistered = true;
-      _firebaseMessaging.onTokenRefresh.listen((newToken) async {
-        debugPrint('🔄 Новый FCM Token: $newToken');
-        _fcmToken = newToken;
-        await _saveTokenToStorage(newToken);
-        final synced = await syncTokenWithServerIfNeeded();
-        if (!synced) {
-          debugPrint('ℹ️ Новый FCM токен сохранён локально и будет отправлен позже');
-        }
-      });
-    }
-
-    return true;
-  }
-
-  Future<void> _loadTokenFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    _fcmToken = prefs.getString('fcm_token');
-  }
-
-  /// Сохранение токена в локальное хранилище
-  Future<void> _saveTokenToStorage(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('fcm_token', token);
-  }
-
-  /// Отправка токена на сервер
-  Future<bool> syncTokenWithServerIfNeeded() async {
-    final token = _fcmToken;
-    if (token == null || token.isEmpty) {
-      return false;
-    }
-
-    final authToken = await ApiService.getAuthToken();
-    if (authToken == null || authToken.isEmpty) {
-      debugPrint('ℹ️ Пропускаем отправку FCM токена: пользователь ещё не авторизован');
-      return false;
-    }
-
-    return _sendTokenToServer(token);
-  }
-
-  Future<bool> _sendTokenToServer(String token) async {
-    try {
-      debugPrint('📤 Отправка токена на сервер: $token');
-
-      final success = await ApiService.updateFCMToken(token);
-
-      if (success) {
-        debugPrint('✅ Токен успешно отправлен на сервер');
-        return true;
-      } else {
-        debugPrint('❌ Ошибка отправки токена на сервер');
-      }
-    } catch (e) {
-      debugPrint('❌ Ошибка отправки токена: $e');
-    }
-
-    return false;
-  }
-
-  /// Настройка обработчиков сообщений
-  void _setupMessageHandlers() {
-    // Обработка сообщений на переднем плане
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('📨 Получено сообщение на переднем плане: ${message.messageId}');
-      showNotification(message);
-    });
-
-    // Обработка нажатий на уведомления
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('🔔 Нажато на уведомление: ${message.messageId}');
-      _handleNotificationTap(message);
-    });
-
-    // Установка обработчика фоновых сообщений
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  }
-
-  /// Обработка начального сообщения (при запуске приложения из уведомления)
-  Future<void> _handleInitialMessage() async {
-    final initialMessage = await _firebaseMessaging.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint('🚀 Приложение запущено из уведомления: ${initialMessage.messageId}');
-      _handleNotificationTap(initialMessage);
-    }
-  }
-
-  /// Показ локального уведомления
-  Future<void> showNotification(RemoteMessage message) async {
-    try {
-      if (_isWeb) return;
-
-      final notification = message.notification;
-
-      if (notification != null) {
-        const androidDetails = AndroidNotificationDetails(
-          'gradusy24_orders',
-          'Заказы Градусы24',
-          channelDescription: 'Уведомления о статусе заказов',
-          importance: Importance.high,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-        );
-
-        const iosDetails = DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        );
-
-        const details = NotificationDetails(
-          android: androidDetails,
-          iOS: iosDetails,
-        );
-
-        await _localNotifications.show(
-          message.hashCode,
-          notification.title ?? 'Градусы24',
-          notification.body ?? 'У вас новое уведомление',
-          details,
-          payload: json.encode(message.data),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Ошибка показа уведомления: $e');
-    }
-  }
-
-  /// Обработка нажатия на уведомление
-  void _onNotificationTapped(NotificationResponse response) {
-    if (response.payload != null) {
       try {
-        final data = json.decode(response.payload!);
-        debugPrint('🔔 Нажато на локальное уведомление с данными: $data');
-        _handleNotificationData(data);
+        final granted = await OneSignalWebBridge.requestPermission();
+        _webPushSupported = granted || _webPushSupported;
+        await _refreshWebSubscription();
+        unawaited(syncSubscriptionWithBackend());
+        debugPrint(
+          'OneSignal web permission: $granted, subscription: $subscriptionId',
+        );
+        return granted;
       } catch (e) {
-        debugPrint('❌ Ошибка обработки данных уведомления: $e');
+        debugPrint('OneSignal web permission request error: $e');
+        return false;
       }
+    }
+
+    if (!_isMobilePushSupported) {
+      debugPrint('OneSignal mobile push is not supported on this platform');
+      return false;
+    }
+
+    await initialize();
+
+    try {
+      final granted = await OneSignal.Notifications.requestPermission(false);
+      if (granted) {
+        await OneSignal.User.pushSubscription.optIn();
+      }
+      unawaited(syncSubscriptionWithBackend());
+      debugPrint(
+        'OneSignal permission: $granted, subscription: $subscriptionId',
+      );
+      return granted;
+    } catch (e) {
+      debugPrint('OneSignal permission request error: $e');
+      return false;
     }
   }
 
-  /// Обработка нажатия на Firebase уведомление
-  void _handleNotificationTap(RemoteMessage message) {
-    debugPrint('🔔 Обработка нажатия на уведомление: ${message.data}');
-    _handleNotificationData(message.data);
+  Future<bool> syncTokenWithServerIfNeeded() async {
+    if (!_isWeb && !_isMobilePushSupported) {
+      debugPrint('OneSignal push is not supported on this platform');
+      return false;
+    }
+
+    await initialize();
+
+    final externalId = await _resolveExternalId();
+    if (externalId == null || externalId.isEmpty) {
+      debugPrint('OneSignal external id skipped: user is not authenticated');
+      return false;
+    }
+
+    try {
+      if (_isWeb) {
+        final synced = await OneSignalWebBridge.login(externalId);
+        await _refreshWebSubscription();
+        final backendSynced = await syncSubscriptionWithBackend(
+          externalIdOverride: externalId,
+        );
+        debugPrint(
+          'OneSignal web external id ${synced ? 'set' : 'skipped'}: $externalId',
+        );
+        return synced && backendSynced;
+      }
+
+      await OneSignal.login(externalId);
+      final backendSynced = await syncSubscriptionWithBackend(
+        externalIdOverride: externalId,
+      );
+      debugPrint('OneSignal external id set: $externalId');
+      return backendSynced;
+    } catch (e) {
+      debugPrint('OneSignal external id error: $e');
+      return false;
+    }
   }
 
-  /// Обработка данных уведомления
+  Future<void> subscribeToTopic(String topic) async {
+    await initialize();
+
+    if (_isWeb) {
+      await OneSignalWebBridge.addTag(_topicTag(topic), 'true');
+      return;
+    }
+
+    if (!_isMobilePushSupported) return;
+    await OneSignal.User.addTagWithKey(_topicTag(topic), 'true');
+  }
+
+  Future<void> unsubscribeFromTopic(String topic) async {
+    await initialize();
+
+    if (_isWeb) {
+      await OneSignalWebBridge.removeTag(_topicTag(topic));
+      return;
+    }
+
+    if (!_isMobilePushSupported) return;
+    await OneSignal.User.removeTag(_topicTag(topic));
+  }
+
+  Future<void> clearAllNotifications() async {
+    if (!_isMobilePushSupported) return;
+    await initialize();
+    await OneSignal.Notifications.clearAll();
+  }
+
+  Future<int> getBadgeCount() async {
+    return 0;
+  }
+
+  Future<void> setBadgeCount(int count) async {
+    await initialize();
+
+    if (_isWeb) {
+      await OneSignalWebBridge.addTag('badge_count', count.toString());
+      return;
+    }
+
+    if (!_isMobilePushSupported) return;
+    await OneSignal.User.addTagWithKey('badge_count', count.toString());
+  }
+
+  Future<void> logoutUser() async {
+    await initialize();
+
+    if (_isWeb) {
+      await _refreshWebSubscription();
+    }
+    final currentSubscriptionId = subscriptionId;
+    if (currentSubscriptionId != null && currentSubscriptionId.isNotEmpty) {
+      await ApiService.deleteOneSignalSubscription(currentSubscriptionId);
+    }
+
+    if (_isWeb) {
+      await OneSignalWebBridge.logout();
+      _webSubscriptionId = null;
+      _webPushToken = null;
+      _webOneSignalId = null;
+      return;
+    }
+
+    if (!_isMobilePushSupported) return;
+    await OneSignal.logout();
+    _mobileOneSignalId = null;
+  }
+
+  Future<String?> getCurrentSubscriptionId() async {
+    await initialize();
+    if (_isWeb) {
+      await _refreshWebSubscription();
+    }
+    return subscriptionId;
+  }
+
+  void _setupEventHandlers() {
+    OneSignal.Notifications.addClickListener((event) {
+      _handleNotificationData(
+        event.notification.additionalData ?? <String, dynamic>{},
+      );
+    });
+
+    _pushSubscriptionObserver ??= (_) {
+      unawaited(syncSubscriptionWithBackend());
+    };
+    OneSignal.User.pushSubscription.addObserver(_pushSubscriptionObserver!);
+
+    _permissionObserver ??= (_) {
+      unawaited(syncSubscriptionWithBackend());
+    };
+    OneSignal.Notifications.addPermissionObserver(_permissionObserver!);
+
+    _userObserver ??= (state) {
+      _mobileOneSignalId = state.current.onesignalId;
+      unawaited(syncSubscriptionWithBackend());
+    };
+    OneSignal.User.addObserver(_userObserver!);
+  }
+
   void _handleNotificationData(Map<String, dynamic> data) {
-    final type = data['type'] ?? '';
-    final orderId = data['order_id'];
-    final businessId = data['business_id'];
+    final type = data['type']?.toString() ?? '';
+    final orderId = data['order_id']?.toString();
+    final businessId = data['business_id']?.toString();
 
-    debugPrint('📋 Тип уведомления: $type, Order ID: $orderId, Business ID: $businessId');
+    debugPrint(
+      'OneSignal notification: type=$type, order=$orderId, business=$businessId',
+    );
 
-    // TODO: Реализовать навигацию в зависимости от типа уведомления
     switch (type) {
       case 'order_status_change':
-        // Открыть страницу заказа
         _navigateToOrder(orderId);
         break;
       case 'promotion':
-        // Открыть страницу акций
         _navigateToPromotions(businessId);
         break;
       case 'delivery_update':
-        // Открыть трекинг доставки
         _navigateToDeliveryTracking(orderId);
         break;
       default:
-        // Открыть главную страницу
         _navigateToHome();
         break;
     }
   }
 
-  /// Навигация к заказу
   void _navigateToOrder(String? orderId) {
-    if (orderId != null) {
-      debugPrint('🚀 Навигация к заказу: $orderId');
-      // Простейшая реализация: открываем вкладку Профиль (4), где пользователь видит список заказов
+    if (orderId != null && orderId.isNotEmpty) {
       AppNavigator.goToHomeTab(4);
     }
   }
 
-  /// Навигация к акциям
   void _navigateToPromotions(String? businessId) {
-    if (businessId != null) {
-      debugPrint('🚀 Навигация к акциям магазина: $businessId');
-      // Открываем главную (0), где обычно баннеры/акции
+    if (businessId != null && businessId.isNotEmpty) {
       AppNavigator.goToHomeTab(0);
     }
   }
 
-  /// Навигация к трекингу доставки
   void _navigateToDeliveryTracking(String? orderId) {
-    if (orderId != null) {
-      debugPrint('🚀 Навигация к трекингу заказа: $orderId');
-      // Пока отдельной страницы нет — ведём в Профиль, где доступна информация о заказах
+    if (orderId != null && orderId.isNotEmpty) {
       AppNavigator.goToHomeTab(4);
     }
   }
 
-  /// Навигация на главную
   void _navigateToHome() {
-    debugPrint('🚀 Навигация на главную страницу');
     AppNavigator.goToHomeTab(0);
   }
 
-  /// Получить текущий FCM токен
-  String? get fcmToken => _fcmToken;
+  Future<String?> _resolveExternalId() async {
+    return ApiService.getCurrentUserExternalId();
+  }
 
-  bool get isWebVapidKeyConfigured => _webVapidKey.trim().isNotEmpty;
+  Future<void> _refreshWebSubscription() async {
+    if (!_isWeb) return;
+    _webSubscriptionId = await OneSignalWebBridge.getSubscriptionId();
+    _webPushToken = await OneSignalWebBridge.getPushToken();
+    _webOneSignalId = await OneSignalWebBridge.getOneSignalId();
+  }
 
-  /// Подписка на топик
-  Future<void> subscribeToTopic(String topic) async {
+  Future<bool> syncSubscriptionWithBackend({
+    String? externalIdOverride,
+    bool ensureInitialized = true,
+  }) async {
+    if (!_isWeb && !_isMobilePushSupported) {
+      return false;
+    }
+
+    if (ensureInitialized) {
+      await initialize();
+    }
+
+    if (_isWeb) {
+      await _refreshWebSubscription();
+    }
+
+    final currentSubscriptionId = subscriptionId;
+    if (currentSubscriptionId == null || currentSubscriptionId.isEmpty) {
+      debugPrint('OneSignal backend sync skipped: subscription id is empty');
+      return false;
+    }
+
+    final externalId = externalIdOverride ?? await _resolveExternalId();
+    final payload = <String, dynamic>{
+      'subscriptionId': currentSubscriptionId,
+      'onesignalId': _isWeb ? _webOneSignalId : _mobileOneSignalId,
+      'externalId': externalId,
+      'deviceId': await _getStableDeviceId(),
+      'deviceType': _deviceType,
+      'permissionGranted': await _permissionGranted(),
+      'optedIn': await _optedIn(),
+    };
+
+    final synced = await ApiService.upsertOneSignalSubscription(payload);
+    debugPrint(
+      'OneSignal backend sync ${synced ? 'completed' : 'failed'}: subscription=$currentSubscriptionId',
+    );
+    return synced;
+  }
+
+  Future<String> _getStableDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_deviceIdKey);
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final generated = _generateUuidV4();
+    await prefs.setString(_deviceIdKey, generated);
+    return generated;
+  }
+
+  String _generateUuidV4() {
+    final random = _secureRandom();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0'));
+    final value = hex.join();
+    return '${value.substring(0, 8)}-'
+        '${value.substring(8, 12)}-'
+        '${value.substring(12, 16)}-'
+        '${value.substring(16, 20)}-'
+        '${value.substring(20)}';
+  }
+
+  Random _secureRandom() {
     try {
-      await _firebaseMessaging.subscribeToTopic(topic);
-      debugPrint('✅ Подписка на топик: $topic');
-    } catch (e) {
-      debugPrint('❌ Ошибка подписки на топик $topic: $e');
+      return Random.secure();
+    } catch (_) {
+      return Random();
     }
   }
 
-  /// Отписка от топика
-  Future<void> unsubscribeFromTopic(String topic) async {
-    try {
-      await _firebaseMessaging.unsubscribeFromTopic(topic);
-      debugPrint('✅ Отписка от топика: $topic');
-    } catch (e) {
-      debugPrint('❌ Ошибка отписки от топика $topic: $e');
-    }
+  String get _deviceType {
+    if (_isWeb) return 'web';
+    if (_isIOS) return 'ios';
+    if (_isAndroid) return 'android';
+    return defaultTargetPlatform.name;
   }
 
-  /// Очистка всех уведомлений
-  Future<void> clearAllNotifications() async {
-    if (_isWeb) return;
-    await _localNotifications.cancelAll();
+  Future<bool> _permissionGranted() async {
+    if (_isWeb) {
+      return OneSignalWebBridge.getPermissionGranted();
+    }
+    if (_isMobilePushSupported) {
+      return OneSignal.Notifications.permission;
+    }
+    return false;
   }
 
-  /// Получить количество непрочитанных уведомлений (только iOS)
-  Future<int> getBadgeCount() async {
-    if (_isIOS) {
-      // Реализация для iOS
-      return 0;
+  Future<bool> _optedIn() async {
+    if (_isWeb) {
+      return OneSignalWebBridge.getOptedIn();
     }
-    return 0;
+    if (_isMobilePushSupported) {
+      return OneSignal.User.pushSubscription.optedIn ?? false;
+    }
+    return false;
   }
 
-  /// Установить количество непрочитанных уведомлений (только iOS)
-  Future<void> setBadgeCount(int count) async {
-    if (_isIOS) {
-      // TODO: Реализовать установку badge для iOS
-    }
-  }
+  String _topicTag(String topic) => 'notification_$topic';
 }

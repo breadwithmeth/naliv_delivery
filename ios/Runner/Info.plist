@@ -28,6 +28,19 @@
 		<string>nalivDelivery</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.example.nalivDelivery</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>gradusy24</string>
+				</array>
+			</dict>
+		</array>
 		<key>CFBundleShortVersionString</key>
 		<string>$(FLUTTER_BUILD_NAME)</string>
 		<key>CFBundleSignature</key>
@@ -38,6 +51,8 @@
 		<true/>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Приложение использует данные глобальной системы позиционирования (GPS) для вычисления стоимости доставки и ближайших к вам магазинов.</string>
+		<key>OneSignal_app_groups_key</key>
+		<string>group.com.example.nalivDelivery.onesignal</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIBackgroundModes</key>

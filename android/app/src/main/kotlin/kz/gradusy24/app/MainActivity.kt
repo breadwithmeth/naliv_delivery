@@ -1,4 +1,4 @@
-package com.naliv.delivery
+package kz.gradusy24.app
 
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -2028,7 +2029,7 @@ class _MainPageState extends State<MainPage> {
   // ─── Floating Active Orders ──────────────────────────────
   Widget _floatingActiveOrdersButton() {
     final total = _activeOrders.length;
-    final bottomOffset = MediaQuery.of(context).padding.bottom + 110.s;
+    final bottomOffset = MediaQuery.viewPaddingOf(context).bottom + 82.s;
 
     return Positioned(
       right: 14.s,
@@ -2112,8 +2113,8 @@ class _MainPageState extends State<MainPage> {
   // ═══════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    final bottomPadding = bottomInset + 118.s;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final bottomPadding = bottomInset + 82.s;
 
     return Scaffold(
       backgroundColor: AppColors.bgDeep,
@@ -2121,6 +2122,7 @@ class _MainPageState extends State<MainPage> {
         children: [
           const AppBackground(),
           SafeArea(
+            bottom: false,
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
@@ -2191,10 +2193,15 @@ class _SlimHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: const Color(0x00000000),
-      alignment: Alignment.centerLeft,
-      child: builder(context, shrinkOffset, overlapsContent),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          color: AppColors.bgDeep.withValues(alpha: overlapsContent ? 0.72 : 0.34),
+          alignment: Alignment.centerLeft,
+          child: builder(context, shrinkOffset, overlapsContent),
+        ),
+      ),
     );
   }
 

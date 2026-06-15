@@ -63,10 +63,12 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
     try {
       final activeFuture = widget.initialActiveOrders != null
-          ? Future<List<Map<String, dynamic>>>.value(widget.initialActiveOrders!)
+          ? Future<List<Map<String, dynamic>>>.value(
+              widget.initialActiveOrders!)
           : ApiService.getMyActiveOrdersList();
       final historyFuture = widget.initialHistoryOrders != null
-          ? Future<List<Map<String, dynamic>>>.value(widget.initialHistoryOrders!)
+          ? Future<List<Map<String, dynamic>>>.value(
+              widget.initialHistoryOrders!)
           : ApiService.getMyOrdersHistoryList(page: 1, pageSize: _pageSize);
 
       final results = await Future.wait<List<Map<String, dynamic>>>([
@@ -103,7 +105,8 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
     try {
       final nextPage = _historyPage + 1;
-      final pageOrders = await ApiService.getMyOrdersHistoryList(page: nextPage, pageSize: _pageSize);
+      final pageOrders = await ApiService.getMyOrdersHistoryList(
+          page: nextPage, pageSize: _pageSize);
       if (!mounted) return;
 
       if (pageOrders.isEmpty) {
@@ -134,7 +137,8 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients || _isLoadingMore || !_hasMoreHistory) return;
+    if (!_scrollController.hasClients || _isLoadingMore || !_hasMoreHistory)
+      return;
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 320) {
       _loadMoreHistory();
@@ -262,9 +266,12 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   }
 
   DateTime _orderTimestamp(Map<String, dynamic> order) {
-    final raw = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
-    if (raw == null || raw.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
-    return DateTime.tryParse(raw)?.toLocal() ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final raw =
+        order['log_timestamp']?.toString() ?? order['created_at']?.toString();
+    if (raw == null || raw.isEmpty)
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    return DateTime.tryParse(raw)?.toLocal() ??
+        DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   List<_HistoryListEntry> _historyEntries() {
@@ -274,7 +281,8 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
     for (final order in _historyOrders) {
       final orderDate = _orderTimestamp(order);
       if (previousDate == null || !_isSameDate(previousDate, orderDate)) {
-        entries.add(_HistoryListEntry.divider(_formatHistoryDivider(orderDate)));
+        entries
+            .add(_HistoryListEntry.divider(_formatHistoryDivider(orderDate)));
         previousDate = orderDate;
       }
       entries.add(_HistoryListEntry.order(order));
@@ -284,7 +292,9 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   }
 
   bool _isSameDate(DateTime left, DateTime right) {
-    return left.year == right.year && left.month == right.month && left.day == right.day;
+    return left.year == right.year &&
+        left.month == right.month &&
+        left.day == right.day;
   }
 
   String _formatHistoryDivider(DateTime date) {
@@ -306,7 +316,8 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.text,
-        title: const Text('Мои заказы', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Мои заказы',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         scrolledUnderElevation: 0,
       ),
       body: Stack(
@@ -339,12 +350,14 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 80),
-          Icon(Icons.receipt_long_outlined, color: AppColors.textMute, size: 48.s),
+          Icon(Icons.receipt_long_outlined,
+              color: AppColors.textMute, size: 48.s),
           SizedBox(height: 14.s),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+                color: AppColors.text, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 12.s),
           Center(
@@ -367,12 +380,16 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
         padding: const EdgeInsets.all(24),
         children: const [
           SizedBox(height: 80),
-          Icon(Icons.shopping_bag_outlined, color: AppColors.textMute, size: 48),
+          Icon(Icons.shopping_bag_outlined,
+              color: AppColors.textMute, size: 48),
           SizedBox(height: 14),
           Text(
             'Заказов пока нет',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 16),
+            style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 16),
           ),
           SizedBox(height: 7),
           Text(
@@ -412,7 +429,8 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
             decoration: AppDecorations.card(radius: 16.s),
             child: const Text(
               'История пока пуста или ещё не доступна от сервера.',
-              style: TextStyle(color: AppColors.textMute, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: AppColors.textMute, fontWeight: FontWeight.w700),
             ),
           )
         else
@@ -471,7 +489,8 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
           const Center(
             child: Text(
               'Все заказы загружены',
-              style: TextStyle(color: AppColors.textMute, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: AppColors.textMute, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -484,15 +503,22 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
       children: [
         Text(
           title,
-          style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900),
+          style: TextStyle(
+              color: AppColors.text,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w900),
         ),
         SizedBox(width: 7.s),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 4.s),
-          decoration: AppDecorations.pill(color: AppColors.blue.withValues(alpha: 0.9)),
+          decoration:
+              AppDecorations.pill(color: AppColors.blue.withValues(alpha: 0.9)),
           child: Text(
             count,
-            style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 11.sp),
+            style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 11.sp),
           ),
         ),
       ],
@@ -537,7 +563,8 @@ class OrderPreviewCard extends StatelessWidget {
   Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
-      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
+      return value
+          .map((key, entryValue) => MapEntry(key.toString(), entryValue));
     }
     return null;
   }
@@ -558,9 +585,13 @@ class OrderPreviewCard extends StatelessWidget {
 
     final title = '#${order['order_id'] ?? '—'}';
     final businessName = business?['name']?.toString() ?? 'Магазин не указан';
-    final statusText = order_ui.resolveOrderStatusText(order, status: currentStatus);
-    final statusColor = isCanceled ? AppColors.red : _parseStatusColor(currentStatus?['status_color']?.toString());
-    final dateText = _formatDate(order['log_timestamp']?.toString() ?? order['created_at']?.toString());
+    final statusText =
+        order_ui.resolveOrderStatusText(order, status: currentStatus);
+    final statusColor = isCanceled
+        ? AppColors.red
+        : _parseStatusColor(currentStatus?['status_color']?.toString());
+    final dateText = _formatDate(
+        order['log_timestamp']?.toString() ?? order['created_at']?.toString());
     final itemsCount = (itemsSummary?['items_count'] as num?)?.toInt();
     final totalAmount = (itemsSummary?['total_amount'] as num?)?.toInt();
     final deliveryPrice = _asNum(costSummary?['delivery_price']);
@@ -587,7 +618,8 @@ class OrderPreviewCard extends StatelessWidget {
           color: AppColors.card,
           borderRadius: BorderRadius.circular(18.s),
           border: Border.all(
-            color: (isCanceled ? AppColors.red : AppColors.orange).withValues(alpha: isCanceled ? 0.26 : 0.14),
+            color: (isCanceled ? AppColors.red : AppColors.orange)
+                .withValues(alpha: isCanceled ? 0.26 : 0.14),
           ),
           boxShadow: [
             BoxShadow(
@@ -610,16 +642,23 @@ class OrderPreviewCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w900),
                       ),
                       SizedBox(height: 5.s),
                       Text(
                         businessName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w800),
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w800),
                       ),
-                      if (businessAddress != null && businessAddress.isNotEmpty) ...[
+                      if (businessAddress != null &&
+                          businessAddress.isNotEmpty) ...[
                         SizedBox(height: 4.s),
                         _inlineInfo(Icons.storefront_outlined, businessAddress),
                       ],
@@ -630,12 +669,16 @@ class OrderPreviewCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _statusBadge(statusText, statusColor, isCanceled: isCanceled),
+                    _statusBadge(statusText, statusColor,
+                        isCanceled: isCanceled),
                     if (totalSum != null) ...[
                       SizedBox(height: 8.s),
                       Text(
                         _formatMoney(totalSum),
-                        style: TextStyle(color: AppColors.orange, fontSize: 15.sp, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                            color: AppColors.orange,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w900),
                       ),
                     ],
                   ],
@@ -647,27 +690,39 @@ class OrderPreviewCard extends StatelessWidget {
             SizedBox(height: 11.s),
             Row(
               children: [
-                Expanded(child: _summaryTile(Icons.schedule_rounded, 'Дата', dateText)),
+                Expanded(
+                    child:
+                        _summaryTile(Icons.schedule_rounded, 'Дата', dateText)),
                 SizedBox(width: 9.s),
-                Expanded(child: _summaryTile(Icons.local_shipping_outlined, 'Тип', deliveryTypeText)),
+                Expanded(
+                    child: _summaryTile(Icons.local_shipping_outlined, 'Тип',
+                        deliveryTypeText)),
               ],
             ),
             if (itemsText.isNotEmpty || deliveryPrice != null) ...[
               SizedBox(height: 8.s),
               Row(
                 children: [
-                  if (itemsText.isNotEmpty) Expanded(child: _summaryTile(Icons.shopping_bag_outlined, 'Товары', itemsText)),
-                  if (itemsText.isNotEmpty && deliveryPrice != null) SizedBox(width: 9.s),
+                  if (itemsText.isNotEmpty)
+                    Expanded(
+                        child: _summaryTile(
+                            Icons.shopping_bag_outlined, 'Товары', itemsText)),
+                  if (itemsText.isNotEmpty && deliveryPrice != null)
+                    SizedBox(width: 9.s),
                   if (deliveryPrice != null)
                     Expanded(
-                      child: _summaryTile(Icons.payments_outlined, 'Доставка', _formatMoney(deliveryPrice)),
+                      child: _summaryTile(Icons.payments_outlined, 'Доставка',
+                          _formatMoney(deliveryPrice)),
                     ),
                 ],
               ),
             ],
-            if (address != null && !order_ui.isPickupAddress(address) && (deliveryAddress?.isNotEmpty ?? false)) ...[
+            if (address != null &&
+                !order_ui.isPickupAddress(address) &&
+                (deliveryAddress?.isNotEmpty ?? false)) ...[
               SizedBox(height: 10.s),
-              _inlineInfo(Icons.location_on_outlined, deliveryAddress!, label: 'Куда'),
+              _inlineInfo(Icons.location_on_outlined, deliveryAddress!,
+                  label: 'Куда'),
             ],
             SizedBox(height: 12.s),
             Row(
@@ -718,12 +773,16 @@ class OrderPreviewCard extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: 124.s),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 6.s),
-        decoration: AppDecorations.pill(color: color.withValues(alpha: isCanceled ? 0.24 : 0.2)),
+        decoration: AppDecorations.pill(
+            color: color.withValues(alpha: isCanceled ? 0.24 : 0.2)),
         child: Text(
           text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: isCanceled ? const Color(0xFFFF7B6E) : color, fontWeight: FontWeight.w900, fontSize: 11.sp),
+          style: TextStyle(
+              color: isCanceled ? const Color(0xFFFF7B6E) : color,
+              fontWeight: FontWeight.w900,
+              fontSize: 11.sp),
         ),
       ),
     );
@@ -752,14 +811,20 @@ class OrderPreviewCard extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.textMute, fontSize: 10.sp, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    color: AppColors.textMute,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700),
               ),
               SizedBox(height: 2.s),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.text, fontSize: 11.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -777,7 +842,10 @@ class OrderPreviewCard extends StatelessWidget {
         if (label != null) ...[
           Text(
             '$label: ',
-            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w800),
+            style: TextStyle(
+                color: AppColors.textMute,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800),
           ),
         ],
         Expanded(
@@ -785,29 +853,44 @@ class OrderPreviewCard extends StatelessWidget {
             text,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600, height: 1.25),
+            style: TextStyle(
+                color: AppColors.textMute,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                height: 1.25),
           ),
         ),
       ],
     );
   }
 
-  num? _resolveOrderTotal(Map<String, dynamic>? costSummary, Map<String, dynamic>? itemsSummary) {
-    final explicitTotal = _asNum(costSummary?['total_sum']) ?? _asNum(costSummary?['total']) ?? _asNum(costSummary?['order_total']);
+  num? _resolveOrderTotal(
+      Map<String, dynamic>? costSummary, Map<String, dynamic>? itemsSummary) {
+    final explicitTotal = _asNum(costSummary?['total_sum']) ??
+        _asNum(costSummary?['total']) ??
+        _asNum(costSummary?['order_total']);
     if (explicitTotal != null) return explicitTotal;
 
     final itemsTotal = _asNum(costSummary?['items_total']);
     if (itemsTotal != null) {
-      return itemsTotal + (_asNum(costSummary?['delivery_price']) ?? 0) - (_asNum(costSummary?['bonus_used']) ?? 0);
+      return itemsTotal +
+          (_asNum(costSummary?['delivery_price']) ?? 0) -
+          (_asNum(costSummary?['bonus_used']) ?? 0);
     }
 
-    final items = _asMapList(itemsSummary?['items_preview'] ?? itemsSummary?['items']);
+    final items =
+        _asMapList(itemsSummary?['items_preview'] ?? itemsSummary?['items']);
     if (items.isEmpty) return null;
 
     return items.fold<num>(0, (sum, item) {
       final amount = _asNum(item['amount']) ?? 0;
-      final price = _asNum(item['price']) ?? _asNum(item['total_cost']) ?? _asNum(item['total']) ?? _asNum(item['sum']) ?? 0;
-      return sum + (amount > 0 && item['price'] != null ? amount * price : price);
+      final price = _asNum(item['price']) ??
+          _asNum(item['total_cost']) ??
+          _asNum(item['total']) ??
+          _asNum(item['sum']) ??
+          0;
+      return sum +
+          (amount > 0 && item['price'] != null ? amount * price : price);
     });
   }
 
@@ -827,7 +910,8 @@ class OrderPreviewCard extends StatelessWidget {
     final items = _asMapList(order['items']);
     if (items.isEmpty) return null;
 
-    final totalAmount = items.fold<int>(0, (sum, item) => sum + ((item['amount'] as num?)?.toInt() ?? 0));
+    final totalAmount = items.fold<int>(
+        0, (sum, item) => sum + ((item['amount'] as num?)?.toInt() ?? 0));
     return {
       'items_count': items.length,
       'total_amount': totalAmount,
@@ -857,7 +941,9 @@ class _HistoryListEntry {
 
   const _HistoryListEntry._({this.label, this.order});
 
-  factory _HistoryListEntry.divider(String label) => _HistoryListEntry._(label: label);
+  factory _HistoryListEntry.divider(String label) =>
+      _HistoryListEntry._(label: label);
 
-  factory _HistoryListEntry.order(Map<String, dynamic> order) => _HistoryListEntry._(order: order);
+  factory _HistoryListEntry.order(Map<String, dynamic> order) =>
+      _HistoryListEntry._(order: order);
 }

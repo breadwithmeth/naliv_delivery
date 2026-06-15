@@ -12,11 +12,9 @@ import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:naliv_delivery/widgets/app_entry_gate.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'firebase_options.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
@@ -49,14 +47,6 @@ Future<void> main() async {
       };
     },
     appRunner: () async {
-      // Инициализация Firebase
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-
-      // Инициализация сервиса уведомлений
-      await NotificationService.instance.initialize();
-
       FlutterError.onError = (details) {
         Sentry.captureException(details.exception, stackTrace: details.stack);
         FlutterError.presentError(details);
@@ -100,6 +90,7 @@ class _MainState extends State<Main> with LocationMixin {
     // Инициализируем корзину после создания виджета
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CartProvider>(context, listen: false).loadCart();
+      unawaited(NotificationService.instance.initialize());
     });
   }
 

@@ -290,6 +290,7 @@ class _CatalogState extends State<Catalog> {
 
           return SizedBox(
             height: 40.s,
+            height: 40.s,
             child: ListView.separated(
               controller: _chipScrollController,
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -333,7 +334,7 @@ class _CatalogState extends State<Catalog> {
                           style: TextStyle(
                             color: isActive ? Colors.black : _text,
                             fontWeight: FontWeight.w800,
-                            fontSize: 10.sp,
+                            fontSize: 10.5.sp,
                           ),
                         ),
                       ),

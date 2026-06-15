@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version:  1.2.105
+version:  1.2.112
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -51,13 +51,12 @@ dependencies:
   
   carousel_slider: ^5.1.2
   flutter_svg: ^2.2.4
-  firebase_core: ^3.15.2
-  firebase_messaging: ^15.2.10
-  flutter_local_notifications: ^19.5.0
   sentry_flutter: ^9.16.1
+  onesignal_flutter: ^5.1.2
   package_info_plus: ^9.0.1
   webview_flutter: ^4.13.1
   web: ^1.1.1
+  socket_io_client: ^3.0.2
   
 
 dev_dependencies:
@@ -80,11 +79,11 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/naliv_launcher.png"
+  image_path: "assets/logo/24.png"
   min_sdk_android: 21
   web:
     generate: true
-    image_path: "assets/naliv_launcher.png"
+    image_path: "assets/logo/24.png"
     background_color: "#121212"
     theme_color: "#121212"
 
@@ -135,6 +134,8 @@ flutter:
     - assets/naliv_logo_loading.png
     - assets/gradusy_logo_loading.png
     - assets/txt.svg
+    - assets/Compact.png
+    - assets/Gold_trail.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -327,5 +328,3 @@ flutter_native_splash:
   #info_plist_files:
   #  - 'ios/Runner/Info-Debug.plist'
   #  - 'ios/Runner/Info-Release.plist'
-
-

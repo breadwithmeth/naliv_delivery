@@ -1,0 +1,4 @@
+storePassword=<upload-keystore-password>
+keyPassword=<upload-key-password>
+keyAlias=upload
+storeFile=../upload-keystore.jks
