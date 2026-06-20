@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kz.gradusy24.app",
+      "sha256_cert_fingerprints": [
+        "EA:E6:83:6D:35:B8:5B:8B:AE:49:64:76:05:E6:7D:57:62:C5:07:2E:BA:91:45:26:BA:9E:62:92:E5:D0:4A:75"
+      ]
+    }
+  }
+]

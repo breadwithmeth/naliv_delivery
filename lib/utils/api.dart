@@ -292,6 +292,16 @@ class ApiService {
         defaultValue;
   }
 
+  static Map<String, dynamic> _responseMap(http.Response response) {
+    final body = response.body.trim();
+    if (body.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final decoded = json.decode(body);
+    return _asMap(decoded) ?? <String, dynamic>{'data': decoded};
+  }
+
   static Future<Map<String, dynamic>?> getBusinesses({
     int page = 1,
     int limit = 10,
@@ -1484,6 +1494,360 @@ class ApiService {
       };
     } catch (e) {
       debugPrint('Network validatePromoCode error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getCertificates({
+    String? status,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getCertificates: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final query = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+    };
+    final normalizedStatus = _parseString(status);
+    if (normalizedStatus != null) {
+      query['status'] = normalizedStatus;
+    }
+
+    final uri = Uri.parse('$baseUrl/certificates').replace(
+      queryParameters: query,
+    );
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP getCertificates error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Ошибка загрузки сертификатов',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network getCertificates error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getCertificateDetails(
+    int certificateId,
+  ) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getCertificateDetails: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final uri = Uri.parse('$baseUrl/certificates/$certificateId');
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP getCertificateDetails error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Ошибка загрузки сертификата',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network getCertificateDetails error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> validateCertificate({
+    String? code,
+    int? certificateId,
+    required double orderSubtotal,
+  }) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API validateCertificate: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final body = <String, dynamic>{
+      'order_subtotal': orderSubtotal,
+    };
+    final normalizedCode = _parseString(code);
+    if (certificateId != null) {
+      body['certificate_id'] = certificateId;
+    } else if (normalizedCode != null) {
+      body['code'] = normalizedCode;
+    } else {
+      return {'success': false, 'error': 'Укажите сертификат'};
+    }
+
+    final uri = Uri.parse('$baseUrl/certificates/validate');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP validateCertificate error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Сертификат не применён',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network validateCertificate error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> claimCertificate(String code) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API claimCertificate: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final normalizedCode = _parseString(code);
+    if (normalizedCode == null) {
+      return {'success': false, 'error': 'Введите код сертификата'};
+    }
+
+    final uri = Uri.parse('$baseUrl/certificates/claim');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'code': normalizedCode}),
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP claimCertificate error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Не удалось активировать сертификат',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network claimCertificate error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> giftCertificate({
+    required int certificateId,
+    int? recipientUserId,
+    String? recipientLogin,
+    String? message,
+  }) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API giftCertificate: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final normalizedLogin = _parseString(recipientLogin);
+    if (recipientUserId == null && normalizedLogin == null) {
+      return {'success': false, 'error': 'Укажите получателя'};
+    }
+
+    final body = <String, dynamic>{
+      if (recipientUserId != null) 'recipient_user_id': recipientUserId,
+      if (normalizedLogin != null) 'recipient_login': normalizedLogin,
+      if (_parseString(message) != null) 'message': _parseString(message),
+    };
+
+    final uri = Uri.parse('$baseUrl/certificates/$certificateId/gift');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP giftCertificate error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Не удалось подарить сертификат',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network giftCertificate error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> purchaseCertificate({
+    required double amount,
+    required String paymentType,
+    String? halykCardId,
+    int? recipientUserId,
+    String? recipientLogin,
+    String? message,
+  }) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API purchaseCertificate: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final normalizedPaymentType = _parseString(paymentType) ?? 'page';
+    final normalizedCardId = _parseString(halykCardId);
+    if (normalizedPaymentType == 'card' && normalizedCardId == null) {
+      return {'success': false, 'error': 'Выберите карту для оплаты'};
+    }
+
+    final amountValue = amount.roundToDouble() == amount
+        ? amount.toInt()
+        : double.parse(amount.toStringAsFixed(2));
+    final body = <String, dynamic>{
+      'amount': amountValue,
+      'payment_type': normalizedPaymentType,
+      if (normalizedCardId != null) 'halyk_card_id': normalizedCardId,
+      if (recipientUserId != null) 'recipient_user_id': recipientUserId,
+      if (_parseString(recipientLogin) != null)
+        'recipient_login': _parseString(recipientLogin),
+      if (_parseString(message) != null) 'message': _parseString(message),
+    };
+
+    final uri = Uri.parse('$baseUrl/certificates/purchase');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint('HTTP purchaseCertificate error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Не удалось купить сертификат',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network purchaseCertificate error: $e');
+      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getCertificatePurchaseStatus(
+    String purchaseId,
+  ) async {
+    final token = await getAuthToken();
+    if (token == null) {
+      debugPrint('API getCertificatePurchaseStatus: auth token not found');
+      return {'success': false, 'error': 'Требуется авторизация'};
+    }
+
+    final normalizedPurchaseId = _parseString(purchaseId);
+    if (normalizedPurchaseId == null) {
+      return {'success': false, 'error': 'Не найден номер покупки'};
+    }
+
+    final encodedPurchaseId = Uri.encodeComponent(normalizedPurchaseId);
+    final uri =
+        Uri.parse('$baseUrl/certificates/purchases/$encodedPurchaseId/status');
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      final jsonResponse = _responseMap(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonResponse;
+      }
+
+      debugPrint(
+          'HTTP getCertificatePurchaseStatus error: ${response.statusCode}');
+      debugPrint('Error body: ${response.body}');
+      return {
+        'success': false,
+        'error': jsonResponse['error'] ??
+            jsonResponse['message'] ??
+            'Не удалось проверить статус покупки',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      debugPrint('Network getCertificatePurchaseStatus error: $e');
       return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
     }
   }
