@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
@@ -191,22 +192,22 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── User header ──
-                      _staggered(0, 9, _userHeader(user)),
-                      _staggered(1, 9, _thinDivider()),
+                      _staggered(0, 11, _userHeader(user)),
+                      _staggered(1, 11, _thinDivider()),
                       // ── Navigation rows ──
                       _staggered(
                           2,
-                          9,
+                          11,
                           _tapRow(
                             icon: Icons.receipt_long_rounded,
                             title: 'История заказов',
                             subtitle: 'Активные и завершённые заказы',
                             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OrdersHistoryPage())),
                           )),
-                      _staggered(3, 9, _thinDivider()),
+                      _staggered(3, 11, _thinDivider()),
                       _staggered(
                           4,
-                          9,
+                          11,
                           _tapRow(
                             icon: Icons.support_agent_rounded,
                             title: 'Поддержка',
@@ -220,10 +221,21 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                               ),
                             ),
                           )),
-                      _staggered(5, 9, _thinDivider()),
-                      _staggered(6, 9, _addressRow(addresses)),
-                      _staggered(7, 9, _thinDivider()),
-                      _staggered(8, 9, _cardsRow(cards)),
+                      _staggered(5, 11, _thinDivider()),
+                      _staggered(
+                        6,
+                        11,
+                        _tapRow(
+                          icon: Icons.quiz_rounded,
+                          title: 'FAQ',
+                          subtitle: 'Вход, карты, доставка, бонусы и возвраты',
+                          onTap: () => openFaqPage(context),
+                        ),
+                      ),
+                      _staggered(7, 11, _thinDivider()),
+                      _staggered(8, 11, _addressRow(addresses)),
+                      _staggered(9, 11, _thinDivider()),
+                      _staggered(10, 11, _cardsRow(cards)),
                       _thinDivider(),
                       _telemetryRow(),
                       _thinDivider(),

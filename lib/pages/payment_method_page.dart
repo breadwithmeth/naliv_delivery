@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/add_card_webview_page.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
@@ -769,6 +770,15 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
               child: Column(
                 children: [
                   _amountHeader(amount),
+                  SizedBox(height: 12.s),
+                  FaqShortcutCard(
+                    title: 'Вопросы по оплате',
+                    subtitle:
+                        'Посмотрите ответы по картам, удаленным счетам Kaspi/Halyk и списанию средств.',
+                    initialSection: FaqSection.payment,
+                    icon: Icons.payments_rounded,
+                    compact: true,
+                  ),
                   if (_cardFeedback != null) ...[
                     SizedBox(height: 12.s),
                     _cardFeedbackBanner(_cardFeedback!),
