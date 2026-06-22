@@ -3,6 +3,7 @@ import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
+import 'package:naliv_delivery/pages/certificates_page.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -207,6 +208,16 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       _staggered(3, 11, _thinDivider()),
                       _staggered(
                           4,
+                          11,
+                          _tapRow(
+                            icon: Icons.card_giftcard_rounded,
+                            title: 'Сертификаты',
+                            subtitle: 'Покупка, активация и подарки',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CertificatesPage())),
+                          )),
+                      _staggered(5, 11, _thinDivider()),
+                      _staggered(
+                          6,
                           11,
                           _tapRow(
                             icon: Icons.support_agent_rounded,

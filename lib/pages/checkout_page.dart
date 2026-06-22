@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/bonus_info_page.dart';
 import 'package:naliv_delivery/pages/faq_page.dart';
@@ -11,6 +9,7 @@ import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/bonus_rules.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/utils/certificate_checkout_math.dart';
 import 'package:naliv_delivery/utils/item_name_presentation.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
@@ -20,18 +19,9 @@ import '../utils/smart_cart.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'cart_page.dart';
 
-enum _DiscountOption { bonuses, promoCode }
-
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
-  final String? initialDeliveryType;
-  final Map<String, dynamic>? initialAddress;
-
-  const CheckoutPage({
-    super.key,
-    this.initialDeliveryType,
-    this.initialAddress,
-  });
+  const CheckoutPage({super.key});
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -70,13 +60,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
   final TextEditingController _promoCodeController = TextEditingController();
+  final TextEditingController _certificateCodeController =
+      TextEditingController();
   bool _isValidatingPromo = false;
   Map<String, dynamic>? _appliedPromoData;
-  _DiscountOption _discountOption = _DiscountOption.bonuses;
-
-  bool get _hasAppliedPromo => _appliedPromoData != null;
-
-  bool get _shouldApplyBonuses => _useBonus && !_hasAppliedPromo && _bonusData?['success'] == true;
+  bool _isLoadingCertificates = false;
+  bool _isValidatingCertificate = false;
+  List<Map<String, dynamic>> _certificates = <Map<String, dynamic>>[];
+  Map<String, dynamic>? _appliedCertificateData;
 
   void _handleBack() {
     final navigator = Navigator.of(context);
@@ -95,22 +86,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _floorController.dispose();
     _apartmentController.dispose();
     _promoCodeController.dispose();
+    _certificateCodeController.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    final initialType = widget.initialDeliveryType?.trim().toUpperCase();
-    if (initialType == 'PICKUP' || initialType == 'DELIVERY') {
-      _deliveryType = initialType!;
-    }
     _initAddressSelection();
     _loadUserBonuses();
+    _loadCertificates();
   }
 
   Future<void> _initAddressSelection() async {
-    final address = widget.initialAddress ?? await AddressStorageService.getSelectedAddress();
+    final address = await AddressStorageService.getSelectedAddress();
     if (mounted && address != null) {
       setState(() {
         _selectedAddress = address;
@@ -130,6 +119,28 @@ class _CheckoutPageState extends State<CheckoutPage> {
         });
       }
     }
+  }
+
+  Future<void> _loadCertificates() async {
+    if (!await ApiService.isUserLoggedIn()) return;
+    if (!mounted) return;
+    setState(() => _isLoadingCertificates = true);
+    final result = await ApiService.getCertificates(status: 'active');
+    if (!mounted) return;
+    if (result['success'] == true) {
+      final data = ApiService.mapFromDynamic(result['data']);
+      setState(() {
+        _certificates = ApiService.mapListFromDynamic(data['certificates'])
+            .where((certificate) =>
+                certificate['can_use'] != false &&
+                (certificate['status']?.toString() ?? 'active') == 'active')
+            .toList(growable: false);
+        _isLoadingCertificates = false;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingCertificates = false);
   }
 
   Future<void> _showAddressSelectionModal() async {
@@ -280,6 +291,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
     final bagItemId = _bagItemIdForBusinessId(businessId);
     final orderItems = _orderItemsWithBag(cartProvider, bagItemId: bagItemId);
+    final certificateAmount = _getCertificateAmount();
+    final certificate = _appliedCertificate();
     final isPickup = _deliveryType == 'PICKUP';
     if (_deliveryType == 'DELIVERY') {
       await AddressStorageService.saveSelectedAddress(normalizedAddress);
@@ -306,11 +319,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'delivery_type': _deliveryType,
       'delivery_time': _deliveryTime,
       'total_amount': _getTotalWithDelivery(),
-      'use_bonuses': _shouldApplyBonuses,
-      if (_shouldApplyBonuses) 'bonus_amount': _getUsedBonuses(),
-      if (_selectedDeliveryDateTime != null) 'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
+      'use_bonuses': _useBonus,
+      if (_useBonus) 'bonus_amount': _getUsedBonuses(),
+      if (_selectedDeliveryDateTime != null)
+        'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
       'saved_card_id': 1,
-      if (_hasAppliedPromo) 'promo_code': _promoCodeController.text.trim(),
+      if (_appliedPromoData != null && certificate == null)
+        'promo_code': _promoCodeController.text.trim(),
+      if (certificate != null && certificateAmount > 0) ...{
+        if (_certificateIdOf(certificate) != null)
+          'certificate_id': _certificateIdOf(certificate),
+        if (_certificateIdOf(certificate) == null &&
+            certificate['code'] != null)
+          'certificate_code': certificate['code'].toString(),
+        'certificate_amount': certificateAmount,
+      },
     };
     try {
       final result = await ApiService.createUserOrder(body);
@@ -544,33 +567,41 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null)
         ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0
         : 0.0;
-    final promoDeliveryPrice =
-        (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
+    final hasCertificate = _appliedCertificateData != null;
+    final promoDeliveryPrice = hasCertificate
+        ? null
+        : (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
     final effectiveDeliveryCost = _deliveryType == 'DELIVERY'
         ? (promoDeliveryPrice ?? deliveryCost)
         : 0.0;
-    final promoDiscount =
-        (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    final promoDiscount = hasCertificate
+        ? 0.0
+        : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
 
     // Bonuses apply only to items (not delivery).
-    final bonusApplied = _shouldApplyBonuses && _bonusData != null && _bonusData!['success'] == true ? _getUsedBonuses() : 0.0;
+    final bonusApplied = !_isPromoCodeApplied &&
+            _useBonus &&
+            _bonusData != null &&
+            _bonusData!['success'] == true
+        ? _getUsedBonuses()
+        : 0.0;
+    final certificateApplied = _getCertificateAmount();
 
-    return (itemsTotal + bagCost - promoDiscount - bonusApplied)
+    return (itemsTotal +
+                bagCost -
+                promoDiscount -
+                bonusApplied -
+                certificateApplied)
             .clamp(0, double.infinity) +
         effectiveDeliveryCost;
   }
 
   /// Получить сумму использованных бонусов
   double _getUsedBonuses() {
-    if (!_shouldApplyBonuses) {
-      return 0.0;
-    }
-
-    return _getBonusUsageLimit();
-  }
-
-  double _getBonusUsageLimit() {
-    if (_bonusData == null || _bonusData!['success'] != true) {
+    if (_isPromoCodeApplied ||
+        !_useBonus ||
+        _bonusData == null ||
+        _bonusData!['success'] != true) {
       return 0.0;
     }
 
@@ -583,7 +614,49 @@ class _CheckoutPageState extends State<CheckoutPage> {
         (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
 
     // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (30%), или сумма товаров
-    return math.min(itemsTotal, math.min(availableBonuses, maxBonusUsage));
+    return [availableBonuses, maxBonusUsage, itemsTotal]
+        .reduce((a, b) => a < b ? a : b);
+  }
+
+  double _certificateOrderSubtotal() {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
+    return cartProvider.getTotalPrice() +
+        _checkoutBagCost(
+            cartProvider.displayGroups, businessProvider.selectedBusiness);
+  }
+
+  Map<String, dynamic>? _appliedCertificate() {
+    if (_appliedCertificateData == null) return null;
+    final certificate =
+        ApiService.mapFromDynamic(_appliedCertificateData!['certificate']);
+    if (certificate.isNotEmpty) return certificate;
+    final code = _certificateCodeController.text.trim();
+    if (code.isNotEmpty) {
+      return <String, dynamic>{'code': code};
+    }
+    return null;
+  }
+
+  double _certificateMaxAvailableAmount() {
+    if (_appliedCertificateData == null) return 0.0;
+    final data = _appliedCertificateData!;
+    return _asDouble(
+      data['max_available_amount'] ??
+          data['certificate_amount'] ??
+          data['amount'] ??
+          _appliedCertificate()?['balance'],
+    );
+  }
+
+  double _getCertificateAmount() {
+    if (_appliedCertificateData == null) return 0.0;
+    return certificateAppliedAmount(
+      itemsTotal: _certificateOrderSubtotal(),
+      bonusAmount: _getUsedBonuses(),
+      maxAvailableAmount: _certificateMaxAvailableAmount(),
+    );
   }
 
   int _getEarnedBonuses() {
@@ -591,13 +664,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return 0;
     }
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    return _calculateEarnedBonuses(cartProvider.activeDisplayGroups);
+    return _calculateEarnedBonuses(cartProvider.displayGroups);
   }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
-    final displayGroups = cartProvider.activeDisplayGroups;
+    final displayGroups = cartProvider.displayGroups;
     final businessProvider = Provider.of<BusinessProvider>(context);
     final bool hasCheckoutBag =
         _shouldAddCheckoutBag(displayGroups, businessProvider.selectedBusiness);
@@ -607,17 +680,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final deliveryCost =
         (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
     final itemsTotal = cartProvider.getTotalPrice();
-    final promoDiscount =
-        (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    final promoDeliveryPrice =
-        (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
+    final hasCertificate = _appliedCertificateData != null;
+    final promoDiscount = hasCertificate
+        ? 0.0
+        : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    final promoDeliveryPrice = hasCertificate
+        ? null
+        : (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
     final effectiveDeliveryCost = _deliveryType == 'DELIVERY'
         ? (promoDeliveryPrice ?? deliveryCost)
         : 0.0;
     final totalWithDelivery = _getTotalWithDelivery();
     final earnedBonuses = _getEarnedBonuses();
-    final bool canUseBonus = _bonusData != null && _bonusData!['success'] == true;
-    final double bonusUsed = _shouldApplyBonuses ? _getUsedBonuses() : 0.0;
+    final bool canUseBonus = !_isPromoCodeApplied &&
+        _bonusData != null &&
+        _bonusData!['success'] == true;
+    final double bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
+    final double certificateUsed = _getCertificateAmount();
 
     return PopScope(
       canPop: false,
@@ -711,7 +790,57 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       compact: true,
                     ),
                     _thinDivider(),
-                    _discountSection(canUseBonus: canUseBonus),
+                    Row(
+                      children: [
+                        Icon(Icons.stars_rounded,
+                            color: AppColors.orange, size: 18.s),
+                        SizedBox(width: 10.s),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Списать бонусы',
+                                  style: TextStyle(
+                                      color: AppColors.text,
+                                      fontWeight: FontWeight.w800)),
+                              if (canUseBonus)
+                                _buildBonusSubtitle()
+                              else
+                                const Text('Проверяем баланс…',
+                                    style: TextStyle(
+                                        color: AppColors.textMute,
+                                        fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _useBonus,
+                          activeThumbColor: Colors.black,
+                          activeTrackColor: AppColors.orange,
+                          inactiveThumbColor: AppColors.text,
+                          inactiveTrackColor: AppColors.blue,
+                          onChanged: canUseBonus
+                              ? (v) => setState(() => _useBonus = v)
+                              : null,
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const BonusInfoPage())),
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 28.s, top: 2.s),
+                        child: Text('Как работают бонусы →',
+                            style: TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    _thinDivider(),
+                    _promoCodeSection(),
+                    _thinDivider(),
+                    _certificateSection(),
                     _thinDivider(),
                     _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
                     SizedBox(height: 8.s),
@@ -752,6 +881,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ],
                     if (bonusUsed > 0) ...[
                       _summaryRow('Списание бонусов', '-${_money(bonusUsed)}',
+                          valueColor: Colors.greenAccent),
+                      SizedBox(height: 6.s),
+                    ],
+                    if (certificateUsed > 0) ...[
+                      _summaryRow('Сертификат', '-${_money(certificateUsed)}',
                           valueColor: Colors.greenAccent),
                       SizedBox(height: 6.s),
                     ],
@@ -818,284 +952,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 14.s),
       child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
-    );
-  }
-
-  Widget _discountSection({required bool canUseBonus}) {
-    final selectedOption = _hasAppliedPromo ? _DiscountOption.promoCode : _discountOption;
-    final promoMode = selectedOption == _DiscountOption.promoCode;
-    final bonusData = _bonusData?['data'];
-    final totalBonuses = (bonusData?['totalBonuses'] as num?)?.toDouble() ?? 0.0;
-    final availableUsage = _getBonusUsageLimit();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionTitle('Скидка на заказ'),
-        SizedBox(height: 8.s),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(14.s),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark.withValues(alpha: 0.86),
-            borderRadius: BorderRadius.circular(18.s),
-            border: Border.all(color: AppColors.orange.withValues(alpha: 0.10)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 38.s,
-                    height: 38.s,
-                    decoration: BoxDecoration(
-                      color: AppColors.orange.withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      promoMode ? Icons.confirmation_number_outlined : Icons.stars_rounded,
-                      color: AppColors.orange,
-                      size: 19.s,
-                    ),
-                  ),
-                  SizedBox(width: 10.s),
-                  Expanded(
-                    child: promoMode
-                        ? _discountHeaderCopy('Промокод', _appliedPromoData != null ? appliedPromoLabel : 'Добавьте код скидки')
-                        : _discountHeaderCopy(
-                            'Бонусы',
-                            canUseBonus ? 'Баланс ${_money(totalBonuses)} • доступно ${_money(availableUsage)}' : _bonusStateText(),
-                          ),
-                  ),
-                  SizedBox(width: 10.s),
-                  if (!promoMode)
-                    _bonusActionButton(canUseBonus: canUseBonus)
-                  else if (_appliedPromoData != null)
-                    _discountPill(
-                      text: _promoBadgeText(),
-                      color: Colors.greenAccent,
-                    ),
-                ],
-              ),
-              SizedBox(height: 12.s),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                child: promoMode
-                    ? _promoCodePane(canUseBonus: canUseBonus, key: const ValueKey(_DiscountOption.promoCode))
-                    : _bonusDiscountPane(canUseBonus: canUseBonus, key: const ValueKey(_DiscountOption.bonuses)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _discountHeaderCopy(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w900)),
-        SizedBox(height: 3.s),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.2, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  Widget _discountPill({required String text, required Color color}) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 6.s),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
-      ),
-      child: Text(text, style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.w900)),
-    );
-  }
-
-  Widget _bonusActionButton({required bool canUseBonus}) {
-    return TextButton(
-      onPressed: canUseBonus ? () => _toggleBonuses(canUseBonus) : null,
-      style: TextButton.styleFrom(
-        backgroundColor: _shouldApplyBonuses ? Colors.transparent : AppColors.orange,
-        foregroundColor: _shouldApplyBonuses ? AppColors.orange : Colors.black,
-        disabledForegroundColor: AppColors.textMute,
-        padding: EdgeInsets.symmetric(horizontal: 13.s, vertical: 9.s),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.s),
-          side: _shouldApplyBonuses ? const BorderSide(color: AppColors.orange) : BorderSide.none,
-        ),
-      ),
-      child: Text(_shouldApplyBonuses ? 'Убрать' : 'Списать', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w900)),
-    );
-  }
-
-  String get appliedPromoLabel {
-    final appliedCode = (_appliedPromoData?['promo_code'] ?? _promoCodeController.text.trim()).toString();
-    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    return '$appliedCode${promoDiscount > 0 ? ' • −${_money(promoDiscount)}' : ''}';
-  }
-
-  String _promoBadgeText() {
-    final promoDiscount = (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    return promoDiscount > 0 ? '-${_money(promoDiscount)}' : 'Активен';
-  }
-
-  void _selectDiscountOption(_DiscountOption option, {required bool canUseBonus}) {
-    setState(() {
-      _discountOption = option;
-      if (option == _DiscountOption.bonuses) {
-        _useBonus = false;
-        _promoCodeController.clear();
-        _appliedPromoData = null;
-      } else {
-        _useBonus = false;
-      }
-    });
-  }
-
-  void _toggleBonuses(bool canUseBonus) {
-    if (!canUseBonus) return;
-
-    setState(() {
-      _discountOption = _DiscountOption.bonuses;
-      _appliedPromoData = null;
-      _promoCodeController.clear();
-      _useBonus = !_useBonus;
-    });
-  }
-
-  Widget _bonusDiscountPane({required bool canUseBonus, Key? key}) {
-    return Row(
-      key: key,
-      children: [
-        Expanded(
-          child: _shouldApplyBonuses
-              ? Text(
-                  'Будет списано ${_money(_getUsedBonuses())}',
-                  style: TextStyle(color: Colors.greenAccent, fontSize: 12.sp, fontWeight: FontWeight.w800),
-                )
-              : Text(
-                  canUseBonus ? 'Бонусы пока не применяются' : _bonusStateText(),
-                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
-                ),
-        ),
-        SizedBox(width: 10.s),
-        _discountChipButton(
-          label: 'Промокод',
-          icon: Icons.confirmation_number_outlined,
-          onTap: () => _selectDiscountOption(_DiscountOption.promoCode, canUseBonus: canUseBonus),
-        ),
-      ],
-    );
-  }
-
-  Widget _discountChipButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 7.s),
-        decoration: BoxDecoration(
-          color: AppColors.bgDeep.withValues(alpha: 0.36),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: AppColors.orange, size: 14.s),
-            SizedBox(width: 5.s),
-            Text(label, style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w800)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _bonusStateText() {
-    if (_bonusData == null) {
-      return 'Проверяем бонусы…';
-    }
-    return 'Бонусы сейчас недоступны';
-  }
-
-  Widget _promoCodePane({required bool canUseBonus, Key? key}) {
-    return Column(
-      key: key,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _promoCodeController,
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (_) {
-                  setState(() {
-                    _appliedPromoData = null;
-                    _discountOption = _DiscountOption.promoCode;
-                  });
-                },
-                style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
-                decoration: InputDecoration(
-                  hintText: 'Введите промокод',
-                  hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
-                  isDense: true,
-                  filled: true,
-                  fillColor: AppColors.bgDeep.withValues(alpha: 0.32),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.orange, width: 1),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 8.s),
-            SizedBox(
-              height: 44.s,
-              child: TextButton(
-                onPressed: _isValidatingPromo ? null : _validateAndApplyPromoCode,
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 14.s),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
-                ),
-                child: Text(_isValidatingPromo ? 'Проверка…' : 'ОК', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.sp)),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10.s),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            _discountChipButton(
-              label: 'Бонусы',
-              icon: Icons.stars_rounded,
-              onTap: () => _selectDiscountOption(_DiscountOption.bonuses, canUseBonus: canUseBonus),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -1296,8 +1152,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return _shouldAddCheckoutBag(items, business) ? _checkoutBagPrice : 0.0;
   }
 
-  List<Map<String, dynamic>> _orderItemsWithBag(CartProvider cartProvider, {required int? bagItemId}) {
-    final items = cartProvider.items.where((item) => item.quantity > 0).map((item) => item.toJsonForOrder()).toList(growable: true);
+  List<Map<String, dynamic>> _orderItemsWithBag(CartProvider cartProvider,
+      {required int? bagItemId}) {
+    final items = cartProvider.items
+        .map((item) => item.toJsonForOrder())
+        .toList(growable: true);
     if (bagItemId == null) {
       return items;
     }
@@ -1512,6 +1371,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return int.tryParse(value?.toString() ?? '');
   }
 
+  double _asDouble(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(
+          value?.toString().replaceAll(' ', '').replaceAll(',', '.') ?? '',
+        ) ??
+        0.0;
+  }
+
+  int? _certificateIdOf(Map<String, dynamic> certificate) {
+    return _asInt(certificate['certificate_id'] ?? certificate['id']);
+  }
+
   String? _detectBusinessCity(
       Map<String, dynamic> business, List<String> availableCities) {
     final rawSources = [
@@ -1582,15 +1455,406 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Future<void> _validateAndApplyPromoCode() async {
-    if (_shouldApplyBonuses) {
+  Widget _buildBonusSubtitle() {
+    if (_bonusData == null || _bonusData!['success'] != true) {
+      return const Text('Загрузка...',
+          style: TextStyle(color: AppColors.textMute));
+    }
+
+    final bonusData = _bonusData!['data'];
+    final totalBonuses = bonusData['totalBonuses'] ?? 0;
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final itemsTotal = cartProvider.getTotalPrice();
+    final maxBonusUsage = itemsTotal * 0.30;
+    final availableToUse =
+        totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
+
+    if (_isPromoCodeApplied) {
+      return const Text(
+        'С промокодом бонусы не начисляются и не списываются.',
+        style: TextStyle(
+            color: AppColors.textMute,
+            fontSize: 12,
+            height: 1.35,
+            fontWeight: FontWeight.w600),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('На балансе: $totalBonuses ₸',
+            style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w800)),
+        Text(
+          'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸',
+          style: const TextStyle(
+              color: AppColors.textMute,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  Widget _promoCodeSection() {
+    final appliedCode =
+        (_appliedPromoData?['promo_code'] ?? _promoCodeController.text.trim())
+            .toString();
+    final promoDiscount =
+        (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Промокод',
+            style: TextStyle(
+                color: AppColors.textMute,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4)),
+        SizedBox(height: 8.s),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _promoCodeController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) {
+                  if (_appliedPromoData != null) {
+                    setState(() => _appliedPromoData = null);
+                  }
+                },
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.sp),
+                decoration: InputDecoration(
+                  hintText: 'Введите промокод',
+                  hintStyle:
+                      TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+                  isDense: true,
+                  filled: true,
+                  fillColor: AppColors.card,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.orange, width: 1),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8.s),
+            SizedBox(
+              height: 44.s,
+              child: TextButton(
+                onPressed:
+                    _isValidatingPromo ? null : _validateAndApplyPromoCode,
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(horizontal: 14.s),
+                ),
+                child: Text(_isValidatingPromo ? 'Проверка…' : 'Применить',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 12.sp)),
+              ),
+            ),
+          ],
+        ),
+        if (_appliedPromoData != null) ...[
+          SizedBox(height: 8.s),
+          Text(
+            'Применен: $appliedCode${promoDiscount > 0 ? ' (−${_money(promoDiscount)})' : ''}',
+            style: TextStyle(
+                color: Colors.greenAccent,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _certificateSection() {
+    final appliedCertificate = _appliedCertificate();
+    final appliedCode = appliedCertificate?['code']?.toString() ??
+        _certificateCodeController.text.trim();
+    final certificateAmount = _getCertificateAmount();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Сертификат',
+            style: TextStyle(
+                color: AppColors.textMute,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4)),
+        SizedBox(height: 8.s),
+        if (_isLoadingCertificates)
+          Padding(
+            padding: EdgeInsets.only(bottom: 8.s),
+            child: LinearProgressIndicator(
+              color: AppColors.orange,
+              backgroundColor: AppColors.cardDark,
+              minHeight: 2.s,
+            ),
+          )
+        else if (_certificates.isNotEmpty) ...[
+          SizedBox(
+            height: 86.s,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (context, index) =>
+                  _certificateChoiceCard(_certificates[index]),
+              separatorBuilder: (_, __) => SizedBox(width: 8.s),
+              itemCount: _certificates.length,
+            ),
+          ),
+          SizedBox(height: 10.s),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _certificateCodeController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) {
+                  if (_appliedCertificateData != null) {
+                    setState(() => _appliedCertificateData = null);
+                  }
+                },
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.sp),
+                decoration: InputDecoration(
+                  hintText: 'Код сертификата',
+                  hintStyle:
+                      TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+                  isDense: true,
+                  filled: true,
+                  fillColor: AppColors.card,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.orange, width: 1),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8.s),
+            SizedBox(
+              height: 44.s,
+              child: TextButton(
+                onPressed: _isValidatingCertificate
+                    ? null
+                    : () => _validateAndApplyCertificate(),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(horizontal: 14.s),
+                ),
+                child: Text(
+                    _isValidatingCertificate ? 'Проверка…' : 'Применить',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 12.sp)),
+              ),
+            ),
+          ],
+        ),
+        if (_appliedCertificateData != null) ...[
+          SizedBox(height: 8.s),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  certificateAmount > 0
+                      ? 'Применен: $appliedCode (−${_money(certificateAmount)})'
+                      : 'Применен: $appliedCode',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Убрать сертификат',
+                onPressed: _clearCertificateSelection,
+                icon: Icon(Icons.close_rounded,
+                    color: AppColors.textMute, size: 18.s),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _certificateChoiceCard(Map<String, dynamic> certificate) {
+    final selected = _certificateIdOf(certificate) != null &&
+        _certificateIdOf(certificate) ==
+            _certificateIdOf(_appliedCertificate() ?? <String, dynamic>{});
+    final code = certificate['code']?.toString() ?? 'Сертификат';
+    final balance = _asDouble(certificate['balance']);
+    return GestureDetector(
+      onTap: () => _validateAndApplyCertificate(certificate: certificate),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 168.s,
+        padding: EdgeInsets.all(11.s),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.orange.withValues(alpha: 0.14)
+              : AppColors.card,
+          borderRadius: BorderRadius.circular(14.s),
+          border: Border.all(
+            color: selected
+                ? AppColors.orange
+                : Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.card_giftcard_rounded,
+                    color: AppColors.orange, size: 16.s),
+                SizedBox(width: 6.s),
+                Expanded(
+                  child: Text(
+                    code,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text('Баланс',
+                style: TextStyle(color: AppColors.textMute, fontSize: 11.sp)),
+            SizedBox(height: 2.s),
+            Text(_money(balance),
+                style: TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w900)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearCertificateSelection() {
+    setState(() {
+      _appliedCertificateData = null;
+      _certificateCodeController.clear();
+    });
+  }
+
+  Future<void> _validateAndApplyCertificate({
+    Map<String, dynamic>? certificate,
+  }) async {
+    final code = certificate?['code']?.toString().trim() ??
+        _certificateCodeController.text.trim();
+    final certificateId =
+        certificate == null ? null : _certificateIdOf(certificate);
+    if (certificateId == null && code.isEmpty) {
+      await _showNotice('Сертификат', 'Введите код сертификата.');
+      return;
+    }
+
+    final eligibleSubtotal = certificateEligibleAfterBonuses(
+      itemsTotal: _certificateOrderSubtotal(),
+      bonusAmount: _getUsedBonuses(),
+    );
+    if (eligibleSubtotal <= 0) {
       await _showNotice(
-        'Выберите один способ скидки',
-        'Используйте либо бонусы, либо промокод. Отключите бонусы, чтобы применить промокод.',
+        'Сертификат',
+        'Товарная часть заказа уже покрыта бонусами.',
       );
       return;
     }
 
+    setState(() => _isValidatingCertificate = true);
+    try {
+      final result = await ApiService.validateCertificate(
+        certificateId: certificateId,
+        code: certificateId == null ? code : null,
+        orderSubtotal: eligibleSubtotal,
+      );
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        final data =
+            result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+        if (data['can_use'] == false) {
+          setState(() => _appliedCertificateData = null);
+          await _showNotice(
+            'Сертификат не применён',
+            'Этот сертификат нельзя использовать для текущего заказа.',
+          );
+          return;
+        }
+        final validatedCertificate =
+            ApiService.mapFromDynamic(data['certificate']);
+        setState(() {
+          _appliedCertificateData = data;
+          _appliedPromoData = null;
+          _promoCodeController.clear();
+          if (validatedCertificate['code'] != null) {
+            _certificateCodeController.text =
+                validatedCertificate['code'].toString();
+          }
+        });
+      } else {
+        setState(() => _appliedCertificateData = null);
+        final error = result['error'];
+        final message =
+            error is Map ? error['message']?.toString() : error?.toString();
+        await _showNotice(
+          'Сертификат не применён',
+          message?.isNotEmpty == true
+              ? message!
+              : 'Проверьте код и баланс сертификата.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isValidatingCertificate = false);
+      }
+    }
+  }
+
+  Future<void> _validateAndApplyPromoCode() async {
     final code = _promoCodeController.text.trim();
     if (code.isEmpty) {
       await _showNotice('Промокод', 'Введите промокод.');
@@ -1638,10 +1902,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         final data =
             result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
         setState(() {
-          _discountOption = _DiscountOption.promoCode;
-          _useBonus = false;
           _appliedPromoData = data;
           _useBonus = false;
+          _appliedCertificateData = null;
+          _certificateCodeController.clear();
         });
       } else {
         setState(() => _appliedPromoData = null);
