@@ -20,7 +20,11 @@ import 'cart_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
-  const CheckoutPage({super.key});
+  final String? initialDeliveryType;
+  final Map<String, dynamic>? initialAddress;
+
+  const CheckoutPage(
+      {super.key, this.initialDeliveryType, this.initialAddress});
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -92,12 +96,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialDeliveryType != null) {
+      _deliveryType = widget.initialDeliveryType!;
+    }
+    if (widget.initialAddress != null) {
+      _selectedAddress = widget.initialAddress;
+      _syncAddressDetailControllers(widget.initialAddress!);
+    }
     _initAddressSelection();
     _loadUserBonuses();
     _loadCertificates();
   }
 
   Future<void> _initAddressSelection() async {
+    // If address was already provided via initialAddress, skip loading from storage
+    if (widget.initialAddress != null) {
+      await _calculateDelivery();
+      return;
+    }
     final address = await AddressStorageService.getSelectedAddress();
     if (mounted && address != null) {
       setState(() {

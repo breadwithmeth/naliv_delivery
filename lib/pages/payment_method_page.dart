@@ -117,7 +117,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       return;
     }
 
-    _selectedPaymentMethod = null;
+    _selectedPaymentMethod = _PaymentMethodType.kaspi;
     _selectedCardId = null;
   }
 
@@ -781,7 +781,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                                 color: AppColors.orange))
                         : _cardsSection(),
                   ),
-                  if (_selectedPaymentMethod == _PaymentMethodType.card) ...[
+                  if (_selectedPaymentMethod != null) ...[
                     SizedBox(height: 14.s),
                     _payButton(),
                   ],
@@ -872,32 +872,23 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   Widget _kaspiTile() {
+    final isSelected = _selectedPaymentMethod == _PaymentMethodType.kaspi;
+
     return Column(
       children: [
         SizedBox(height: 6.s),
-        Stack(
-          children: [
-            _kaspiTileContent(
-              isSelected: false,
-              isLoading: false,
-            ),
-            Positioned.fill(
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(12.s),
-                ),
-                child: Text("Скоро в приложении",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                    )),
-              ),
-            ),
-          ],
+        InkWell(
+          onTap: () {
+            setState(() {
+              _selectedPaymentMethod = _PaymentMethodType.kaspi;
+              _selectedCardId = null;
+            });
+          },
+          borderRadius: BorderRadius.circular(12.s),
+          child: _kaspiTileContent(
+            isSelected: isSelected,
+            isLoading: isSelected && _isPaying,
+          ),
         ),
       ],
     );

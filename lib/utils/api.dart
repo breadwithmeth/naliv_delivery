@@ -8,7 +8,7 @@ import '../model/item.dart' as item_model;
 class ApiService {
   static const String baseUrl = 'https://njt25.naliv.kz/api';
   //static const String baseUrl = 'http://192.168.100.4:3009/api';
-  // static const String baseUrl = 'http://localhost:3000/api';
+  // static const String baseUrl = 'http://localhost:3009/api';
   static const JsonEncoder _prettyJsonEncoder = JsonEncoder.withIndent('  ');
 
   // Ключ для хранения токена аутентификации
