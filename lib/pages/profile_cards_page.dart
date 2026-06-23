@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'add_card_webview_page.dart';
+import 'faq_page.dart';
 import '../shared/app_theme.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
@@ -261,33 +262,30 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                               SizedBox(height: 560, child: _emptyView()),
                             ],
                           )
-                        : ListView.builder(
+                        : ListView(
                             physics: scrollPhysics,
                             padding:
                                 EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 24.s),
-                            itemCount: _revealedCount.clamp(0, _cards.length) +
-                                (_cardFeedback != null ? 2 : 1),
-                            itemBuilder: (_, i) {
-                              if (i == 0 && _cardFeedback != null) {
-                                return Padding(
+                            children: [
+                              if (_cardFeedback != null)
+                                Padding(
                                   padding: EdgeInsets.only(bottom: 10.s),
                                   child: _cardFeedbackBanner(_cardFeedback!),
-                                );
-                              }
-
-                              final offset = _cardFeedback != null ? 1 : 0;
-                              if (i ==
-                                  offset +
-                                      _revealedCount.clamp(0, _cards.length)) {
-                                return _addCardButton();
-                              }
-
-                              final cardIndex = i - offset;
-                              if (cardIndex < 0 || cardIndex >= _cards.length) {
-                                return const SizedBox.shrink();
-                              }
-                              return _animatedCardTile(_cards[cardIndex]);
-                            },
+                                ),
+                              Padding(
+                                padding: EdgeInsets.only(bottom: 10.s),
+                                child: FaqShortcutCard(
+                                  title: 'Вопросы по картам и оплате',
+                                  subtitle:
+                                      'Посмотрите ответы о привязке карты, удаленных счетах и списании средств.',
+                                  icon: Icons.credit_card_rounded,
+                                ),
+                              ),
+                              ..._cards
+                                  .take(_revealedCount.clamp(0, _cards.length))
+                                  .map(_animatedCardTile),
+                              _addCardButton(),
+                            ],
                           ),
           ),
         ],
@@ -372,6 +370,13 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
               'Добавьте карту в защищенной форме банка, и она появится здесь после обновления списка.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMute),
+            ),
+            SizedBox(height: 14.s),
+            FaqShortcutCard(
+              title: 'Не получается добавить карту?',
+              subtitle:
+                  'В FAQ собраны ответы по привязке карты и оплате заказов.',
+              icon: Icons.help_center_rounded,
             ),
             if (_cardFeedback != null) ...[
               SizedBox(height: 14.s),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/services/repeat_order_service.dart';
@@ -315,6 +316,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final hasPaymentIssue = _isPaymentIssueStatus(statusCode);
     final orderId = order['order_id']?.toString() ?? order['order_uuid']?.toString();
     final topic = hasPaymentIssue ? 'Ошибка оплаты' : 'Заказ #${orderId ?? '-'}';
+    final faqSection =
+        hasPaymentIssue ? FaqSection.payment : FaqSection.orderProblems;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,6 +369,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               side: const BorderSide(color: AppColors.orange, width: 1.2),
               padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+            ),
+          ),
+        ),
+        SizedBox(height: 8.s),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () => openFaqPage(
+              context,
+              initialSection: faqSection,
+            ),
+            icon: const Icon(Icons.help_outline_rounded, size: 18),
+            label: Text(
+              hasPaymentIssue
+                  ? 'Открыть FAQ по оплате'
+                  : 'Открыть FAQ по заказам и возвратам',
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textMute,
+              padding: EdgeInsets.symmetric(vertical: 8.s, horizontal: 0),
             ),
           ),
         ),

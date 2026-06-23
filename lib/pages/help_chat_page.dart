@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
@@ -395,7 +396,19 @@ class _HelpChatPageState extends State<HelpChatPage> {
       children: [
         Padding(
           padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 10.s),
-          child: _contextHeader(),
+          child: Column(
+            children: [
+              _contextHeader(),
+              SizedBox(height: 10.s),
+              FaqShortcutCard(
+                title: 'Сначала можно проверить FAQ',
+                subtitle: _faqSubtitle(),
+                initialSection: _faqSectionForContext(),
+                icon: Icons.help_center_rounded,
+                actionLabel: 'Открыть ответы',
+              ),
+            ],
+          ),
         ),
         if (_sessionFailed) _sessionErrorView(),
         if (_errorText != null && !_sessionFailed) _errorBanner(),
@@ -524,6 +537,28 @@ class _HelpChatPageState extends State<HelpChatPage> {
         ],
       ),
     );
+  }
+
+  FaqSection? _faqSectionForContext() {
+    switch (widget.entryPoint) {
+      case 'payment_failure':
+        return FaqSection.payment;
+      case 'order_detail':
+        return FaqSection.orderProblems;
+      default:
+        return null;
+    }
+  }
+
+  String _faqSubtitle() {
+    switch (widget.entryPoint) {
+      case 'payment_failure':
+        return 'В разделе оплаты собраны подсказки по удаленным счетам, картам и ошибкам при списании.';
+      case 'order_detail':
+        return 'В FAQ есть ответы по задержкам, отменам, возвратам и проблемам с доставленным заказом.';
+      default:
+        return 'Там уже есть ответы по входу, оплате, доставке, бонусам и возвратам.';
+    }
   }
 
   Widget _messageBubble(ChatMessage message) {

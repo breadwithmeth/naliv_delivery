@@ -7,6 +7,7 @@ import '../utils/api.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import '../utils/responsive.dart';
+import 'faq_page.dart';
 
 // Форматирует ввод номера в +7 700 123 45 67
 class PhoneTextInputFormatter extends TextInputFormatter {
@@ -537,6 +538,24 @@ class _LoginPageState extends State<LoginPage>
                 fontSize: 13.sp,
                 color: AppColors.textMute.withValues(alpha: 0.6),
                 height: 1.4),
+          ),
+          SizedBox(height: 8.s),
+          TextButton.icon(
+            onPressed: () => openFaqPage(
+              context,
+              initialSection: FaqSection.profile,
+            ),
+            icon: const Icon(Icons.help_outline_rounded, size: 18),
+            label: Text(
+              _codeSent ? 'Проблемы с кодом? Открыть FAQ' : 'Не приходит SMS-код?',
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.orange,
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
           ),
           SizedBox(height: 24.s),
           Form(

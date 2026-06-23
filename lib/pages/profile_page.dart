@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
@@ -231,6 +232,17 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                               ),
                             ),
                           )),
+                      _staggered(5, 11, _thinDivider()),
+                      _staggered(
+                        6,
+                        11,
+                        _tapRow(
+                          icon: Icons.quiz_rounded,
+                          title: 'FAQ',
+                          subtitle: 'Вход, карты, доставка, бонусы и возвраты',
+                          onTap: () => openFaqPage(context),
+                        ),
+                      ),
                       _staggered(7, 11, _thinDivider()),
                       _staggered(8, 11, _addressRow(addresses)),
                       _staggered(9, 11, _thinDivider()),

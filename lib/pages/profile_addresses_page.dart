@@ -7,6 +7,7 @@ import '../shared/app_theme.dart';
 import '../utils/api.dart';
 import '../utils/responsive.dart';
 import '../widgets/address_selection_modal_material.dart';
+import 'faq_page.dart';
 
 class ProfileAddressesPage extends StatefulWidget {
   const ProfileAddressesPage({super.key});
@@ -187,10 +188,22 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
           else if (addresses.isEmpty)
             _emptyView()
           else
-            ListView.builder(
+            ListView(
               padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 80.s),
-              itemCount: _revealedCount.clamp(0, addresses.length),
-              itemBuilder: (_, i) => _animatedAddressTile(addresses[i]),
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(bottom: 10.s),
+                  child: FaqShortcutCard(
+                    title: 'Вопросы по адресу и доставке',
+                    subtitle:
+                        'Посмотрите ответы про GPS, ручной ввод адреса и ограничения по доставке.',
+                    icon: Icons.location_on_rounded,
+                  ),
+                ),
+                ...addresses
+                    .take(_revealedCount.clamp(0, addresses.length))
+                    .map(_animatedAddressTile),
+              ],
             ),
           if (_isMutating)
             Container(
@@ -354,6 +367,13 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
               'Добавьте адрес, чтобы мы могли подобрать ближайший магазин и ускорить доставку.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMute),
+            ),
+            SizedBox(height: 14.s),
+            FaqShortcutCard(
+              title: 'Не определяется адрес?',
+              subtitle:
+                  'В FAQ есть подсказки по GPS и ручному вводу адреса.',
+              icon: Icons.map_rounded,
             ),
           ],
         ),

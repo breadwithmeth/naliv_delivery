@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/bonus_info_page.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
@@ -794,6 +795,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       title: 'Когда доставить',
                       value: _getDeliveryTimeText(),
                       onTap: _showDeliveryTimeSelection,
+                    ),
+                    SizedBox(height: 12.s),
+                    FaqShortcutCard(
+                      title: 'Частые вопросы по оформлению',
+                      subtitle:
+                          'Минимальный заказ, доставка, промокоды, бонусы и отмена уже собраны в FAQ.',
+                      icon: Icons.help_outline_rounded,
+                      actionLabel: 'Открыть FAQ',
+                      compact: true,
                     ),
                     _thinDivider(),
                     Row(

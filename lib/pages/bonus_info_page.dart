@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
+import 'faq_page.dart';
 
 class BonusInfoPage extends StatelessWidget {
   const BonusInfoPage({super.key});
@@ -26,54 +27,21 @@ class BonusInfoPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Hero
-                  Container(
-                    padding: EdgeInsets.all(18.s),
-                    decoration: AppDecorations.card(
-                        radius: 24,
-                        color: AppColors.cardDark.withValues(alpha: 0.96)),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 80.s,
-                          height: 80.s,
-                          decoration: BoxDecoration(
-                            color: AppColors.orange.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(18.s),
-                            child: Image.asset('assets/icons/gift.png',
-                                fit: BoxFit.contain),
-                          ),
-                        ),
-                        SizedBox(height: 14.s),
-                        Text(
-                          'Бонусы за каждый заказ',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 20.sp,
-                              fontWeight: FontWeight.w800,
-                              height: 1.15),
-                        ),
-                        SizedBox(height: 6.s),
-                        Text(
-                          'Получайте бонусы за покупки и используйте их при следующем заказе.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: AppColors.textMute,
-                              fontSize: 13.sp,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-
+                  _heroCard(),
                   SizedBox(height: 16.s),
-
-                  // Steps
+                  _sectionLabel('Как это работает'),
+                  SizedBox(height: 8.s),
+                  _factCard(
+                    title: 'Начисление',
+                    icon: Icons.add_chart_rounded,
+                    accent: AppColors.orange,
+                    lines: const [
+                      'После каждого выполненного заказа начисляются Бонусы Продавца.',
+                      'Размер начисления зависит от товара и процента, указанного в его карточке.',
+                      '1 бонус = 1 тенге.',
+                    ],
+                  ),
+                  SizedBox(height: 16.s),
                   _stepCard(
                     step: '1',
                     icon: Icons.add_shopping_cart_rounded,
@@ -97,31 +65,142 @@ class BonusInfoPage extends StatelessWidget {
                     description:
                         'После завершения заказа бонусы появятся на балансе.',
                   ),
-
                   SizedBox(height: 16.s),
-
-                  // Key points
-                  Text(
-                    'Важно знать',
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w800),
+                  _sectionLabel('Как списывать бонусы'),
+                  SizedBox(height: 8.s),
+                  _factCard(
+                    title: 'Использование',
+                    icon: Icons.account_balance_wallet_outlined,
+                    accent: const Color(0xFF34C759),
+                    lines: const [
+                      'Бонусами можно оплатить до 25% стоимости следующих заказов.',
+                      'Списание работает только внутри приложения во время оформления корзины.',
+                      'Бонусы не суммируются с промокодом в одном заказе.',
+                    ],
                   ),
                   SizedBox(height: 8.s),
-                  _keyPoint(Icons.local_shipping_outlined,
-                      'Доставка и некоторые категории товаров в начисление не входят.'),
-                  SizedBox(height: 6.s),
-                  _keyPoint(Icons.schedule_outlined,
-                      'Бонусы начисляются после завершения заказа, не сразу.'),
-                  SizedBox(height: 6.s),
-                  _keyPoint(Icons.percent_rounded,
-                      'Списать можно только бонусы, которые уже на балансе.'),
+                  _factCard(
+                    title: 'Ограничения',
+                    icon: Icons.rule_rounded,
+                    accent: AppColors.textMute,
+                    lines: const [
+                      'Доставка и табачная продукция не оплачиваются бонусами.',
+                      'Начисление не происходит мгновенно: бонусы появляются после завершения заказа.',
+                      'Если нужен полный разбор по кешбэку, акциям и промокодам, откройте FAQ ниже.',
+                    ],
+                  ),
+                  SizedBox(height: 18.s),
+                  FaqShortcutCard(
+                    title: 'FAQ по бонусам и акциям',
+                    subtitle:
+                        'Откройте ответы о кешбэке, промокодах и механике акций 1+1 / 2+1 / 3+1.',
+                    initialSection: FaqSection.bonuses,
+                    icon: Icons.stars_rounded,
+                    compact: true,
+                  ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _heroCard() {
+    return Container(
+      padding: EdgeInsets.all(18.s),
+      decoration: AppDecorations.card(
+        radius: 24,
+        color: AppColors.cardDark.withValues(alpha: 0.96),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 58.s,
+                height: 58.s,
+                decoration: BoxDecoration(
+                  color: AppColors.orange.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(12.s),
+                  child: Image.asset(
+                    'assets/icons/gift.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              SizedBox(width: 12.s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Бонусы за каждый заказ',
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 19.sp,
+                        fontWeight: FontWeight.w900,
+                        height: 1.15,
+                      ),
+                    ),
+                    SizedBox(height: 4.s),
+                    Text(
+                      'Получайте бонусы за покупки и используйте их при следующем заказе.',
+                      style: TextStyle(
+                        color: AppColors.textMute,
+                        fontSize: 12.sp,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 14.s),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
+            decoration: BoxDecoration(
+              color: AppColors.orange.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14.s),
+              border:
+                  Border.all(color: AppColors.orange.withValues(alpha: 0.18)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.toll_rounded, color: AppColors.orange, size: 16.s),
+                SizedBox(width: 8.s),
+                Expanded(
+                  child: Text(
+                    'Главное правило: 1 бонус = 1 тенге.',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: AppColors.text,
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w800,
       ),
     );
   }
@@ -185,23 +264,81 @@ class BonusInfoPage extends StatelessWidget {
     );
   }
 
-  Widget _keyPoint(IconData icon, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: AppColors.orange, size: 16.s),
-        SizedBox(width: 8.s),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-                color: AppColors.textMute,
-                fontSize: 12.sp,
-                height: 1.35,
-                fontWeight: FontWeight.w600),
+  Widget _factCard({
+    required String title,
+    required IconData icon,
+    required Color accent,
+    required List<String> lines,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(14.s),
+      decoration: AppDecorations.card(
+        radius: 18,
+        color: AppColors.cardDark.withValues(alpha: 0.96),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34.s,
+                height: 34.s,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12.s),
+                ),
+                child: Icon(icon, color: accent, size: 18.s),
+              ),
+              SizedBox(width: 10.s),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          SizedBox(height: 10.s),
+          ...lines.asMap().entries.map(
+            (entry) => Padding(
+              padding: EdgeInsets.only(
+                bottom: entry.key == lines.length - 1 ? 0 : 7.s,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 5.s,
+                    height: 5.s,
+                    margin: EdgeInsets.only(top: 6.s),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 8.s),
+                  Expanded(
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        color: AppColors.textMute,
+                        fontSize: 12.sp,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
