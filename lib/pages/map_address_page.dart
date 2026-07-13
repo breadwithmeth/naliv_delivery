@@ -674,6 +674,10 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
     });
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -681,128 +685,154 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: _bgDeep,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_bgTop, _bgDeep],
+      body: GestureDetector(
+        onTap: _dismissKeyboard,
+        behavior: HitTestBehavior.translucent,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_bgTop, _bgDeep],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, bottomInset + 14.s),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16.s),
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Ink(
-                          width: 46.s,
-                          height: 46.s,
-                          decoration: BoxDecoration(
-                            color: _card.withValues(alpha: 0.94),
-                            borderRadius: BorderRadius.circular(16.s),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          child: SafeArea(
+            child: Padding(
+              padding:
+                  EdgeInsets.fromLTRB(14.s, 10.s, 14.s, bottomInset + 14.s),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16.s),
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Ink(
+                            width: 46.s,
+                            height: 46.s,
+                            decoration: BoxDecoration(
+                              color: _card.withValues(alpha: 0.94),
+                              borderRadius: BorderRadius.circular(16.s),
+                              border: Border.all(
+                                  color:
+                                      Colors.white.withValues(alpha: 0.05)),
+                            ),
+                            child: Icon(Icons.arrow_back_ios_new_rounded,
+                                color: _text, size: 16.s),
                           ),
-                          child: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 10.s),
-                    Expanded(
-                      child: Text(
-                        'Детали адреса',
-                        style: TextStyle(color: _text, fontSize: 22.sp, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16.s),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(14.s),
-                  decoration: BoxDecoration(
-                    color: _cardDark,
-                    borderRadius: BorderRadius.circular(22.s),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Выбранный адрес',
-                        style: TextStyle(color: _textMute, fontSize: 12.sp, fontWeight: FontWeight.w700),
-                      ),
-                      SizedBox(height: 7.s),
-                      Text(
-                        widget.address,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: _text, fontSize: 15.sp, fontWeight: FontWeight.w800, height: 1.35),
+                      SizedBox(width: 10.s),
+                      Expanded(
+                        child: Text(
+                          'Детали адреса',
+                          style: TextStyle(
+                              color: _text,
+                              fontSize: 22.sp,
+                              fontWeight: FontWeight.w900),
+                        ),
                       ),
                     ],
                   ),
-                ),
-                SizedBox(height: 18.s),
-                Expanded(
-                  child: SingleChildScrollView(
+                  SizedBox(height: 16.s),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(14.s),
+                    decoration: BoxDecoration(
+                      color: _cardDark,
+                      borderRadius: BorderRadius.circular(22.s),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05)),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _detailsField(
-                          controller: _entranceController,
-                          label: 'Подъезд',
-                          hint: 'Например, 2 или 2А',
-                          icon: Icons.stairs_rounded,
-                        ),
-                        SizedBox(height: 12.s),
-                        _detailsField(
-                          controller: _floorController,
-                          label: 'Этаж',
-                          hint: 'Например, 7 или м',
-                          icon: Icons.layers_rounded,
-                        ),
-                        SizedBox(height: 12.s),
-                        _detailsField(
-                          controller: _apartmentController,
-                          label: 'Квартира',
-                          hint: 'Например, 45 или 45Б',
-                          icon: Icons.door_front_door_rounded,
-                        ),
-                        SizedBox(height: 12.s),
                         Text(
-                          'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
-                          style: TextStyle(color: _textMute, fontSize: 12.sp, height: 1.4),
+                          'Выбранный адрес',
+                          style: TextStyle(
+                              color: _textMute,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700),
+                        ),
+                        SizedBox(height: 7.s),
+                        Text(
+                          widget.address,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: _text,
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w800,
+                              height: 1.35),
                         ),
                       ],
                     ),
                   ),
-                ),
-                SizedBox(height: 14.s),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _confirm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _orange,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      padding: EdgeInsets.symmetric(vertical: 14.s),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-                    ),
-                    child: Text(
-                      'Подтвердить и выбрать адрес',
-                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w900),
+                  SizedBox(height: 18.s),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _detailsField(
+                            controller: _entranceController,
+                            label: 'Подъезд',
+                            hint: 'Например, 2 или 2А',
+                            icon: Icons.stairs_rounded,
+                          ),
+                          SizedBox(height: 12.s),
+                          _detailsField(
+                            controller: _floorController,
+                            label: 'Этаж',
+                            hint: 'Например, 7 или м',
+                            icon: Icons.layers_rounded,
+                          ),
+                          SizedBox(height: 12.s),
+                          _detailsField(
+                            controller: _apartmentController,
+                            label: 'Квартира',
+                            hint: 'Например, 45 или 45Б',
+                            icon: Icons.door_front_door_rounded,
+                          ),
+                          SizedBox(height: 12.s),
+                          Text(
+                            'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
+                            style: TextStyle(
+                                color: _textMute,
+                                fontSize: 12.sp,
+                                height: 1.4),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 14.s),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _confirm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _orange,
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: 14.s),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.s)),
+                      ),
+                      child: Text(
+                        'Подтвердить и выбрать адрес',
+                        style: TextStyle(
+                            fontSize: 14.sp, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -824,6 +854,9 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
         TextField(
           controller: controller,
           keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _dismissKeyboard(),
+          onTapOutside: (_) => _dismissKeyboard(),
           textCapitalization: TextCapitalization.characters,
           style: TextStyle(color: _text, fontSize: 14.sp, fontWeight: FontWeight.w700),
           decoration: InputDecoration(
@@ -919,124 +952,176 @@ class _AddressSearchSheetState extends State<_AddressSearchSheet> {
   Widget build(BuildContext context) {
     return Material(
       color: _bgDeep,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 7.s),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.arrow_back_ios_new_rounded, color: _text, size: 16.s),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 46.s,
-                      decoration: BoxDecoration(
-                        color: _card,
-                        borderRadius: BorderRadius.circular(16.s),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                      ),
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        style: const TextStyle(color: _text, fontWeight: FontWeight.w700),
-                        decoration: InputDecoration(
-                          hintText: widget.selectedCity == null ? 'Поиск адреса' : '${widget.selectedCity}, улица или дом',
-                          hintStyle: const TextStyle(color: _textMute),
-                          prefixIcon: const Icon(Icons.search_rounded, color: _textMute),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
+      child: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 7.s),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.arrow_back_ios_new_rounded,
+                          color: _text, size: 16.s),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 46.s,
+                        decoration: BoxDecoration(
+                          color: _card,
+                          borderRadius: BorderRadius.circular(16.s),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.05)),
                         ),
-                        onChanged: _runSearch,
-                        textInputAction: TextInputAction.search,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          style: const TextStyle(
+                              color: _text, fontWeight: FontWeight.w700),
+                          decoration: InputDecoration(
+                            hintText: widget.selectedCity == null
+                                ? 'Поиск адреса'
+                                : '${widget.selectedCity}, улица или дом',
+                            hintStyle: const TextStyle(color: _textMute),
+                            prefixIcon: const Icon(Icons.search_rounded,
+                                color: _textMute),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12.s, vertical: 12.s),
+                          ),
+                          onChanged: _runSearch,
+                          onSubmitted: _runSearch,
+                          onTapOutside: (_) =>
+                              FocusManager.instance.primaryFocus?.unfocus(),
+                          textInputAction: TextInputAction.search,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: _controller.text.trim().length < 3
-                  ? const Center(
-                      child: Text('Введите 3 символа', style: TextStyle(color: _textMute, fontWeight: FontWeight.w700)),
-                    )
-                  : _isSearching
-                      ? const Center(child: CircularProgressIndicator(color: _orange))
-                      : _results.isEmpty
-                          ? const Center(
-                              child: Text('Ничего не найдено', style: TextStyle(color: _textMute, fontWeight: FontWeight.w700)),
-                            )
-                          : ListView.separated(
-                              padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 14.s),
-                              itemCount: _results.length,
-                              separatorBuilder: (_, __) => SizedBox(height: 7.s),
-                              itemBuilder: (_, index) {
-                                final item = _results[index];
-                                double lat;
-                                double lon;
+              Expanded(
+                child: _controller.text.trim().length < 3
+                    ? const Center(
+                        child: Text('Введите 3 символа',
+                            style: TextStyle(
+                                color: _textMute,
+                                fontWeight: FontWeight.w700)),
+                      )
+                    : _isSearching
+                        ? const Center(
+                            child:
+                                CircularProgressIndicator(color: _orange))
+                        : _results.isEmpty
+                            ? const Center(
+                                child: Text('Ничего не найдено',
+                                    style: TextStyle(
+                                        color: _textMute,
+                                        fontWeight: FontWeight.w700)),
+                              )
+                            : ListView.separated(
+                                keyboardDismissBehavior:
+                                    ScrollViewKeyboardDismissBehavior.onDrag,
+                                padding:
+                                    EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 14.s),
+                                itemCount: _results.length,
+                                separatorBuilder: (_, __) =>
+                                    SizedBox(height: 7.s),
+                                itemBuilder: (_, index) {
+                                  final item = _results[index];
+                                  double lat;
+                                  double lon;
 
-                                if (item['geometry'] != null && item['geometry']['coordinates'] is List) {
-                                  final coordinates = item['geometry']['coordinates'] as List;
-                                  lon = (coordinates[0] as num).toDouble();
-                                  lat = (coordinates[1] as num).toDouble();
-                                } else if (item['point'] != null) {
-                                  lat = (item['point']['lat'] as num).toDouble();
-                                  lon = (item['point']['lon'] as num).toDouble();
-                                } else {
-                                  lat = ((item['lat'] as num?) ?? 0).toDouble();
-                                  lon = ((item['lon'] as num?) ?? 0).toDouble();
-                                }
+                                  if (item['geometry'] != null &&
+                                      item['geometry']['coordinates'] is List) {
+                                    final coordinates =
+                                        item['geometry']['coordinates'] as List;
+                                    lon =
+                                        (coordinates[0] as num).toDouble();
+                                    lat =
+                                        (coordinates[1] as num).toDouble();
+                                  } else if (item['point'] != null) {
+                                    lat =
+                                        (item['point']['lat'] as num).toDouble();
+                                    lon =
+                                        (item['point']['lon'] as num).toDouble();
+                                  } else {
+                                    lat =
+                                        ((item['lat'] as num?) ?? 0).toDouble();
+                                    lon =
+                                        ((item['lon'] as num?) ?? 0).toDouble();
+                                  }
 
-                                final label = ApiService.extractAddressLabel(item, preferredCity: widget.selectedCity) ?? 'Адрес';
+                                  final label = ApiService.extractAddressLabel(
+                                          item,
+                                          preferredCity: widget.selectedCity) ??
+                                      'Адрес';
 
-                                return Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(16.s),
-                                    onTap: () => Navigator.of(context).pop({
-                                      'lat': lat,
-                                      'lon': lon,
-                                      'label': label,
-                                      'rawAddress': item,
-                                    }),
-                                    child: Ink(
-                                      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
-                                      decoration: BoxDecoration(
-                                        color: _cardDark,
-                                        borderRadius: BorderRadius.circular(16.s),
-                                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 32.s,
-                                            height: 32.s,
-                                            decoration: BoxDecoration(
-                                              color: _orange.withValues(alpha: 0.14),
-                                              borderRadius: BorderRadius.circular(10.s),
+                                  return Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius:
+                                          BorderRadius.circular(16.s),
+                                      onTap: () =>
+                                          Navigator.of(context).pop({
+                                        'lat': lat,
+                                        'lon': lon,
+                                        'label': label,
+                                        'rawAddress': item,
+                                      }),
+                                      child: Ink(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 12.s, vertical: 12.s),
+                                        decoration: BoxDecoration(
+                                          color: _cardDark,
+                                          borderRadius:
+                                              BorderRadius.circular(16.s),
+                                          border: Border.all(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.05)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 32.s,
+                                              height: 32.s,
+                                              decoration: BoxDecoration(
+                                                color: _orange.withValues(
+                                                    alpha: 0.14),
+                                                borderRadius:
+                                                    BorderRadius.circular(10.s),
+                                              ),
+                                              child: Icon(
+                                                  Icons.place_outlined,
+                                                  color: _orange,
+                                                  size: 16.s),
                                             ),
-                                            child: Icon(Icons.place_outlined, color: _orange, size: 16.s),
-                                          ),
-                                          SizedBox(width: 10.s),
-                                          Expanded(
-                                            child: Text(
-                                              label,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(color: _text, fontWeight: FontWeight.w700, height: 1.25),
+                                            SizedBox(width: 10.s),
+                                            Expanded(
+                                              child: Text(
+                                                label,
+                                                maxLines: 2,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    color: _text,
+                                                    fontWeight: FontWeight.w700,
+                                                    height: 1.25),
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-            ),
-          ],
+                                  );
+                                },
+                              ),
+              ),
+            ],
+          ),
         ),
       ),
     );

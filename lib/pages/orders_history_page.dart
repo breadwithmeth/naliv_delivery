@@ -137,8 +137,9 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients || _isLoadingMore || !_hasMoreHistory)
+    if (!_scrollController.hasClients || _isLoadingMore || !_hasMoreHistory) {
       return;
+    }
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 320) {
       _loadMoreHistory();
@@ -237,7 +238,7 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
     }
 
     final currentBusiness = context.read<BusinessProvider>().selectedBusiness;
-    final targetBusiness = RepeatOrderService.extractBusiness(order);
+    final targetBusiness = RepeatOrderService.resolveBusiness(order);
     final currentBusinessId = currentBusiness?['id'] ?? currentBusiness?['business_id'] ?? currentBusiness?['businessId'];
     final targetBusinessId = targetBusiness?['id'] ?? targetBusiness?['business_id'] ?? targetBusiness?['businessId'];
     final targetBusinessName = targetBusiness?['name']?.toString() ?? 'другой магазин';

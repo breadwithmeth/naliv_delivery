@@ -157,6 +157,10 @@ class RepeatOrderService {
     return order_ui.isPickupOrder(order) ? 'PICKUP' : 'DELIVERY';
   }
 
+  static Map<String, dynamic>? resolveBusiness(Map<String, dynamic> order) {
+    return extractBusiness(order);
+  }
+
   @visibleForTesting
   static Map<String, dynamic>? extractBusiness(Map<String, dynamic> order) {
     final business = _asMap(order['business']);

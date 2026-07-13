@@ -96,7 +96,6 @@ class _MainPageState extends State<MainPage> {
   Map<String, dynamic>? _bonuses;
   bool _isLoadingBonuses = true;
   String? _bonusesError;
-  String? _activeCardUuid;
   String? _qrPayload;
   List<Map<String, dynamic>> _activeOrders = <Map<String, dynamic>>[];
 
@@ -300,7 +299,6 @@ class _MainPageState extends State<MainPage> {
       final cardUuid = data['data']?['bonusCard']?['cardUuid']?.toString();
       setState(() {
         _bonuses = data;
-        _activeCardUuid = cardUuid;
         _qrPayload = _buildQrPayload(cardUuid);
         _isLoadingBonuses = false;
         _bonusesError = success ? null : (data['message']?.toString() ?? 'Не удалось загрузить бонусы');

@@ -181,7 +181,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
 
     final currentBusiness = context.read<BusinessProvider>().selectedBusiness;
-    final targetBusiness = RepeatOrderService.extractBusiness(order);
+    final targetBusiness = RepeatOrderService.resolveBusiness(order);
     final currentBusinessId = currentBusiness?['id'] ?? currentBusiness?['business_id'] ?? currentBusiness?['businessId'];
     final targetBusinessId = targetBusiness?['id'] ?? targetBusiness?['business_id'] ?? targetBusiness?['businessId'];
     final targetBusinessName = targetBusiness?['name']?.toString() ?? 'другой магазин';

@@ -21,7 +21,14 @@ import 'cart_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
-  const CheckoutPage({super.key});
+  final String? initialDeliveryType;
+  final Map<String, dynamic>? initialAddress;
+
+  const CheckoutPage({
+    super.key,
+    this.initialDeliveryType,
+    this.initialAddress,
+  });
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -93,12 +100,28 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    final initialDeliveryType = widget.initialDeliveryType?.trim().toUpperCase();
+    if (initialDeliveryType == 'PICKUP' || initialDeliveryType == 'DELIVERY') {
+      _deliveryType = initialDeliveryType!;
+    }
+    if (widget.initialAddress != null) {
+      _selectedAddress = Map<String, dynamic>.from(widget.initialAddress!);
+      _syncAddressDetailControllers(_selectedAddress);
+    }
     _initAddressSelection();
     _loadUserBonuses();
     _loadCertificates();
   }
 
   Future<void> _initAddressSelection() async {
+    if (widget.initialAddress != null) {
+      if (_deliveryType == 'DELIVERY' && _selectedAddress != null) {
+        await AddressStorageService.saveSelectedAddress(_selectedAddress!);
+      }
+      await _calculateDelivery();
+      return;
+    }
+
     final address = await AddressStorageService.getSelectedAddress();
     if (mounted && address != null) {
       setState(() {
@@ -667,6 +690,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return _calculateEarnedBonuses(cartProvider.displayGroups);
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
@@ -725,194 +752,207 @@ class _CheckoutPageState extends State<CheckoutPage> {
         body: Stack(
           children: [
             const AppBackground(),
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16.s, 4.s, 16.s, 100.s),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _deliveryTabs(),
-                    SizedBox(height: 14.s),
-                    _tapRow(
-                      icon: Icons.store,
-                      title: businessProvider.selectedBusinessName ?? 'Магазин',
-                      value: businessProvider.selectedBusiness?['address'],
-                      onTap: _showBusinessSelectionSheet,
-                    ),
-                    if (_deliveryType == 'DELIVERY') ...[
+            GestureDetector(
+              onTap: _dismissKeyboard,
+              behavior: HitTestBehavior.translucent,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(16.s, 4.s, 16.s, 100.s),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _deliveryTabs(),
+                      SizedBox(height: 14.s),
                       _tapRow(
-                        icon: Icons.location_on_outlined,
-                        title: _addressText(),
-                        value: _selectedAddress == null
-                            ? 'Можно выбрать позже, но перед подтверждением заказа адрес обязателен'
-                            : 'Нажмите, чтобы уточнить или изменить адрес',
-                        onTap: _showAddressSelectionModal,
+                        icon: Icons.store,
+                        title:
+                            businessProvider.selectedBusinessName ?? 'Магазин',
+                        value: businessProvider.selectedBusiness?['address'],
+                        onTap: _showBusinessSelectionSheet,
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 4.s),
-                        child: Row(
-                          children: [
-                            Expanded(
-                                child: _compactField(
-                                    _entranceController, 'Подъезд')),
-                            SizedBox(width: 8.s),
-                            Expanded(
-                                child: _compactField(_floorController, 'Этаж')),
-                            SizedBox(width: 8.s),
-                            Expanded(
-                                child: _compactField(
-                                    _apartmentController, 'Квартира')),
-                          ],
+                      if (_deliveryType == 'DELIVERY') ...[
+                        _tapRow(
+                          icon: Icons.location_on_outlined,
+                          title: _addressText(),
+                          value: _selectedAddress == null
+                              ? 'Можно выбрать позже, но перед подтверждением заказа адрес обязателен'
+                              : 'Нажмите, чтобы уточнить или изменить адрес',
+                          onTap: _showAddressSelectionModal,
                         ),
-                      ),
-                      _tapRow(
-                        icon: Icons.local_shipping_outlined,
-                        title: 'Стоимость доставки',
-                        value: _isCalculatingDelivery
-                            ? 'считаем…'
-                            : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
-                        onTap: _calculateDelivery,
-                      ),
-                    ],
-                    _tapRow(
-                      icon: Icons.access_time,
-                      title: 'Когда доставить',
-                      value: _getDeliveryTimeText(),
-                      onTap: _showDeliveryTimeSelection,
-                    ),
-                    SizedBox(height: 12.s),
-                    FaqShortcutCard(
-                      title: 'Частые вопросы по оформлению',
-                      subtitle:
-                          'Минимальный заказ, доставка, промокоды, бонусы и отмена уже собраны в FAQ.',
-                      icon: Icons.help_outline_rounded,
-                      actionLabel: 'Открыть FAQ',
-                      compact: true,
-                    ),
-                    _thinDivider(),
-                    Row(
-                      children: [
-                        Icon(Icons.stars_rounded,
-                            color: AppColors.orange, size: 18.s),
-                        SizedBox(width: 10.s),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 4.s),
+                          child: Row(
                             children: [
-                              const Text('Списать бонусы',
-                                  style: TextStyle(
-                                      color: AppColors.text,
-                                      fontWeight: FontWeight.w800)),
-                              if (canUseBonus)
-                                _buildBonusSubtitle()
-                              else
-                                const Text('Проверяем баланс…',
-                                    style: TextStyle(
-                                        color: AppColors.textMute,
-                                        fontSize: 12)),
+                              Expanded(
+                                  child: _compactField(
+                                      _entranceController, 'Подъезд')),
+                              SizedBox(width: 8.s),
+                              Expanded(
+                                  child:
+                                      _compactField(_floorController, 'Этаж')),
+                              SizedBox(width: 8.s),
+                              Expanded(
+                                  child: _compactField(
+                                      _apartmentController, 'Квартира')),
                             ],
                           ),
                         ),
-                        Switch(
-                          value: _useBonus,
-                          activeThumbColor: Colors.black,
-                          activeTrackColor: AppColors.orange,
-                          inactiveThumbColor: AppColors.text,
-                          inactiveTrackColor: AppColors.blue,
-                          onChanged: canUseBonus
-                              ? (v) => setState(() => _useBonus = v)
-                              : null,
+                        _tapRow(
+                          icon: Icons.local_shipping_outlined,
+                          title: 'Стоимость доставки',
+                          value: _isCalculatingDelivery
+                              ? 'считаем…'
+                              : (deliveryCost > 0
+                                  ? _money(deliveryCost)
+                                  : '—'),
+                          onTap: _calculateDelivery,
                         ),
                       ],
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const BonusInfoPage())),
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 28.s, top: 2.s),
-                        child: Text('Как работают бонусы →',
-                            style: TextStyle(
-                                color: AppColors.orange,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600)),
+                      _tapRow(
+                        icon: Icons.access_time,
+                        title: 'Когда доставить',
+                        value: _getDeliveryTimeText(),
+                        onTap: _showDeliveryTimeSelection,
                       ),
-                    ),
-                    _thinDivider(),
-                    _promoCodeSection(),
-                    _thinDivider(),
-                    _certificateSection(),
-                    _thinDivider(),
-                    _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
-                    SizedBox(height: 8.s),
-                    for (int i = 0; i < displayGroups.length; i++) ...[
-                      if (i > 0)
-                        Divider(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            height: 16.s),
-                      _itemTile(displayGroups[i]),
-                    ],
-                    if (hasCheckoutBag) ...[
-                      if (displayGroups.isNotEmpty)
-                        Divider(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            height: 16.s),
-                      _bagTile(),
-                    ],
-                    _thinDivider(),
-                    _summaryRow('Товары', _money(itemsTotal)),
-                    SizedBox(height: 6.s),
-                    if (bagCost > 0) ...[
-                      _summaryRow('Пакет', _money(bagCost),
-                          valueColor: AppColors.orange),
-                      SizedBox(height: 6.s),
-                    ],
-                    if (_deliveryType == 'DELIVERY') ...[
-                      _summaryRow(
-                          'Доставка',
-                          effectiveDeliveryCost > 0
-                              ? _money(effectiveDeliveryCost)
-                              : '—'),
-                      SizedBox(height: 6.s),
-                    ],
-                    if (promoDiscount > 0) ...[
-                      _summaryRow('Промокод', '-${_money(promoDiscount)}',
-                          valueColor: Colors.greenAccent),
-                      SizedBox(height: 6.s),
-                    ],
-                    if (bonusUsed > 0) ...[
-                      _summaryRow('Списание бонусов', '-${_money(bonusUsed)}',
-                          valueColor: Colors.greenAccent),
-                      SizedBox(height: 6.s),
-                    ],
-                    if (certificateUsed > 0) ...[
-                      _summaryRow('Сертификат', '-${_money(certificateUsed)}',
-                          valueColor: Colors.greenAccent),
-                      SizedBox(height: 6.s),
-                    ],
-                    if (earnedBonuses > 0) ...[
-                      _summaryRow('Бонусы за заказ', '+$earnedBonuses ₸',
-                          valueColor: Colors.greenAccent),
-                      SizedBox(height: 6.s),
-                    ],
-                    Divider(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        height: 20.s),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Итого',
-                            style: TextStyle(
-                                color: AppColors.text,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w800)),
-                        Text(_money(totalWithDelivery),
-                            style: TextStyle(
-                                color: AppColors.orange,
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w900)),
+                      SizedBox(height: 12.s),
+                      FaqShortcutCard(
+                        title: 'Частые вопросы по оформлению',
+                        subtitle:
+                            'Минимальный заказ, доставка, промокоды, бонусы и отмена уже собраны в FAQ.',
+                        icon: Icons.help_outline_rounded,
+                        actionLabel: 'Открыть FAQ',
+                        compact: true,
+                      ),
+                      _thinDivider(),
+                      Row(
+                        children: [
+                          Icon(Icons.stars_rounded,
+                              color: AppColors.orange, size: 18.s),
+                          SizedBox(width: 10.s),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Списать бонусы',
+                                    style: TextStyle(
+                                        color: AppColors.text,
+                                        fontWeight: FontWeight.w800)),
+                                if (canUseBonus)
+                                  _buildBonusSubtitle()
+                                else
+                                  const Text('Проверяем баланс…',
+                                      style: TextStyle(
+                                          color: AppColors.textMute,
+                                          fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _useBonus,
+                            activeThumbColor: Colors.black,
+                            activeTrackColor: AppColors.orange,
+                            inactiveThumbColor: AppColors.text,
+                            inactiveTrackColor: AppColors.blue,
+                            onChanged: canUseBonus
+                                ? (v) => setState(() => _useBonus = v)
+                                : null,
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () =>
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const BonusInfoPage())),
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 28.s, top: 2.s),
+                          child: Text('Как работают бонусы →',
+                              style: TextStyle(
+                                  color: AppColors.orange,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      _thinDivider(),
+                      _promoCodeSection(),
+                      _thinDivider(),
+                      _certificateSection(),
+                      _thinDivider(),
+                      _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
+                      SizedBox(height: 8.s),
+                      for (int i = 0; i < displayGroups.length; i++) ...[
+                        if (i > 0)
+                          Divider(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              height: 16.s),
+                        _itemTile(displayGroups[i]),
                       ],
-                    ),
-                  ],
+                      if (hasCheckoutBag) ...[
+                        if (displayGroups.isNotEmpty)
+                          Divider(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              height: 16.s),
+                        _bagTile(),
+                      ],
+                      _thinDivider(),
+                      _summaryRow('Товары', _money(itemsTotal)),
+                      SizedBox(height: 6.s),
+                      if (bagCost > 0) ...[
+                        _summaryRow('Пакет', _money(bagCost),
+                            valueColor: AppColors.orange),
+                        SizedBox(height: 6.s),
+                      ],
+                      if (_deliveryType == 'DELIVERY') ...[
+                        _summaryRow(
+                            'Доставка',
+                            effectiveDeliveryCost > 0
+                                ? _money(effectiveDeliveryCost)
+                                : '—'),
+                        SizedBox(height: 6.s),
+                      ],
+                      if (promoDiscount > 0) ...[
+                        _summaryRow('Промокод', '-${_money(promoDiscount)}',
+                            valueColor: Colors.greenAccent),
+                        SizedBox(height: 6.s),
+                      ],
+                      if (bonusUsed > 0) ...[
+                        _summaryRow(
+                            'Списание бонусов', '-${_money(bonusUsed)}',
+                            valueColor: Colors.greenAccent),
+                        SizedBox(height: 6.s),
+                      ],
+                      if (certificateUsed > 0) ...[
+                        _summaryRow(
+                            'Сертификат', '-${_money(certificateUsed)}',
+                            valueColor: Colors.greenAccent),
+                        SizedBox(height: 6.s),
+                      ],
+                      if (earnedBonuses > 0) ...[
+                        _summaryRow('Бонусы за заказ', '+$earnedBonuses ₸',
+                            valueColor: Colors.greenAccent),
+                        SizedBox(height: 6.s),
+                      ],
+                      Divider(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          height: 20.s),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Итого',
+                              style: TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w800)),
+                          Text(_money(totalWithDelivery),
+                              style: TextStyle(
+                                  color: AppColors.orange,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1429,7 +1469,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       controller: controller,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
-      onSubmitted: (_) => FocusScope.of(context).unfocus(),
+      onSubmitted: (_) => _dismissKeyboard(),
+      onTapOutside: (_) => _dismissKeyboard(),
       style: TextStyle(
           color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
       decoration: InputDecoration(
@@ -1522,6 +1563,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Expanded(
               child: TextField(
                 controller: _promoCodeController,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _dismissKeyboard(),
+                onTapOutside: (_) => _dismissKeyboard(),
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) {
                   if (_appliedPromoData != null) {
@@ -1630,6 +1674,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Expanded(
               child: TextField(
                 controller: _certificateCodeController,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _dismissKeyboard(),
+                onTapOutside: (_) => _dismissKeyboard(),
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) {
                   if (_appliedCertificateData != null) {
