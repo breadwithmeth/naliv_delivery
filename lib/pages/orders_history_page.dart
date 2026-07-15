@@ -11,6 +11,7 @@ import '../utils/order_ui_helpers.dart' as order_ui;
 import '../utils/responsive.dart';
 import 'checkout_page.dart';
 import 'order_detail_page.dart';
+import 'payment_method_page.dart';
 
 class OrdersHistoryPage extends StatefulWidget {
   final List<Map<String, dynamic>>? initialActiveOrders;
@@ -229,6 +230,22 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
         });
       }
     }
+  }
+
+  Future<void> _openPayment(Map<String, dynamic> order) async {
+    final amount = order_ui.resolveOrderTotalAmount(order)?.toDouble();
+    final paymentOrder = <String, dynamic>{
+      ...order,
+      if (amount != null) 'payable_amount': amount,
+    };
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaymentMethodPage(
+          orderData: paymentOrder,
+          displayAmount: amount,
+        ),
+      ),
+    );
   }
 
   Future<bool?> _confirmReplaceCart(Map<String, dynamic> order) {
@@ -454,6 +471,9 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
               padding: EdgeInsets.only(bottom: 9.s),
               child: OrderPreviewCard(
                 order: entry.order!,
+                onPay: order_ui.canPayOrder(entry.order!)
+                    ? () => _openPayment(entry.order!)
+                    : null,
                 onRepeat: () => _repeatOrder(entry.order!),
                 isRepeating: _repeatingOrderId == _orderIdentity(entry.order!),
               ),
@@ -529,12 +549,14 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage> {
 
 class OrderPreviewCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final VoidCallback? onPay;
   final VoidCallback? onRepeat;
   final bool isRepeating;
 
   const OrderPreviewCard({
     super.key,
     required this.order,
+    this.onPay,
     this.onRepeat,
     this.isRepeating = false,
   });
@@ -727,29 +749,63 @@ class OrderPreviewCard extends StatelessWidget {
             ],
             SizedBox(height: 12.s),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (onRepeat != null)
-                  OutlinedButton.icon(
-                    onPressed: isRepeating ? null : onRepeat,
-                    icon: isRepeating
-                        ? SizedBox(
-                            width: 14.s,
-                            height: 14.s,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(AppColors.orange),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8.s,
+                    runSpacing: 8.s,
+                    children: [
+                      if (onPay != null)
+                        FilledButton.icon(
+                          onPressed: onPay,
+                          icon: Icon(Icons.lock_outline_rounded, size: 16.s),
+                          label: const Text('Оплатить'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.orange,
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.s,
+                              vertical: 10.s,
                             ),
-                          )
-                        : Icon(Icons.replay_rounded, size: 16.s),
-                    label: Text(isRepeating ? 'Собираем...' : 'Повторить заказ'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.orange,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                      padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.s)),
-                    ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.s),
+                            ),
+                          ),
+                        ),
+                      if (onRepeat != null)
+                        OutlinedButton.icon(
+                          onPressed: isRepeating ? null : onRepeat,
+                          icon: isRepeating
+                              ? SizedBox(
+                                  width: 14.s,
+                                  height: 14.s,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                        AppColors.orange),
+                                  ),
+                                )
+                              : Icon(Icons.replay_rounded, size: 16.s),
+                          label: Text(
+                              isRepeating ? 'Собираем...' : 'Повторить заказ'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.orange,
+                            side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.s,
+                              vertical: 10.s,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.s),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                const Spacer(),
+                ),
+                SizedBox(width: 8.s),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

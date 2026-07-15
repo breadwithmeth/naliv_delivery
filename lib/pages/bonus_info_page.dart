@@ -90,7 +90,7 @@ class BonusInfoPage extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: 18.s),
-                  FaqShortcutCard(
+                  const FaqShortcutCard(
                     title: 'FAQ по бонусам и акциям',
                     subtitle:
                         'Откройте ответы о кешбэке, промокодах и механике акций 1+1 / 2+1 / 3+1.',

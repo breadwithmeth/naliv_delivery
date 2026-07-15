@@ -44,6 +44,50 @@ bool isOrderCanceled(Map<String, dynamic> order) {
   return isTruthy(order['is_canceled']) || isTruthy(currentStatus?['is_canceled']) || const {'5', '50', '51', '52'}.contains(statusCode);
 }
 
+bool canPayOrder(Map<String, dynamic> order) {
+  if (isOrderCanceled(order)) return false;
+  if (_resolveOrderId(order) == null) return false;
+
+  final amount = resolveOrderTotalAmount(order);
+  if (amount == null || amount <= 0) return false;
+
+  final currentStatus = asOrderMap(order['current_status']);
+  final statusCode =
+      currentStatus?['status']?.toString() ?? asOrderMap(order['status'])?['status']?.toString();
+  if (const {'6', '60', '66'}.contains(statusCode)) {
+    return true;
+  }
+
+  final paymentStatus = _normalizeStatus(order['payment_status']);
+  final kaspiStatus = _normalizeStatus(order['kaspi_status']);
+
+  if (_repayablePaymentStatuses.contains(paymentStatus) ||
+      _repayablePaymentStatuses.contains(kaspiStatus)) {
+    return true;
+  }
+
+  if (_completedPaymentStatuses.contains(paymentStatus) ||
+      _completedPaymentStatuses.contains(kaspiStatus)) {
+    return false;
+  }
+
+  return false;
+}
+
+num? resolveOrderTotalAmount(Map<String, dynamic> order) {
+  return _asNum(order['payable_amount']) ??
+      _asNum(order['final_amount']) ??
+      _asNum(order['total_sum']) ??
+      _asNum(order['total_amount']) ??
+      _asNum(order['amount']) ??
+      _asNum(asOrderMap(order['cost_summary'])?['total_sum']) ??
+      _asNum(asOrderMap(order['cost_summary'])?['total']) ??
+      _asNum(asOrderMap(order['cost_summary'])?['order_total']) ??
+      _asNum(asOrderMap(order['cost'])?['total_sum']) ??
+      _asNum(asOrderMap(order['cost'])?['total']) ??
+      _asNum(asOrderMap(order['cost'])?['order_total']);
+}
+
 String resolveOrderStatusText(
   Map<String, dynamic> order, {
   Map<String, dynamic>? status,
@@ -102,3 +146,45 @@ bool _isUnknownStatusText(String value) {
   final normalized = value.trim().toLowerCase();
   return normalized == 'неизвестно' || normalized == 'неизвестный статус' || normalized.contains('unknown');
 }
+
+String? _resolveOrderId(Map<String, dynamic> order) {
+  final raw = order['order_id'] ?? order['order_uuid'] ?? order['id'];
+  final normalized = raw?.toString().trim();
+  if (normalized == null || normalized.isEmpty || normalized.toLowerCase() == 'null') {
+    return null;
+  }
+  return normalized;
+}
+
+num? _asNum(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value;
+  return num.tryParse(value.toString());
+}
+
+String _normalizeStatus(dynamic value) {
+  return value?.toString().trim().toLowerCase().replaceAll('-', '_') ?? '';
+}
+
+const Set<String> _completedPaymentStatuses = <String>{
+  'completed',
+  'paid',
+  'processed',
+  'success',
+  'succeeded',
+};
+
+const Set<String> _repayablePaymentStatuses = <String>{
+  'failed',
+  'rejected',
+  'canceled',
+  'cancelled',
+  'expired',
+  'error',
+  'declined',
+  'awaiting_payment',
+  'waiting_for_payment',
+  'payment_required',
+  'requires_payment',
+  'pending_payment',
+};

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/checkout_page.dart';
+import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/services/repeat_order_service.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
@@ -172,6 +173,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         });
       }
     }
+  }
+
+  Future<void> _openPayment() async {
+    final order = _orderDetails ?? widget.order;
+    final amount = order_ui.resolveOrderTotalAmount(order)?.toDouble();
+    final paymentOrder = <String, dynamic>{
+      ...order,
+      if (amount != null) 'payable_amount': amount,
+    };
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaymentMethodPage(
+          orderData: paymentOrder,
+          displayAmount: amount,
+        ),
+      ),
+    );
   }
 
   Future<bool?> _confirmReplaceCart(Map<String, dynamic> order) {
@@ -423,6 +442,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final statusDescription = order_ui.resolveOrderStatusText(order, status: currentStatus, fallback: 'Неизвестно');
     final lastKnownStatus = _resolveStatusLabel(currentStatus, fallback: '');
     final isCanceled = order_ui.isOrderCanceled(order);
+    final canPayOrder = order_ui.canPayOrder(order);
     final statusColor = isCanceled ? AppColors.red : AppColors.orange;
     final createdAt = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
     final deliveryType = order_ui.resolveDeliveryTypeText(order);
@@ -475,6 +495,23 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ],
           ),
           SizedBox(height: 12.s),
+          if (canPayOrder) ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _openPayment,
+                icon: const Icon(Icons.lock_outline_rounded, size: 18),
+                label: const Text('Оплатить заказ'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+                ),
+              ),
+            ),
+            SizedBox(height: 8.s),
+          ],
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(

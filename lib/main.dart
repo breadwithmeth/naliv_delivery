@@ -11,6 +11,7 @@ import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:naliv_delivery/widgets/app_entry_gate.dart';
+import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -186,6 +187,14 @@ class _MainState extends State<Main> with LocationMixin {
           ),
         ),
         debugShowCheckedModeBanner: false,
+        routes: {
+          FaqPage.routeName: (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+            return FaqPage(
+              initialSection: arguments is FaqSection ? arguments : null,
+            );
+          },
+        },
         home: const AppEntryGate());
   }
 }

@@ -193,10 +193,11 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
               children: [
                 Padding(
                   padding: EdgeInsets.only(bottom: 10.s),
-                  child: FaqShortcutCard(
+                  child: const FaqShortcutCard(
                     title: 'Вопросы по адресу и доставке',
                     subtitle:
                         'Посмотрите ответы про GPS, ручной ввод адреса и ограничения по доставке.',
+                    initialSection: FaqSection.delivery,
                     icon: Icons.location_on_rounded,
                   ),
                 ),
@@ -369,10 +370,11 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
               style: TextStyle(color: AppColors.textMute),
             ),
             SizedBox(height: 14.s),
-            FaqShortcutCard(
+            const FaqShortcutCard(
               title: 'Не определяется адрес?',
               subtitle:
                   'В FAQ есть подсказки по GPS и ручному вводу адреса.',
+              initialSection: FaqSection.delivery,
               icon: Icons.map_rounded,
             ),
           ],

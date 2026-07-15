@@ -11,7 +11,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  testWidgets('renders repeat-order action for history entries', (tester) async {
+  testWidgets('renders pay action only for payable history entries', (tester) async {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -26,6 +26,10 @@ void main() {
                 'order_id': 321,
                 'created_at': '2026-06-07T10:00:00.000Z',
                 'delivery_type': 'DELIVERY',
+                'current_status': <String, dynamic>{
+                  'status': '60',
+                },
+                'total_sum': 3000,
                 'business': <String, dynamic>{
                   'id': 3,
                   'name': 'Naliv Test Shop',
@@ -43,6 +47,27 @@ void main() {
                   },
                 ],
               },
+              <String, dynamic>{
+                'order_id': 322,
+                'created_at': '2026-06-06T10:00:00.000Z',
+                'delivery_type': 'DELIVERY',
+                'current_status': <String, dynamic>{
+                  'status': '4',
+                },
+                'total_sum': 2800,
+                'business': <String, dynamic>{
+                  'id': 3,
+                  'name': 'Naliv Test Shop',
+                },
+                'items': <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'item_id': 777,
+                    'name': 'Water',
+                    'price': 1400,
+                    'amount': 2,
+                  },
+                ],
+              },
             ],
           ),
         ),
@@ -51,7 +76,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Повторить заказ'), findsOneWidget);
-    expect(find.text('Открыть детали'), findsOneWidget);
+    expect(find.text('Оплатить'), findsOneWidget);
+    expect(find.text('Повторить заказ'), findsNWidgets(2));
+    expect(find.text('Открыть детали'), findsNWidgets(2));
   });
 }

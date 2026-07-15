@@ -771,7 +771,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                 children: [
                   _amountHeader(amount),
                   SizedBox(height: 12.s),
-                  FaqShortcutCard(
+                  const FaqShortcutCard(
                     title: 'Вопросы по оплате',
                     subtitle:
                         'Посмотрите ответы по картам, удаленным счетам Kaspi/Halyk и списанию средств.',

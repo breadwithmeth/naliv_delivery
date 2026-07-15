@@ -274,10 +274,11 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                                 ),
                               Padding(
                                 padding: EdgeInsets.only(bottom: 10.s),
-                                child: FaqShortcutCard(
+                                child: const FaqShortcutCard(
                                   title: 'Вопросы по картам и оплате',
                                   subtitle:
                                       'Посмотрите ответы о привязке карты, удаленных счетах и списании средств.',
+                                  initialSection: FaqSection.payment,
                                   icon: Icons.credit_card_rounded,
                                 ),
                               ),
@@ -372,10 +373,11 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
               style: TextStyle(color: AppColors.textMute),
             ),
             SizedBox(height: 14.s),
-            FaqShortcutCard(
+            const FaqShortcutCard(
               title: 'Не получается добавить карту?',
               subtitle:
                   'В FAQ собраны ответы по привязке карты и оплате заказов.',
+              initialSection: FaqSection.payment,
               icon: Icons.help_center_rounded,
             ),
             if (_cardFeedback != null) ...[

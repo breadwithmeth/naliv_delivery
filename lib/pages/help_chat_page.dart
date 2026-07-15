@@ -160,7 +160,7 @@ class _HelpChatPageState extends State<HelpChatPage> {
             content: 'Не проходит оплата: $paymentError',
             isFromOperator: false,
           ));
-          _messages.add(ChatMessage(
+          _messages.add(const ChatMessage(
             content: 'Проверим оплату и подскажем, что можно сделать дальше.',
             isFromOperator: true,
           ));
@@ -280,8 +280,9 @@ class _HelpChatPageState extends State<HelpChatPage> {
     if (_sessionFailed) return 'Чат временно недоступен';
     final orderId = _orderId;
     if (orderId != null) return 'Чат по заказу #$orderId';
-    if (_connectionState == ChatConnectionState.connected)
+    if (_connectionState == ChatConnectionState.connected) {
       return 'Оператор на связи';
+    }
     return 'Ожидание подключения...';
   }
 

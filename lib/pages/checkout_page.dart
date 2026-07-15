@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/bonus_info_page.dart';
 import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
@@ -67,13 +66,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _floorController = TextEditingController();
   final TextEditingController _apartmentController = TextEditingController();
   final TextEditingController _promoCodeController = TextEditingController();
-  final TextEditingController _certificateCodeController =
-      TextEditingController();
   bool _isValidatingPromo = false;
   Map<String, dynamic>? _appliedPromoData;
-  bool _isLoadingCertificates = false;
   bool _isValidatingCertificate = false;
-  List<Map<String, dynamic>> _certificates = <Map<String, dynamic>>[];
   Map<String, dynamic>? _appliedCertificateData;
 
   void _handleBack() {
@@ -93,14 +88,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _floorController.dispose();
     _apartmentController.dispose();
     _promoCodeController.dispose();
-    _certificateCodeController.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    final initialDeliveryType = widget.initialDeliveryType?.trim().toUpperCase();
+    final initialDeliveryType =
+        widget.initialDeliveryType?.trim().toUpperCase();
     if (initialDeliveryType == 'PICKUP' || initialDeliveryType == 'DELIVERY') {
       _deliveryType = initialDeliveryType!;
     }
@@ -110,7 +105,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
     _initAddressSelection();
     _loadUserBonuses();
-    _loadCertificates();
   }
 
   Future<void> _initAddressSelection() async {
@@ -144,33 +138,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  Future<void> _loadCertificates() async {
-    if (!await ApiService.isUserLoggedIn()) return;
+  Future<void> _showAddressSelectionModal({
+    Map<String, dynamic>? initialAddress,
+  }) async {
     if (!mounted) return;
-    setState(() => _isLoadingCertificates = true);
-    final result = await ApiService.getCertificates(status: 'active');
-    if (!mounted) return;
-    if (result['success'] == true) {
-      final data = ApiService.mapFromDynamic(result['data']);
-      setState(() {
-        _certificates = ApiService.mapListFromDynamic(data['certificates'])
-            .where((certificate) =>
-                certificate['can_use'] != false &&
-                (certificate['status']?.toString() ?? 'active') == 'active')
-            .toList(growable: false);
-        _isLoadingCertificates = false;
-      });
-      return;
-    }
-
-    setState(() => _isLoadingCertificates = false);
-  }
-
-  Future<void> _showAddressSelectionModal() async {
-    if (!mounted) return;
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-    final selected = await AddressSelectionModalHelper.show(context);
+    final selected = await AddressSelectionModalHelper.show(
+      context,
+      initialAddress: initialAddress ?? _addressWithDetails(),
+      openDetailsFirst: _selectedAddress != null,
+    );
     if (mounted && selected != null) {
       setState(() {
         _selectedAddress = selected;
@@ -293,18 +269,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
     if (_selectedAddress == null && _deliveryType == 'DELIVERY') {
-      await _showNotice(
-          'Адрес не выбран', 'Пожалуйста, выберите адрес доставки.');
-      setState(() => _isSubmitting = false);
-      return;
+      await _showAddressSelectionModal();
+      if (_selectedAddress == null) {
+        setState(() => _isSubmitting = false);
+        return;
+      }
     }
 
-    if (_deliveryType == 'DELIVERY' && !_validateAddressDetails()) {
-      setState(() => _isSubmitting = false);
-      return;
+    if (_deliveryType == 'DELIVERY' && !_hasCompleteAddressDetails()) {
+      await _showAddressSelectionModal(initialAddress: _addressWithDetails());
+      if (!_hasCompleteAddressDetails()) {
+        setState(() => _isSubmitting = false);
+        return;
+      }
     }
 
     final normalizedAddress = _addressWithDetails();
+    if (_deliveryType == 'DELIVERY' && normalizedAddress['lat'] == null) {
+      setState(() => _isSubmitting = false);
+      return;
+    }
     final businessId = _asInt(_businessIdOf(businessProvider.selectedBusiness));
     if (businessId == null) {
       await _showNotice('Магазин не выбран',
@@ -360,6 +344,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
     };
     try {
       final result = await ApiService.createUserOrder(body);
+      if (result['success'] == true) {
+        cartProvider.clearCart();
+      }
+
       if (!mounted) return;
 
       if (result['success'] == true) {
@@ -602,12 +590,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
 
     // Bonuses apply only to items (not delivery).
-    final bonusApplied = !_isPromoCodeApplied &&
-            _useBonus &&
-            _bonusData != null &&
-            _bonusData!['success'] == true
-        ? _getUsedBonuses()
-        : 0.0;
+    final bonusApplied =
+        _useBonus && _bonusData != null && _bonusData!['success'] == true
+            ? _getUsedBonuses()
+            : 0.0;
     final certificateApplied = _getCertificateAmount();
 
     return (itemsTotal +
@@ -621,10 +607,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   /// Получить сумму использованных бонусов
   double _getUsedBonuses() {
-    if (_isPromoCodeApplied ||
-        !_useBonus ||
-        _bonusData == null ||
-        _bonusData!['success'] != true) {
+    if (!_useBonus || _bonusData == null || _bonusData!['success'] != true) {
       return 0.0;
     }
 
@@ -655,7 +638,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final certificate =
         ApiService.mapFromDynamic(_appliedCertificateData!['certificate']);
     if (certificate.isNotEmpty) return certificate;
-    final code = _certificateCodeController.text.trim();
+    final code = _promoCodeController.text.trim();
     if (code.isNotEmpty) {
       return <String, dynamic>{'code': code};
     }
@@ -674,7 +657,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   double _getCertificateAmount() {
-    if (_appliedCertificateData == null) return 0.0;
+    if (_appliedCertificateData == null) {
+      return 0.0;
+    }
     return certificateAppliedAmount(
       itemsTotal: _certificateOrderSubtotal(),
       bonusAmount: _getUsedBonuses(),
@@ -719,9 +704,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
         : 0.0;
     final totalWithDelivery = _getTotalWithDelivery();
     final earnedBonuses = _getEarnedBonuses();
-    final bool canUseBonus = !_isPromoCodeApplied &&
-        _bonusData != null &&
-        _bonusData!['success'] == true;
+    final bool canUseBonus =
+        _bonusData != null && _bonusData!['success'] == true;
     final double bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
     final double certificateUsed = _getCertificateAmount();
 
@@ -775,38 +759,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       if (_deliveryType == 'DELIVERY') ...[
                         _tapRow(
                           icon: Icons.location_on_outlined,
-                          title: _addressText(),
-                          value: _selectedAddress == null
-                              ? 'Можно выбрать позже, но перед подтверждением заказа адрес обязателен'
-                              : 'Нажмите, чтобы уточнить или изменить адрес',
-                          onTap: _showAddressSelectionModal,
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 4.s),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                  child: _compactField(
-                                      _entranceController, 'Подъезд')),
-                              SizedBox(width: 8.s),
-                              Expanded(
-                                  child:
-                                      _compactField(_floorController, 'Этаж')),
-                              SizedBox(width: 8.s),
-                              Expanded(
-                                  child: _compactField(
-                                      _apartmentController, 'Квартира')),
-                            ],
-                          ),
+                          title: _selectedAddress == null
+                              ? 'Адрес доставки'
+                              : _addressText(),
+                          value: _addressDetailsText(),
+                          onTap: () => _showAddressSelectionModal(),
                         ),
                         _tapRow(
                           icon: Icons.local_shipping_outlined,
                           title: 'Стоимость доставки',
                           value: _isCalculatingDelivery
                               ? 'считаем…'
-                              : (deliveryCost > 0
-                                  ? _money(deliveryCost)
-                                  : '—'),
+                              : (deliveryCost > 0 ? _money(deliveryCost) : '—'),
                           onTap: _calculateDelivery,
                         ),
                       ],
@@ -816,68 +780,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         value: _getDeliveryTimeText(),
                         onTap: _showDeliveryTimeSelection,
                       ),
-                      SizedBox(height: 12.s),
-                      FaqShortcutCard(
-                        title: 'Частые вопросы по оформлению',
-                        subtitle:
-                            'Минимальный заказ, доставка, промокоды, бонусы и отмена уже собраны в FAQ.',
-                        icon: Icons.help_outline_rounded,
-                        actionLabel: 'Открыть FAQ',
-                        compact: true,
-                      ),
                       _thinDivider(),
-                      Row(
-                        children: [
-                          Icon(Icons.stars_rounded,
-                              color: AppColors.orange, size: 18.s),
-                          SizedBox(width: 10.s),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Списать бонусы',
-                                    style: TextStyle(
-                                        color: AppColors.text,
-                                        fontWeight: FontWeight.w800)),
-                                if (canUseBonus)
-                                  _buildBonusSubtitle()
-                                else
-                                  const Text('Проверяем баланс…',
-                                      style: TextStyle(
-                                          color: AppColors.textMute,
-                                          fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: _useBonus,
-                            activeThumbColor: Colors.black,
-                            activeTrackColor: AppColors.orange,
-                            inactiveThumbColor: AppColors.text,
-                            inactiveTrackColor: AppColors.blue,
-                            onChanged: canUseBonus
-                                ? (v) => setState(() => _useBonus = v)
-                                : null,
-                          ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => const BonusInfoPage())),
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 28.s, top: 2.s),
-                          child: Text('Как работают бонусы →',
-                              style: TextStyle(
-                                  color: AppColors.orange,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                      _thinDivider(),
-                      _promoCodeSection(),
-                      _thinDivider(),
-                      _certificateSection(),
+                      _benefitSection(canUseBonus: canUseBonus),
                       _thinDivider(),
                       _sectionTitle('Ваш заказ · $checkoutItemCount поз.'),
                       SizedBox(height: 8.s),
@@ -917,14 +821,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         SizedBox(height: 6.s),
                       ],
                       if (bonusUsed > 0) ...[
-                        _summaryRow(
-                            'Списание бонусов', '-${_money(bonusUsed)}',
+                        _summaryRow('Списание бонусов', '-${_money(bonusUsed)}',
                             valueColor: Colors.greenAccent),
                         SizedBox(height: 6.s),
                       ],
                       if (certificateUsed > 0) ...[
-                        _summaryRow(
-                            'Сертификат', '-${_money(certificateUsed)}',
+                        _summaryRow('Сертификат', '-${_money(certificateUsed)}',
                             valueColor: Colors.greenAccent),
                         SizedBox(height: 6.s),
                       ],
@@ -1359,6 +1261,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
         emptyText: 'Выберите адрес');
   }
 
+  String _addressDetailsText() {
+    if (_selectedAddress == null) {
+      return 'Выбрать';
+    }
+
+    final parts = <String>[];
+    final entrance = _entranceController.text.trim();
+    final floor = _floorController.text.trim();
+    final apartment = _apartmentController.text.trim();
+
+    if (entrance.isNotEmpty) parts.add('под. $entrance');
+    if (floor.isNotEmpty) parts.add('эт. $floor');
+    if (apartment.isNotEmpty) parts.add('кв. $apartment');
+
+    return parts.isEmpty ? 'Уточнить детали' : parts.join(' · ');
+  }
+
   void _syncAddressDetailControllers(Map<String, dynamic>? address) {
     _entranceController.text = address?['entrance']?.toString() ?? '';
     _floorController.text = address?['floor']?.toString() ?? '';
@@ -1374,17 +1293,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
     };
   }
 
-  bool _validateAddressDetails() {
-    final missing = <String>[];
-    if (_entranceController.text.trim().isEmpty) missing.add('подъезд');
-    if (_floorController.text.trim().isEmpty) missing.add('этаж');
-    if (_apartmentController.text.trim().isEmpty) missing.add('квартиру');
-
-    if (missing.isEmpty) return true;
-
-    _showNotice('Незаполненный адрес',
-        'Добавьте ${missing.join(', ')} перед подтверждением заказа.');
-    return false;
+  bool _hasCompleteAddressDetails() {
+    return _entranceController.text.trim().isNotEmpty &&
+        _floorController.text.trim().isNotEmpty &&
+        _apartmentController.text.trim().isNotEmpty;
   }
 
   Future<void> _showNotice(String title, String message) {
@@ -1464,391 +1376,281 @@ class _CheckoutPageState extends State<CheckoutPage> {
         .trim();
   }
 
-  Widget _compactField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      textInputAction: TextInputAction.done,
-      onSubmitted: (_) => _dismissKeyboard(),
-      onTapOutside: (_) => _dismissKeyboard(),
-      style: TextStyle(
-          color: AppColors.text, fontWeight: FontWeight.w700, fontSize: 13.sp),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
-        isDense: true,
-        filled: true,
-        fillColor: AppColors.card,
-        contentPadding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 10.s),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.orange, width: 1),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBonusSubtitle() {
-    if (_bonusData == null || _bonusData!['success'] != true) {
-      return const Text('Загрузка...',
-          style: TextStyle(color: AppColors.textMute));
-    }
-
-    final bonusData = _bonusData!['data'];
-    final totalBonuses = bonusData['totalBonuses'] ?? 0;
-
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final itemsTotal = cartProvider.getTotalPrice();
-    final maxBonusUsage = itemsTotal * 0.30;
-    final availableToUse =
-        totalBonuses > maxBonusUsage ? maxBonusUsage : totalBonuses;
-
-    if (_isPromoCodeApplied) {
-      return const Text(
-        'С промокодом бонусы не начисляются и не списываются.',
-        style: TextStyle(
-            color: AppColors.textMute,
-            fontSize: 12,
-            height: 1.35,
-            fontWeight: FontWeight.w600),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('На балансе: $totalBonuses ₸',
-            style: const TextStyle(
-                color: AppColors.text,
-                fontSize: 13,
-                fontWeight: FontWeight.w800)),
-        Text(
-          'Можно списать до ${availableToUse.toStringAsFixed(0)} ₸',
-          style: const TextStyle(
-              color: AppColors.textMute,
-              fontSize: 12,
-              height: 1.35,
-              fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  Widget _promoCodeSection() {
-    final appliedCode =
-        (_appliedPromoData?['promo_code'] ?? _promoCodeController.text.trim())
-            .toString();
-    final promoDiscount =
-        (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Промокод',
-            style: TextStyle(
-                color: AppColors.textMute,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4)),
-        SizedBox(height: 8.s),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _promoCodeController,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _dismissKeyboard(),
-                onTapOutside: (_) => _dismissKeyboard(),
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (_) {
-                  if (_appliedPromoData != null) {
-                    setState(() => _appliedPromoData = null);
-                  }
-                },
-                style: TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.sp),
-                decoration: InputDecoration(
-                  hintText: 'Введите промокод',
-                  hintStyle:
-                      TextStyle(color: AppColors.textMute, fontSize: 12.sp),
-                  isDense: true,
-                  filled: true,
-                  fillColor: AppColors.card,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.orange, width: 1),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 8.s),
-            SizedBox(
-              height: 44.s,
-              child: TextButton(
-                onPressed:
-                    _isValidatingPromo ? null : _validateAndApplyPromoCode,
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 14.s),
-                ),
-                child: Text(_isValidatingPromo ? 'Проверка…' : 'Применить',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 12.sp)),
-              ),
-            ),
-          ],
-        ),
-        if (_appliedPromoData != null) ...[
-          SizedBox(height: 8.s),
-          Text(
-            'Применен: $appliedCode${promoDiscount > 0 ? ' (−${_money(promoDiscount)})' : ''}',
-            style: TextStyle(
-                color: Colors.greenAccent,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _certificateSection() {
-    final appliedCertificate = _appliedCertificate();
-    final appliedCode = appliedCertificate?['code']?.toString() ??
-        _certificateCodeController.text.trim();
-    final certificateAmount = _getCertificateAmount();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Сертификат',
-            style: TextStyle(
-                color: AppColors.textMute,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4)),
-        SizedBox(height: 8.s),
-        if (_isLoadingCertificates)
-          Padding(
-            padding: EdgeInsets.only(bottom: 8.s),
-            child: LinearProgressIndicator(
-              color: AppColors.orange,
-              backgroundColor: AppColors.cardDark,
-              minHeight: 2.s,
-            ),
-          )
-        else if (_certificates.isNotEmpty) ...[
-          SizedBox(
-            height: 86.s,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) =>
-                  _certificateChoiceCard(_certificates[index]),
-              separatorBuilder: (_, __) => SizedBox(width: 8.s),
-              itemCount: _certificates.length,
-            ),
-          ),
-          SizedBox(height: 10.s),
-        ],
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _certificateCodeController,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _dismissKeyboard(),
-                onTapOutside: (_) => _dismissKeyboard(),
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (_) {
-                  if (_appliedCertificateData != null) {
-                    setState(() => _appliedCertificateData = null);
-                  }
-                },
-                style: TextStyle(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.sp),
-                decoration: InputDecoration(
-                  hintText: 'Код сертификата',
-                  hintStyle:
-                      TextStyle(color: AppColors.textMute, fontSize: 12.sp),
-                  isDense: true,
-                  filled: true,
-                  fillColor: AppColors.card,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12.s, vertical: 12.s),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.orange, width: 1),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 8.s),
-            SizedBox(
-              height: 44.s,
-              child: TextButton(
-                onPressed: _isValidatingCertificate
-                    ? null
-                    : () => _validateAndApplyCertificate(),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 14.s),
-                ),
-                child: Text(
-                    _isValidatingCertificate ? 'Проверка…' : 'Применить',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 12.sp)),
-              ),
-            ),
-          ],
-        ),
-        if (_appliedCertificateData != null) ...[
-          SizedBox(height: 8.s),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  certificateAmount > 0
-                      ? 'Применен: $appliedCode (−${_money(certificateAmount)})'
-                      : 'Применен: $appliedCode',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: Colors.greenAccent,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Убрать сертификат',
-                onPressed: _clearCertificateSelection,
-                icon: Icon(Icons.close_rounded,
-                    color: AppColors.textMute, size: 18.s),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _certificateChoiceCard(Map<String, dynamic> certificate) {
-    final selected = _certificateIdOf(certificate) != null &&
-        _certificateIdOf(certificate) ==
-            _certificateIdOf(_appliedCertificate() ?? <String, dynamic>{});
-    final code = certificate['code']?.toString() ?? 'Сертификат';
-    final balance = _asDouble(certificate['balance']);
-    return GestureDetector(
-      onTap: () => _validateAndApplyCertificate(certificate: certificate),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 168.s,
-        padding: EdgeInsets.all(11.s),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.orange.withValues(alpha: 0.14)
-              : AppColors.card,
-          borderRadius: BorderRadius.circular(14.s),
-          border: Border.all(
-            color: selected
-                ? AppColors.orange
-                : Colors.white.withValues(alpha: 0.06),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.card_giftcard_rounded,
-                    color: AppColors.orange, size: 16.s),
-                SizedBox(width: 6.s),
-                Expanded(
-                  child: Text(
-                    code,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text('Баланс',
-                style: TextStyle(color: AppColors.textMute, fontSize: 11.sp)),
-            SizedBox(height: 2.s),
-            Text(_money(balance),
-                style: TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w900)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _clearCertificateSelection() {
+  void _toggleBonuses(bool value) {
     setState(() {
-      _appliedCertificateData = null;
-      _certificateCodeController.clear();
+      _useBonus = value;
+      if (value) {
+        _appliedPromoData = null;
+        _appliedCertificateData = null;
+        _promoCodeController.clear();
+      }
     });
   }
 
-  Future<void> _validateAndApplyCertificate({
+  Widget _benefitSection({required bool canUseBonus}) {
+    final isChecking = _isValidatingPromo || _isValidatingCertificate;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: _sectionTitle('Бонусы и промокод')),
+            _faqInfoButton(),
+          ],
+        ),
+        SizedBox(height: 8.s),
+        _bonusToggleTile(canUseBonus: canUseBonus),
+        SizedBox(height: 12.s),
+        TextField(
+          enabled: !_useBonus,
+          controller: _promoCodeController,
+          textInputAction: TextInputAction.done,
+          onSubmitted:
+              _useBonus ? null : (_) => _validateAndApplyBenefitCode(),
+          onTapOutside: (_) => _dismissKeyboard(),
+          textCapitalization: TextCapitalization.characters,
+          onChanged: (_) {
+            if (_appliedPromoData != null || _appliedCertificateData != null) {
+              setState(() {
+                _appliedPromoData = null;
+                _appliedCertificateData = null;
+              });
+            }
+          },
+          style: TextStyle(
+            color: AppColors.text,
+            fontWeight: FontWeight.w700,
+            fontSize: 13.sp,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Промокод или сертификат',
+            hintStyle: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.card,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 14.s, vertical: 13.s),
+            suffixIcon: _useBonus
+                ? Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppColors.textMute,
+                    size: 18.s,
+                  )
+                : isChecking
+                    ? Padding(
+                        padding: EdgeInsets.all(12.s),
+                        child: SizedBox.square(
+                          dimension: 18.s,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.orange,
+                          ),
+                        ),
+                      )
+                    : IconButton(
+                        tooltip: 'Применить',
+                        onPressed: _validateAndApplyBenefitCode,
+                        icon: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.orange,
+                          size: 20.s,
+                        ),
+                      ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.orange, width: 1),
+            ),
+          ),
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: _appliedBenefitBanner(),
+        ),
+      ],
+    );
+  }
+
+  Widget _bonusToggleTile({required bool canUseBonus}) {
+    final bonusBalance = _asDouble(_bonusData?['data']?['totalBonuses']);
+    return Row(
+      children: [
+        Icon(Icons.stars_rounded, color: AppColors.orange, size: 19.s),
+        SizedBox(width: 10.s),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Списать бонусы',
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                canUseBonus ? 'Доступно ${_money(bonusBalance)}' : 'Загрузка…',
+                style: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
+              ),
+            ],
+          ),
+        ),
+        Switch.adaptive(
+          value: _useBonus,
+          activeTrackColor: AppColors.orange,
+          activeThumbColor: Colors.black,
+          onChanged: canUseBonus ? _toggleBonuses : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _faqInfoButton() {
+    return IconButton(
+      tooltip: 'Как работают скидки',
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints.tightFor(width: 32.s, height: 32.s),
+      onPressed: () => openFaqPage(
+        context,
+        initialSection: FaqSection.bonuses,
+      ),
+      icon: Icon(
+        Icons.info_outline_rounded,
+        color: AppColors.textMute,
+        size: 18.s,
+      ),
+    );
+  }
+
+  Widget _appliedBenefitBanner() {
+    final hasPromo = _appliedPromoData != null;
+    final hasCertificate = _appliedCertificateData != null;
+    if (!hasPromo && !hasCertificate) {
+      return const SizedBox.shrink(key: ValueKey('benefit-status-empty'));
+    }
+
+    final appliedCertificate = _appliedCertificate();
+    final appliedCode = (hasPromo
+            ? (_appliedPromoData?['promo_code'] ?? _promoCodeController.text)
+            : appliedCertificate?['code'] ?? _promoCodeController.text)
+        .toString()
+        .trim();
+    final promoDiscount =
+        (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
+    final certificateAmount = _getCertificateAmount();
+    final amount = hasPromo ? promoDiscount : certificateAmount;
+    final label = hasPromo ? 'Промокод' : 'Сертификат';
+
+    return Padding(
+      key: ValueKey('benefit-status-$label'),
+      padding: EdgeInsets.only(top: 8.s),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline_rounded,
+              color: AppColors.orange, size: 16.s),
+          SizedBox(width: 8.s),
+          Expanded(
+            child: Text(
+              amount > 0
+                  ? '$label: $appliedCode  ·  −${_money(amount)}'
+                  : '$label: $appliedCode',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Убрать код',
+            onPressed: _clearBenefitCode,
+            icon: Icon(Icons.close_rounded,
+                color: AppColors.textMute, size: 18.s),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearBenefitCode() {
+    setState(() {
+      _appliedPromoData = null;
+      _appliedCertificateData = null;
+      _promoCodeController.clear();
+    });
+  }
+
+  Future<bool> _validateAndApplyBenefitCode() async {
+    if (_useBonus) return false;
+
+    final code = _promoCodeController.text.trim();
+    if (code.isEmpty) {
+      await _showNotice('Промокод', 'Введите код.');
+      return false;
+    }
+
+    _dismissKeyboard();
+
+    final promoApplied = await _validateAndApplyPromoCode(
+      codeOverride: code,
+      silentOnFailure: true,
+    );
+    if (promoApplied) return true;
+
+    final certificateApplied = await _validateAndApplyCertificate(
+      codeOverride: code,
+      silentOnFailure: true,
+      ignoreBonusSelection: true,
+    );
+    if (certificateApplied) return true;
+
+    if (!mounted) return false;
+    await _showNotice('Код не применён', 'Проверьте код и условия.');
+    return false;
+  }
+
+  Future<bool> _validateAndApplyCertificate({
     Map<String, dynamic>? certificate,
+    String? codeOverride,
+    bool silentOnFailure = false,
+    bool ignoreBonusSelection = false,
   }) async {
     final code = certificate?['code']?.toString().trim() ??
-        _certificateCodeController.text.trim();
+        codeOverride?.trim() ??
+        _promoCodeController.text.trim();
     final certificateId =
         certificate == null ? null : _certificateIdOf(certificate);
     if (certificateId == null && code.isEmpty) {
-      await _showNotice('Сертификат', 'Введите код сертификата.');
-      return;
+      if (!silentOnFailure) {
+        await _showNotice('Сертификат', 'Введите код сертификата.');
+      }
+      return false;
     }
 
     final eligibleSubtotal = certificateEligibleAfterBonuses(
       itemsTotal: _certificateOrderSubtotal(),
-      bonusAmount: _getUsedBonuses(),
+      bonusAmount: ignoreBonusSelection ? 0.0 : _getUsedBonuses(),
     );
     if (eligibleSubtotal <= 0) {
-      await _showNotice(
-        'Сертификат',
-        'Товарная часть заказа уже покрыта бонусами.',
-      );
-      return;
+      if (!silentOnFailure) {
+        await _showNotice(
+          'Сертификат',
+          'Товарная часть заказа уже покрыта бонусами.',
+        );
+      }
+      return false;
     }
 
     setState(() => _isValidatingCertificate = true);
@@ -1858,41 +1660,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
         code: certificateId == null ? code : null,
         orderSubtotal: eligibleSubtotal,
       );
-      if (!mounted) return;
+      if (!mounted) return false;
 
       if (result['success'] == true) {
         final data =
             result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
         if (data['can_use'] == false) {
           setState(() => _appliedCertificateData = null);
-          await _showNotice(
-            'Сертификат не применён',
-            'Этот сертификат нельзя использовать для текущего заказа.',
-          );
-          return;
+          if (!silentOnFailure) {
+            await _showNotice(
+              'Сертификат не применён',
+              'Этот сертификат нельзя использовать для текущего заказа.',
+            );
+          }
+          return false;
         }
         final validatedCertificate =
             ApiService.mapFromDynamic(data['certificate']);
         setState(() {
           _appliedCertificateData = data;
+          _useBonus = false;
           _appliedPromoData = null;
-          _promoCodeController.clear();
           if (validatedCertificate['code'] != null) {
-            _certificateCodeController.text =
-                validatedCertificate['code'].toString();
+            _promoCodeController.text = validatedCertificate['code'].toString();
           }
         });
+        return true;
       } else {
         setState(() => _appliedCertificateData = null);
         final error = result['error'];
         final message =
             error is Map ? error['message']?.toString() : error?.toString();
-        await _showNotice(
-          'Сертификат не применён',
-          message?.isNotEmpty == true
-              ? message!
-              : 'Проверьте код и баланс сертификата.',
-        );
+        if (!silentOnFailure) {
+          await _showNotice(
+            'Сертификат не применён',
+            message?.isNotEmpty == true
+                ? message!
+                : 'Проверьте код и баланс сертификата.',
+          );
+        }
+        return false;
       }
     } finally {
       if (mounted) {
@@ -1901,19 +1708,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  Future<void> _validateAndApplyPromoCode() async {
-    final code = _promoCodeController.text.trim();
+  Future<bool> _validateAndApplyPromoCode({
+    String? codeOverride,
+    bool silentOnFailure = false,
+  }) async {
+    final code = codeOverride?.trim() ?? _promoCodeController.text.trim();
     if (code.isEmpty) {
-      await _showNotice('Промокод', 'Введите промокод.');
-      return;
+      if (!silentOnFailure) {
+        await _showNotice('Промокод', 'Введите промокод.');
+      }
+      return false;
     }
 
     final businessProvider =
         Provider.of<BusinessProvider>(context, listen: false);
     final businessId = _asInt(_businessIdOf(businessProvider.selectedBusiness));
     if (businessId == null) {
-      await _showNotice('Магазин не выбран', 'Сначала выберите магазин.');
-      return;
+      if (!silentOnFailure) {
+        await _showNotice('Магазин не выбран', 'Сначала выберите магазин.');
+      }
+      return false;
     }
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
@@ -1944,7 +1758,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'delivery_price': _deliveryType == 'DELIVERY' ? deliveryCost : 0,
         'items': itemsForPromo,
       });
-      if (!mounted) return;
+      if (!mounted) return false;
       if (result['success'] == true) {
         final data =
             result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
@@ -1952,18 +1766,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
           _appliedPromoData = data;
           _useBonus = false;
           _appliedCertificateData = null;
-          _certificateCodeController.clear();
+          _promoCodeController.text = code;
         });
+        return true;
       } else {
         setState(() => _appliedPromoData = null);
         final error = result['error'];
         final message =
             error is Map ? error['message']?.toString() : error?.toString();
-        await _showNotice(
-            'Промокод не применён',
-            message?.isNotEmpty == true
-                ? message!
-                : 'Проверьте условия промокода.');
+        if (!silentOnFailure) {
+          await _showNotice(
+              'Промокод не применён',
+              message?.isNotEmpty == true
+                  ? message!
+                  : 'Проверьте условия промокода.');
+        }
+        return false;
       }
     } finally {
       if (mounted) {

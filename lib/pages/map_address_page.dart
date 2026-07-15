@@ -626,12 +626,17 @@ class AddressDetailsPage extends StatefulWidget {
     required this.initialEntrance,
     required this.initialFloor,
     required this.initialApartment,
+    this.onChangeAddress,
+    this.confirmButtonLabel = 'Подтвердить и выбрать адрес',
   });
 
   final String address;
   final String initialEntrance;
   final String initialFloor;
   final String initialApartment;
+  final Future<Map<String, dynamic>?> Function(BuildContext context)?
+      onChangeAddress;
+  final String confirmButtonLabel;
 
   @override
   State<AddressDetailsPage> createState() => _AddressDetailsPageState();
@@ -639,7 +644,6 @@ class AddressDetailsPage extends StatefulWidget {
 
 class _AddressDetailsPageState extends State<AddressDetailsPage> {
   static const Color _card = Color(0xFF1E1E1E);
-  static const Color _cardDark = Color(0xFF181818);
   static const Color _bgDeep = Color(0xFF121212);
   static const Color _bgTop = Color(0xFF161616);
   static const Color _orange = Color(0xFFF6A10C);
@@ -672,6 +676,12 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
       'floor': _floorController.text.trim(),
       'apartment': _apartmentController.text.trim(),
     });
+  }
+
+  Future<void> _changeAddress() async {
+    final selected = await widget.onChangeAddress?.call(context);
+    if (!mounted || selected == null) return;
+    Navigator.of(context).pop({'_selectedAddress': selected});
   }
 
   void _dismissKeyboard() {
@@ -728,50 +738,40 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                       SizedBox(width: 10.s),
                       Expanded(
                         child: Text(
-                          'Детали адреса',
+                          widget.address,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: _text,
-                              fontSize: 22.sp,
-                              fontWeight: FontWeight.w900),
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              height: 1.25),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16.s),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(14.s),
-                    decoration: BoxDecoration(
-                      color: _cardDark,
-                      borderRadius: BorderRadius.circular(22.s),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Выбранный адрес',
-                          style: TextStyle(
-                              color: _textMute,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700),
+                  if (widget.onChangeAddress != null) ...[
+                    SizedBox(height: 6.s),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: _changeAddress,
+                        style: TextButton.styleFrom(
+                          foregroundColor: _orange,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 4.s, vertical: 6.s),
+                          visualDensity: VisualDensity.compact,
                         ),
-                        SizedBox(height: 7.s),
-                        Text(
-                          widget.address,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                        icon: Icon(Icons.map_outlined, size: 17.s),
+                        label: Text(
+                          'Изменить на карте',
                           style: TextStyle(
-                              color: _text,
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w800,
-                              height: 1.35),
+                              fontSize: 12.sp, fontWeight: FontWeight.w800),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 18.s),
+                  ],
+                  SizedBox(height: 12.s),
                   Expanded(
                     child: SingleChildScrollView(
                       keyboardDismissBehavior:
@@ -799,14 +799,6 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                             hint: 'Например, 45 или 45Б',
                             icon: Icons.door_front_door_rounded,
                           ),
-                          SizedBox(height: 12.s),
-                          Text(
-                            'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
-                            style: TextStyle(
-                                color: _textMute,
-                                fontSize: 12.sp,
-                                height: 1.4),
-                          ),
                         ],
                       ),
                     ),
@@ -825,7 +817,7 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                             borderRadius: BorderRadius.circular(16.s)),
                       ),
                       child: Text(
-                        'Подтвердить и выбрать адрес',
+                        widget.confirmButtonLabel,
                         style: TextStyle(
                             fontSize: 14.sp, fontWeight: FontWeight.w900),
                       ),
