@@ -34,6 +34,7 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  static const List<int> _courierTipPresetAmounts = <int>[100, 200];
   static const Map<int, int> _bagItemIdsByShopId = <int, int>{
     1: 48044,
     2: 50848,
@@ -57,6 +58,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool _isSubmitting = false;
   // Тип доставки: DELIVERY, PICKUP, SCHEDULED
   String _deliveryType = 'DELIVERY';
+  int _selectedCourierTips = 0;
 
   bool get _isPromoCodeApplied => _appliedPromoData != null;
   // Время доставки: NOW или конкретное время
@@ -301,6 +303,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final certificateAmount = _getCertificateAmount();
     final certificate = _appliedCertificate();
     final isPickup = _deliveryType == 'PICKUP';
+    final courierTips = isPickup ? 0 : _getCourierTips();
     if (_deliveryType == 'DELIVERY') {
       await AddressStorageService.saveSelectedAddress(normalizedAddress);
       if (mounted) {
@@ -326,6 +329,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'delivery_type': _deliveryType,
       'delivery_time': _deliveryTime,
       'total_amount': _getTotalWithDelivery(),
+      'courier_tips': courierTips,
       'use_bonuses': _useBonus,
       if (_useBonus) 'bonus_amount': _getUsedBonuses(),
       if (_selectedDeliveryDateTime != null)
@@ -575,16 +579,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final itemsTotal = cartProvider.getTotalPrice();
     final bagCost = _checkoutBagCost(
         cartProvider.displayGroups, businessProvider.selectedBusiness);
-    final deliveryCost = (_deliveryType == 'DELIVERY' && _deliveryData != null)
-        ? (_deliveryData!['delivery_cost'] as num?)?.toDouble() ?? 0.0
-        : 0.0;
     final hasCertificate = _appliedCertificateData != null;
-    final promoDeliveryPrice = hasCertificate
-        ? null
-        : (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
-    final effectiveDeliveryCost = _deliveryType == 'DELIVERY'
-        ? (promoDeliveryPrice ?? deliveryCost)
-        : 0.0;
     final promoDiscount = hasCertificate
         ? 0.0
         : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
@@ -595,14 +590,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ? _getUsedBonuses()
             : 0.0;
     final certificateApplied = _getCertificateAmount();
+    final payableItemsTotal = (itemsTotal +
+            bagCost -
+            promoDiscount -
+            bonusApplied -
+            certificateApplied)
+        .clamp(0.0, double.infinity)
+        .toDouble();
 
-    return (itemsTotal +
-                bagCost -
-                promoDiscount -
-                bonusApplied -
-                certificateApplied)
-            .clamp(0, double.infinity) +
-        effectiveDeliveryCost;
+    return payableItemsTotal +
+        _getEffectiveDeliveryCost() +
+        _getServiceFeeAmount() +
+        _getCourierTips();
+  }
+
+  double _getEffectiveDeliveryCost() {
+    if (_deliveryType != 'DELIVERY') {
+      return 0.0;
+    }
+    final baseDeliveryCost =
+        (_deliveryData?['base_delivery_cost'] as num?)?.toDouble();
+    final fallbackDeliveryCost =
+        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+    final promoDeliveryPrice = _appliedCertificateData == null
+        ? (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble()
+        : null;
+    final deliveryCost = promoDeliveryPrice != null
+        ? promoDeliveryPrice - _getServiceFeeAmount()
+        : baseDeliveryCost ?? fallbackDeliveryCost;
+    return deliveryCost
+        .clamp(0.0, double.infinity)
+        .toDouble();
+  }
+
+  double _getServiceFeeAmount() {
+    if (_deliveryType != 'DELIVERY') {
+      return 0.0;
+    }
+    final serviceFee =
+        (_deliveryData?['service_fee_amount'] as num?)?.toDouble();
+    if (serviceFee != null) {
+      return serviceFee.clamp(0.0, double.infinity).toDouble();
+    }
+
+    final totalDelivery =
+        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+    final baseDelivery =
+        (_deliveryData?['base_delivery_cost'] as num?)?.toDouble();
+    if (baseDelivery == null) {
+      return 0.0;
+    }
+    return (totalDelivery - baseDelivery)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+  }
+
+  int _getCourierTips() {
+    if (_deliveryType != 'DELIVERY') {
+      return 0;
+    }
+    return _selectedCourierTips.clamp(0, 999999);
   }
 
   /// Получить сумму использованных бонусов
@@ -689,19 +736,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final double bagCost = hasCheckoutBag ? _checkoutBagPrice : 0.0;
     final int checkoutItemCount =
         displayGroups.length + (hasCheckoutBag ? 1 : 0);
-    final deliveryCost =
-        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
+    final deliveryCost = _getEffectiveDeliveryCost();
+    final serviceFeeAmount = _getServiceFeeAmount();
     final itemsTotal = cartProvider.getTotalPrice();
     final hasCertificate = _appliedCertificateData != null;
     final promoDiscount = hasCertificate
         ? 0.0
         : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    final promoDeliveryPrice = hasCertificate
-        ? null
-        : (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble();
-    final effectiveDeliveryCost = _deliveryType == 'DELIVERY'
-        ? (promoDeliveryPrice ?? deliveryCost)
-        : 0.0;
+    final courierTips = _getCourierTips();
     final totalWithDelivery = _getTotalWithDelivery();
     final earnedBonuses = _getEarnedBonuses();
     final bool canUseBonus =
@@ -810,9 +852,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       if (_deliveryType == 'DELIVERY') ...[
                         _summaryRow(
                             'Доставка',
-                            effectiveDeliveryCost > 0
-                                ? _money(effectiveDeliveryCost)
+                            deliveryCost > 0
+                                ? _money(deliveryCost)
                                 : '—'),
+                        SizedBox(height: 6.s),
+                        if (serviceFeeAmount > 0) ...[
+                          _summaryRow(
+                              'Сервисный сбор',
+                              _money(serviceFeeAmount),
+                              valueColor: AppColors.orange),
+                          SizedBox(height: 6.s),
+                        ],
+                        _courierTipsSelector(),
+                        if (courierTips > 0) ...[
+                          SizedBox(height: 6.s),
+                          _summaryRow(
+                              'Чаевые курьеру',
+                              _money(courierTips.toDouble()),
+                              valueColor: AppColors.orange),
+                        ],
                         SizedBox(height: 6.s),
                       ],
                       if (promoDiscount > 0) ...[
@@ -948,6 +1006,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             _deliveryType = value;
             if (value == 'PICKUP') {
               _deliveryData = null;
+              _selectedCourierTips = 0;
             } else {
               _calculateDelivery();
             }
@@ -1187,6 +1246,157 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 fontWeight: FontWeight.w700)),
       ],
     );
+  }
+
+  Widget _courierTipsSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Чаевые курьеру',
+            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+        SizedBox(height: 8.s),
+        Row(
+          children: [
+            for (int i = 0; i < _courierTipPresetAmounts.length; i++) ...[
+              if (i > 0) SizedBox(width: 8.s),
+              Expanded(
+                child: _courierTipButton(
+                  label: _money(_courierTipPresetAmounts[i].toDouble()),
+                  amount: _courierTipPresetAmounts[i],
+                ),
+              ),
+            ],
+            SizedBox(width: 8.s),
+            Expanded(
+              child: _courierTipButton(
+                label: _selectedCourierTips > 0 &&
+                        !_courierTipPresetAmounts
+                            .contains(_selectedCourierTips)
+                    ? _money(_selectedCourierTips.toDouble())
+                    : 'Другая',
+                amount: null,
+                onTap: _showCustomCourierTipDialog,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _courierTipButton({
+    required String label,
+    required int? amount,
+    VoidCallback? onTap,
+  }) {
+    final selected = amount != null
+        ? _selectedCourierTips == amount
+        : _selectedCourierTips > 0 &&
+            !_courierTipPresetAmounts.contains(_selectedCourierTips);
+    final foreground = selected ? Colors.black : AppColors.text;
+
+    return GestureDetector(
+      onTap: onTap ??
+          () {
+            if (amount == null) return;
+            setState(() {
+              _selectedCourierTips = selected ? 0 : amount;
+            });
+          },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(vertical: 10.s, horizontal: 8.s),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.orange
+              : AppColors.cardDark.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14.s),
+          border: Border.all(
+            color: selected
+                ? AppColors.orange
+                : Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: foreground,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w900)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCustomCourierTipDialog() async {
+    final controller = TextEditingController(
+      text: _selectedCourierTips > 0 &&
+              !_courierTipPresetAmounts.contains(_selectedCourierTips)
+          ? _selectedCourierTips.toString()
+          : '',
+    );
+
+    final result = await AppDialogs.show<int>(
+      context,
+      title: 'Чаевые курьеру',
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        style: const TextStyle(color: AppColors.text),
+        decoration: InputDecoration(
+          hintText: 'Введите сумму',
+          hintStyle: TextStyle(
+              color: AppColors.textMute.withValues(alpha: 0.55)),
+          suffixText: '₸',
+          suffixStyle: const TextStyle(color: AppColors.textMute),
+          filled: true,
+          fillColor: AppColors.cardDark,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.orange, width: 1),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(0),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
+          child: const Text('Убрать'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
+          child: const Text('Отмена'),
+        ),
+        TextButton(
+          onPressed: () {
+            final amount = _asInt(controller.text.trim()) ?? 0;
+            Navigator.of(context, rootNavigator: true).pop(amount);
+          },
+          style: TextButton.styleFrom(foregroundColor: AppColors.orange),
+          child: const Text('Готово'),
+        ),
+      ],
+    );
+    controller.dispose();
+    if (!mounted || result == null) return;
+    setState(() {
+      _selectedCourierTips = result.clamp(0, 999999);
+    });
   }
 
   Widget _bottomCheckoutBar({required double total}) {
