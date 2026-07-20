@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/pages/bottom_menu.dart';
+import 'package:naliv_delivery/pages/profile_setup_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 
@@ -18,6 +19,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   bool _isLoading = true;
   bool _isAuthenticated = false;
   Map<String, dynamic>? _userInfo;
+  bool _requiresProfileSetup = false;
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
         setState(() {
           _userInfo = userInfo;
           _isAuthenticated = userInfo != null;
+          _requiresProfileSetup = ProfileSetupPage.isRequiredFor(userInfo);
           _isLoading = false;
         });
       }
@@ -45,6 +48,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       if (mounted) {
         setState(() {
           _isAuthenticated = false;
+          _requiresProfileSetup = false;
           _isLoading = false;
         });
       }
@@ -52,10 +56,40 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     }
   }
 
+  Future<void> _handleProfileSetupCompleted(
+      Map<String, dynamic>? refreshedUserInfo) async {
+    final userInfo = refreshedUserInfo ?? await ApiService.getFullInfo();
+    if (!mounted) return;
+    setState(() {
+      _userInfo = userInfo;
+      _isAuthenticated = userInfo != null;
+      _requiresProfileSetup = ProfileSetupPage.isRequiredFor(userInfo);
+    });
+  }
+
+  Map<String, dynamic>? _userMap(Map<String, dynamic>? userInfo) {
+    final user = userInfo?['user'];
+    if (user is Map<String, dynamic>) {
+      return user;
+    }
+    if (user is Map) {
+      return user.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const AppLoadingScreen();
+    }
+
+    if (_isAuthenticated && _requiresProfileSetup) {
+      final user = _userMap(_userInfo);
+      return ProfileSetupPage(
+        initialUser: user ?? <String, dynamic>{},
+        onCompleted: _handleProfileSetupCompleted,
+      );
     }
 
     // Всегда показываем bottomMenu, но передаем статус авторизации

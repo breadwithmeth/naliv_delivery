@@ -1232,6 +1232,93 @@ class ApiService {
     return null;
   }
 
+  /// Обновить профиль текущего пользователя.
+  /// PATCH /api/users/profile
+  static Future<UserProfileUpdateResult> updateUserProfile({
+    required String name,
+    required String dateOfBirth,
+    int sex = 0,
+    String? firstName,
+    String? lastName,
+  }) async {
+    final token = await getAuthToken();
+    if (token == null || token.isEmpty) {
+      debugPrint('API updateUserProfile: auth token not found');
+      return const UserProfileUpdateResult(
+        success: false,
+        message: 'Требуется авторизация.',
+      );
+    }
+
+    final normalizedName = _parseString(name);
+    final normalizedDateOfBirth = _parseString(dateOfBirth);
+    if (normalizedName == null || normalizedDateOfBirth == null) {
+      return const UserProfileUpdateResult(
+        success: false,
+        message: 'Укажите имя и дату рождения.',
+      );
+    }
+
+    final body = <String, dynamic>{
+      'name': normalizedName,
+      'first_name': _parseString(firstName) ?? normalizedName,
+      'date_of_birth': normalizedDateOfBirth,
+      'sex': sex,
+    };
+
+    final normalizedLastName = _parseString(lastName);
+    if (normalizedLastName != null) {
+      body['last_name'] = normalizedLastName;
+    }
+
+    final uri = Uri.parse('$baseUrl/users/profile');
+    try {
+      final response = await http.patch(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      final jsonResponse = _responseMap(response);
+      final isSuccessStatus =
+          response.statusCode >= 200 && response.statusCode < 300;
+      final success = isSuccessStatus && jsonResponse['success'] != false;
+
+      if (success) {
+        return UserProfileUpdateResult(
+          success: true,
+          message:
+              _parseString(jsonResponse['message']) ?? 'Профиль сохранён.',
+          data: mapFromDynamic(jsonResponse['data']),
+          statusCode: response.statusCode,
+        );
+      }
+
+      final error = mapFromDynamic(jsonResponse['error']);
+      final message = _parseString(error['message']) ??
+          _parseString(jsonResponse['message']) ??
+          'Не удалось сохранить профиль.';
+      debugPrint('API updateUserProfile error: $message');
+      return UserProfileUpdateResult(
+        success: false,
+        message: message,
+        data: mapFromDynamic(jsonResponse['data']),
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      debugPrint('Network updateUserProfile error: $e');
+      return const UserProfileUpdateResult(
+        success: false,
+        message:
+            'Не удалось сохранить профиль. Проверьте соединение и попробуйте ещё раз.',
+      );
+    }
+  }
+
   /// Получить сохраненный токен аутентификации
   static Future<String?> getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -3526,6 +3613,20 @@ class AuthCodeSendResult {
     required this.message,
     this.statusCode,
     this.cooldownSeconds,
+  });
+}
+
+class UserProfileUpdateResult {
+  final bool success;
+  final String message;
+  final Map<String, dynamic>? data;
+  final int? statusCode;
+
+  const UserProfileUpdateResult({
+    required this.success,
+    required this.message,
+    this.data,
+    this.statusCode,
   });
 }
 
