@@ -659,7 +659,10 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
               businessId: selectedBusinessId,
             )
           : const LoginPage(redirectTabIndex: 2),
-      const CartPage(key: PageStorageKey('tab-cart')),
+      CartPage(
+        key: const PageStorageKey('tab-cart'),
+        onBack: _leaveCartTab,
+      ),
       widget.isAuthenticated
           ? ProfilePage(key: const PageStorageKey('tab-profile'), userInfo: widget.userInfo!)
           : const LoginPage(redirectTabIndex: 4),
@@ -682,12 +685,20 @@ class _BottomMenuState extends State<BottomMenu> with LocationMixin {
   }
 
   int _currentIndex = 0;
+  int _previousIndex = 0;
+
+  void _leaveCartTab() {
+    final targetIndex = _previousIndex == 3 ? 0 : _previousIndex;
+    _onTabTapped(targetIndex);
+  }
 
   void _onTabTapped(int index, {bool fromBrowserHistory = false}) {
     if (_currentIndex == index) {
       return;
     }
+    final previousIndex = _currentIndex;
     setState(() {
+      _previousIndex = previousIndex;
       _currentIndex = index;
     });
     if (!fromBrowserHistory) {

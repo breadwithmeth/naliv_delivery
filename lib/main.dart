@@ -23,38 +23,33 @@ final BrowserRouteHistoryObserver browserRouteHistoryObserver =
     BrowserRouteHistoryObserver();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await TelemetryConsentService.loadConsent();
-  final packageInfo = await PackageInfo.fromPlatform();
+  await runZonedGuarded<Future<void>>(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await TelemetryConsentService.loadConsent();
+      final packageInfo = await PackageInfo.fromPlatform();
 
-  await SentryFlutter.init(
-    (options) {
-      options.dsn =
-          'https://d19c02e97e5b55f26c69d3cbd7ad8394@o4510957798883328.ingest.us.sentry.io/4511133765271552';
-      options.environment = kReleaseMode ? 'production' : 'development';
-      options.release =
-          '${packageInfo.packageName}@${packageInfo.version}+${packageInfo.buildNumber}';
-      options.tracesSampleRate = 1.0;
-      options.enableAutoSessionTracking = true;
-      options.sendDefaultPii = true;
-      options.beforeSend = (event, hint) {
-        if (!TelemetryConsentService.cachedConsent) {
-          // Strip user-identifiable data when consent is off.
-          event
-            ..user = null
-            ..request = null;
-        }
-        return event;
-      };
-    },
-    appRunner: () async {
-      FlutterError.onError = (details) {
-        Sentry.captureException(details.exception, stackTrace: details.stack);
-        FlutterError.presentError(details);
-      };
-
-      runZonedGuarded(
-        () {
+      await SentryFlutter.init(
+        (options) {
+          options.dsn =
+              'https://d19c02e97e5b55f26c69d3cbd7ad8394@o4510957798883328.ingest.us.sentry.io/4511133765271552';
+          options.environment = kReleaseMode ? 'production' : 'development';
+          options.release =
+              '${packageInfo.packageName}@${packageInfo.version}+${packageInfo.buildNumber}';
+          options.tracesSampleRate = 1.0;
+          options.enableAutoSessionTracking = true;
+          options.sendDefaultPii = true;
+          options.beforeSend = (event, hint) {
+            if (!TelemetryConsentService.cachedConsent) {
+              // Strip user-identifiable data when consent is off.
+              event
+                ..user = null
+                ..request = null;
+            }
+            return event;
+          };
+        },
+        appRunner: () {
           runApp(
             MultiProvider(
               providers: [
@@ -66,10 +61,10 @@ Future<void> main() async {
             ),
           );
         },
-        (error, stack) async {
-          await Sentry.captureException(error, stackTrace: stack);
-        },
       );
+    },
+    (error, stack) async {
+      await Sentry.captureException(error, stackTrace: stack);
     },
   );
 }
@@ -90,6 +85,7 @@ class _MainState extends State<Main> with LocationMixin {
     browserHistoryEnableExitWarning();
     // Инициализируем корзину после создания виджета
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Provider.of<CartProvider>(context, listen: false).loadCart();
       unawaited(NotificationService.instance.initialize());
     });

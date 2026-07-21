@@ -2595,6 +2595,7 @@ class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final selectedContext = _selectedShopKey.currentContext;
       if (selectedContext != null) {
         Scrollable.ensureVisible(

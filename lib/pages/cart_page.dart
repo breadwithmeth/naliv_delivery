@@ -18,7 +18,12 @@ import '../utils/smart_cart.dart';
 class CartPage extends StatelessWidget {
   static const routeName = '/cart';
 
-  const CartPage({super.key});
+  const CartPage({
+    super.key,
+    this.onBack,
+  });
+
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +43,10 @@ class CartPage extends StatelessWidget {
         scrolledUnderElevation: 0,
         centerTitle: true,
         foregroundColor: AppColors.text,
-        leading: Navigator.canPop(context)
+        leading: onBack != null || Navigator.canPop(context)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                onPressed: () => Navigator.pop(context),
+                onPressed: onBack ?? () => Navigator.maybePop(context),
               )
             : null,
         title: Column(

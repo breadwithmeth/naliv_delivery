@@ -161,17 +161,41 @@ void main() {
       expect(find.text('Изменить'), findsOneWidget);
       expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     });
+
+    testWidgets('uses the shell back action without popping its navigator',
+        (tester) async {
+      var backCalls = 0;
+      final cartProvider = CartProvider();
+
+      await tester.pumpWidget(
+        _wrap(
+          cartProvider,
+          onBack: () => backCalls += 1,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
+      await tester.pumpAndSettle();
+
+      expect(backCalls, 1);
+      expect(find.text('Корзина'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 }
 
-Widget _wrap(CartProvider cartProvider) {
+Widget _wrap(
+  CartProvider cartProvider, {
+  VoidCallback? onBack,
+}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<CartProvider>.value(value: cartProvider),
       ChangeNotifierProvider<BusinessProvider>(create: (_) => BusinessProvider()),
     ],
-    child: const MaterialApp(
-      home: CartPage(),
+    child: MaterialApp(
+      home: CartPage(onBack: onBack),
     ),
   );
 }
