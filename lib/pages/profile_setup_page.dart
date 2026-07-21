@@ -309,20 +309,20 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       child: InputDecorator(
         decoration: _inputDecoration(
           label: 'Дата рождения',
-          hint: 'дд.мм.гггг',
+          hint: 'Выберите дату',
           icon: Icons.cake_rounded,
         ),
         isEmpty: date == null,
-        child: Text(
-          date == null ? 'Выберите дату' : _displayDate(date),
-          style: TextStyle(
-            color: date == null
-                ? AppColors.textMute.withValues(alpha: 0.55)
-                : AppColors.text,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        child: date == null
+            ? null
+            : Text(
+                _displayDate(date),
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }
@@ -421,7 +421,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       hintText: hint,
       hintStyle: TextStyle(color: AppColors.textMute.withValues(alpha: 0.45)),
       labelStyle: const TextStyle(color: AppColors.textMute),
-      prefixIcon: Icon(icon, color: AppColors.orange, size: 20.s),
+      prefixIcon: Padding(
+        padding: EdgeInsets.only(left: 12.s, right: 8.s),
+        child: Icon(icon, color: AppColors.orange, size: 20.s),
+      ),
+      prefixIconConstraints: BoxConstraints(minWidth: 44.s),
       filled: true,
       fillColor: AppColors.card,
       contentPadding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 15.s),

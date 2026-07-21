@@ -471,24 +471,24 @@ class FaqShortcutCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14.s),
         child: Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 12.s, vertical: 10.s),
+          padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 8.s),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(14.s),
+            borderRadius: BorderRadius.circular(12.s),
             border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Row(
             children: [
               Container(
-                width: 30.s,
-                height: 30.s,
+                width: 26.s,
+                height: 26.s,
                 decoration: BoxDecoration(
                   color: AppColors.orange.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: AppColors.orange, size: 16.s),
+                child: Icon(icon, color: AppColors.orange, size: 14.s),
               ),
-              SizedBox(width: 9.s),
+              SizedBox(width: 8.s),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,18 +497,18 @@ class FaqShortcutCard extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: AppColors.text,
-                        fontSize: 12.sp,
+                        fontSize: 11.5.sp,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 2.s),
+                    SizedBox(height: 1.s),
                     Text(
                       subtitle,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textMute,
-                        fontSize: 11.sp,
+                        fontSize: 10.5.sp,
                         height: 1.25,
                         fontWeight: FontWeight.w600,
                       ),
@@ -520,7 +520,7 @@ class FaqShortcutCard extends StatelessWidget {
               Icon(
                 Icons.chevron_right_rounded,
                 color: AppColors.textMute.withValues(alpha: 0.8),
-                size: 18.s,
+                size: 17.s,
               ),
             ],
           ),

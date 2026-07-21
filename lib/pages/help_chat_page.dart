@@ -4,6 +4,7 @@ import 'package:naliv_delivery/pages/faq_page.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
 import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
 import 'package:naliv_delivery/utils/responsive.dart';
 
 class HelpChatPage extends StatefulWidget {
@@ -30,8 +31,13 @@ class _HelpChatPageState extends State<HelpChatPage> {
   final ScrollController _scrollController = ScrollController();
 
   final List<ChatMessage> _messages = [];
+  final Set<String> _sentOrderContextKeys = <String>{};
+  Map<String, dynamic>? _selectedOrder;
+  List<Map<String, dynamic>> _selectableOrders = const [];
   bool _loading = true;
   bool _sending = false;
+  bool _sendingOrderContext = false;
+  bool _ordersLoading = false;
   bool _sessionFailed = false;
   String? _errorText;
   WidgetConfig? _config;
@@ -42,7 +48,9 @@ class _HelpChatPageState extends State<HelpChatPage> {
   @override
   void initState() {
     super.initState();
+    _selectedOrder = widget.order;
     _initChat();
+    unawaited(_loadSelectableOrders());
   }
 
   @override
@@ -138,6 +146,7 @@ class _HelpChatPageState extends State<HelpChatPage> {
       _config = config;
       _loading = false;
       _sessionFailed = false;
+      _messages.clear();
 
       if (messages.isEmpty) {
         _messages.add(ChatMessage(
@@ -149,17 +158,13 @@ class _HelpChatPageState extends State<HelpChatPage> {
         final orderId = _orderId;
         if (orderId != null) {
           _messages.add(ChatMessage(
-            content: 'Вижу заказ #$orderId. Уже прикрепили его к обращению.',
+            content: 'Вижу заказ #$orderId. Прикреплю его к обращению.',
             isFromOperator: true,
           ));
         }
 
         final paymentError = widget.paymentError;
         if (paymentError != null && paymentError.trim().isNotEmpty) {
-          _messages.add(ChatMessage(
-            content: 'Не проходит оплата: $paymentError',
-            isFromOperator: false,
-          ));
           _messages.add(const ChatMessage(
             content: 'Проверим оплату и подскажем, что можно сделать дальше.',
             isFromOperator: true,
@@ -167,16 +172,21 @@ class _HelpChatPageState extends State<HelpChatPage> {
         }
       } else {
         _messages.addAll(messages);
+        for (final message in messages) {
+          final orderKey = _orderKeyFromContextMessage(message.content);
+          if (orderKey != null) _sentOrderContextKeys.add(orderKey);
+        }
       }
     });
+    unawaited(_sendOrderContextIfNeeded());
     _scrollDown();
   }
 
   void _onMessageReceived(ChatMessage msg) {
     if (!mounted) return;
-    // Дедупликация по ID: polling/socket могут прислать уже известное сообщение
-    if (msg.id != null && _messages.any((m) => m.id == msg.id)) return;
-    setState(() => _messages.add(msg));
+    setState(() {
+      _mergeMessage(msg);
+    });
     _scrollDown();
   }
 
@@ -215,8 +225,8 @@ class _HelpChatPageState extends State<HelpChatPage> {
       }
 
       // Даже без авторизации пробуем взять phone из заказа
-      phone ??= widget.order?['phone_number']?.toString() ??
-          widget.order?['phone']?.toString();
+      phone ??= _selectedOrder?['phone_number']?.toString() ??
+          _selectedOrder?['phone']?.toString();
 
       debugPrint(
           '[ChatPage] Профиль: name=$userName userId=$userId phone=$phone');
@@ -253,7 +263,7 @@ class _HelpChatPageState extends State<HelpChatPage> {
   }
 
   String? get _orderId {
-    final order = widget.order;
+    final order = _selectedOrder;
     if (order == null) return null;
     final raw = order['order_id'] ?? order['order_uuid'] ?? order['id'];
     final value = raw?.toString();
@@ -286,6 +296,225 @@ class _HelpChatPageState extends State<HelpChatPage> {
     return 'Ожидание подключения...';
   }
 
+  Future<void> _loadSelectableOrders() async {
+    if (_ordersLoading) return;
+    setState(() => _ordersLoading = true);
+
+    try {
+      final activeOrders = await ApiService.getMyActiveOrdersList();
+      final recentOrders = await ApiService.getMyOrdersHistoryList(
+        page: 1,
+        pageSize: 10,
+      );
+      if (!mounted) return;
+
+      final orders = <Map<String, dynamic>>[];
+      final seen = <String>{};
+      void addOrder(Map<String, dynamic>? order) {
+        if (order == null) return;
+        final key = _orderKey(order);
+        if (key == null || !seen.add(key)) return;
+        orders.add(order);
+      }
+
+      addOrder(_selectedOrder);
+      for (final order in activeOrders) {
+        addOrder(order);
+      }
+      for (final order in recentOrders) {
+        addOrder(order);
+      }
+
+      setState(() {
+        _selectableOrders = orders;
+        _ordersLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[ChatPage] Ошибка загрузки заказов для поддержки: $e');
+      if (mounted) setState(() => _ordersLoading = false);
+    }
+  }
+
+  String? _orderKey(Map<String, dynamic>? order) {
+    if (order == null) return null;
+    final raw = order['order_id'] ?? order['order_uuid'] ?? order['id'];
+    final value = raw?.toString().trim();
+    if (value == null || value.isEmpty || value.toLowerCase() == 'null') {
+      return null;
+    }
+    return value;
+  }
+
+  Future<void> _sendOrderContextIfNeeded() async {
+    final order = _selectedOrder;
+    final orderKey = _orderKey(order);
+    if (order == null || orderKey == null || _sendingOrderContext) return;
+    if (_sentOrderContextKeys.contains(orderKey)) return;
+    if (!_chatService.hasSession || _sessionFailed) return;
+
+    _sendingOrderContext = true;
+    final content = _buildOrderContextMessage(order);
+    final localMsg = ChatMessage.local(content);
+    if (mounted) {
+      setState(() {
+        _sentOrderContextKeys.add(orderKey);
+        _messages.add(localMsg);
+      });
+      _scrollDown();
+    }
+
+    final result = await _chatService.sendMessage(content);
+    if (!mounted) return;
+
+    setState(() {
+      _sendingOrderContext = false;
+      switch (result) {
+        case SendSuccess(message: final serverMsg):
+          _mergeMessage(serverMsg, fallbackLocalContent: content);
+          _errorText = null;
+        case SendSessionExpired():
+          _sentOrderContextKeys.remove(orderKey);
+          _sessionFailed = true;
+          _errorText = 'Сессия истекла. Нажмите «Повторить».';
+        case SendFailure():
+          _sentOrderContextKeys.remove(orderKey);
+          final idx = _messages.indexWhere(
+            (m) => m.id == null && m.content == content,
+          );
+          if (idx != -1) _messages.removeAt(idx);
+          _errorText = 'Не удалось прикрепить заказ к чату.';
+      }
+    });
+
+    if (_orderId != orderKey) {
+      unawaited(_sendOrderContextIfNeeded());
+    }
+  }
+
+  String _buildOrderContextMessage(Map<String, dynamic> order) {
+    final orderKey = _orderKey(order) ?? '-';
+    final business = order_ui.asOrderMap(order['business']);
+    final address = order_ui.asOrderMap(order['delivery_address']);
+    final total = order_ui.resolveOrderTotalAmount(order);
+    final paymentError = widget.entryPoint == 'payment_failure' &&
+            orderKey == _orderKey(widget.order)
+        ? widget.paymentError?.trim()
+        : null;
+    final lines = <String>[
+      'Контекст обращения: заказ #$orderKey',
+      'Источник: $_topic',
+      'Статус: ${order_ui.resolveOrderStatusText(order)}',
+      'Тип: ${order_ui.resolveDeliveryTypeText(order)}',
+      if (business?['name']?.toString().trim().isNotEmpty ?? false)
+        'Магазин: ${business!['name']}',
+      if (total != null) 'Сумма: ${_formatMoney(total)}',
+      if (address?['address']?.toString().trim().isNotEmpty ?? false)
+        'Адрес: ${address!['address']}',
+      if (paymentError != null && paymentError.isNotEmpty)
+        'Ошибка оплаты: $paymentError',
+    ];
+    return lines.join('\n');
+  }
+
+  String? _orderKeyFromContextMessage(String content) {
+    final match = RegExp(r'Контекст обращения: заказ #([^\s]+)')
+        .firstMatch(content);
+    return match?.group(1);
+  }
+
+  void _mergeMessage(ChatMessage message, {String? fallbackLocalContent}) {
+    if (message.id != null) {
+      final existingIndex = _messages.indexWhere((m) => m.id == message.id);
+      if (existingIndex != -1) {
+        _messages[existingIndex] = message;
+        return;
+      }
+    }
+
+    final localIndex = _messages.indexWhere((m) {
+      if (m.id != null || m.isFromOperator != message.isFromOperator) {
+        return false;
+      }
+      return m.content == message.content ||
+          (fallbackLocalContent != null && m.content == fallbackLocalContent);
+    });
+
+    if (localIndex != -1) {
+      _messages[localIndex] = message;
+      return;
+    }
+
+    _messages.add(message);
+  }
+
+  Future<void> _showOrderPicker() async {
+    if (_ordersLoading) return;
+    if (_selectableOrders.isEmpty) {
+      await _loadSelectableOrders();
+      if (!mounted || _selectableOrders.isEmpty) return;
+    }
+
+    final selected = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: AppColors.cardDark,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22.s)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16.s, 14.s, 16.s, 18.s),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Заказ для обращения',
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                      color: AppColors.textMute,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8.s),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _selectableOrders.length,
+                    separatorBuilder: (_, __) => Divider(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      height: 1,
+                    ),
+                    itemBuilder: (context, index) {
+                      final order = _selectableOrders[index];
+                      return _orderPickerTile(order);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+    final selectedKey = _orderKey(selected);
+    if (selectedKey == null || selectedKey == _orderId) return;
+    setState(() => _selectedOrder = selected);
+    unawaited(_sendOrderContextIfNeeded());
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _sending) return;
@@ -308,15 +537,7 @@ class _HelpChatPageState extends State<HelpChatPage> {
         setState(() {
           _sending = false;
           _errorText = null;
-          // Заменяем локальное сообщение серверным (поиск по отсутствию id)
-          final idx = _messages.indexWhere(
-            (m) => m.id == null && m.content == text,
-          );
-          if (idx != -1) {
-            _messages[idx] = serverMsg;
-          } else {
-            _messages.add(serverMsg);
-          }
+          _mergeMessage(serverMsg, fallbackLocalContent: text);
         });
       case SendSessionExpired():
         setState(() {
@@ -497,47 +718,160 @@ class _HelpChatPageState extends State<HelpChatPage> {
   }
 
   Widget _contextHeader() {
+    final order = _selectedOrder;
+    final orderId = _orderId;
+    final business = order_ui.asOrderMap(order?['business']);
+    final businessName = business?['name']?.toString().trim();
+    final total = order == null ? null : order_ui.resolveOrderTotalAmount(order);
+    final orderMeta = [
+      if (businessName != null && businessName.isNotEmpty) businessName,
+      if (order != null) order_ui.resolveOrderStatusText(order),
+      if (total != null) _formatMoney(total),
+    ].join(' • ');
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.s),
       decoration: AppDecorations.card(radius: 16.s, color: AppColors.cardDark),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            width: 36.s,
-            height: 36.s,
-            decoration: AppDecorations.pill(
-                color: AppColors.orange.withValues(alpha: 0.16)),
-            child: Icon(Icons.support_agent_rounded,
-                color: AppColors.orange, size: 20.s),
-          ),
-          SizedBox(width: 10.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _topic,
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w900),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36.s,
+                height: 36.s,
+                decoration: AppDecorations.pill(
+                    color: AppColors.orange.withValues(alpha: 0.16)),
+                child: Icon(Icons.support_agent_rounded,
+                    color: AppColors.orange, size: 20.s),
+              ),
+              SizedBox(width: 10.s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _topic,
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w900),
+                    ),
+                    SizedBox(height: 5.s),
+                    Text(
+                      _subtitle,
+                      style: TextStyle(
+                          color: AppColors.textMute,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700),
+                    ),
+                    if (orderMeta.isNotEmpty) ...[
+                      SizedBox(height: 5.s),
+                      Text(
+                        orderMeta,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textMute.withValues(alpha: 0.78),
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                SizedBox(height: 5.s),
-                Text(
-                  _subtitle,
-                  style: TextStyle(
-                      color: AppColors.textMute,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700),
+              ),
+              SizedBox(width: 8.s),
+              TextButton.icon(
+                onPressed: _ordersLoading ? null : _showOrderPicker,
+                icon: Icon(
+                  orderId == null
+                      ? Icons.add_link_rounded
+                      : Icons.swap_horiz_rounded,
+                  size: 17.s,
                 ),
-              ],
-            ),
+                label: Text(orderId == null ? 'Выбрать' : 'Сменить'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.orange,
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 8.s, vertical: 6.s),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _orderPickerTile(Map<String, dynamic> order) {
+    final orderId = _orderKey(order) ?? '-';
+    final isSelected = orderId == _orderId;
+    final business = order_ui.asOrderMap(order['business']);
+    final businessName = business?['name']?.toString().trim();
+    final total = order_ui.resolveOrderTotalAmount(order);
+    final subtitle = [
+      if (businessName != null && businessName.isNotEmpty) businessName,
+      order_ui.resolveOrderStatusText(order),
+      order_ui.resolveDeliveryTypeText(order),
+    ].join(' • ');
+
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 2.s, vertical: 4.s),
+      leading: Container(
+        width: 36.s,
+        height: 36.s,
+        decoration: AppDecorations.pill(
+          color: (isSelected ? AppColors.orange : AppColors.textMute)
+              .withValues(alpha: isSelected ? 0.18 : 0.10),
+        ),
+        child: Icon(
+          isSelected ? Icons.check_rounded : Icons.receipt_long_rounded,
+          color: isSelected ? AppColors.orange : AppColors.textMute,
+          size: 19.s,
+        ),
+      ),
+      title: Text(
+        'Заказ #$orderId',
+        style: TextStyle(
+          color: AppColors.text,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: AppColors.textMute,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+          height: 1.28,
+        ),
+      ),
+      trailing: total == null
+          ? null
+          : Text(
+              _formatMoney(total),
+              style: TextStyle(
+                color: AppColors.orange,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+      onTap: () => Navigator.of(context).pop(order),
+    );
+  }
+
+  String _formatMoney(num value) {
+    final isWhole = value == value.roundToDouble();
+    final amount = isWhole ? value.toInt().toString() : value.toStringAsFixed(2);
+    return '$amount ₸';
   }
 
   FaqSection? _faqSectionForContext() {

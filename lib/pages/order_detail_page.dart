@@ -299,6 +299,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             SizedBox(height: 12.s),
             _section(child: _supportCard(order)),
             SizedBox(height: 12.s),
+            _faqShortcutForOrder(order),
+            SizedBox(height: 12.s),
             if (business != null) ...[
               _section(child: _businessCard(business)),
               SizedBox(height: 12.s),
@@ -335,8 +337,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final hasPaymentIssue = _isPaymentIssueStatus(statusCode);
     final orderId = order['order_id']?.toString() ?? order['order_uuid']?.toString();
     final topic = hasPaymentIssue ? 'Ошибка оплаты' : 'Заказ #${orderId ?? '-'}';
-    final faqSection =
-        hasPaymentIssue ? FaqSection.payment : FaqSection.orderProblems;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +369,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         SizedBox(height: 12.s),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          child: FilledButton.icon(
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -382,36 +382,32 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               );
             },
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-            label: const Text('Написать в поддержку'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.orange,
-              side: const BorderSide(color: AppColors.orange, width: 1.2),
+            label: const Text('Открыть чат поддержки'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.orange,
+              foregroundColor: Colors.black,
               padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
             ),
           ),
         ),
-        SizedBox(height: 8.s),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            onPressed: () => openFaqPage(
-              context,
-              initialSection: faqSection,
-            ),
-            icon: const Icon(Icons.help_outline_rounded, size: 18),
-            label: Text(
-              hasPaymentIssue
-                  ? 'Открыть FAQ по оплате'
-                  : 'Открыть FAQ по заказам и возвратам',
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textMute,
-              padding: EdgeInsets.symmetric(vertical: 8.s, horizontal: 0),
-            ),
-          ),
-        ),
       ],
+    );
+  }
+
+  Widget _faqShortcutForOrder(Map<String, dynamic> order) {
+    final statusCode = _resolveCurrentStatus(order)?['status']?.toString();
+    final hasPaymentIssue = _isPaymentIssueStatus(statusCode);
+
+    return FaqShortcutCard(
+      title: hasPaymentIssue ? 'Проверить оплату в FAQ' : 'Ответы по заказу',
+      subtitle: hasPaymentIssue
+          ? 'Короткие подсказки по ошибкам оплаты, ожиданию списания и повторной оплате.'
+          : 'Задержки, отмены, возвраты и вопросы по доставленному заказу собраны здесь.',
+      initialSection: hasPaymentIssue ? FaqSection.payment : FaqSection.orderProblems,
+      icon: hasPaymentIssue ? Icons.payments_outlined : Icons.help_outline_rounded,
+      actionLabel: hasPaymentIssue ? 'Открыть оплату' : 'Открыть ответы',
+      compact: true,
     );
   }
 
@@ -446,10 +442,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final statusColor = isCanceled ? AppColors.red : AppColors.orange;
     final createdAt = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
     final deliveryType = order_ui.resolveDeliveryTypeText(order);
+    final total = order_ui.resolveOrderTotalAmount(order);
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.s),
+      padding: EdgeInsets.all(15.s),
       decoration: AppDecorations.card(radius: 16.s, color: AppColors.cardDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,24 +471,46 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             SizedBox(height: 4.s),
             Text('Последний статус: $lastKnownStatus', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
           ],
-          SizedBox(height: 5.s),
+          SizedBox(height: 12.s),
           Row(
             children: [
-              Icon(Icons.receipt_long, color: AppColors.textMute, size: 14.s),
-              SizedBox(width: 5.s),
-              Text('Заказ #${order['order_id'] ?? '-'}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+              Expanded(
+                child: _summaryTile(
+                  Icons.receipt_long_outlined,
+                  'Заказ',
+                  '#${order['order_id'] ?? '-'}',
+                ),
+              ),
+              SizedBox(width: 8.s),
+              Expanded(
+                child: _summaryTile(
+                  Icons.place_outlined,
+                  'Тип',
+                  deliveryType,
+                ),
+              ),
             ],
           ),
-          if (createdAt != null) ...[
-            SizedBox(height: 4.s),
-            Text('Создан: ${_formatDateTime(createdAt)}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-          ],
-          SizedBox(height: 7.s),
+          SizedBox(height: 8.s),
           Row(
             children: [
-              Icon(Icons.place_outlined, color: AppColors.textMute, size: 14.s),
-              SizedBox(width: 5.s),
-              Text('Тип доставки: $deliveryType', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+              if (createdAt != null)
+                Expanded(
+                  child: _summaryTile(
+                    Icons.schedule_rounded,
+                    'Создан',
+                    _formatDateTime(createdAt),
+                  ),
+                ),
+              if (createdAt != null) SizedBox(width: 8.s),
+              Expanded(
+                child: _summaryTile(
+                  Icons.payments_outlined,
+                  'Сумма',
+                  total == null ? 'Уточняется' : _formatMoney(total),
+                  accent: total != null,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 12.s),
@@ -540,6 +559,89 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
+  Widget _summaryTile(
+    IconData icon,
+    String label,
+    String value, {
+    bool accent = false,
+  }) {
+    return Container(
+      constraints: BoxConstraints(minHeight: 58.s),
+      padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 9.s),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(12.s),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: accent ? AppColors.orange : AppColors.textMute,
+            size: 16.s,
+          ),
+          SizedBox(width: 7.s),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textMute,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: 2.s),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: accent ? AppColors.orange : AppColors.text,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cardHeader(IconData icon, String title, {Widget? trailing}) {
+    return Row(
+      children: [
+        Container(
+          width: 30.s,
+          height: 30.s,
+          decoration: AppDecorations.pill(
+            color: AppColors.orange.withValues(alpha: 0.12),
+          ),
+          child: Icon(icon, color: AppColors.orange, size: 16.s),
+        ),
+        SizedBox(width: 9.s),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: AppColors.text,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        if (trailing != null) trailing,
+      ],
+    );
+  }
+
   Widget _businessCard(Map<String, dynamic> business) {
     final name = business['name']?.toString() ?? 'Магазин';
     final address = business['address']?.toString();
@@ -547,13 +649,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.store_mall_directory, color: AppColors.orange),
-            SizedBox(width: 7.s),
-            const Text('Магазин', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-          ],
-        ),
+        _cardHeader(Icons.store_mall_directory_outlined, 'Магазин'),
         SizedBox(height: 9.s),
         Text(name, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
         if (address != null) ...[
@@ -583,13 +679,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.location_on_outlined, color: AppColors.orange),
-            SizedBox(width: 7.s),
-            const Text('Адрес доставки', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-          ],
-        ),
+        _cardHeader(Icons.location_on_outlined, 'Адрес доставки'),
         SizedBox(height: 9.s),
         Text(address['address']?.toString() ?? 'Адрес не указан',
             style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700)),
@@ -629,14 +719,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.shopping_bag, color: AppColors.orange),
-            SizedBox(width: 7.s),
-            Text('Товары ($itemsCount)', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-            const Spacer(),
-            Text('Всего: $totalAmount', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-          ],
+        _cardHeader(
+          Icons.shopping_bag_outlined,
+          'Товары ($itemsCount)',
+          trailing: Text(
+            'Всего: $totalAmount',
+            style: TextStyle(
+              color: AppColors.textMute,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
         SizedBox(height: 10.s),
         for (int i = 0; i < items.length; i++) ...[
@@ -654,27 +747,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.near_me, color: AppColors.orange),
-            SizedBox(width: 7.s),
-            const Expanded(
-              child: Text('Курьер', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-            ),
-            IconButton(
-              onPressed: _isLoadingCourier ? null : _loadCourierLocation,
-              icon: _isLoadingCourier
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(AppColors.orange),
-                      ),
+        _cardHeader(
+          Icons.near_me_outlined,
+          'Курьер',
+          trailing: IconButton(
+            onPressed: _isLoadingCourier ? null : _loadCourierLocation,
+            icon: _isLoadingCourier
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(AppColors.orange),
                     )
-                  : const Icon(Icons.refresh, color: AppColors.textMute),
-            ),
-          ],
+                  )
+                : const Icon(Icons.refresh, color: AppColors.textMute),
+          ),
         ),
         const SizedBox(height: 10),
         if (_courierLocation == null && _courierError == null)
@@ -777,13 +865,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.receipt_long, color: AppColors.orange),
-            SizedBox(width: 7.s),
-            const Text('Стоимость', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-          ],
-        ),
+        _cardHeader(Icons.receipt_long_outlined, 'Стоимость'),
         const SizedBox(height: 12),
         if (!hasKnownCost)
           Text('Стоимость будет уточнена.', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))
@@ -822,7 +904,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Информация', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
+        _cardHeader(Icons.info_outline_rounded, 'Информация'),
         const SizedBox(height: 10),
         _infoRow('Способ оплаты', order['payment_method']),
         _infoRow('Создан', _formatDateTime(order['created_at']?.toString() ?? order['log_timestamp']?.toString())),
@@ -1128,13 +1210,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.history, color: AppColors.orange),
-            SizedBox(width: 7.s),
-            const Text('История статусов', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-          ],
-        ),
+        _cardHeader(Icons.history_rounded, 'История статусов'),
         const SizedBox(height: 12),
         for (int i = 0; i < statuses.length; i++) ...[
           _historyItem(_asMap(statuses[i]) ?? const <String, dynamic>{}, isLatest: i == 0),
