@@ -39,11 +39,11 @@ android {
     }
 
     defaultConfig {
-        applicationId1.2.113adusy24.app"
+        applicationId "kz.gradusy24.app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
-        versionCode 123
-        versionName "1.2.110"
+        versionCode 12113
+        versionName "1.2.113"
     }
 
     signingConfigs {
