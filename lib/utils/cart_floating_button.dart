@@ -112,63 +112,64 @@ class CombinedClayPainter extends CustomPainter {
 
   Path _getCartPath() {
     final path = Path();
-    path.moveTo(85.7139, 5.12339);
-    path.cubicTo(88.9903, 2.91148, 92.3338, -0.472281, 95.2988, 0.0550279);
-    path.cubicTo(98.3489, 0.595607, 100.38, 4.94574, 102.687, 8.15268);
-    path.cubicTo(105.556, 9.0197, 108.355, 10.0569, 111.067, 11.2503);
-    path.cubicTo(114.882, 10.3049, 119.177, 8.29716, 121.808, 9.84311);
-    path.cubicTo(124.464, 11.4022, 124.899, 16.1836, 125.985, 20.0042);
-    path.cubicTo(128.376, 21.8114, 130.659, 23.7572, 132.821, 25.8333);
-    path.cubicTo(136.718, 26.2616, 141.437, 25.867, 143.403, 28.2435);
-    path.cubicTo(145.367, 30.6121, 144.165, 35.2579, 143.91, 39.2298);
-    path.cubicTo(145.545, 41.742, 147.04, 44.3567, 148.378, 47.0648);
-    path.cubicTo(151.896, 48.8119, 156.471, 50.079, 157.523, 53.0169);
-    path.cubicTo(158.558, 55.9027, 155.858, 59.8359, 154.277, 63.4867);
-    path.cubicTo(154.959, 66.3931, 155.477, 69.3673, 155.819, 72.3939);
-    path.cubicTo(158.53, 75.2457, 162.398, 78.0377, 162.398, 81.1976);
-    path.cubicTo(162.398, 84.3575, 158.53, 87.1489, 155.819, 90.0033);
-    path.cubicTo(155.477, 93.0326, 155.959, 96.0052, 154.277, 98.9144);
-    path.cubicTo(155.86, 102.565, 158.558, 106.498, 157.523, 109.384);
-    path.cubicTo(156.468, 112.319, 151.896, 113.588, 148.378, 115.335);
-    path.cubicTo(147.039, 118.043, 145.547, 120.658, 143.91, 123.17);
-    path.cubicTo(144.165, 127.142, 145.364, 131.785, 143.403, 134.157);
-    path.cubicTo(141.437, 136.533, 136.718, 136.139, 132.821, 136.568);
-    path.cubicTo(130.659, 138.641, 128.379, 140.589, 125.985, 142.394);
-    path.cubicTo(124.897, 146.212, 124.464, 150.996, 121.808, 152.555);
-    path.cubicTo(119.177, 154.098, 114.882, 152.091, 111.067, 151.148);
-    path.cubicTo(108.352, 152.341, 105.556, 153.377, 102.687, 154.244);
-    path.cubicTo(100.38, 157.451, 98.3489, 161.803, 95.2988, 162.343);
-    path.cubicTo(92.3338, 162.87, 88.9903, 159.488, 85.7139, 157.274);
-    path.cubicTo(84.2184, 157.363, 82.7153, 157.415, 81.1992, 157.415);
-    path.cubicTo(79.6832, 157.415, 78.1774, 157.363, 76.6846, 157.274);
-    path.cubicTo(73.4081, 159.486, 70.0647, 162.87, 67.0996, 162.343);
-    path.cubicTo(64.0495, 161.803, 62.0181, 157.451, 59.7119, 154.244);
-    path.cubicTo(56.8421, 153.377, 54.0439, 152.341, 51.3311, 151.148);
-    path.cubicTo(47.5167, 152.093, 43.2212, 154.101, 40.5908, 152.555);
-    path.cubicTo(37.9346, 150.996, 37.4992, 146.215, 36.4131, 142.394);
-    path.cubicTo(34.022, 140.587, 31.7392, 138.641, 29.5771, 136.565);
-    path.cubicTo(25.6803, 136.137, 20.9616, 136.531, 18.9951, 134.155);
-    path.cubicTo(17.0312, 131.786, 18.2335, 127.139, 18.4883, 123.167);
-    path.cubicTo(16.854, 120.655, 15.3588, 118.041, 14.0205, 115.333);
-    path.cubicTo(10.502, 113.586, 5.92773, 112.319, 4.875, 109.381);
-    path.cubicTo(3.84031, 106.495, 6.54071, 102.562, 8.12109, 98.9115);
-    path.cubicTo(7.43901, 96.0049, 6.92143, 93.03, 6.5791, 90.0033);
-    path.cubicTo(3.86887, 87.1516, 0.000266942, 84.3603, 0, 81.2005);
-    path.cubicTo(0, 78.0406, 3.86877, 75.2483, 6.5791, 72.3939);
-    path.cubicTo(6.92143, 69.3646, 7.43903, 66.3929, 8.12109, 63.4837);
-    path.cubicTo(6.53815, 59.8328, 3.84033, 55.8997, 4.875, 53.014);
-    path.cubicTo(5.9303, 50.0787, 10.502, 48.809, 14.0205, 47.0619);
-    path.cubicTo(15.3588, 44.354, 16.8514, 41.74, 18.4883, 39.2279);
-    path.cubicTo(18.2335, 35.2557, 17.0338, 30.6118, 18.9951, 28.2406);
-    path.cubicTo(20.9616, 25.8642, 25.6803, 26.2587, 29.5771, 25.8304);
-    path.cubicTo(31.7392, 23.757, 34.0194, 21.8087, 36.4131, 20.0042);
-    path.cubicTo(37.5019, 16.1862, 37.9345, 11.4022, 40.5908, 9.84311);
-    path.cubicTo(43.2213, 8.29977, 47.5166, 10.3075, 51.3311, 11.2503);
-    path.cubicTo(54.0465, 10.0569, 56.8421, 9.0197, 59.7119, 8.15268);
-    path.cubicTo(62.0181, 4.94574, 64.0496, 0.595607, 67.0996, 0.0550279);
-    path.cubicTo(70.0647, -0.472288, 73.4081, 2.90886, 76.6846, 5.12339);
-    path.cubicTo(78.1774, 5.0346, 79.6832, 4.98276, 81.1992, 4.98276);
-    path.cubicTo(82.7152, 4.98276, 84.221, 5.0346, 85.7139, 5.12339);
+    // Обновленные координаты векторной шестеренки со сглаженными зубьями
+    path.moveTo(85.7139, 7.12339);
+    path.cubicTo(88.0, 5.0, 92.33, 2.5, 95.2988, 3.055);
+    path.cubicTo(97.5, 3.5, 99.8, 6.5, 102.0, 9.5);
+    path.cubicTo(105.0, 10.3, 108.0, 11.5, 110.5, 12.5);
+    path.cubicTo(113.8, 11.8, 118.0, 10.5, 120.8, 11.84);
+    path.cubicTo(123.0, 12.9, 124.0, 16.5, 125.0, 19.5);
+    path.cubicTo(127.5, 21.2, 130.0, 23.0, 132.0, 25.0);
+    path.cubicTo(135.5, 25.5, 139.8, 25.5, 141.8, 27.5);
+    path.cubicTo(143.5, 29.2, 143.0, 33.5, 142.8, 37.2);
+    path.cubicTo(144.5, 39.5, 146.0, 42.0, 147.2, 44.5);
+    path.cubicTo(150.2, 46.0, 154.2, 47.5, 155.2, 50.0);
+    path.cubicTo(156.2, 52.5, 154.0, 56.2, 152.8, 59.5);
+    path.cubicTo(153.8, 62.2, 154.5, 65.0, 154.8, 68.0);
+    path.cubicTo(157.2, 70.5, 160.5, 73.0, 160.5, 76.0);
+    path.cubicTo(160.5, 79.0, 157.2, 81.5, 154.8, 84.0);
+    path.cubicTo(154.5, 87.0, 153.8, 89.8, 152.8, 92.5);
+    path.cubicTo(154.0, 95.8, 156.2, 99.5, 155.2, 102.0);
+    path.cubicTo(154.2, 104.5, 150.2, 106.0, 147.2, 107.5);
+    path.cubicTo(146.0, 110.0, 144.5, 112.5, 142.8, 114.8);
+    path.cubicTo(143.0, 118.5, 143.5, 122.8, 141.8, 124.5);
+    path.cubicTo(139.8, 126.5, 135.5, 126.5, 132.0, 127.0);
+    path.cubicTo(130.0, 129.0, 127.5, 130.8, 125.0, 132.5);
+    path.cubicTo(124.0, 135.5, 123.0, 139.1, 120.8, 140.16);
+    path.cubicTo(118.0, 141.5, 113.8, 140.2, 110.5, 139.5);
+    path.cubicTo(108.0, 140.5, 105.0, 141.7, 102.0, 142.5);
+    path.cubicTo(99.8, 145.5, 97.5, 148.5, 95.2988, 148.945);
+    path.cubicTo(92.33, 149.5, 88.0, 147.0, 85.7139, 144.876);
+    path.cubicTo(84.2, 144.95, 82.7, 145.0, 81.1992, 145.0);
+    path.cubicTo(79.68, 145.0, 78.18, 144.95, 76.6846, 144.876);
+    path.cubicTo(74.4, 147.0, 70.06, 149.5, 67.0996, 148.945);
+    path.cubicTo(64.8, 148.5, 62.5, 145.5, 60.3, 142.5);
+    path.cubicTo(57.3, 141.7, 54.3, 140.5, 51.8, 139.5);
+    path.cubicTo(48.5, 140.2, 44.3, 141.5, 41.5, 140.16);
+    path.cubicTo(39.3, 139.1, 38.3, 135.5, 37.3, 132.5);
+    path.cubicTo(34.8, 130.8, 32.3, 129.0, 30.3, 127.0);
+    path.cubicTo(26.8, 126.5, 22.5, 126.5, 20.5, 124.5);
+    path.cubicTo(18.8, 122.8, 19.3, 118.5, 19.5, 114.8);
+    path.cubicTo(17.8, 112.5, 16.3, 110.0, 15.1, 107.5);
+    path.cubicTo(12.1, 106.0, 8.1, 104.5, 7.1, 102.0);
+    path.cubicTo(6.1, 99.5, 8.3, 95.8, 9.5, 92.5);
+    path.cubicTo(8.5, 89.8, 7.8, 87.0, 7.5, 84.0);
+    path.cubicTo(5.1, 81.5, 1.8, 79.0, 1.8, 76.0);
+    path.cubicTo(1.8, 73.0, 5.1, 70.5, 7.5, 68.0);
+    path.cubicTo(7.8, 65.0, 8.5, 62.2, 9.5, 59.5);
+    path.cubicTo(8.3, 56.2, 6.1, 52.5, 7.1, 50.0);
+    path.cubicTo(8.1, 47.5, 12.1, 46.0, 15.1, 44.5);
+    path.cubicTo(16.3, 42.0, 17.8, 39.5, 19.5, 37.2);
+    path.cubicTo(19.3, 33.5, 18.8, 29.2, 20.5, 27.5);
+    path.cubicTo(22.5, 25.5, 26.8, 25.5, 30.3, 25.0);
+    path.cubicTo(32.3, 23.0, 34.8, 21.2, 37.3, 19.5);
+    path.cubicTo(38.3, 16.5, 39.3, 12.9, 41.5, 11.84);
+    path.cubicTo(44.3, 10.5, 48.5, 11.8, 51.8, 12.5);
+    path.cubicTo(54.3, 11.5, 57.3, 10.3, 60.3, 9.5);
+    path.cubicTo(62.5, 6.5, 64.8, 3.5, 67.0996, 3.055);
+    path.cubicTo(70.06, 2.5, 74.4, 5.0, 76.6846, 7.12339);
+    path.cubicTo(78.18, 7.0346, 79.68, 6.98276, 81.1992, 6.98276);
+    path.cubicTo(82.71, 6.98276, 84.2, 7.0346, 85.7139, 7.12339);
     path.close();
     return path;
   }
@@ -209,7 +210,7 @@ class CartFloatingButton extends StatelessWidget {
         final total = cart.getTotalPrice();
         final showPrice = itemCount > 0;
 
-        final buttonSize = 100.s;
+        final buttonSize = 70.s;
         final maxPillExtension = 110.s; // На сколько плашка выезжает вправо
 
         return Stack(
@@ -218,7 +219,7 @@ class CartFloatingButton extends StatelessWidget {
           children: [
             TweenAnimationBuilder<double>(
               duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutCubic,
+              curve: Curves.easeInOutCirc,
               tween: Tween<double>(begin: 0.0, end: showPrice ? 1.0 : 0.0),
               builder: (context, t, child) {
                 // Текущая ширина "выпирающей" части плашки
@@ -271,16 +272,18 @@ class CartFloatingButton extends StatelessWidget {
                                     _money(total),
                                     key: ValueKey(total),
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15.sp,
+                                      color: 
+                                      showPrice ? Colors.white : Colors.transparent,
+                                      
+                                      fontSize: 24.sp,
                                       fontWeight: FontWeight.w900,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          offset: const Offset(0, 1),
-                                          blurRadius: 2,
-                                        ),
-                                      ],
+                                      // shadows: [
+                                      //   Shadow(
+                                      //     color: Colors.black.withOpacity(0.3),
+                                      //     offset: const Offset(0, 1),
+                                      //     blurRadius: 2,
+                                      //   ),
+                                      // ],
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -290,31 +293,31 @@ class CartFloatingButton extends StatelessWidget {
                             ),
 
                           // 3. Бейджик количества товаров (Всегда в центре шестеренки)
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            width: buttonSize,
-                            height: buttonSize,
-                            child: itemCount > 0
-                                ? Center(
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black26,
-                                        borderRadius: BorderRadius.circular(12.s),
-                                      ),
-                                      child: Text(
-                                        '$itemCount',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
+                          // Positioned(
+                          //   left: 0,
+                          //   top: 0,
+                          //   width: buttonSize,
+                          //   height: buttonSize,
+                          //   child: itemCount > 0
+                          //       ? Center(
+                          //           child: Container(
+                          //             padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
+                          //             decoration: BoxDecoration(
+                          //               color: Colors.black26,
+                          //               borderRadius: BorderRadius.circular(12.s),
+                          //             ),
+                          //             child: Text(
+                          //               '$itemCount',
+                          //               style: TextStyle(
+                          //                 color: Colors.white,
+                          //                 fontSize: 14.sp,
+                          //                 fontWeight: FontWeight.w900,
+                          //               ),
+                          //             ),
+                          //           ),
+                          //         )
+                          //       : const SizedBox.shrink(),
+                          // ),
                         ],
                       ),
                     ),
