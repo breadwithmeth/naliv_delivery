@@ -1,6 +1,7 @@
 import 'dart:math' as math;
-
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/shared/RefractiveGlassContainer.dart';
 import 'package:provider/provider.dart';
 
 import '../globals.dart' as globals;
@@ -82,16 +83,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return _filteredBottles.map(_volumeForBottle).reduce(math.min);
   }
 
-  bool get _usesPourFlow => _containerOption != null && _filteredBottles.isNotEmpty && _looksPourProduct();
+  bool get _usesPourFlow =>
+      _containerOption != null &&
+      _filteredBottles.isNotEmpty &&
+      _looksPourProduct();
 
   // ── promotion helpers ─────────────────────────────────────────
 
   List<item_model.ItemPromotion> get _activePromotions {
-    return (widget.item.promotions ?? const <item_model.ItemPromotion>[]).where((promotion) => promotion.isActive).toList(growable: false);
+    return (widget.item.promotions ?? const <item_model.ItemPromotion>[])
+        .where((promotion) => promotion.isActive)
+        .toList(growable: false);
   }
 
   List<item_model.ItemPromotion> get _detailPromotions {
-    return _activePromotions.where((promotion) => promotion.discountType != 'SUBTRACT').toList(growable: false);
+    return _activePromotions
+        .where((promotion) => promotion.discountType != 'SUBTRACT')
+        .toList(growable: false);
   }
 
   item_model.ItemPromotion? get _subtractPromo {
@@ -166,7 +174,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   bool _subtractAtRewardBoundary(_SubtractPromoUiState state) {
-    return state.amount > subtractPromotionEpsilon && state.toNextGift <= subtractPromotionEpsilon;
+    return state.amount > subtractPromotionEpsilon &&
+        state.toNextGift <= subtractPromotionEpsilon;
   }
 
   bool _subtractShowSuccessState(_SubtractPromoUiState state) {
@@ -181,7 +190,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return 'x$rewardCount';
   }
 
-  double _subtractDisplayProgress(_SubtractPromoUiState state, int segmentCount) {
+  double _subtractDisplayProgress(
+      _SubtractPromoUiState state, int segmentCount) {
     if (_subtractAtRewardBoundary(state)) {
       return 0;
     }
@@ -224,7 +234,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   String _subtractNextRewardLabel(_SubtractPromoUiState state) {
-    final remaining = state.toNextGift <= subtractPromotionEpsilon ? state.promo.baseAmount.toDouble() : state.toNextGift;
+    final remaining = state.toNextGift <= subtractPromotionEpsilon
+        ? state.promo.baseAmount.toDouble()
+        : state.toNextGift;
     return _promoAmountLabel(remaining);
   }
 
@@ -244,8 +256,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         .where((option) => option.optionId != _containerOption?.optionId)
         .toList(growable: false);
     _primeDefaultSelections();
-    _openedBaseVariants =
-        widget.initialBaseVariants == null ? _currentBaseVariants() : SmartCartSelection.normalizeVariantMaps(widget.initialBaseVariants!);
+    _openedBaseVariants = widget.initialBaseVariants == null
+        ? _currentBaseVariants()
+        : SmartCartSelection.normalizeVariantMaps(widget.initialBaseVariants!);
     _manualQuantity = _initialQuantity();
     for (final bottle in _filteredBottles) {
       _bottleCounts[bottle.relationId] = 0;
@@ -265,7 +278,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _didRestoreCartState = true;
       _restoreCartState(context.read<CartProvider>());
     }
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     final bid = businessProvider.selectedBusinessId;
     if (bid != null && bid != _businessId) {
       _businessId = bid;
@@ -274,7 +288,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _initLikeState(int businessId) async {
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
     final providerLiked = likedProvider.isLiked(businessId, widget.item.itemId);
     if (providerLiked) {
       _isLikedOverride = true;
@@ -296,7 +311,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Future<void> _toggleLike() async {
     if (_likeInProgress) return;
     setState(() => _likeInProgress = true);
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
     try {
       final newValue = await ApiService.toggleLikeItem(widget.item.itemId);
       if (newValue != null && mounted) {
@@ -335,9 +351,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     _applyBaseVariants(group.baseVariants);
 
     if (_usesPourFlow) {
-      final restoredCounts = group.bottleCounts.isNotEmpty ? group.bottleCounts : _autoBottleBreakdown(group.totalQuantity);
+      final restoredCounts = group.bottleCounts.isNotEmpty
+          ? group.bottleCounts
+          : _autoBottleBreakdown(group.totalQuantity);
       for (final bottle in _filteredBottles) {
-        _bottleCounts[bottle.relationId] = restoredCounts[bottle.relationId] ?? 0;
+        _bottleCounts[bottle.relationId] =
+            restoredCounts[bottle.relationId] ?? 0;
       }
       return;
     }
@@ -346,14 +365,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   void _applyBaseVariants(List<Map<String, dynamic>> baseVariants) {
-    final relationIds = baseVariants.map(SmartCartSelection.variantRelationId).whereType<int>().toSet();
+    final relationIds = baseVariants
+        .map(SmartCartSelection.variantRelationId)
+        .whereType<int>()
+        .toSet();
 
     _selectedOptions.clear();
     for (final option in _visibleOptions) {
       if (option.optionItems.isEmpty) {
         continue;
       }
-      final matches = option.optionItems.where((optionItem) => relationIds.contains(optionItem.relationId)).toList(growable: false);
+      final matches = option.optionItems
+          .where((optionItem) => relationIds.contains(optionItem.relationId))
+          .toList(growable: false);
       if (matches.isNotEmpty) {
         _selectedOptions[option.optionId] = matches;
         continue;
@@ -381,7 +405,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String _displayKeyForBaseVariants(List<Map<String, dynamic>> baseVariants) {
     final normalized = SmartCartSelection.normalizeVariantMaps(baseVariants);
-    final keys = normalized.map(SmartCartSelection.variantStableKey).toList(growable: false)..sort();
+    final keys = normalized
+        .map(SmartCartSelection.variantStableKey)
+        .toList(growable: false)
+      ..sort();
     return '${widget.item.itemId}|${keys.join(';')}';
   }
 
@@ -393,7 +420,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     List<Map<String, dynamic>> left,
     List<Map<String, dynamic>> right,
   ) {
-    return _displayKeyForBaseVariants(left) == _displayKeyForBaseVariants(right);
+    return _displayKeyForBaseVariants(left) ==
+        _displayKeyForBaseVariants(right);
   }
 
   List<item_model.ItemOptionItem> _filterAllowedBottles() {
@@ -429,11 +457,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   item_model.ItemOption? _resolveContainerOption() {
-    for (final option in widget.item.options ?? const <item_model.ItemOption>[]) {
+    for (final option
+        in widget.item.options ?? const <item_model.ItemOption>[]) {
       if (option.optionItems.isEmpty) {
         continue;
       }
-      final matched = option.optionItems.where((item) => _extractVolumeFromText(item) > 0 || item.parentItemAmount > 0).length;
+      final matched = option.optionItems
+          .where((item) =>
+              _extractVolumeFromText(item) > 0 || item.parentItemAmount > 0)
+          .length;
       if (matched == option.optionItems.length) {
         return option;
       }
@@ -446,13 +478,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     if (option == null) {
       return const <item_model.ItemOptionItem>[];
     }
-    final items = option.optionItems.where((item) => _volumeForBottle(item) > 0).toList();
-    items.sort((left, right) => _volumeForBottle(left).compareTo(_volumeForBottle(right)));
+    final items =
+        option.optionItems.where((item) => _volumeForBottle(item) > 0).toList();
+    items.sort((left, right) =>
+        _volumeForBottle(left).compareTo(_volumeForBottle(right)));
     return items;
   }
 
   bool _looksPourProduct() {
-    final haystack = '${widget.item.name} ${widget.item.category?.name ?? ''}'.toLowerCase();
+    final haystack =
+        '${widget.item.name} ${widget.item.category?.name ?? ''}'.toLowerCase();
     const keywords = <String>[
       'пиво',
       'beer',
@@ -498,7 +533,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     if (parsed > 0) {
       return parsed;
     }
-    return widget.item.effectiveStepQuantity > 0 ? widget.item.effectiveStepQuantity : 1.0;
+    return widget.item.effectiveStepQuantity > 0
+        ? widget.item.effectiveStepQuantity
+        : 1.0;
   }
 
   double _maxAmount() {
@@ -511,7 +548,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String _money(double value) {
     final rounded = value.roundToDouble();
-    final text = rounded == value ? rounded.toStringAsFixed(0) : value.toStringAsFixed(2);
+    final text = rounded == value
+        ? rounded.toStringAsFixed(0)
+        : value.toStringAsFixed(2);
     return '$text ₸';
   }
 
@@ -520,7 +559,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return false;
     }
 
-    final normalizedUnit = widget.item.unit?.toLowerCase().replaceAll('.', '').trim();
+    final normalizedUnit =
+        widget.item.unit?.toLowerCase().replaceAll('.', '').trim();
     if (normalizedUnit != null && normalizedUnit.isNotEmpty) {
       if (normalizedUnit.contains('кг') || normalizedUnit.contains('kg')) {
         return true;
@@ -535,7 +575,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     final quantity = widget.item.quantity;
-    if (quantity != null && quantity > 0 && quantity < 1 && (quantity - 1).abs() > 0.001) {
+    if (quantity != null &&
+        quantity > 0 &&
+        quantity < 1 &&
+        (quantity - 1).abs() > 0.001) {
       return true;
     }
 
@@ -576,7 +619,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   void _adjustQuantity(int direction) {
-    final step = widget.item.effectiveStepQuantity <= 0 ? 1.0 : widget.item.effectiveStepQuantity;
+    final step = widget.item.effectiveStepQuantity <= 0
+        ? 1.0
+        : widget.item.effectiveStepQuantity;
     final next = (_manualQuantity + step * direction).clamp(step, _maxAmount());
     setState(() {
       _manualQuantity = _normalizeDouble(next);
@@ -637,7 +682,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     final lowerBound = current > 0.001 ? _minBottleVolume : 0.0;
-    final target = _normalizeDouble((current + direction).clamp(lowerBound, maxAmount));
+    final target =
+        _normalizeDouble((current + direction).clamp(lowerBound, maxAmount));
     return _autoBottleBreakdown(target);
   }
 
@@ -664,7 +710,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return const <int, int>{};
     }
 
-    final volumes = _filteredBottles.map((item) => (_volumeForBottle(item) * 100).round()).toList(growable: false);
+    final volumes = _filteredBottles
+        .map((item) => (_volumeForBottle(item) * 100).round())
+        .toList(growable: false);
     final best = List<int>.filled(target + 1, 1 << 30);
     final prevAmount = List<int>.filled(target + 1, -1);
     final prevIndex = List<int>.filled(target + 1, -1);
@@ -699,7 +747,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Map<int, int> _greedyBottleBreakdown(double targetLiters) {
     var remaining = targetLiters;
     final result = <int, int>{};
-    final sorted = _filteredBottles.toList()..sort((left, right) => _volumeForBottle(right).compareTo(_volumeForBottle(left)));
+    final sorted = _filteredBottles.toList()
+      ..sort((left, right) =>
+          _volumeForBottle(right).compareTo(_volumeForBottle(left)));
     for (final bottle in sorted) {
       final volume = _volumeForBottle(bottle);
       if (volume <= 0) {
@@ -735,7 +785,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String _activeBottleDetailLabel() {
     return _activeBottleCounts().entries.map((entry) {
-      final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
+      final bottle =
+          _filteredBottles.firstWhere((item) => item.relationId == entry.key);
       return '${entry.value}×${_volumeLabel(_volumeForBottle(bottle))}';
     }).join(' · ');
   }
@@ -747,18 +798,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return _quantityLabel(amount);
   }
 
-  List<item_model.ItemOptionItem> _selectedItemsFor(item_model.ItemOption option) {
-    return _selectedOptions[option.optionId] ?? const <item_model.ItemOptionItem>[];
+  List<item_model.ItemOptionItem> _selectedItemsFor(
+      item_model.ItemOption option) {
+    return _selectedOptions[option.optionId] ??
+        const <item_model.ItemOptionItem>[];
   }
 
-  void _toggleOption(item_model.ItemOption option, item_model.ItemOptionItem optionItem) {
-    final current = List<item_model.ItemOptionItem>.from(_selectedOptions[option.optionId] ?? const <item_model.ItemOptionItem>[]);
-    final isSelected = current.any((item) => item.relationId == optionItem.relationId);
+  void _toggleOption(
+      item_model.ItemOption option, item_model.ItemOptionItem optionItem) {
+    final current = List<item_model.ItemOptionItem>.from(
+        _selectedOptions[option.optionId] ??
+            const <item_model.ItemOptionItem>[]);
+    final isSelected =
+        current.any((item) => item.relationId == optionItem.relationId);
 
     setState(() {
       if (option.selection.toUpperCase() == 'MULTIPLE') {
         if (isSelected) {
-          current.removeWhere((item) => item.relationId == optionItem.relationId);
+          current
+              .removeWhere((item) => item.relationId == optionItem.relationId);
         } else {
           current.add(optionItem);
         }
@@ -777,7 +835,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   List<item_model.ItemOption> _missingRequiredOptions() {
-    return _visibleOptions.where((option) => option.required == 1 && (_selectedOptions[option.optionId]?.isNotEmpty != true)).toList(growable: false);
+    return _visibleOptions
+        .where((option) =>
+            option.required == 1 &&
+            (_selectedOptions[option.optionId]?.isNotEmpty != true))
+        .toList(growable: false);
   }
 
   List<Map<String, dynamic>> _selectedVariantMaps({
@@ -786,10 +848,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }) {
     final result = <Map<String, dynamic>>[];
     if (includeBottle && bottle != null) {
-      result.add(_variantMap(bottle, required: _containerOption?.required ?? 0));
+      result
+          .add(_variantMap(bottle, required: _containerOption?.required ?? 0));
     }
     for (final option in _visibleOptions) {
-      final items = _selectedOptions[option.optionId] ?? const <item_model.ItemOptionItem>[];
+      final items = _selectedOptions[option.optionId] ??
+          const <item_model.ItemOptionItem>[];
       for (final optionItem in items) {
         result.add(_variantMap(optionItem, required: option.required));
       }
@@ -797,7 +861,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return result;
   }
 
-  Map<String, dynamic> _variantMap(item_model.ItemOptionItem optionItem, {required int required}) {
+  Map<String, dynamic> _variantMap(item_model.ItemOptionItem optionItem,
+      {required int required}) {
     return <String, dynamic>{
       'variant_id': optionItem.relationId,
       'relation_id': optionItem.relationId,
@@ -805,7 +870,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       'item_name': optionItem.itemName,
       'price_type': optionItem.priceType,
       'price': optionItem.price,
-      'parent_item_amount': optionItem.parentItemAmount > 0 ? optionItem.parentItemAmount : _volumeForBottle(optionItem),
+      'parent_item_amount': optionItem.parentItemAmount > 0
+          ? optionItem.parentItemAmount
+          : _volumeForBottle(optionItem),
       'required': required,
     };
   }
@@ -836,12 +903,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       name: _itemTitle.name,
       price: widget.item.price,
       quantity: quantity,
-      stepQuantity: bottle != null ? _volumeForBottle(bottle) : widget.item.effectiveStepQuantity,
+      stepQuantity: bottle != null
+          ? _volumeForBottle(bottle)
+          : widget.item.effectiveStepQuantity,
       image: widget.item.image,
       itemType: _itemTitle.type,
       packagingType: _itemTitle.packagingType,
-      selectedVariants: _selectedVariantMaps(includeBottle: bottle != null, bottle: bottle),
-      promotions: includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[],
+      selectedVariants:
+          _selectedVariantMaps(includeBottle: bottle != null, bottle: bottle),
+      promotions:
+          includePromotions ? _promotionMaps() : const <Map<String, dynamic>>[],
       itemData: widget.item.toJson(),
       maxAmount: widget.item.amount?.toDouble(),
     );
@@ -856,7 +927,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     var total = 0.0;
     for (final entry in counts.entries) {
       if (entry.value <= 0) continue;
-      final bottle = _filteredBottles.firstWhere((item) => item.relationId == entry.key);
+      final bottle =
+          _filteredBottles.firstWhere((item) => item.relationId == entry.key);
       final quantity = _volumeForBottle(bottle) * entry.value;
       total += _previewCartItem(
         quantity: quantity,
@@ -880,7 +952,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     if (_usesPourFlow) {
       final totalLiters = _totalLitersFromBottles();
       final optionsTotal = _pourFlowOptionsTotal();
-      final rawBase = subtractPromotionDisplayBaseTotal(widget.item.price, totalLiters, _promotionMaps());
+      final rawBase = subtractPromotionDisplayBaseTotal(
+          widget.item.price, totalLiters, _promotionMaps());
       return rawBase + optionsTotal;
     }
 
@@ -900,7 +973,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final totalLiters = _totalLitersFromBottles();
       final optionsTotal = _pourFlowOptionsTotal();
       final baseTotal = widget.item.price * totalLiters;
-      final promotedBase = includePromotions ? _applyPromotionsToBaseTotal(totalLiters) : baseTotal;
+      final promotedBase = includePromotions
+          ? _applyPromotionsToBaseTotal(totalLiters)
+          : baseTotal;
       return promotedBase + optionsTotal;
     }
 
@@ -927,8 +1002,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     final cart = context.read<CartProvider>();
     final currentBaseVariants = _currentBaseVariants();
-    final currentSelectionExists = _findCartGroup(cart, currentBaseVariants) != null;
-    final shouldReplaceSelection = _openedCartSelectionExists || currentSelectionExists;
+    final currentSelectionExists =
+        _findCartGroup(cart, currentBaseVariants) != null;
+    final shouldReplaceSelection =
+        _openedCartSelectionExists || currentSelectionExists;
 
     setState(() {
       _submitting = true;
@@ -948,7 +1025,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           return;
         }
 
-        if (shouldReplaceSelection && !_sameBaseVariants(_openedBaseVariants, currentBaseVariants)) {
+        if (shouldReplaceSelection &&
+            !_sameBaseVariants(_openedBaseVariants, currentBaseVariants)) {
           cart.syncItemBottleCounts(
             widget.item,
             _openedBaseVariants,
@@ -959,7 +1037,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         cart.syncItemBottleCounts(widget.item, currentBaseVariants, counts);
         added = counts.values.any((count) => count > 0);
       } else if (widget.item.hasOptions) {
-        if (shouldReplaceSelection && !_sameBaseVariants(_openedBaseVariants, currentBaseVariants)) {
+        if (shouldReplaceSelection &&
+            !_sameBaseVariants(_openedBaseVariants, currentBaseVariants)) {
           cart.syncItemSelectionQuantity(
             widget.item,
             _openedBaseVariants,
@@ -998,7 +1077,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20.s, vertical: 12.s),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20.s, vertical: 12.s),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2A8C3E),
                     borderRadius: BorderRadius.circular(12.s),
@@ -1006,11 +1086,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 18.s),
+                      Icon(Icons.check_circle_rounded,
+                          color: Colors.white, size: 18.s),
                       SizedBox(width: 8.s),
                       Text(
                         'Добавлено в корзину',
-                        style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -1026,7 +1110,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return;
       }
 
-      await AppDialogs.showMessage(context, title: 'Не получилось', message: 'Попробуйте еще раз.');
+      await AppDialogs.showMessage(context,
+          title: 'Не получилось', message: 'Попробуйте еще раз.');
     } finally {
       if (mounted) {
         setState(() {
@@ -1038,7 +1123,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String _shortBottleName(item_model.ItemOptionItem bottle) {
     final volume = _volumeForBottle(bottle);
-    return bottle.itemName.trim().isNotEmpty ? bottle.itemName.trim() : _volumeLabel(volume);
+    return bottle.itemName.trim().isNotEmpty
+        ? bottle.itemName.trim()
+        : _volumeLabel(volume);
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -1099,7 +1186,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         _promoBlock(),
                         SizedBox(height: 18.s),
                       ],
-                      if ((widget.item.description ?? '').trim().isNotEmpty) ...[
+                      if ((widget.item.description ?? '')
+                          .trim()
+                          .isNotEmpty) ...[
                         _thinDivider(),
                         SizedBox(height: 18.s),
                         _descriptionBlock(),
@@ -1123,28 +1212,28 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
 
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: footerHeight - 1.s,
-            child: IgnorePointer(
-              child: SizedBox(
-                height: 30.s,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        const Color(0xFF1A1A1A).withValues(alpha: 0),
-                        const Color(0xFF1A1A1A).withValues(alpha: 0.92),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // Positioned(
+          //   left: 0,
+          //   right: 0,
+          //   bottom: footerHeight - 1.s,
+          //   child: IgnorePointer(
+          //     child: SizedBox(
+          //       height: 30.s,
+          //       child: DecoratedBox(
+          //         decoration: BoxDecoration(
+          //           gradient: LinearGradient(
+          //             begin: Alignment.topCenter,
+          //             end: Alignment.bottomCenter,
+          //             colors: [
+          //               const Color(0xFF1A1A1A).withValues(alpha: 0),
+          //               const Color(0xFF1A1A1A).withValues(alpha: 0.92),
+          //             ],
+          //           ),
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // ─ bottom bar ─
           Positioned(
@@ -1191,7 +1280,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 Positioned.fill(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(18.s, pad.top + 22.s, 18.s, 18.s),
+                    padding:
+                        EdgeInsets.fromLTRB(18.s, pad.top + 22.s, 18.s, 18.s),
                     child: hasImage
                         ? ClipRect(
                             child: Transform.scale(
@@ -1226,7 +1316,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.local_fire_department_rounded, size: 13.s, color: Colors.white),
+                  Icon(Icons.local_fire_department_rounded,
+                      size: 13.s, color: Colors.white),
                   SizedBox(width: 5.s),
                   Text(
                     _discountBadgeLabel(discount),
@@ -1251,16 +1342,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _placeholder() {
-    return const Icon(Icons.inventory_2_outlined, color: AppColors.textMute, size: 58);
+    return const Icon(Icons.inventory_2_outlined,
+        color: AppColors.textMute, size: 58);
   }
 
   // ── product info ──────────────────────────────────────────────
   Widget _productInfo() {
     final identityColor = Color.lerp(AppColors.textMute, AppColors.text, 0.12)!;
     final identityParts = <String>[
-      if (_itemTitle.type != null && _itemTitle.type!.trim().isNotEmpty) _itemTitle.type!,
-      if (_itemTitle.packagingType != null && _itemTitle.packagingType!.trim().isNotEmpty) _itemTitle.packagingType!,
-      if (_itemTitle.countryName != null && _itemTitle.countryName!.trim().isNotEmpty) _itemTitle.countryName!,
+      if (_itemTitle.type != null && _itemTitle.type!.trim().isNotEmpty)
+        _itemTitle.type!,
+      if (_itemTitle.packagingType != null &&
+          _itemTitle.packagingType!.trim().isNotEmpty)
+        _itemTitle.packagingType!,
+      if (_itemTitle.countryName != null &&
+          _itemTitle.countryName!.trim().isNotEmpty)
+        _itemTitle.countryName!,
     ];
 
     return Column(
@@ -1316,10 +1413,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         width: 42.s,
         height: 42.s,
         decoration: BoxDecoration(
-          color: _isLiked ? AppColors.red : AppColors.card.withValues(alpha: 0.88),
+          color:
+              _isLiked ? AppColors.red : AppColors.card.withValues(alpha: 0.88),
           shape: BoxShape.circle,
           border: Border.all(
-            color: _isLiked ? AppColors.red : Colors.white.withValues(alpha: 0.08),
+            color:
+                _isLiked ? AppColors.red : Colors.white.withValues(alpha: 0.08),
           ),
           boxShadow: [
             BoxShadow(
@@ -1338,7 +1437,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
               )
             : Icon(
-                _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                _isLiked
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
                 size: 18.s,
                 color: _isLiked ? Colors.white : AppColors.red,
               ),
@@ -1424,7 +1525,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String? _fallbackAlcoholLabel() {
     final normalizedName = widget.item.name.replaceAll(',', '.');
-    final match = RegExp(r'(\d{1,2}(?:\.\d{1,2})?)\s*%').firstMatch(normalizedName);
+    final match =
+        RegExp(r'(\d{1,2}(?:\.\d{1,2})?)\s*%').firstMatch(normalizedName);
     final raw = match?.group(1);
     final value = raw == null ? null : double.tryParse(raw);
     if (value == null) {
@@ -1451,8 +1553,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final basePrice = _priceUnderImage(widget.item.price);
 
     if (promo != null) {
-      final discounted = _priceUnderImage(promo.calculateDiscountedPrice(widget.item.price));
-      final savings = _priceUnderImage(promo.calculateSavings(widget.item.price));
+      final discounted =
+          _priceUnderImage(promo.calculateDiscountedPrice(widget.item.price));
+      final savings =
+          _priceUnderImage(promo.calculateSavings(widget.item.price));
       return [
         Text(
           _money(basePrice),
@@ -1548,7 +1652,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               Text(
                 '${state.promo.baseAmount}+${state.promo.addAmount}',
-                style: TextStyle(color: AppColors.orange, fontSize: 15.sp, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w900),
               ),
               const Spacer(),
               Stack(
@@ -1559,9 +1666,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     height: 30.s,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: rewardUnlocked ? rewardAccent.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.04),
+                      color: rewardUnlocked
+                          ? rewardAccent.withValues(alpha: 0.14)
+                          : Colors.white.withValues(alpha: 0.04),
                       border: Border.all(
-                        color: rewardUnlocked ? rewardAccent.withValues(alpha: 0.24) : Colors.white.withValues(alpha: 0.08),
+                        color: rewardUnlocked
+                            ? rewardAccent.withValues(alpha: 0.24)
+                            : Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
                     child: Icon(
@@ -1575,14 +1686,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       right: -8.s,
                       top: -5.s,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 5.s, vertical: 2.s),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 5.s, vertical: 2.s),
                         decoration: BoxDecoration(
                           color: rewardAccent,
                           borderRadius: BorderRadius.circular(999.s),
                         ),
                         child: Text(
                           rewardMultiplier,
-                          style: TextStyle(color: Colors.black, fontSize: 8.sp, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 8.sp,
+                              fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
@@ -1605,7 +1720,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               final fill = (segmentFill - index).clamp(0.0, 1.0).toDouble();
               return Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(right: index == segmentCount - 1 ? 0 : 6.s),
+                  padding: EdgeInsets.only(
+                      right: index == segmentCount - 1 ? 0 : 6.s),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(999.s),
                     child: Stack(
@@ -1672,12 +1788,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             Container(
               width: 6.s,
               height: 6.s,
-              decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                  color: AppColors.red, shape: BoxShape.circle),
             ),
             SizedBox(width: 5.s),
             Text(
               label,
-              style: TextStyle(color: AppColors.red, fontSize: 11.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: AppColors.red,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -1695,7 +1815,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         SizedBox(width: 6.s),
         Text(
           label,
-          style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              color: color, fontSize: 12.sp, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -1729,7 +1850,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           SizedBox(height: 8.s),
           Row(
             children: [
-              Icon(Icons.card_giftcard_rounded, size: 15.s, color: AppColors.orange),
+              Icon(Icons.card_giftcard_rounded,
+                  size: 15.s, color: AppColors.orange),
               SizedBox(width: 6.s),
               Text(
                 '+${_volumeLabel(free)} в подарок',
@@ -1757,11 +1879,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.settings_outlined, color: AppColors.orange, size: 15.s),
+              Icon(Icons.settings_outlined,
+                  color: AppColors.orange, size: 15.s),
               SizedBox(width: 6.s),
               Text(
                 'Тара',
-                style: TextStyle(color: AppColors.orange, fontSize: 12.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -1785,7 +1911,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         onApply: (newCounts) {
           setState(() {
             for (final bottle in _filteredBottles) {
-              _bottleCounts[bottle.relationId] = newCounts[bottle.relationId] ?? 0;
+              _bottleCounts[bottle.relationId] =
+                  newCounts[bottle.relationId] ?? 0;
             }
           });
         },
@@ -1796,7 +1923,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── quantity ───────────────────────────────────────────────────
 
   Widget _quantityControl() {
-    final step = widget.item.effectiveStepQuantity <= 0 ? 1.0 : widget.item.effectiveStepQuantity;
+    final step = widget.item.effectiveStepQuantity <= 0
+        ? 1.0
+        : widget.item.effectiveStepQuantity;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1833,13 +1962,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     Expanded(
                       child: Text(
                         option.name,
-                        style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700),
                       ),
                     ),
                     if (option.required == 1)
                       Text(
                         'обязательно',
-                        style: TextStyle(color: AppColors.orange, fontSize: 11.sp, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            color: AppColors.orange,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w700),
                       ),
                   ],
                 ),
@@ -1848,8 +1983,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   spacing: 8.s,
                   runSpacing: 8.s,
                   children: option.optionItems.map((optionItem) {
-                    final active = selected.any((selectedItem) => selectedItem.relationId == optionItem.relationId);
-                    final subtitle = optionItem.price > 0 ? '+${_money(optionItem.price)}' : null;
+                    final active = selected.any((selectedItem) =>
+                        selectedItem.relationId == optionItem.relationId);
+                    final subtitle = optionItem.price > 0
+                        ? '+${_money(optionItem.price)}'
+                        : null;
                     return _chip(
                       label: optionItem.itemName,
                       subtitle: subtitle,
@@ -1869,7 +2007,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── promotions ─────────────────────────────────────────────────
 
   Widget _promoBlock() {
-    final promotions = _detailPromotions.where((promotion) => promotion.discountType != 'SUBTRACT').toList(growable: false);
+    final promotions = _detailPromotions
+        .where((promotion) => promotion.discountType != 'SUBTRACT')
+        .toList(growable: false);
     if (promotions.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1877,8 +2017,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _sectionLabel('Акции'),
         SizedBox(height: 10.s),
         ...promotions.map((promotion) {
-          final icon = promotion.discountType == 'SUBTRACT' ? Icons.card_giftcard_rounded : Icons.local_offer_outlined;
-          final color = promotion.discountType == 'SUBTRACT' ? AppColors.orange : AppColors.red;
+          final icon = promotion.discountType == 'SUBTRACT'
+              ? Icons.card_giftcard_rounded
+              : Icons.local_offer_outlined;
+          final color = promotion.discountType == 'SUBTRACT'
+              ? AppColors.orange
+              : AppColors.red;
           final label = _promoLabel(promotion);
           final detail = _promoDetail(promotion);
 
@@ -1907,19 +2051,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.s, vertical: 4.s),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8.s, vertical: 4.s),
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(999.s),
                             ),
                             child: Text(
                               label,
-                              style: TextStyle(color: color, fontSize: 11.sp, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                  color: color,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w800),
                             ),
                           ),
                           Text(
                             promotion.name,
-                            style: TextStyle(color: AppColors.text, fontSize: 12.sp, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                                color: AppColors.text,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
@@ -1927,7 +2078,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         SizedBox(height: 4.s),
                         Text(
                           detail,
-                          style: TextStyle(color: AppColors.textMute, fontSize: 11.sp, height: 1.35),
+                          style: TextStyle(
+                              color: AppColors.textMute,
+                              fontSize: 11.sp,
+                              height: 1.35),
                         ),
                       ],
                     ],
@@ -1973,7 +2127,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final description = widget.item.description?.trim() ?? '';
     const previewLimit = 190;
     final canExpand = description.length > previewLimit;
-    final displayText = !canExpand || _descriptionExpanded ? description : '${description.substring(0, previewLimit).trimRight()}...';
+    final displayText = !canExpand || _descriptionExpanded
+        ? description
+        : '${description.substring(0, previewLimit).trimRight()}...';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1982,12 +2138,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         SizedBox(height: 10.s),
         Text(
           displayText,
-          style: TextStyle(color: AppColors.textMute, fontSize: 13.sp, height: 1.6),
+          style: TextStyle(
+              color: AppColors.textMute, fontSize: 13.sp, height: 1.6),
         ),
         if (canExpand) ...[
           SizedBox(height: 10.s),
           GestureDetector(
-            onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+            onTap: () =>
+                setState(() => _descriptionExpanded = !_descriptionExpanded),
             child: Text(
               _descriptionExpanded ? 'Свернуть' : 'Читать далее',
               style: TextStyle(
@@ -2014,13 +2172,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     ).optionsTotal;
   }
 
-  Future<void> _showPriceBreakdownSheet(double total, double rawTotal, double amount) {
+  Future<void> _showPriceBreakdownSheet(
+      double total, double rawTotal, double amount) {
     final baseTotal = widget.item.price * amount;
     final extrasTotal = _previewOptionsTotal();
     final savings = math.max(0.0, rawTotal - total);
     final free = _freeFromPromo(amount);
     final labelBase = _priceBreakdownBaseLabel(amount);
-    final giftLabel = free > 0.001 ? '${_promoAmountLabel(free)} в подарок' : null;
+    final giftLabel =
+        free > 0.001 ? '${_promoAmountLabel(free)} в подарок' : null;
     final bottleDetail = _usesPourFlow ? _activeBottleDetailLabel() : null;
 
     return showModalBottomSheet<void>(
@@ -2042,11 +2202,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               Text(
                 'Разбор цены',
-                style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800),
               ),
               SizedBox(height: 14.s),
               if (savings > 0.001) ...[
-                _breakdownRow('Без акции', _money(rawTotal), valueColor: AppColors.textMute),
+                _breakdownRow('Без акции', _money(rawTotal),
+                    valueColor: AppColors.textMute),
                 SizedBox(height: 10.s),
               ],
               _breakdownRow(
@@ -2072,7 +2236,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 14.s),
-                child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+                child: Divider(
+                    color: Colors.white.withValues(alpha: 0.06), height: 1),
               ),
               _breakdownRow('Итого', _money(total), valueColor: AppColors.text),
             ],
@@ -2082,7 +2247,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  Widget _breakdownRow(String label, String value, {String? note, Color valueColor = AppColors.text}) {
+  Widget _breakdownRow(String label, String value,
+      {String? note, Color valueColor = AppColors.text}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2090,44 +2256,41 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
+              Text(label,
+                  style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
               if (note != null) ...[
                 SizedBox(height: 2.s),
                 Text(
                   note,
-                  style: TextStyle(color: AppColors.textMute.withValues(alpha: 0.72), fontSize: 11.sp, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppColors.textMute.withValues(alpha: 0.72),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600),
                 ),
               ],
             ],
           ),
         ),
         SizedBox(width: 12.s),
-        Text(value, style: TextStyle(color: valueColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+        Text(value,
+            style: TextStyle(
+                color: valueColor,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700)),
       ],
     );
   }
 
   // ── bottom bar ─────────────────────────────────────────────────
-
-  Widget _bottomBar(double total, double rawTotal, double amount, EdgeInsets pad) {
+ Widget _bottomBar(double total, double rawTotal, double amount, EdgeInsets pad) {
     final ready = amount > 0;
     final hasSavings = total < rawTotal - 1;
     final actionEnabled = !_submitting && ready;
     final controlHeight = hasSavings ? 72.s : 68.s;
 
-    return Container(
+    return RefractiveGlassContainer(
+      borderRadius: 28.s,
       padding: EdgeInsets.fromLTRB(18.s, 14.s, 18.s, 14.s + pad.bottom),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        border: const Border(top: BorderSide(color: Color(0xFF333333), width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 18,
-            offset: const Offset(0, -6),
-          ),
-        ],
-      ),
       child: SizedBox(
         height: controlHeight,
         child: Row(
@@ -2135,7 +2298,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           children: [
             Expanded(
               child: Material(
-                color: AppColors.cardDark,
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(18.s),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(18.s),
@@ -2150,11 +2313,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           Text(
                             _money(rawTotal),
                             style: TextStyle(
-                              color: AppColors.textMute.withValues(alpha: 0.62),
+                              color: AppColors.textMute.withOpacity(0.62),
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w700,
                               decoration: TextDecoration.lineThrough,
-                              decorationColor: AppColors.textMute.withValues(alpha: 0.5),
+                              decorationColor: AppColors.textMute.withOpacity(0.5),
                             ),
                           ),
                         Row(
@@ -2162,11 +2325,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             Expanded(
                               child: Text(
                                 _money(total),
-                                style: TextStyle(color: AppColors.text, fontSize: 20.sp, fontWeight: FontWeight.w900),
+                                style: TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             SizedBox(width: 8.s),
-                            Icon(Icons.info_outline_rounded, size: 16.s, color: AppColors.textMute),
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 16.s,
+                              color: AppColors.textMute,
+                            ),
                           ],
                         ),
                       ],
@@ -2189,7 +2360,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ? SizedBox(
                             width: 18.s,
                             height: 18.s,
-                            child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
                           )
                         : Text(
                             'В корзину',
@@ -2209,7 +2383,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
     );
   }
-
   String _promoAmountLabel(double value) {
     return _usesPourFlow ? _volumeLabel(value) : _quantityLabel(value);
   }
@@ -2298,7 +2471,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             child: Center(
               child: Text(
                 value,
-                style: TextStyle(color: AppColors.text, fontSize: 17.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -2310,7 +2486,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _stepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
-      color: onTap != null ? AppColors.blue : AppColors.blue.withValues(alpha: 0.4),
+      color: onTap != null
+          ? AppColors.blue
+          : AppColors.blue.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
@@ -2320,7 +2498,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           height: 44.s,
           child: Icon(
             icon,
-            color: onTap != null ? AppColors.text : AppColors.textMute.withValues(alpha: 0.4),
+            color: onTap != null
+                ? AppColors.text
+                : AppColors.textMute.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -2441,12 +2621,18 @@ class _BottleSheetState extends State<_BottleSheet> {
             children: [
               Text(
                 'Тара',
-                style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: AppColors.text,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               Text(
                 '${widget.volumeLabel(liters)} · $bottleCount бут.',
-                style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: AppColors.textMute,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -2469,7 +2655,10 @@ class _BottleSheetState extends State<_BottleSheet> {
                     Expanded(
                       child: Text(
                         widget.shortName(bottle),
-                        style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700),
                       ),
                     ),
                     _sheetStepBtn(
@@ -2481,7 +2670,10 @@ class _BottleSheetState extends State<_BottleSheet> {
                       child: Center(
                         child: Text(
                           '$count',
-                          style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                              color: AppColors.text,
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
@@ -2505,7 +2697,8 @@ class _BottleSheetState extends State<_BottleSheet> {
                 backgroundColor: AppColors.orange,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.s)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.s)),
               ),
               child: Text(
                 'Готово',
@@ -2520,7 +2713,9 @@ class _BottleSheetState extends State<_BottleSheet> {
 
   Widget _sheetStepBtn(IconData icon, VoidCallback? onTap) {
     return Material(
-      color: onTap != null ? AppColors.blue : AppColors.blue.withValues(alpha: 0.4),
+      color: onTap != null
+          ? AppColors.blue
+          : AppColors.blue.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(11.s),
       child: InkWell(
         onTap: onTap,
@@ -2531,7 +2726,9 @@ class _BottleSheetState extends State<_BottleSheet> {
           child: Icon(
             icon,
             size: 18.s,
-            color: onTap != null ? AppColors.text : AppColors.textMute.withValues(alpha: 0.4),
+            color: onTap != null
+                ? AppColors.text
+                : AppColors.textMute.withValues(alpha: 0.4),
           ),
         ),
       ),

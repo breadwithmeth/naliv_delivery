@@ -57,6 +57,8 @@ dependencies:
   webview_flutter: ^4.13.1
   web: ^1.1.1
   socket_io_client: ^3.0.2
+  flutter_motion_kit: ^1.0.4
+  path_drawing: ^1.0.1
   
 
 dev_dependencies:
@@ -127,6 +129,7 @@ flutter:
     - assets/vectors/mineral-water.png
     - assets/vectors/chocolate.png
     - assets/vectors/other.png
+    - assets/cart/cart_button.png
     - assets/naliv_logo.png
     - assets/logo_new.svg
     - assets/s/mc.png
@@ -137,6 +140,9 @@ flutter:
     - assets/Compact.png
     - assets/Gold_trail.png
 
+
+  shaders:
+      - assets/shaders/glass_refraction.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

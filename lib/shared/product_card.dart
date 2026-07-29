@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/item.dart' as item_model;
@@ -22,7 +24,8 @@ class ProductCard extends StatefulWidget {
   State<ProductCard> createState() => _ProductCardState();
 }
 
-class _ProductCardState extends State<ProductCard> {
+class _ProductCardState extends State<ProductCard>
+    with SingleTickerProviderStateMixin {
   // ─── Palette (mainPage) ──────────────────────────────────
   static const Color _card = Color(0xFF1E1E1E);
   static const Color _cardDark = Color(0xFF181818);
@@ -31,6 +34,28 @@ class _ProductCardState extends State<ProductCard> {
   static const Color _purple = Color(0xFF8B5CF6);
   static const Color _text = Colors.white;
   static const Color _textMute = Color(0xFF9FB0C8);
+
+  // ─── Liquid Glass Animation ──────────────────────────────
+  late final AnimationController _shimmerController;
+  late final Animation<double> _shimmerAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      duration: const Duration(milliseconds: 2200),
+      vsync: this,
+    )..repeat(reverse: true);
+    _shimmerAnimation = Tween<double>(begin: -1.2, end: 2.2).animate(
+      CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
 
   bool _likeInProgress = false;
   bool? _isLikedOverride;
@@ -61,7 +86,8 @@ class _ProductCardState extends State<ProductCard> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final businessProvider = Provider.of<BusinessProvider>(context, listen: false);
+    final businessProvider =
+        Provider.of<BusinessProvider>(context, listen: false);
     final bid = businessProvider.selectedBusinessId;
     if (bid != null && bid != _businessId) {
       _businessId = bid;
@@ -70,7 +96,8 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   Future<void> _initLikeState(int businessId) async {
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
     final providerLiked = likedProvider.isLiked(businessId, widget.item.itemId);
     if (providerLiked) {
       _isLikedOverride = true;
@@ -92,7 +119,8 @@ class _ProductCardState extends State<ProductCard> {
   Future<void> _toggleLike() async {
     if (_likeInProgress) return;
     setState(() => _likeInProgress = true);
-    final likedProvider = Provider.of<LikedItemsProvider>(context, listen: false);
+    final likedProvider =
+        Provider.of<LikedItemsProvider>(context, listen: false);
     try {
       final newValue = await ApiService.toggleLikeItem(widget.item.itemId);
       if (newValue != null && mounted) {
@@ -130,115 +158,228 @@ class _ProductCardState extends State<ProductCard> {
 
     // Promotion calculations
     final hasDiscount = discountPromo != null;
-    final discountedPrice = discountPromo?.calculateDiscountedPrice(item.price) ?? item.price;
-    final discountPercent = discountPromo?.calculateEffectiveDiscountPercent(item.price) ?? 0;
-    final isLowStock = !isOutOfStock && item.amount != null && item.amount! > 0 && item.amount! <= 5;
-    final savingsAmount = hasDiscount ? (item.price - discountedPrice) * (isWeightItem && portionWeight > 0 ? portionWeight : 1) : 0.0;
-    final bonusPoints = isOutOfStock ? 0 : _calculateBonusPoints(item, discountedPrice);
-    final portionPrice = isWeightItem && portionWeight > 0 ? discountedPrice * portionWeight : null;
+    final discountedPrice =
+        discountPromo?.calculateDiscountedPrice(item.price) ?? item.price;
+    final discountPercent =
+        discountPromo?.calculateEffectiveDiscountPercent(item.price) ?? 0;
+    final isLowStock = !isOutOfStock &&
+        item.amount != null &&
+        item.amount! > 0 &&
+        item.amount! <= 5;
+    final savingsAmount = hasDiscount
+        ? (item.price - discountedPrice) *
+            (isWeightItem && portionWeight > 0 ? portionWeight : 1)
+        : 0.0;
+    final bonusPoints =
+        isOutOfStock ? 0 : _calculateBonusPoints(item, discountedPrice);
+    final portionPrice = isWeightItem && portionWeight > 0
+        ? discountedPrice * portionWeight
+        : null;
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ProductDetailPage(item: item)),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(14.s),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Image ──
-            _imageSection(
-              item,
-              hasDiscount,
-              discountPercent,
-              isLowStock,
-              isOutOfStock,
-              subtractPromotions,
-              bonusPoints,
-            ),
-
-            // ── Info ──
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(9.s, 7.s, 9.s, 9.s),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (itemTitle.type != null || itemTitle.countryName != null) ...[
-                      Row(
-                        children: [
-                          if (itemTitle.type != null)
-                            Expanded(
-                              child: Text(
-                                itemTitle.type!,
-                                style: TextStyle(
-                                  fontSize: 9.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: _textMute.withValues(alpha: 0.92),
-                                  height: 1.15,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            )
-                          else
-                            const Spacer(),
-                          if (itemTitle.countryName != null)
-                            Text(
-                              itemTitle.countryName!,
-                              style: TextStyle(
-                                fontSize: 9.sp,
-                                fontWeight: FontWeight.w800,
-                                color: _orange.withValues(alpha: 0.92),
-                                height: 1.15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: 4.s),
-                    ],
-                    Text(
-                      itemTitle.name,
-                      style: TextStyle(
-                        fontSize: 12.5.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _text,
-                        height: 1.22,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const Spacer(),
-
-                    // ── Price ──
-                    ..._priceBlock(
-                      basePrice: item.price,
-                      discountedPrice: discountedPrice,
-                      hasDiscount: hasDiscount,
-                      savingsAmount: savingsAmount,
-                      isWeightItem: isWeightItem,
-                      portionWeight: portionWeight,
-                      portionPrice: portionPrice,
-                      unit: item.unit,
-                      pricingAttributes: itemTitle.pricingAttributes,
-                    ),
-
-                    SizedBox(height: 7.s),
-
-                    // ── Cart button ──
-                    _cartSection(item),
-                  ],
+      child: AnimatedBuilder(
+        animation: _shimmerController,
+        builder: (context, child) {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14.s),
+              // Liquid glass base layer — enhanced
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.14),
+                  Colors.white.withValues(alpha: 0.06),
+                  _card.withValues(alpha: 0.88),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+              // Enhanced inner glow + depth shadows
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  blurRadius: 2,
+                  offset: const Offset(0, 0.5),
                 ),
+                BoxShadow(
+                  color: _orange.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+              // Border with enhanced gradient
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.18),
+                width: 0.6,
               ),
             ),
-          ],
+            child: Stack(
+              children: [
+                // Main content
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14.s),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Image ──
+                      _imageSection(
+                        item,
+                        hasDiscount,
+                        discountPercent,
+                        isLowStock,
+                        isOutOfStock,
+                        subtractPromotions,
+                        bonusPoints,
+                      ),
+
+                      // ── Info ──
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(9.s, 7.s, 9.s, 9.s),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (itemTitle.type != null ||
+                                  itemTitle.countryName != null) ...[
+                                Row(
+                                  children: [
+                                    if (itemTitle.type != null)
+                                      Expanded(
+                                        child: Text(
+                                          itemTitle.type!,
+                                          style: TextStyle(
+                                            fontSize: 9.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: _textMute.withValues(
+                                                alpha: 0.92),
+                                            height: 1.15,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      )
+                                    else
+                                      const Spacer(),
+                                    if (itemTitle.countryName != null)
+                                      Text(
+                                        itemTitle.countryName!,
+                                        style: TextStyle(
+                                          fontSize: 9.sp,
+                                          fontWeight: FontWeight.w800,
+                                          color:
+                                              _orange.withValues(alpha: 0.92),
+                                          height: 1.15,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                  ],
+                                ),
+                                SizedBox(height: 4.s),
+                              ],
+                              Text(
+                                itemTitle.name,
+                                style: TextStyle(
+                                  fontSize: 12.5.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: _text,
+                                  height: 1.22,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+
+                              const Spacer(),
+
+                              // ── Price ──
+                              ..._priceBlock(
+                                basePrice: item.price,
+                                discountedPrice: discountedPrice,
+                                hasDiscount: hasDiscount,
+                                savingsAmount: savingsAmount,
+                                isWeightItem: isWeightItem,
+                                portionWeight: portionWeight,
+                                portionPrice: portionPrice,
+                                unit: item.unit,
+                                pricingAttributes: itemTitle.pricingAttributes,
+                              ),
+
+                              SizedBox(height: 7.s),
+
+                              // ── Cart button ──
+                              _cartSection(item),
+                            ], // Close Column children
+                          ), // Close Column
+                        ), // Close Padding
+                      ), // Close Expanded
+                    ], // Close outer Column children
+                  ), // Close outer Column
+                ), // Close ClipRRect
+                // Liquid Glass Shimmer Overlay
+                _buildShimmerOverlay(),
+              ], // Close Stack children
+            ), // Close Stack
+          ); // Close Container (return statement)
+        }, // Close builder function
+      ), // Close AnimatedBuilder
+    ); // Close GestureDetector
+  }
+
+// ─── Liquid Glass Shimmer Overlay ────────────────────────
+  Widget _buildShimmerOverlay() {
+    return IgnorePointer(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14.s),
+        child: ShaderMask(
+          blendMode: BlendMode.plus,
+          shaderCallback: (bounds) {
+            final progress = _shimmerAnimation.value;
+            final width = bounds.width;
+            final height = bounds.height;
+            // Diagonal shimmer sweep — wider band
+            final startX = -width * 0.6 + progress * width * 2.4;
+            return LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.transparent,
+                Colors.white.withValues(alpha: 0.0),
+                Colors.white.withValues(alpha: 0.28),
+                Colors.white.withValues(alpha: 0.55),
+                const Color(0xFFE8F0FF).withValues(alpha: 0.45),
+                Colors.white.withValues(alpha: 0.28),
+                Colors.white.withValues(alpha: 0.0),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.18, 0.32, 0.42, 0.5, 0.58, 0.72, 1.0],
+              transform: GradientRotation(-0.785), // -45 degrees
+            ).createShader(
+                Rect.fromLTWH(startX, -height * 0.5, width * 2.4, height * 2));
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14.s),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.08),
+                  Colors.white.withValues(alpha: 0.02),
+                  Colors.transparent,
+                  Colors.white.withValues(alpha: 0.04),
+                ],
+                stops: const [0.0, 0.3, 0.6, 1.0],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -273,11 +414,13 @@ class _ProductCardState extends State<ProductCard> {
                         item.image!,
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Center(
-                          child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 42.s),
+                          child: Icon(Icons.inventory_2_outlined,
+                              color: _textMute, size: 42.s),
                         ),
                       )
                     : Center(
-                        child: Icon(Icons.inventory_2_outlined, color: _textMute, size: 42.s),
+                        child: Icon(Icons.inventory_2_outlined,
+                            color: _textMute, size: 42.s),
                       ),
               ),
             ),
@@ -316,7 +459,8 @@ class _ProductCardState extends State<ProductCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (hasDiscount && discountPercent > 0) _discountBadge(discountPercent),
+                if (hasDiscount && discountPercent > 0)
+                  _discountBadge(discountPercent),
                 ...subtractPromotions.map(
                   (promotion) => Padding(
                     padding: EdgeInsets.only(top: 6.s),
@@ -326,12 +470,19 @@ class _ProductCardState extends State<ProductCard> {
                 if (isOutOfStock || isLowStock)
                   Padding(
                     padding: EdgeInsets.only(
-                      top: (hasDiscount && discountPercent > 0) || subtractPromotions.isNotEmpty ? 6.s : 0,
+                      top: (hasDiscount && discountPercent > 0) ||
+                              subtractPromotions.isNotEmpty
+                          ? 6.s
+                          : 0,
                     ),
                     child: _statusBadge(
                       isOutOfStock ? 'Нет в наличии' : 'Мало',
-                      background: isOutOfStock ? Colors.black.withValues(alpha: 0.72) : Colors.black.withValues(alpha: 0.68),
-                      foreground: isOutOfStock ? Colors.white.withValues(alpha: 0.92) : _orange,
+                      background: isOutOfStock
+                          ? Colors.black.withValues(alpha: 0.72)
+                          : Colors.black.withValues(alpha: 0.68),
+                      foreground: isOutOfStock
+                          ? Colors.white.withValues(alpha: 0.92)
+                          : _orange,
                     ),
                   ),
               ],
@@ -437,7 +588,8 @@ class _ProductCardState extends State<ProductCard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.local_fire_department_rounded, size: 12.s, color: Colors.white),
+          Icon(Icons.local_fire_department_rounded,
+              size: 12.s, color: Colors.white),
           SizedBox(width: 5.s),
           Text(
             '-$discountPercent%',
@@ -490,17 +642,23 @@ class _ProductCardState extends State<ProductCard> {
     if (promotion.baseAmount > 0 && promotion.addAmount > 0) {
       return '${promotion.baseAmount}+${promotion.addAmount}';
     }
-    final fallback = (promotion.description?.trim().isNotEmpty ?? false) ? promotion.description!.trim() : promotion.name.trim();
+    final fallback = (promotion.description?.trim().isNotEmpty ?? false)
+        ? promotion.description!.trim()
+        : promotion.name.trim();
     return fallback.isEmpty ? 'Промо' : fallback;
   }
 
   List<item_model.ItemPromotion> _activePromotions(item_model.Item item) {
-    return (item.promotions ?? const <item_model.ItemPromotion>[]).where((promotion) => promotion.isActive).toList(growable: false);
+    return (item.promotions ?? const <item_model.ItemPromotion>[])
+        .where((promotion) => promotion.isActive)
+        .toList(growable: false);
   }
 
-  item_model.ItemPromotion? _primaryDiscountPromo(List<item_model.ItemPromotion> promotions) {
+  item_model.ItemPromotion? _primaryDiscountPromo(
+      List<item_model.ItemPromotion> promotions) {
     for (final promotion in promotions) {
-      final isDiscountType = promotion.discountType == 'PERCENT' || promotion.discountType == 'FIXED';
+      final isDiscountType = promotion.discountType == 'PERCENT' ||
+          promotion.discountType == 'FIXED';
       if (isDiscountType && promotion.discountValue > 0) {
         return promotion;
       }
@@ -508,9 +666,13 @@ class _ProductCardState extends State<ProductCard> {
     return null;
   }
 
-  List<item_model.ItemPromotion> _subtractPromotions(List<item_model.ItemPromotion> promotions) {
+  List<item_model.ItemPromotion> _subtractPromotions(
+      List<item_model.ItemPromotion> promotions) {
     return promotions
-        .where((promotion) => promotion.discountType == 'SUBTRACT' && promotion.baseAmount > 0 && promotion.addAmount > 0)
+        .where((promotion) =>
+            promotion.discountType == 'SUBTRACT' &&
+            promotion.baseAmount > 0 &&
+            promotion.addAmount > 0)
         .toList(growable: false);
   }
 
@@ -518,7 +680,8 @@ class _ProductCardState extends State<ProductCard> {
   Widget _optionBadge(item_model.Item item) {
     // Show first option names like "Объём • Крепость" instead of generic count
     final optionNames = item.options!.take(2).map((o) => o.name).join(' • ');
-    final extra = item.options!.length > 2 ? ' +${item.options!.length - 2}' : '';
+    final extra =
+        item.options!.length > 2 ? ' +${item.options!.length - 2}' : '';
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6.s, vertical: 3.s),
@@ -607,10 +770,14 @@ class _ProductCardState extends State<ProductCard> {
     required String? unit,
     required List<String> pricingAttributes,
   }) {
-    final portionLabel = isWeightItem && portionWeight > 0 ? globals.formatQuantity(portionWeight, unit ?? 'кг') : null;
+    final portionLabel = isWeightItem && portionWeight > 0
+        ? globals.formatQuantity(portionWeight, unit ?? 'кг')
+        : null;
 
     final mainPrice = portionPrice ?? discountedPrice;
-    final oldPrice = hasDiscount ? (portionPrice != null ? basePrice * portionWeight : basePrice) : null;
+    final oldPrice = hasDiscount
+        ? (portionPrice != null ? basePrice * portionWeight : basePrice)
+        : null;
 
     return [
       if (hasDiscount && oldPrice != null) ...[
@@ -767,8 +934,10 @@ class _ProductCardState extends State<ProductCard> {
         final num? maxAmount = item.amount;
         final selection = SmartCartSelection(item);
         final bool canDecrease = totalQuantity > 0;
-        final bool canIncrease = maxAmount == null || totalQuantity < maxAmount.toDouble();
-        final bool decrementRemovesItem = canDecrease && totalQuantity <= selection.defaultStepQuantity + 0.001;
+        final bool canIncrease =
+            maxAmount == null || totalQuantity < maxAmount.toDouble();
+        final bool decrementRemovesItem = canDecrease &&
+            totalQuantity <= selection.defaultStepQuantity + 0.001;
 
         return _quantityControls(
           item,
@@ -793,17 +962,25 @@ class _ProductCardState extends State<ProductCard> {
     bool decrementRemovesItem,
     bool animate,
   ) {
-    final quantityLabel = totalQuantity == totalQuantity.roundToDouble() ? totalQuantity.toStringAsFixed(0) : totalQuantity.toStringAsFixed(2);
-    final shellDuration = animate ? const Duration(milliseconds: 220) : Duration.zero;
-    final valueDuration = animate ? const Duration(milliseconds: 170) : Duration.zero;
+    final quantityLabel = totalQuantity == totalQuantity.roundToDouble()
+        ? totalQuantity.toStringAsFixed(0)
+        : totalQuantity.toStringAsFixed(2);
+    final shellDuration =
+        animate ? const Duration(milliseconds: 220) : Duration.zero;
+    final valueDuration =
+        animate ? const Duration(milliseconds: 170) : Duration.zero;
     final buttonSize = 30.s;
     final gap = 5.s;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth.isFinite ? constraints.maxWidth : buttonSize;
-        final leadingSpace = canDecrease ? 0.0 : (maxWidth - buttonSize).clamp(0.0, double.infinity);
-        final expandedQuantityWidth = (maxWidth - (buttonSize * 2) - (gap * 2)).clamp(0.0, double.infinity);
+        final maxWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : buttonSize;
+        final leadingSpace = canDecrease
+            ? 0.0
+            : (maxWidth - buttonSize).clamp(0.0, double.infinity);
+        final expandedQuantityWidth = (maxWidth - (buttonSize * 2) - (gap * 2))
+            .clamp(0.0, double.infinity);
         final quantityWidth = canDecrease ? expandedQuantityWidth : 0.0;
 
         return SizedBox(
@@ -819,9 +996,13 @@ class _ProductCardState extends State<ProductCard> {
                 width: canDecrease ? buttonSize : 0.0,
                 duration: shellDuration,
                 child: _ctrlButton(
-                  icon: decrementRemovesItem ? Icons.delete_outline : Icons.remove,
+                  icon: decrementRemovesItem
+                      ? Icons.delete_outline
+                      : Icons.remove,
                   enabled: canDecrease,
-                  onPressed: canDecrease ? () => _decrementCatalogItem(cartProvider, item) : null,
+                  onPressed: canDecrease
+                      ? () => _decrementCatalogItem(cartProvider, item)
+                      : null,
                   animate: animate,
                 ),
               ),
@@ -846,7 +1027,9 @@ class _ProductCardState extends State<ProductCard> {
                     child: Center(
                       child: AnimatedSwitcher(
                         duration: valueDuration,
-                        reverseDuration: animate ? const Duration(milliseconds: 130) : Duration.zero,
+                        reverseDuration: animate
+                            ? const Duration(milliseconds: 130)
+                            : Duration.zero,
                         switchInCurve: Curves.easeOutCubic,
                         switchOutCurve: Curves.easeInCubic,
                         transitionBuilder: (child, animation) {
@@ -856,7 +1039,8 @@ class _ProductCardState extends State<ProductCard> {
                           ).animate(animation);
                           return FadeTransition(
                             opacity: animation,
-                            child: SlideTransition(position: offset, child: child),
+                            child:
+                                SlideTransition(position: offset, child: child),
                           );
                         },
                         child: Text(
@@ -881,7 +1065,9 @@ class _ProductCardState extends State<ProductCard> {
               _ctrlButton(
                 icon: Icons.add,
                 enabled: canIncrease,
-                onPressed: canIncrease ? () => _incrementCatalogItem(cartProvider, item) : null,
+                onPressed: canIncrease
+                    ? () => _incrementCatalogItem(cartProvider, item)
+                    : null,
                 animate: animate,
               ),
             ],
@@ -921,15 +1107,18 @@ class _ProductCardState extends State<ProductCard> {
           onTap: onPressed,
           child: Center(
             child: AnimatedSwitcher(
-              duration: animate ? const Duration(milliseconds: 160) : Duration.zero,
-              reverseDuration: animate ? const Duration(milliseconds: 120) : Duration.zero,
+              duration:
+                  animate ? const Duration(milliseconds: 160) : Duration.zero,
+              reverseDuration:
+                  animate ? const Duration(milliseconds: 120) : Duration.zero,
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
               transitionBuilder: (child, animation) {
                 return FadeTransition(
                   opacity: animation,
                   child: ScaleTransition(
-                    scale: Tween<double>(begin: 0.82, end: 1).animate(animation),
+                    scale:
+                        Tween<double>(begin: 0.82, end: 1).animate(animation),
                     child: child,
                   ),
                 );
@@ -961,8 +1150,12 @@ class _ProductCardState extends State<ProductCard> {
       }
       parts.insert(0, n.toString());
       final formatted = parts.join(' ');
-      return frac > 0.005 ? '$formatted.${(frac * 100).round().toString().padLeft(2, '0')}' : formatted;
+      return frac > 0.005
+          ? '$formatted.${(frac * 100).round().toString().padLeft(2, '0')}'
+          : formatted;
     }
-    return price == price.roundToDouble() ? price.toStringAsFixed(0) : price.toStringAsFixed(2);
+    return price == price.roundToDouble()
+        ? price.toStringAsFixed(0)
+        : price.toStringAsFixed(2);
   }
 }
