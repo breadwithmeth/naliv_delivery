@@ -57,9 +57,6 @@ dependencies:
   webview_flutter: ^4.13.1
   web: ^1.1.1
   socket_io_client: ^3.0.2
-  flutter_motion_kit: ^1.0.4
-  path_drawing: ^1.0.1
-  
 
 dev_dependencies:
   flutter_test:
@@ -97,6 +94,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/icons/design/
     - assets/icons/home_active.png
     - assets/icons/home.png
     - assets/icons/cart_active.png
@@ -156,6 +154,16 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
+    # Redesign typeface: TikTok Sans, OFL-1.1, bundled (not fetched at runtime) so rendering
+    # is deterministic offline and in golden tests.
+    #
+    # Variable font, not static instances: the design uses the optical-size axis (verified
+    # against the file's own text boxes — 16pt statics drift -6% at 8px and +1.7% at 20px,
+    # the variable face with opsz=fontSize lands within 1%). Weight is applied through the
+    # `wght` axis, which `lib/design/typography.dart` always sets together with `opsz`.
+    - family: TikTokSans
+      fonts:
+        - asset: assets/fonts/TikTokSans/TikTokSans-Variable.ttf
     - family: MontserratAlternates
       fonts:
         - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-Black.ttf

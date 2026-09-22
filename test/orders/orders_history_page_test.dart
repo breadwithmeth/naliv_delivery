@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/pages/orders_history_page.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
@@ -7,8 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  setUp(() {
+  setUp(() async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    // The page under test formats dates with an explicit 'ru' locale.
+    await initializeDateFormatting('ru');
   });
 
   testWidgets('renders pay action only for payable history entries', (tester) async {

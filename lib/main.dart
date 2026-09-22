@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:naliv_delivery/core/theme_controller.dart';
+import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
@@ -26,6 +29,11 @@ Future<void> main() async {
   await runZonedGuarded<Future<void>>(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      // The product is portrait-only on phones and tablets. Android/iOS additionally
+      // hard-lock this natively (manifest / Info.plist); this covers the Flutter layer.
+      await SystemChrome.setPreferredOrientations(
+        const [DeviceOrientation.portraitUp],
+      );
       await TelemetryConsentService.loadConsent();
       final packageInfo = await PackageInfo.fromPlatform();
 
@@ -56,6 +64,8 @@ Future<void> main() async {
                 ChangeNotifierProvider(create: (_) => CartProvider()),
                 ChangeNotifierProvider(create: (_) => BusinessProvider()),
                 ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
+                ChangeNotifierProvider(
+                    create: (_) => ThemeController()..load()),
               ],
               child: const Main(),
             ),
@@ -119,69 +129,10 @@ class _MainState extends State<Main> with LocationMixin {
           Locale('ru'),
           Locale('en'),
         ],
-        theme: ThemeData(
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          useMaterial3: true,
-          brightness: Brightness.light,
-          scaffoldBackgroundColor: const Color(0xffF9F9F9),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xffF9F9F9),
-            foregroundColor: Colors.black,
-          ),
-          colorScheme: const ColorScheme.light(
-            surface: Color(0xFFF5F5F5),
-            onSurface: Colors.black,
-            primaryContainer: Colors.white,
-            primary: Colors.black,
-            onPrimary: Colors.white,
-            surfaceDim: Colors.white,
-            secondary: Color(0xFFFF6900),
-            // onSecondaryContainer: Color(0xFF363636),
-            secondaryContainer: Color(0xFFff991c),
-          ),
-          textTheme: const TextTheme(
-            bodyMedium: TextStyle(color: Colors.black),
-          ),
-        ),
-        darkTheme: ThemeData(
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          useMaterial3: true,
-          brightness: Brightness.dark,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF0a0a0a),
-            surfaceTintColor: Color(0xFF0a0a0a),
-            foregroundColor: Colors.white,
-          ),
-          scaffoldBackgroundColor: const Color(0xFF0a0a0a),
-          colorScheme: const ColorScheme.dark(
-              surfaceDim: Colors.white10,
-              surface: Color(0xFF0a0a0a),
-              onSurface: Colors.white,
-              primaryContainer: Color(0xFF363636),
-              primary: Colors.white,
-              secondaryContainer: Color(0xFFff991c),
-              secondary: Color(0xFFFF6900),
-              onPrimary: Colors.black),
-          textTheme: const TextTheme(
-            bodyMedium: TextStyle(color: Colors.white),
-          ),
-        ),
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        // OS default with the user's override from the sidebar / profile switch.
+        themeMode: context.watch<ThemeController>().mode,
         debugShowCheckedModeBanner: false,
         routes: {
           FaqPage.routeName: (context) {
