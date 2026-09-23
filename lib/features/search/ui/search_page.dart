@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../../core/product_view.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
-import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_search_field.dart';
 import '../../../ui/app_top_bar.dart';

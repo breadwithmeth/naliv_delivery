@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
@@ -17,10 +19,9 @@ import 'package:naliv_delivery/features/certificates/ui/certificates_page.dart';
 import 'package:naliv_delivery/features/certificates/ui/certificates_placeholder_page.dart';
 import 'package:naliv_delivery/pages/certificates_page.dart' as legacy;
 import 'package:naliv_delivery/pages/checkout_page.dart';
-import 'package:naliv_delivery/pages/faq_page.dart';
+import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/notification_settings_page.dart';
-import 'package:naliv_delivery/pages/orders_history_page.dart';
 import 'package:naliv_delivery/pages/profile_addresses_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
@@ -51,35 +52,37 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     _checkAuth();
   }
 
+  /// Bound on the session check. Without it a stalled `/auth/full-info` — a dead dev server, a
+  /// captive network — keeps [_isLoading] true and the app never leaves its loader.
+  static const Duration _authCheckTimeout = Duration(seconds: 10);
+
   Future<void> _checkAuth() async {
+    Map<String, dynamic>? userInfo;
     try {
-      final userInfo = await ApiService.getFullInfo();
-
-      if (mounted) {
-        setState(() {
-          _userInfo = userInfo;
-          _isAuthenticated = userInfo != null;
-          _requiresProfileSetup = ProfileSetupPage.isRequiredFor(userInfo);
-          _isLoading = false;
-        });
-      }
-
-      // Если токен невалидный (userInfo == null), почистим локально сохранённый токен
-      if (userInfo == null) {
-        await AuthService.clearToken();
-      } else if (mounted) {
-        await _loadHome();
-      }
+      userInfo = await ApiService.getFullInfo().timeout(_authCheckTimeout);
+    } on TimeoutException {
+      debugPrint('Auth check timed out; continuing as a guest');
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isAuthenticated = false;
-          _requiresProfileSetup = false;
-          _isLoading = false;
-        });
-      }
       debugPrint('Error checking authentication: $e');
     }
+
+    if (!mounted) return;
+    setState(() {
+      _userInfo = userInfo;
+      _isAuthenticated = userInfo != null;
+      _requiresProfileSetup = ProfileSetupPage.isRequiredFor(userInfo);
+      _isLoading = false;
+    });
+
+    // Если токен невалидный (userInfo == null), почистим локально сохранённый токен
+    if (userInfo == null) {
+      await AuthService.clearToken();
+    }
+
+    // The home screen is public — the design ships a signed-out variant of it — so it is loaded
+    // whether or not there is a session. Loading it only for signed-in users left everyone else
+    // staring at the loader, because [build] shows [AppLoadingScreen] while [_homeData] is null.
+    if (mounted) await _loadHome();
   }
 
   Future<void> _handleProfileSetupCompleted(
@@ -148,10 +151,15 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   HomeViewData? _homeData;
   String? _homeError;
 
+  /// Bound on the home fetch. It fans out to several endpoints at once, so without this a single
+  /// stalled request left the app on its loader indefinitely — reported as "endless loading".
+  static const Duration _homeLoadTimeout = Duration(seconds: 20);
+
   Future<void> _loadHome() async {
     setState(() => _homeError = null);
     try {
-      final data = await const HomeDataSource().load();
+      final data =
+          await const HomeDataSource().load().timeout(_homeLoadTimeout);
       if (!mounted) return;
       setState(() => _homeData = data);
     } catch (e) {

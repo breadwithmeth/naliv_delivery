@@ -1139,7 +1139,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final rawTotal = _previewSubtotalBeforePromotions();
     final amount = _configuredAmount();
     final subtractState = _subtractUiState(amount);
-    final footerHeight = 96.s + pad.bottom;
     final footerReserve = 116.s + pad.bottom;
 
     return Scaffold(

@@ -3,10 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../core/like_action.dart';
 import '../../../core/product_view.dart';
-import '../../../design/theme.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
-import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_row.dart';

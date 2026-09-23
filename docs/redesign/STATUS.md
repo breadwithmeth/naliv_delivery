@@ -50,7 +50,7 @@ synthetic DOM events do not reach its text editor. Two consequences:
 | 2 | **Search idle state**: the frame draws the field alone at y = 60 with no header; I keep the consistent header («Поиск» + back) in all four states. | **Consistent header** | Cosmetic, 1 argument |
 | 3 | **Option flows exist but the design has none.** You confirmed options live under «Пиво» → «Розливное/Разливное пиво». The redesigned product page has no option UI, so such items are routed to the **legacy** product page. | **Legacy bridge, documented** | Real functional gap; needs a design for the option/bottling sheet |
 | 4 | **Scheduled delivery** («Запланировать»), **rating + tips** («Как всё прошло»), **notifications inbox**, **card deletion**: the design has them, the frozen backend has no endpoint. 15 frames, excluded per your "build only what the backend supports". | **Not built** | Scope; revisit if the backend grows |
-| 5 | **Two pre-existing red test files** (`orders_history_page_test.dart` — 1 test, `product_detail_bottling_test.dart` — 5 tests) fail before any of my changes (verified by stashing my edits). | **Left red until their screens are rebuilt** | They are the tripwire for frozen logic; I will fix or delete them when the cart/checkout work lands |
+| 5 | **Pre-existing red tests, now measured precisely:** `flutter test` = **56 pass / 8 fail**, and all 8 failures are `product_detail_bottling_test.dart`. `orders_history_page_test.dart` is **fixed and green** (§3t). I previously wrote "5 tests" for bottling from a partial run; the true count is 8. Verified they fail identically with my edits stashed. | **Left red until their screens are rebuilt** | They are the tripwire for frozen logic; I will fix or delete them when the cart/checkout work lands |
 | 6 | **Money separators**: the design's own text is inconsistent — price `'11\xa0853 ₸'` (NBSP) but saving `'Выгода 1317 ₸'` (no separator). I format both with NBSP. | **One formatter, NBSP** | Cosmetic |
 | 7 | **Banner artwork**: `/promotions/active` returns 22 promotions named «Акции» with an **empty** `cover`, so the carousel shows the design's placeholder fill. | **Placeholder fill** | Backend data, not code |
 | 8 | **Trailing spaces** in API names («Белое ») are trimmed on display. | **Trim** | Cosmetic |
@@ -565,6 +565,242 @@ and not yet diagnosed: `UnsupportedError` thrown while building a `LayoutBuilder
 lays out and the «1250 ₸» assertions find nothing. This is a harness/constraint problem, not the
 `intl` one. Left open deliberately rather than papered over — it pins the options/bottling **pricing**
 logic that the legacy bridge still uses, so it is worth repairing, not deleting.
+
+## 3u. Startup loader hang — fixed and verified live on web
+
+**Symptom (reported):** the app never leaves the loading screen in dev.
+
+**Cause — two of them, neither where it looked.** `AuthenticationWrapper._checkAuth()` only called
+`_loadHome()` when `userInfo != null`:
+
+```dart
+if (userInfo == null) { await AuthService.clearToken(); }
+else if (mounted) { await _loadHome(); }        // ← signed-out sessions never got here
+```
+
+`build()` returns `AppLoadingScreen` while `_homeData == null`, so **any signed-out or invalid-token
+session sat on the loader forever**. The home screen is public — the design ships a signed-out variant
+(«Главная - Без входа в аккаунт», node `2098:32279`) — so it must load regardless of session. Second:
+`ApiService.getFullInfo()`'s `http.get` has **no timeout**, so a stalled `/auth/full-info` (dead dev
+server) blocked the check indefinitely.
+
+**Fix:** `_checkAuth` now bounds the check with a 10 s timeout, treats a timeout as "guest", and
+always calls `_loadHome()` afterwards. `authentication_wrapper.dart` only; no API or contract change.
+
+**Verified live** (`flutter run -d web-server --web-port=8099`, 375×950, fresh profile): slides →
+onboarding 1/2 (notifications) → 2/2 (geolocation) → city picker → **the signed-out home renders** with
+the real store card «Градусы24 · Бухар-Жырау 70, Караганда», the promo carousel, the «Кухня» card, all
+six category tiles and the empty cart disc.
+
+**OneSignal was not the cause, though the report was reasonable:** the onboarding's
+«Разрешить уведомления» awaits `NotificationService.enablePushNotifications()`, and with no OneSignal
+in dev that path is already safe — `onesignal_web_bridge_web.dart` returns `null` when the
+`GradusyOneSignal` global is absent, and every bridge call carries a 10 s timeout and a catch. Tapped
+it and it advanced to step 2 cleanly.
+
+**Retraction — my own verification was lying to me.** Several turns of "0 errors, 0 warnings" came
+from `grep -cE "^\s+(error|warning)"`, and `dart analyze` prints `warning - …` at **column 0**, so the
+pattern matched nothing and I reported a clean tree that had **10 warnings** (all dead imports and
+unused parameters from the rebuild). Fixed the filter, cleared all 10, and the tree is now genuinely
+0 errors / 0 warnings. **Use `grep -E "error - |warning - "`.** (Seventh overstated/under-counted
+finding — the probe, again, not the artifact.)
+
+## 3v. FAQ rebuilt — designed, wired and verified
+
+**Built:** `lib/features/faq/ui/faq_page.dart` — `AppTopBar('FAQ')`, the design's search field
+(«Найти вопрос или ответ»), section headings, and one-card-per-question with the answer expanded
+underneath. First answer opens by default, matching the frame. Content is the app's own 44 entries in
+7 sections via `FaqRepository`; only the chrome is new. The palette/type idiom is `context.palette` +
+`AppTypography.*`.
+
+**Cutover (clean, no shim):** the named route `/faq` in `main.dart` now builds the new page, which
+also migrates all six legacy `openFaqPage(...)` callers at once — profile, checkout, login, help chat,
+order detail, payment method. `initialSection` is preserved: the list scrolls the requested section
+into view, which is exactly what the legacy `_scrollCategoryIntoView` did. The wrapper's two
+`_push(const FaqPage())` sites point at the new page too. The legacy `FaqPage`/`_FaqPageState` remain
+in place only as the repository's home until the `AppColors` cleanup.
+
+**Verified live** (`127.0.0.1:8099`, signed-out): sidebar → FAQ renders the real questions, the first
+answer expanded, the next section heading visible below.
+
+**Verified deterministically** — `test/faq/faq_page_test.dart`, 3/3:
+1. the first question *and* its answer render (the design's open-by-default behaviour);
+2. a query narrows to matches, drops a section whose entries all miss, and removes an unrelated
+   question entirely;
+3. a query that matches nothing shows the empty state.
+
+Assertion 2 was wrong on first run — I asserted the matched answer stays collapsed, but that entry is
+the default-opened one, so the code was right and the test was wrong. Noted because the test caught
+it, which is the point of writing it.
+
+**Deliberately not built:** the design's «FAQ - Не удалось загрузить» frame. The content is a local
+constant that cannot fail to load, so a failure state would be unreachable theatre. If FAQ ever moves
+behind the API, build it then.
+
+**Still legacy in this area:** «Поддержка» (help chat) and notification settings screens. Both are
+reachable and functional; neither is rebuilt to the design yet.
+
+## 3w. Support and notifications — frames exist, and they are NOT the same screen
+
+Recon for the last unbuilt pair, and a naming trap worth recording.
+
+| Design frame | Node | What it is | Status |
+|---|---|---|---|
+| Поддержка | `2093:8576` | support chat | **buildable** — legacy `help_chat_page.dart` (1019 lines) is live and works, so a backend exists |
+| Поддержка - Ввод сообщения | `2093:8635` | the chat with the composer focused | same screen, second state |
+| Уведомления | `2093:8248` | a notifications **inbox** | excluded — no endpoint (one of the 15) |
+| Уведомления - Уведомлений нет | `2093:8470` | the inbox's empty state | excluded with it |
+
+**The trap:** the sidebar row «Уведомления» in this app opens `NotificationSettingsPage` — push/telemetry
+**toggles** — while the design's «Уведомления» frames are an **inbox** of past notifications. Same word,
+two different things. Do not "rebuild Уведомления" by reading those frames and deleting the settings
+screen: the toggles are the part the app actually needs, and the inbox is the part with no backend.
+
+Extracted copy for the chat frames:
+
+- **Поддержка** (375.0×812.0) — 09:41 | Поддержка | Сообщение | Сначала можно проверить FAQ | Там уже есть ответы по входу, оплате, доставке, бонусам и возвратам | Открыть FAQ | Оператор на связи
+- **Поддержка - Ввод сообщения** (375.0×812.0) — Проверили информацию — карта успешно добавлена и готова к использованию. Если вы столкнётесь с ошибкой при оплате, пожалуйста, сообщите нам, и мы поможем разобраться. | “The” | the | to | q | w | e
+- **Уведомления** (375.0×812.0) — 09:41 | Уведомления | Хотите получать скидки и подарки? | Прочитать все | Бесплатная доставка от 10 000 ₸ | Соберите заказ на 10 000 ₸ и мы доставим его бесплатно. Выбирайте любимые напитки без лишних затрат! | 10 июня
+
+**Not built:** the support chat is a message list plus composer over the legacy send/history API. It is
+the one remaining screen where the legacy code is *working* and sizeable (1019 lines), so a partial
+rebuild would be a live regression rather than a missing screen — which is why it was not started on
+a nearly-spent context. Everything needed to start is above: frames, node IDs, the legacy file, and
+the backend it already talks to.
+
+## 3x. Whole-suite state after today's edits (measured, not assumed)
+
+`flutter test` → **56 passed, 8 failed**. Every failure is in
+`test/pricing/product_detail_bottling_test.dart`, the pre-existing red file whose root cause is
+already diagnosed in §3t (`UnsupportedError` building a `LayoutBuilder` — a harness/constraint
+problem, not the `intl` one). Nothing else in the suite regressed from today's changes: the warning
+cleanup (unused imports, `super.key` removals in `cart_page`/`product_row`), the `AuthenticationWrapper`
+startup fix, the FAQ rebuild and the `/faq` routing cutover all pass.
+
+Correction: I had recorded this file as "5 failing tests" from a partial run. **It is 8.** The earlier
+number came from grepping one run's output rather than counting the suite's own summary — the same
+under-measuring habit behind the `chars` walker and the analyzer filter. Count from the summary line.
+
+## 3y. Three boot bugs, two of them mine — from a real console trace
+
+Reported: blank dark screen, then endless loading on web. The trace was conclusive.
+
+**1. Portrait lock aborted `main()` on web (mine).** The stack shows
+`DomScreenOrientation.lock` → `[_completeErrorObject] completeError` →
+`setPreferredOrientation` → `SystemChrome.setPreferredOrientations` → **`main.dart:36`**. On web
+`screen.orientation.lock()` **rejects unless the document is fullscreen**, and I awaited it unguarded
+at the top of `main()`, so on a browser that refuses the lock the app never reached `runApp` — a blank
+page with no error the user can see. Fix: skip the call when `kIsWeb` (Android/iOS keep their native
+locks in the manifest / Info.plist, so the requirement is still enforced where it matters).
+
+**2. The web splash deleted itself mid-boot.** `web/index.html` had a
+"ultimate safety net: remove splash after 15 seconds no matter what". A cold debug-web load fetches
+**1152 DDC modules** and takes longer than that, so the splash vanished while the app was still
+booting → the blank dark page. Fix: the net now waits for `flutter-view, flt-glass-pane` before
+handing over, and if Flutter still has not appeared it **keeps the branded splash and tells the user**
+(«Загрузка занимает дольше обычного…») instead of blanking. Verified on a cache-disabled cold load:
+splash → app, no blank window.
+
+**3. Home fetch could hang forever.** `HomeDataSource.load()` `Future.wait`s four endpoints with no
+timeout, so one stalled request left `_homeData == null` and the loader spinning — the
+"endless loading". Fix: `.timeout(20s)` in `_loadHome`, after which the existing error state shows
+with its retry. Same class of bug as the un-timed `/auth/full-info` fixed in §3u — **any await on the
+startup path needs a bound.**
+
+**OneSignal console flood — fixed.** `web/index.html:88` logged on *every* failed bridge call, and a
+blocked SDK makes all of them fail: a web run printed **40 identical `OneSignal web error`** entries.
+The bridge already tolerates a missing SDK (null bridge + 10 s timeout + catch), so nothing was broken —
+it was pure noise. The catch now logs **once**, with a message that says what actually happened
+(«push is disabled on this origin»), and suppresses repeats.
+
+**Verified after the fixes**, cold load with the HTTP cache disabled:
+- served HTML contains both the 60 s net and the dedupe (checked by fetching `index.html` directly);
+- a fresh load logs **2 console entries, 0 errors, 0 OneSignal errors** (was 40);
+- during the boot window that used to be blank, the screen shows the **branded splash** — «Градусы24»,
+  the tagline, the progress bar and a rotating fact («Свежее разливное пиво») — which is the whole
+  point of the fix.
+
+**Agent tooling installed (requested):** `.agents/skills/` now holds the official Dart/Flutter skill
+sets (`npx skills add flutter/agent-plugins` + `dart-lang/skills`) — 12 `dart-*` skills plus the
+`flutter-*` ones (widget/integration tests, layout issues, responsive layout, localization, routing),
+including `dart-fix-runtime-errors`, which is exactly the workflow that would have shortened this hunt.
+
+## 3z. Smoke test of the still-legacy screens (after today's routing changes)
+
+Ran because the FAQ cutover touched the route table, and addresses/cards/support are the screens my
+remaining items cover — a regression there would be invisible until someone rebuilt them.
+
+| Screen | Result |
+|---|---|
+| Адреса (legacy) | opens, renders, no errors |
+| Карты (legacy) | opens — «Мои карты», empty state, FAQ hint card, «Добавить новую карту» |
+| Поддержка (legacy) | **not reached** — my tap sequence landed on a category tile instead |
+| Крепкие напитки (rebuilt) | renders correctly with live data as a side effect of the mis-tap |
+
+**Console across the whole walk: 1 error**, and it is the expected suppressed line
+(«OneSignal web unavailable — push is disabled on this origin»). So the dedupe works and there are no
+navigation crashes.
+
+**Method note, worth keeping:** driving Flutter web by coordinate is fragile — the same tap that opened
+the sidebar one minute earlier landed on a product tile the next, and I burned three attempts on it.
+Stable-finder automation (Flutter Driver / the widget inspector over MCP) would make this reliable, and
+`integration_test` with `find.byKey` would make it permanent. That is the concrete argument for the
+tooling in §3y, not a tidiness one: the verification loop is the slow part of this project.
+
+## 4a. How to run this app in dev on Windows (the OOM is the toolchain, not the app)
+
+**Symptom:** `flutter run -d chrome` dies with
+`../../runtime/platform/allocation.cc: 22: error: Out of memory` (Dart 3.12.2, windows_x64) during
+compilation, with a stack full of `_Utf8ConversionSink` / `Stream.fold` frames.
+
+**Diagnosis:** the **DDC dev compiler** ran out of memory, not the application. The earlier console
+dump confirms the scale — the debug web build loads **1152 modules** (`DDC is about to load
+1152/1152 scripts`). DDC plus a file watcher plus a heavyweight dependency set (`sentry_flutter`,
+`onesignal_flutter`, `provider`, `shared_preferences`, `package_info_plus`, …) is the memory hog here.
+Nothing in the app crashes at runtime in this trace; the crash is inside `flutter run` while emitting
+the bundle.
+
+**Confirmed by the run that produced this entry:**
+
+```
+Compiling lib\main.dart for the Web...  62.3s
+✓ Built build\web
+```
+
+**Use this instead:**
+
+```bash
+flutter build web --release      # one dart2js compile, no watcher
+# then serve the output statically, e.g.
+python -m http.server 8100 --directory build/web
+```
+
+Three problems disappear at once:
+
+| | `flutter run -d chrome` (DDC) | `build web --release` + static serve |
+|---|---|---|
+| Memory | OOMs on this machine | a single compile, no watcher |
+| First paint | 20–60 s (1152 modules) | seconds |
+| Splash window | long enough to need the 60 s net | barely exists |
+
+That last row matters: the blank-screen bug in §3y was *caused* by the slow DDC boot outlasting the
+splash. A release build makes that whole class of problem rare, and the splash fix keeps it honest
+when it does happen.
+
+**Verified end-to-end:** `flutter build web --release` finished in **62 s** (the debug run OOMs), and
+served statically (`python -m http.server 8100 --directory build/web`) the app reaches its first
+screen in **under 7 s** — against 20–60 s under DDC, with 2 console entries and 1 error, the expected
+suppressed OneSignal line.
+
+**Build warning triaged, no action taken:** `Expected to find fonts for (MaterialIcons,
+packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons)`. Checked before reacting —
+**zero `CupertinoIcons` references in `lib`** and `cupertino_icons` is not a declared dependency, so no
+glyph can be missing and the warning is spurious. Adding the package would be a dependency nobody
+uses; the MaterialIcons tree-shake (1 645 184 → 25 232 bytes) is working as intended.
+
+**If you must use hot reload**, keep the module count down (drop unused dependencies — two were
+already removed early in this project) and close memory-heavy apps; the watcher's footprint is what
+crosses the line, not the app's.
 
 ---
 

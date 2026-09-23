@@ -49,6 +49,7 @@
       var initPromise = null;
       var changeHandler = null;
       var listenersRegistered = false;
+      var errorLogged = false;
 
       function notifyChange() {
         if (typeof changeHandler === "function") {
@@ -85,7 +86,16 @@
               registerChangeListeners(OneSignal);
               resolve(await callback(OneSignal));
             } catch (error) {
-              console.error("OneSignal web error", error);
+              // Expected when the OneSignal SDK is blocked or unavailable (common in dev): every
+              // bridge call fails, and logging each one buried the console under ~40 identical
+              // lines. One line carries all the diagnostic value the rest did.
+              if (!errorLogged) {
+                errorLogged = true;
+                console.error(
+                  "OneSignal web unavailable — push is disabled on this origin (repeat errors suppressed)",
+                  error
+                );
+              }
               resolve(fallback);
             }
           });
@@ -483,11 +493,21 @@
         }
       });
       obs.observe(document.documentElement, { childList: true, subtree: true });
-      // Ultimate safety net: remove splash after 15 seconds no matter what
+      // Slow boots are real: a cold debug-web load fetches over a thousand modules and can take
+      // a minute. Removing the splash on a timer left a blank dark page with no explanation —
+      // which is exactly what happened. The net now waits for Flutter before handing over, and if
+      // Flutter still has not appeared it keeps the branded splash and says what to do.
       setTimeout(function () {
-        obs.disconnect();
-        removeSplashFromWeb();
-      }, 15000);
+        if (document.querySelector('flutter-view, flt-glass-pane')) {
+          obs.disconnect();
+          removeSplashFromWeb();
+          return;
+        }
+        var fact = document.getElementById("sp-fact-text");
+        if (fact) {
+          fact.textContent = "Загрузка занимает дольше обычного — подождите или обновите страницу.";
+        }
+      }, 60000);
     })();
   </script>
 </head>

@@ -7,9 +7,6 @@ import '../../../design/theme.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
-import '../../../ui/app_cart_button.dart';
-import '../../../ui/app_icon.dart';
-import '../../../ui/app_icon_button.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/surfaces.dart';
@@ -37,7 +34,6 @@ class CartPage extends StatefulWidget {
     this.address,
     this.onCheckout,
     this.onCatalog,
-    super.key,
   });
 
   /// Store the cart is being ordered from; used for prices and recommendations.
@@ -510,7 +506,6 @@ class _SemanticTap extends StatelessWidget {
     required this.label,
     required this.child,
     this.onTap,
-    super.key,
   });
 
   final String label;

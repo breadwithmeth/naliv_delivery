@@ -22,6 +22,7 @@ import 'app_icon.dart';
 /// elements independently, and a flow layout would drift on long titles.
 class ProductRow extends StatelessWidget {
   const ProductRow({
+    super.key,
     required this.title,
     required this.price,
     this.category,
@@ -35,7 +36,6 @@ class ProductRow extends StatelessWidget {
     this.onLike,
     this.onIncrement,
     this.onDecrement,
-    super.key,
   });
 
   final String title;
@@ -351,7 +351,6 @@ class _SemanticTap extends StatelessWidget {
     required this.label,
     required this.child,
     this.onTap,
-    super.key,
   });
 
   final String label;

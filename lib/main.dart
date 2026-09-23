@@ -14,7 +14,9 @@ import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:naliv_delivery/widgets/app_entry_gate.dart';
-import 'package:naliv_delivery/pages/faq_page.dart';
+import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
+// The FAQ content types live with the frozen repository; only the screen was rebuilt.
+import 'package:naliv_delivery/pages/faq_page.dart' show FaqSection;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -31,9 +33,15 @@ Future<void> main() async {
       WidgetsFlutterBinding.ensureInitialized();
       // The product is portrait-only on phones and tablets. Android/iOS additionally
       // hard-lock this natively (manifest / Info.plist); this covers the Flutter layer.
-      await SystemChrome.setPreferredOrientations(
-        const [DeviceOrientation.portraitUp],
-      );
+      //
+      // Web is excluded on purpose: `screen.orientation.lock()` rejects there unless the document
+      // is fullscreen, and awaiting that rejection aborted main() before runApp — a blank page.
+      // Verified against a console trace showing DomScreenOrientation.lock -> completeError.
+      if (!kIsWeb) {
+        await SystemChrome.setPreferredOrientations(
+          const [DeviceOrientation.portraitUp],
+        );
+      }
       await TelemetryConsentService.loadConsent();
       final packageInfo = await PackageInfo.fromPlatform();
 
