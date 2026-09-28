@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import '../utils/api.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
-import '../utils/responsive.dart';
+import '../design/theme.dart';
+import '../design/tokens.dart';
+import '../design/typography.dart';
+import '../ui/app_icon.dart';
+import '../ui/app_icon_button.dart';
 import 'faq_page.dart';
 
 // Форматирует ввод номера в +7 700 123 45 67
@@ -209,22 +211,27 @@ class _LoginPageState extends State<LoginPage>
       if (result.success) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Код отправлен на $phone'),
-          backgroundColor: AppColors.card,
+          backgroundColor: context.palette.surface,
         ));
         setState(() => _codeSent = true);
       } else {
         if (result.cooldownSeconds != null && result.cooldownSeconds! > 0) {
-          _startSendCodeCooldown(phone: phone, seconds: result.cooldownSeconds!);
+          _startSendCodeCooldown(
+              phone: phone, seconds: result.cooldownSeconds!);
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(result.message),
-          backgroundColor: AppColors.card,
+          backgroundColor: context.palette.surface,
         ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: context.palette.surface,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -232,7 +239,9 @@ class _LoginPageState extends State<LoginPage>
   }
 
   bool _isCooldownActiveForPhone(String phone) {
-    return phone.isNotEmpty && _sendCodeCooldownSeconds > 0 && _sendCodeCooldownPhone == phone;
+    return phone.isNotEmpty &&
+        _sendCodeCooldownSeconds > 0 &&
+        _sendCodeCooldownPhone == phone;
   }
 
   void _startSendCodeCooldown({required String phone, required int seconds}) {
@@ -245,7 +254,8 @@ class _LoginPageState extends State<LoginPage>
       _sendCodeCooldownSeconds = normalizedSeconds;
     });
 
-    _sendCodeCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _sendCodeCooldownTimer =
+        Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -300,15 +310,21 @@ class _LoginPageState extends State<LoginPage>
           (route) => false,
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Неверный код или ошибка'),
-          backgroundColor: AppColors.card,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Неверный код или ошибка'),
+            backgroundColor: context.palette.surface,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Ошибка: $e'), backgroundColor: AppColors.card));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: context.palette.surface,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -321,66 +337,73 @@ class _LoginPageState extends State<LoginPage>
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      body: Stack(
-        children: [
-          const AppBackground(),
-          SafeArea(
-            child: Column(
-              children: [
-                _topBar(),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: _showAuthForm ? _authFormView() : _onboardingView(),
-                  ),
-                ),
-              ],
+      backgroundColor: palette.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _topBar(),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: _showAuthForm ? _authFormView() : _onboardingView(),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
-  // ── Top bar ───────────────────────────────────────────────
 
   Widget _topBar() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(14.s, 7.s, 14.s, 0),
-      child: Row(
+    final palette = context.palette;
+    final canClose = !_showAuthForm && Navigator.of(context).canPop();
+    return SizedBox(
+      width: double.infinity,
+      height: 84,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
+          AppIcon(
+            key: const ValueKey('auth-wordmark'),
+            AppIcons.wordmark,
+            width: 164,
+            height: 51,
+            color: palette.textPrimary,
+          ),
           if (_showAuthForm)
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-              color: AppColors.text,
-              onPressed: () => setState(() {
-                _showAuthForm = false;
-                _codeSent = false;
-                _codeController.clear();
-              }),
+            Positioned(
+              left: 16,
+              child: AppIconButton(
+                asset: AppIcons.back,
+                tooltip: 'Назад',
+                onTap: () => setState(() {
+                  _showAuthForm = false;
+                  _codeSent = false;
+                  _codeController.clear();
+                }),
+              ),
             )
-          else if (Navigator.of(context).canPop())
-            IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              color: AppColors.text,
-              onPressed: () => Navigator.of(context).pop(),
+          else if (canClose)
+            Positioned(
+              left: 16,
+              child: _materialCircleButton(
+                tooltip: 'Закрыть',
+                icon: Icons.close_rounded,
+                onTap: () => Navigator.of(context).pop(),
+              ),
             ),
-          const Spacer(),
-          SvgPicture.asset('assets/logo_new.svg', height: 25.s),
-          const Spacer(),
-          const SizedBox(width: 48), // balance for logo centering
         ],
       ),
     );
   }
 
-  // ── Onboarding view ───────────────────────────────────────
-
   Widget _onboardingView() {
+    final palette = context.palette;
     return Column(
       key: const ValueKey('onboarding'),
       children: [
@@ -391,30 +414,29 @@ class _LoginPageState extends State<LoginPage>
             child: PageView.builder(
               controller: _pageController,
               itemCount: _slides.length,
-              onPageChanged: (i) {
-                setState(() => _currentPage = i);
-                _iconPulse.forward(from: 0.0);
+              onPageChanged: (index) {
+                setState(() => _currentPage = index);
+                _iconPulse.forward(from: 0);
               },
-              itemBuilder: (_, i) => _slidePage(_slides[i]),
+              itemBuilder: (_, index) => _slidePage(_slides[index]),
             ),
           ),
         ),
-        // Dots
         Padding(
-          padding: EdgeInsets.only(bottom: 20.s),
+          padding: const EdgeInsets.only(bottom: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_slides.length, (i) {
-              final active = i == _currentPage;
+            children: List.generate(_slides.length, (index) {
+              final active = index == _currentPage;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                margin: EdgeInsets.symmetric(horizontal: 4.s),
-                width: active ? 20.s : 6.s,
-                height: 6.s,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: active ? 20 : 6,
+                height: 6,
                 decoration: BoxDecoration(
                   color: active
-                      ? AppColors.orange
-                      : AppColors.textMute.withValues(alpha: 0.3),
+                      ? palette.accent
+                      : palette.textSecondary.withValues(alpha: .3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               );
@@ -424,87 +446,90 @@ class _LoginPageState extends State<LoginPage>
         Text(
           'Войдите, чтобы не упустить выгоду',
           textAlign: TextAlign.center,
-          style: TextStyle(
-              color: AppColors.textMute.withValues(alpha: 0.7),
-              fontSize: 13.sp,
-              height: 1.3),
-        ),
-        SizedBox(height: 16.s),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 22.s),
-          child: _primaryButton(
-            label: 'Войти или зарегистрироваться',
-            onPressed: () => setState(() {
-              _showAuthForm = true;
-              _ensurePhonePrefix();
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _phoneFocusNode.requestFocus();
-              });
-            }),
+          style: AppTypography.bodySmall.copyWith(
+            color: palette.textSecondary,
           ),
         ),
-        SizedBox(height: 26.s),
+        const SizedBox(height: 16),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _primaryButton(
+                key: const ValueKey('open-auth-button'),
+                label: 'Войти или зарегистрироваться',
+                onPressed: () => setState(() {
+                  _showAuthForm = true;
+                  _ensurePhonePrefix();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _phoneFocusNode.requestFocus();
+                  });
+                }),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 26),
       ],
     );
   }
 
-  // ── Slide page ────────────────────────────────────────────
-
   Widget _slidePage(_SlideData slide) {
+    final palette = context.palette;
     return Padding(
-      padding: EdgeInsets.fromLTRB(28.s, 22.s, 28.s, 0),
+      padding: const EdgeInsets.fromLTRB(28, 22, 28, 0),
       child: Column(
         children: [
-          const Spacer(flex: 1),
+          const Spacer(),
           _glowIcon(slide.icon),
-          SizedBox(height: 28.s),
-          Text(slide.title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.text,
-                  height: 1.15,
-                  letterSpacing: -0.5)),
-          SizedBox(height: 8.s),
-          Text(slide.subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13.sp,
-                  color: AppColors.textMute.withValues(alpha: 0.6),
-                  height: 1.4)),
+          const SizedBox(height: 28),
+          Text(
+            slide.title,
+            textAlign: TextAlign.center,
+            style: AppTypography.display.copyWith(
+              color: palette.textPrimary,
+              height: 1.15,
+              letterSpacing: -.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            slide.subtitle,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodySmall.copyWith(
+              color: palette.textSecondary,
+              height: 1.4,
+            ),
+          ),
           const Spacer(flex: 2),
         ],
       ),
     );
   }
 
-  // ── Auth form view ────────────────────────────────────────
-
   Widget _glowIcon(IconData icon) {
+    final palette = context.palette;
     return AnimatedBuilder(
       animation: _iconPulse,
       builder: (context, child) {
-        final t = Curves.easeOut.transform(_iconPulse.value);
-        final scale = 0.85 + 0.15 * t;
-        final glowOpacity = 0.18 + 0.12 * t;
+        final value = Curves.easeOut.transform(_iconPulse.value);
         return Transform.scale(
-          scale: scale,
+          scale: .85 + .15 * value,
           child: Container(
-            width: 88.s,
-            height: 88.s,
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  AppColors.orange.withValues(alpha: glowOpacity),
-                  AppColors.orange.withValues(alpha: 0.0),
+                  palette.accent.withValues(alpha: .18 + .12 * value),
+                  palette.accent.withValues(alpha: 0),
                 ],
               ),
             ),
-            child: Center(
-              child: Icon(icon, size: 52.s, color: AppColors.orange),
-            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 52, color: palette.accent),
           ),
         );
       },
@@ -512,103 +537,140 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _authFormView() {
-    return SingleChildScrollView(
+    final palette = context.palette;
+    return LayoutBuilder(
       key: const ValueKey('auth'),
-      padding: EdgeInsets.fromLTRB(22.s, 14.s, 22.s, 28.s),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 28.s),
-          Icon(Icons.phone_iphone_rounded, size: 40.s, color: AppColors.orange),
-          SizedBox(height: 18.s),
-          Text(
-            _codeSent ? 'Введите код' : 'Вход по номеру телефона',
-            style: TextStyle(
-                fontSize: 22.sp,
-                fontWeight: FontWeight.w900,
-                color: AppColors.text,
-                height: 1.15),
-          ),
-          SizedBox(height: 6.s),
-          Text(
-            _codeSent
-                ? 'СМС отправлено на ${_phoneController.text}'
-                : 'Отправим короткий код подтверждения',
-            style: TextStyle(
-                fontSize: 13.sp,
-                color: AppColors.textMute.withValues(alpha: 0.6),
-                height: 1.4),
-          ),
-          SizedBox(height: 8.s),
-          TextButton.icon(
-            onPressed: () => openFaqPage(
-              context,
-              initialSection: FaqSection.profile,
-            ),
-            icon: const Icon(Icons.help_outline_rounded, size: 18),
-            label: Text(
-              _codeSent ? 'Проблемы с кодом? Открыть FAQ' : 'Не приходит SMS-код?',
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.orange,
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-          ),
-          SizedBox(height: 24.s),
-          Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                if (!_codeSent) ...[
-                  _phoneInput(),
-                  SizedBox(height: 18.s),
-                  _primaryButton(
-                    label: _sendCodeButtonLabel(),
-                    onPressed: _isLoading || _isCooldownActiveForPhone(_normalizedPhone()) ? null : _sendCode,
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 112, 16, 28),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _codeSent ? 'Введите код' : 'Вход по номеру телефона',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.headline.copyWith(
+                          color: palette.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _codeSent
+                            ? 'СМС отправлено на ${_phoneController.text}'
+                            : 'Отправим короткий код подтверждения',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.body.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => openFaqPage(
+                            context,
+                            initialSection: FaqSection.profile,
+                          ),
+                          icon: const Icon(Icons.open_in_new_rounded, size: 17),
+                          label: Text(
+                            _codeSent
+                                ? 'Проблемы с кодом? Открыть FAQ'
+                                : 'Не приходит SMS-код?',
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: palette.accent,
+                            textStyle: AppTypography.body,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 4,
+                            ),
+                            minimumSize: const Size(0, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            if (!_codeSent) ...[
+                              _phoneInput(),
+                              const SizedBox(height: 12),
+                              _primaryButton(
+                                key: const ValueKey('request-code-button'),
+                                label: _sendCodeButtonLabel(),
+                                onPressed: _isLoading ||
+                                        _isCooldownActiveForPhone(
+                                          _normalizedPhone(),
+                                        )
+                                    ? null
+                                    : _sendCode,
+                              ),
+                            ] else ...[
+                              _otpInput(),
+                              const SizedBox(height: 12),
+                              _primaryButton(
+                                key: const ValueKey('confirm-code-button'),
+                                label: 'Подтвердить',
+                                onPressed: _isLoading ||
+                                        _codeController.text.trim().length != 6
+                                    ? null
+                                    : _verifyCode,
+                              ),
+                              const SizedBox(height: 17),
+                              TextButton(
+                                onPressed: () => setState(() {
+                                  _codeSent = false;
+                                  _codeController.clear();
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    _phoneFocusNode.requestFocus();
+                                  });
+                                }),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: palette.accent,
+                                  textStyle: AppTypography.body,
+                                ),
+                                child: const Text('Изменить номер'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ] else ...[
-                  _otpInput(),
-                  SizedBox(height: 18.s),
-                  _primaryButton(
-                      label: 'Подтвердить',
-                      onPressed:
-                          _isLoading || _codeController.text.trim().length != 6
-                              ? null
-                              : _verifyCode),
-                  SizedBox(height: 14.s),
-                  Center(
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _codeSent = false;
-                        _codeController.clear();
-                      }),
-                      child: Text('Изменить номер',
-                          style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.orange)),
-                    ),
-                  ),
-                ],
-              ],
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // ── Phone input ───────────────────────────────────────────
-
   Widget _phoneInput() {
+    final palette = context.palette;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadii.lg),
+      borderSide: BorderSide(
+        color: palette.textSecondary.withValues(alpha: .45),
+      ),
+    );
     return TextFormField(
+      key: const ValueKey('auth-phone-input'),
       controller: _phoneController,
       focusNode: _phoneFocusNode,
       autofocus: true,
       keyboardType: TextInputType.phone,
+      textInputAction: TextInputAction.done,
       inputFormatters: [PhoneTextInputFormatter()],
       onTap: _ensurePhonePrefix,
       validator: (value) {
@@ -619,149 +681,180 @@ class _LoginPageState extends State<LoginPage>
         if (normalized.length != 11) return 'Неверный формат номера';
         return null;
       },
-      style: TextStyle(
-          color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w600),
-      cursorColor: AppColors.orange,
+      style: AppTypography.titleRegular.copyWith(color: palette.textPrimary),
+      cursorColor: palette.accent,
       decoration: InputDecoration(
         hintText: '+7 700 123 45 67',
-        hintStyle: TextStyle(color: AppColors.textMute.withValues(alpha: 0.3)),
-        prefixIcon: Padding(
-          padding: EdgeInsets.only(left: 12.s, right: 8.s),
-          child: Icon(Icons.phone_iphone_rounded,
-              color: AppColors.orange, size: 20.s),
+        hintStyle: AppTypography.titleRegular.copyWith(
+          color: palette.textSecondary.withValues(alpha: .55),
         ),
-        prefixIconConstraints: BoxConstraints(minWidth: 42.s),
         filled: true,
-        fillColor: AppColors.card,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 14.s),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14.s),
-            borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14.s),
-            borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14.s),
-            borderSide: const BorderSide(color: AppColors.orange, width: 1)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14.s),
-            borderSide: const BorderSide(color: AppColors.red)),
-        focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14.s),
-            borderSide: const BorderSide(color: AppColors.red, width: 1)),
-        errorStyle: TextStyle(color: AppColors.red, fontSize: 11.sp),
+        fillColor: palette.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border.copyWith(
+          borderSide: BorderSide(color: palette.accent, width: 1.5),
+        ),
+        errorBorder: border.copyWith(
+          borderSide: BorderSide(color: palette.error),
+        ),
+        focusedErrorBorder: border.copyWith(
+          borderSide: BorderSide(color: palette.error, width: 1.5),
+        ),
+        errorStyle: AppTypography.label.copyWith(color: palette.error),
       ),
     );
   }
-
-  // ── OTP input ─────────────────────────────────────────────
 
   Widget _otpInput() {
-    return GestureDetector(
-      onTap: () => _codeFocusNode.requestFocus(),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Row(
-            children: List.generate(6, (index) {
-              final code = _codeController.text;
-              final hasValue = index < code.length;
-              final isActive = _codeFocusNode.hasFocus && code.length == index;
-
-              return Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(right: index == 5 ? 0 : 8.s),
-                  height: 54.s,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(12.s),
-                    border: Border.all(
-                      color: isActive
-                          ? AppColors.orange
-                          : hasValue
-                              ? AppColors.orange.withValues(alpha: 0.4)
-                              : Colors.transparent,
-                      width: isActive ? 1.5 : 1,
+    final palette = context.palette;
+    return Semantics(
+      label: 'Код из SMS',
+      textField: true,
+      child: GestureDetector(
+        onTap: () => _codeFocusNode.requestFocus(),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Row(
+              children: List.generate(6, (index) {
+                final code = _codeController.text;
+                final hasValue = index < code.length;
+                final isActive =
+                    _codeFocusNode.hasFocus && code.length == index;
+                final borderColor = isActive
+                    ? palette.accent
+                    : hasValue
+                        ? palette.accent.withValues(alpha: .45)
+                        : palette.divider;
+                return Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: index == 5 ? 0 : 8),
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(
+                        color: borderColor,
+                        width: isActive ? 1.5 : 1,
+                      ),
                     ),
-                  ),
-                  child: Center(
+                    alignment: Alignment.center,
                     child: Text(
                       hasValue ? code[index] : '',
-                      style: TextStyle(
-                          color: AppColors.text,
-                          fontSize: 22.sp,
-                          fontWeight: FontWeight.w800),
+                      style: AppTypography.headlineMedium.copyWith(
+                        color: palette.textPrimary,
+                      ),
                     ),
                   ),
+                );
+              }),
+            ),
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0,
+                child: TextFormField(
+                  key: const ValueKey('auth-code-input'),
+                  controller: _codeController,
+                  focusNode: _codeFocusNode,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  onChanged: (_) {
+                    if (mounted) setState(() {});
+                    if (!_isLoading &&
+                        _codeController.text.trim().length == 6) {
+                      _verifyCode();
+                    }
+                  },
+                  onFieldSubmitted: (_) {
+                    if (!_isLoading &&
+                        _codeController.text.trim().length == 6) {
+                      _verifyCode();
+                    }
+                  },
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    counterText: '',
+                  ),
+                  style: const TextStyle(color: Colors.transparent),
+                  cursorColor: Colors.transparent,
+                  maxLength: 6,
                 ),
-              );
-            }),
-          ),
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.0,
-              child: TextFormField(
-                controller: _codeController,
-                focusNode: _codeFocusNode,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                autocorrect: false,
-                enableSuggestions: false,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(6),
-                ],
-                onChanged: (_) {
-                  if (mounted) setState(() {});
-                  if (!_isLoading && _codeController.text.trim().length == 6) {
-                    _verifyCode();
-                  }
-                },
-                onFieldSubmitted: (_) {
-                  if (!_isLoading && _codeController.text.trim().length == 6) {
-                    _verifyCode();
-                  }
-                },
-                decoration: const InputDecoration(
-                    border: InputBorder.none, counterText: ''),
-                style: const TextStyle(color: Colors.transparent),
-                cursorColor: Colors.transparent,
-                maxLength: 6,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // ── Primary button ────────────────────────────────────────
-
-  Widget _primaryButton({required String label, VoidCallback? onPressed}) {
+  Widget _primaryButton({
+    required String label,
+    VoidCallback? onPressed,
+    Key? key,
+  }) {
+    final palette = context.palette;
     return SizedBox(
+      key: key,
       width: double.infinity,
-      height: 48.s,
+      height: 48,
       child: Material(
-        color: onPressed != null
-            ? AppColors.orange
-            : AppColors.orange.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14.s),
+        color: onPressed == null ? palette.accentSoft : palette.accent,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14.s),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
           onTap: onPressed,
           child: Center(
             child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
+                ? SizedBox(
+                    width: 23,
+                    height: 23,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.black))
-                : Text(label,
-                    style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black)),
+                      strokeWidth: 2.5,
+                      color: palette.textOnAccent,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: AppTypography.titleMedium.copyWith(
+                      color: palette.textOnAccent,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _materialCircleButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final palette = context.palette;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: palette.surface.withValues(alpha: .75),
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icon, size: 20, color: palette.textPrimary),
           ),
         ),
       ),

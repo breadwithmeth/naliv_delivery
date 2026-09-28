@@ -819,10 +819,15 @@ crosses the line, not the app's.
 
 ## 5. Remaining work
 
-Tracked in the session todo list (18 items at the time of writing). Sequence: favourites →
-cart → checkout → orders → profile cluster → bonuses/certificates → addresses/cards → FAQ/support
-→ auth/onboarding → cross-cutting states → cleanup (`AppColors`, `globals.dart`, legacy pages) →
-per-screen delta report.
+The previous screen-by-screen execution sequence is frozen. The measured recovery plan now lives in
+`docs/redesign/PLAN.md`.
+
+**Stabilization and API-safety milestones are done and reviewed.** The renderer uses a complete blur fallback
+when shader filters are unsupported, including the first unsupported frame. Mocked API contracts cover the
+home, authentication, and category-item paths without production I/O. Current baseline: **94/94 tests**,
+zero analyzer errors, and zero analyzer warnings. **Authentication presentation is complete:** phone and
+code states use the shared design system, retain frozen auth behavior, and were verified at 375 × 812 in
+the real browser renderer. No next screen is active.
 
 ### Per-screen fidelity so far (design vs render, chrome excluded)
 

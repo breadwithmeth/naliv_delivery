@@ -6,6 +6,7 @@ import '../../core/theme_controller.dart';
 import '../../ui/app_icon.dart';
 import '../../ui/app_sidebar.dart';
 import '../../utils/cart_provider.dart';
+import '../product/product_navigation.dart';
 import 'home_view_data.dart';
 import 'ui/home_page.dart';
 
@@ -69,6 +70,12 @@ class HomeScreen extends StatelessWidget {
           onCategory: onCategory,
           onBonusHistory: onBonusHistory,
           onSignIn: onSignIn,
+          productQuantity: (product) => cart.getCatalogQuantity(product.source),
+          onProductTap: (product) => openProduct(context, product),
+          onProductIncrement: (product) =>
+              context.read<CartProvider>().incrementCatalogItem(product.source),
+          onProductDecrement: (product) =>
+              context.read<CartProvider>().decrementCatalogItem(product.source),
           sidebar: AppSidebar(
             userName: data.signedIn ? (userName ?? 'Гость') : null,
             userSubtitle:

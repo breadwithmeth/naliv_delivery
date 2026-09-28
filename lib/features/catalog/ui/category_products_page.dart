@@ -91,7 +91,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                     onSearch: widget.onSearch,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.huge),
+                const SizedBox(height: 24),
                 Expanded(child: _body()),
               ],
             ),
@@ -129,16 +129,17 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
       return const AppEmptyState(title: 'В этой категории пока нет товаров');
     }
     return GridView.builder(
+      key: const ValueKey('category-products-grid'),
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxxl,
         0,
-        AppSpacing.xxxl,
+        AppSpacing.xxxl + 1,
         AppCartButton.clearance + MediaQuery.paddingOf(context).bottom,
       ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        mainAxisSpacing: AppSpacing.sm,
-        crossAxisSpacing: AppSpacing.sm,
+        mainAxisSpacing: 6,
+        crossAxisSpacing: 6,
         childAspectRatio: 110 / ProductCard.height,
       ),
       itemCount: items.length,
@@ -146,6 +147,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
         final item = items[index];
         return ProductCard.fromView(
           item,
+          key: ValueKey('category-product-$index'),
           onTap: () => openProduct(context, item),
           quantity:
               context.watch<CartProvider>().getCatalogQuantity(item.source),

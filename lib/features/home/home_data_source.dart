@@ -1,4 +1,5 @@
 import '../../utils/api.dart';
+import '../catalog/catalog_data_source.dart';
 import 'home_view_data.dart';
 
 /// Loads the home screen's data from the existing (frozen) API surface.
@@ -47,13 +48,29 @@ class HomeDataSource {
 
     final promoSuper = ordered.isNotEmpty ? ordered.first : null;
     final tiles = ordered.skip(1).take(6).toList();
+    final storeId = business == null ? null : _int(business['id']);
+    final homeCategories = [
+      for (final category in tiles)
+        HomeCategory(
+          id: _int(category['supercategory_id']),
+          title: _string(category['name']) ?? '',
+          imageUrl: _firstCategoryImage(category),
+        ),
+    ];
+    final productSections = storeId == null
+        ? const <HomeProductSection>[]
+        : await _productSections(
+            storeId: storeId,
+            rawCategories: tiles,
+            categories: homeCategories,
+          );
 
     return HomeViewData(
       phone: supportPhone,
       callCenterLabel: supportCaption,
       storeName: _string(business?['name']) ?? 'Градусы24',
       storeAddress: _string(business?['address']) ?? '',
-      storeId: business == null ? null : _int(business['id']),
+      storeId: storeId,
       notificationCount: 0,
       signedIn: await ApiService.isUserLoggedIn(),
       bonusBalance: bonuses == null ? null : _int(bonuses['totalBonuses']),
@@ -68,15 +85,49 @@ class HomeDataSource {
               subtitle: _string(promoSuper['description']) ?? '',
               imageUrl: _firstCategoryImage(promoSuper),
             ),
-      categories: [
-        for (final category in tiles)
-          HomeCategory(
-            id: _int(category['supercategory_id']),
-            title: _string(category['name']) ?? '',
-            imageUrl: _firstCategoryImage(category),
-          ),
-      ],
+      categories: homeCategories,
+      productSections: productSections,
     );
+  }
+
+  Future<List<HomeProductSection>> _productSections({
+    required int storeId,
+    required List<Map<String, dynamic>> rawCategories,
+    required List<HomeCategory> categories,
+  }) async {
+    final source = CatalogDataSource(businessId: storeId);
+    final sections = await Future.wait<HomeProductSection?>([
+      for (var index = 0; index < categories.length && index < 3; index++)
+        () async {
+          final categoryId = _firstLeafCategoryId(rawCategories[index]);
+          if (categoryId == null) return null;
+          try {
+            final products = await source.items(categoryId, limit: 10);
+            if (products.isEmpty) return null;
+            return HomeProductSection(
+              category: categories[index],
+              products: products,
+            );
+          } on Object {
+            // Product rows are supplementary; the main home surface remains usable.
+            return null;
+          }
+        }(),
+    ]);
+    return sections.whereType<HomeProductSection>().toList(growable: false);
+  }
+
+  int? _firstLeafCategoryId(Map<String, dynamic> node) {
+    final children = [
+      ..._asList(node['categories']),
+      ..._asList(node['subcategories']),
+    ];
+    for (final child in children) {
+      final leafId = _firstLeafCategoryId(child);
+      if (leafId != null) return leafId;
+    }
+    final id = _int(node['category_id'] ?? node['id']);
+    return id == 0 ? null : id;
   }
 
   Map<String, dynamic>? _pickBusiness(List<Map<String, dynamic>> businesses) {

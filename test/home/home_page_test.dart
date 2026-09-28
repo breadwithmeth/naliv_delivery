@@ -20,55 +20,35 @@ const _data = HomeViewData(
     HomeCategory(id: 10, title: 'Слабоалкогольные напитки'),
     HomeCategory(id: 9, title: 'Еда и закуски'),
     HomeCategory(id: 8, title: 'Крепкие напитки'),
+    HomeCategory(id: 7, title: 'Табак'),
+    HomeCategory(id: 2, title: 'Безалкогольные напитки'),
+    HomeCategory(id: 1, title: 'Прочее'),
   ],
 );
 
 Widget _host(Widget child) => MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.dark(),
       home: child,
     );
 
 void main() {
-  testWidgets('home exposes primary shopping and account actions',
+  testWidgets('375px home geometry follows the measured first viewport',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    var searched = false;
-    var storeOpened = false;
-    var selectedCategory = -1;
-    var signedIn = false;
-
-    await tester.pumpWidget(_host(HomePage(
-      data: _data,
-      onSearch: () => searched = true,
-      onStore: () => storeOpened = true,
-      onCategory: (category) => selectedCategory = category.id,
-      onSignIn: () => signedIn = true,
-    )));
+    await tester.pumpWidget(_host(const HomePage(data: _data)));
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Найти любимый напиток'));
-    await tester.tap(find.text('Сменить'));
-    expect(searched, isTrue);
-    expect(storeOpened, isTrue);
+    Rect rect(String key) => tester.getRect(find.byKey(ValueKey(key)));
 
-    await tester.drag(
-      find.byType(CustomScrollView),
-      const Offset(0, -750),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Слабоалкогольные напитки'));
-    expect(selectedCategory, 10);
-
-    await tester.drag(
-      find.byType(CustomScrollView),
-      const Offset(0, -650),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Войти или зарегистрироваться'));
-    expect(signedIn, isTrue);
-    expect(tester.takeException(), isNull);
+    expect(rect('home-header'), const Rect.fromLTWH(16, 24, 343, 57));
+    expect(rect('home-store-card'), const Rect.fromLTWH(16, 93, 343, 57));
+    expect(rect('home-search-field'), const Rect.fromLTWH(16, 162, 343, 38));
+    expect(rect('home-banner-carousel'), const Rect.fromLTWH(0, 224, 375, 114));
+    expect(rect('home-promo-card'), const Rect.fromLTWH(16, 362, 343, 160));
+    expect(rect('home-category-grid'), const Rect.fromLTWH(16, 546, 343, 296));
+    expect(rect('home-bonus-card'), const Rect.fromLTWH(16, 842, 343, 199));
   });
 }

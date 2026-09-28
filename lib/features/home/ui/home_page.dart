@@ -3,159 +3,289 @@ library;
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/product_view.dart';
 import '../../../design/theme.dart';
+import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
+import '../../../ui/product_card.dart';
 import '../home_view_data.dart';
 
-/// The public landing page. Backend data remains authoritative; missing campaign
-/// artwork gets an intentional visual treatment instead of an empty colour block.
+/// The public landing page measured from the 375 × 812 Figma home frames.
+///
+/// The first viewport uses a 343 px content column with 16 px gutters. The campaign strip is the
+/// sole full-bleed section. Product data and navigation remain live; absent artwork uses the same
+/// flat fills as the design instead of inventing gradients or copy.
 class HomePage extends StatelessWidget {
   const HomePage({
     required this.data,
+    this.cartItemCount = 0,
+    this.cartTotal,
     this.onSearch,
+    this.onCallCenter,
     this.onFavorites,
     this.onLiked,
     this.onNotifications,
     this.onProfile,
-    this.onCallCenter,
     this.onStore,
+    this.onPromo,
     this.onCategory,
-    this.onCart,
     this.onBonusHistory,
     this.onSignIn,
+    this.productQuantity,
+    this.onProductTap,
+    this.onProductIncrement,
+    this.onProductDecrement,
+    this.onCart,
     this.sidebar,
-    this.cartItemCount = 0,
-    this.cartTotal,
     super.key,
   });
 
   final HomeViewData data;
+  final int cartItemCount;
+  final int? cartTotal;
   final VoidCallback? onSearch;
+  final VoidCallback? onCallCenter;
   final VoidCallback? onFavorites;
   final VoidCallback? onLiked;
   final VoidCallback? onNotifications;
   final VoidCallback? onProfile;
-  final VoidCallback? onCallCenter;
   final VoidCallback? onStore;
+  final ValueChanged<HomeBanner>? onPromo;
   final ValueChanged<HomeCategory>? onCategory;
-  final VoidCallback? onCart;
   final VoidCallback? onBonusHistory;
   final VoidCallback? onSignIn;
+  final num Function(ProductView product)? productQuantity;
+  final ValueChanged<ProductView>? onProductTap;
+  final ValueChanged<ProductView>? onProductIncrement;
+  final ValueChanged<ProductView>? onProductDecrement;
+  final VoidCallback? onCart;
   final Widget? sidebar;
-  final int cartItemCount;
-  final int? cartTotal;
 
-  static const double _gutter = 16;
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    return Scaffold(
+      drawer: sidebar,
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: EdgeInsets.only(
+                top: AppSpacing.huge,
+                bottom: AppCartButton.clearance + bottomInset + AppSpacing.xxxl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ContentWidth(
+                    child: KeyedSubtree(
+                      key: const ValueKey('home-header'),
+                      child: _HomeHeader(
+                        data: data,
+                        onMenu: sidebar == null
+                            ? null
+                            : () => Scaffold.of(context).openDrawer(),
+                        onCallCenter: onCallCenter,
+                        onFavorites: onFavorites,
+                        onLiked: onLiked,
+                        onNotifications: onNotifications,
+                        onProfile: onProfile,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _ContentWidth(
+                    child: KeyedSubtree(
+                      key: const ValueKey('home-store-card'),
+                      child: _StoreCard(data: data, onTap: onStore),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _ContentWidth(
+                    child: KeyedSubtree(
+                      key: const ValueKey('home-search-field'),
+                      child: _SearchField(onTap: onSearch),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.huge),
+                  KeyedSubtree(
+                    key: const ValueKey('home-banner-carousel'),
+                    child: _BannerCarousel(
+                      banners: data.banners,
+                      onTap: onPromo,
+                    ),
+                  ),
+                  if (data.promoCard case final promo?) ...[
+                    const SizedBox(height: AppSpacing.huge),
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-promo-card'),
+                        child: _PromoCard(
+                          promo: promo,
+                          onTap: () => onCategory?.call(
+                            HomeCategory(
+                              id: promo.id,
+                              title: promo.title,
+                              imageUrl: promo.imageUrl,
+                              fill: promo.fill,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.huge),
+                  _ContentWidth(
+                    child: KeyedSubtree(
+                      key: const ValueKey('home-category-grid'),
+                      child: _CategoryGrid(
+                        categories: data.categories,
+                        onTap: onCategory,
+                      ),
+                    ),
+                  ),
+                  if (!data.signedIn || data.bonusBalance != null) ...[
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-bonus-card'),
+                        child: _BonusCard(
+                          data: data,
+                          onHistory: onBonusHistory,
+                          onSignIn: onSignIn,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: data.signedIn ? 32 : 24),
+                  ],
+                  _ProductSections(
+                    sections: data.productSections,
+                    onCategory: onCategory,
+                    quantityOf: productQuantity,
+                    onProductTap: onProductTap,
+                    onIncrement: onProductIncrement,
+                    onDecrement: onProductDecrement,
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomInset + AppSpacing.xl,
+              child: Center(
+                child: AppCartButton(
+                  itemCount: cartItemCount,
+                  total: cartTotal,
+                  onTap: onCart,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContentWidth extends StatelessWidget {
+  const _ContentWidth({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 343),
+          child: SizedBox(width: double.infinity, child: child),
+        ),
+      ),
+    );
+  }
+}
+
+/// y = 72, h = 57 in the reference viewport.
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({
+    required this.data,
+    this.onMenu,
+    this.onCallCenter,
+    this.onFavorites,
+    this.onLiked,
+    this.onNotifications,
+    this.onProfile,
+  });
+
+  final HomeViewData data;
+  final VoidCallback? onMenu;
+  final VoidCallback? onCallCenter;
+  final VoidCallback? onFavorites;
+  final VoidCallback? onLiked;
+  final VoidCallback? onNotifications;
+  final VoidCallback? onProfile;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Scaffold(
-      backgroundColor: palette.background,
-      drawer: sidebar,
-      drawerEdgeDragWidth: sidebar == null ? 0 : 40,
-      body: Stack(
+    return SizedBox(
+      height: 57,
+      child: Stack(
         children: [
           Positioned(
-            top: -130,
-            right: -120,
-            child: IgnorePointer(
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [palette.accentFaint, Colors.transparent],
-                  ),
-                ),
+            left: 0,
+            top: 4,
+            child: GestureDetector(
+              onTap: onMenu,
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox(
+                width: 52,
+                height: 49,
+                child: AppIcon(AppIcons.logo, width: 52, height: 49),
               ),
             ),
           ),
-          SafeArea(
-            bottom: false,
-            child: Builder(
-              builder: (scaffoldContext) => CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 560),
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            _gutter,
-                            14,
-                            _gutter,
-                            AppCartButton.clearance +
-                                MediaQuery.paddingOf(context).bottom +
-                                24,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _Header(
-                                data: data,
-                                onCallCenter: onCallCenter,
-                                onFavorites: onFavorites,
-                                onLiked: onLiked,
-                                onNotifications: onNotifications,
-                                onMenu: onProfile ??
-                                    () => Scaffold.of(scaffoldContext)
-                                        .openDrawer(),
-                              ),
-                              const SizedBox(height: 22),
-                              _StoreCard(
-                                data: data,
-                                onStore: onStore,
-                                onCallCenter: onCallCenter,
-                              ),
-                              const SizedBox(height: 14),
-                              _SearchField(onTap: onSearch),
-                              const SizedBox(height: 28),
-                              const _SectionHeader(
-                                eyebrow: 'ДЛЯ ВАС',
-                                title: 'Актуальные предложения',
-                              ),
-                              const SizedBox(height: 14),
-                              _BannerCarousel(banners: data.banners),
-                              if (data.promoCard != null) ...[
-                                const SizedBox(height: 30),
-                                _FeatureCard(
-                                  card: data.promoCard!,
-                                  onTap: onCategory == null
-                                      ? null
-                                      : () => onCategory!(HomeCategory(
-                                            id: data.promoCard!.id,
-                                            title: data.promoCard!.title,
-                                          )),
-                                ),
-                              ],
-                              const SizedBox(height: 30),
-                              const _SectionHeader(
-                                eyebrow: 'КАТАЛОГ',
-                                title: 'Выберите категорию',
-                              ),
-                              const SizedBox(height: 14),
-                              _CategoryGrid(
-                                categories: data.categories,
-                                onTap: onCategory,
-                              ),
-                              if (!data.signedIn ||
-                                  data.bonusBalance != null) ...[
-                                const SizedBox(height: 30),
-                                _BonusCard(
-                                  data: data,
-                                  onHistory: onBonusHistory,
-                                  onSignIn: onSignIn,
-                                ),
-                              ],
-                            ],
+          Positioned(
+            left: 64,
+            top: 14,
+            width: 128,
+            height: 29,
+            child: GestureDetector(
+              onTap: onCallCenter,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const AppIcon(AppIcons.phone, size: 16),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.phone,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: palette.textSecondary,
+                            height: 1.2,
                           ),
                         ),
-                      ),
+                        Text(
+                          data.callCenterLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          style: AppTypography.label.copyWith(
+                            color: palette.textSecondary,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -163,179 +293,51 @@ class HomePage extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: 0,
             right: 0,
-            bottom: MediaQuery.paddingOf(context).bottom + 12,
-            child: Center(
-              child: AppCartButton(
-                itemCount: cartItemCount,
-                total: cartTotal,
-                onTap: onCart,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.data,
-    this.onCallCenter,
-    this.onFavorites,
-    this.onLiked,
-    this.onNotifications,
-    this.onMenu,
-  });
-
-  final HomeViewData data;
-  final VoidCallback? onCallCenter;
-  final VoidCallback? onFavorites;
-  final VoidCallback? onLiked;
-  final VoidCallback? onNotifications;
-  final VoidCallback? onMenu;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Row(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: palette.accent.withValues(alpha: .16),
-                blurRadius: 24,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const AppIcon(AppIcons.logo, width: 46, height: 46),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onCallCenter,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            top: 16,
+            child: Row(
               children: [
-                Text(
-                  'Градусы24',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.title.copyWith(
-                    color: palette.textPrimary,
-                    letterSpacing: -.25,
-                  ),
+                _HeaderAction(icon: AppIcons.star, onTap: onFavorites),
+                const SizedBox(width: 10),
+                _HeaderAction(icon: AppIcons.heart, onTap: onLiked),
+                const SizedBox(width: 10),
+                _NotificationAction(
+                  count: data.notificationCount,
+                  onTap: onNotifications,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  data.callCenterLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label.copyWith(
-                    color: palette.textSecondary,
-                  ),
+                const SizedBox(width: 10),
+                _HeaderAction(
+                  icon: AppIcons.user,
+                  onTap: onProfile ?? onMenu,
                 ),
               ],
             ),
           ),
-        ),
-        _HeaderAction(
-          asset: AppIcons.heart,
-          label: 'Избранное',
-          onTap: onLiked ?? onFavorites,
-        ),
-        const SizedBox(width: 7),
-        _HeaderAction(
-          asset: AppIcons.bell,
-          label: 'Уведомления',
-          onTap: onNotifications,
-          badgeCount: data.notificationCount,
-        ),
-        const SizedBox(width: 7),
-        _HeaderAction(
-          asset: AppIcons.user,
-          label: 'Меню',
-          onTap: onMenu,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({
-    required this.asset,
-    required this.label,
-    this.onTap,
-    this.badgeCount = 0,
-  });
+  const _HeaderAction({required this.icon, this.onTap});
 
-  final String asset;
-  final String label;
+  final String icon;
   final VoidCallback? onTap;
-  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(13),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(13),
-          child: SizedBox(
-            width: 38,
-            height: 38,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                AppIcon(
-                  asset,
-                  size: 20,
-                  color: asset == AppIcons.bell ? null : palette.textPrimary,
-                ),
-                if (badgeCount > 0)
-                  Positioned(
-                    top: -4,
-                    right: -3,
-                    child: Container(
-                      constraints:
-                          const BoxConstraints(minWidth: 17, minHeight: 17),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: palette.brandRed,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: palette.background, width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$badgeCount',
-                        style:
-                            AppTypography.base(size: 8, weight: 700).copyWith(
-                          color: Colors.white,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: Center(
+          child: AppIcon(
+            icon,
+            size: 24,
+            color: context.palette.textPrimary,
           ),
         ),
       ),
@@ -343,225 +345,146 @@ class _HeaderAction extends StatelessWidget {
   }
 }
 
-class _StoreCard extends StatelessWidget {
-  const _StoreCard({required this.data, this.onStore, this.onCallCenter});
+class _NotificationAction extends StatelessWidget {
+  const _NotificationAction({required this.count, this.onTap});
 
-  final HomeViewData data;
-  final VoidCallback? onStore;
-  final VoidCallback? onCallCenter;
+  final int count;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            palette.accent,
-            const Color(0xFFE34A00),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const AppIcon(AppIcons.bell, size: 24),
+            if (count > 0)
+              Positioned(
+                right: -3,
+                top: -5,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: palette.brandRed,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    count > 9 ? '9+' : '$count',
+                    style: AppTypography.base(size: 8, weight: 600).copyWith(
+                      color: Colors.white,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: palette.accent.withValues(alpha: .22),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
-      child: Stack(
-        children: [
-          const Positioned(
-            right: -34,
-            top: -48,
-            child: _DecorativeOrb(size: 142, opacity: .11),
-          ),
-          const Positioned(
-            right: 62,
-            bottom: -54,
-            child: _DecorativeOrb(size: 94, opacity: .08),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 14, 14),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .18),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: .18),
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: const AppIcon(
-                        AppIcons.shop,
-                        size: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 13),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ваш магазин',
-                            style: AppTypography.labelSemibold.copyWith(
-                              color: Colors.white.withValues(alpha: .72),
-                              letterSpacing: .55,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            data.storeName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.title.copyWith(
-                              color: Colors.white,
-                              height: 1.12,
-                            ),
-                          ),
-                          if (data.storeAddress.isNotEmpty) ...[
-                            const SizedBox(height: 5),
-                            Row(
-                              children: [
-                                const AppIcon(
-                                  AppIcons.location,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    data.storeAddress,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.bodySmall.copyWith(
-                                      color:
-                                          Colors.white.withValues(alpha: .82),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _GlassButton(
-                      label: 'Сменить',
-                      icon: Icons.arrow_forward_rounded,
-                      onTap: onStore,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                Container(
-                  height: 1,
-                  color: Colors.white.withValues(alpha: .16),
-                ),
-                const SizedBox(height: 11),
-                InkWell(
-                  onTap: onCallCenter,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Row(
+    );
+  }
+}
+
+/// y = 141, 343 × 57.
+class _StoreCard extends StatelessWidget {
+  const _StoreCard({required this.data, this.onTap});
+
+  final HomeViewData data;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 57,
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      const AppIcon(AppIcons.phone,
-                          size: 16, color: Colors.white),
-                      const SizedBox(width: 8),
+                      const AppIcon(AppIcons.store, size: 12),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          data.phone,
+                          data.storeName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySmallSemibold.copyWith(
-                            color: Colors.white,
+                          style: AppTypography.bodySmallBold.copyWith(
+                            color: palette.textPrimary,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Поддержка',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: Colors.white.withValues(alpha: .7),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  const _GlassButton({required this.label, required this.icon, this.onTap});
-
-  final String label;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: .16),
-      borderRadius: BorderRadius.circular(13),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(13),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style:
-                    AppTypography.labelSemibold.copyWith(color: Colors.white),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      AppIcon(
+                        AppIcons.location,
+                        size: 12,
+                        color: palette.textSecondary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          data.storeAddress.isEmpty
+                              ? 'Укажите адрес'
+                              : data.storeAddress,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.label.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 5),
-              Icon(icon, size: 14, color: Colors.white),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: palette.accentSoft,
+                borderRadius: BorderRadius.circular(AppRadii.md),
+              ),
+              child: const AppIcon(
+                AppIcons.shop,
+                size: 18,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _DecorativeOrb extends StatelessWidget {
-  const _DecorativeOrb({required this.size, required this.opacity});
-
-  final double size;
-  final double opacity;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
-      ),
-    );
-  }
-}
-
+/// y = 210, 343 × 38.
 class _SearchField extends StatelessWidget {
   const _SearchField({this.onTap});
 
@@ -570,167 +493,129 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(17),
-        child: Container(
-          height: 54,
-          padding: const EdgeInsets.fromLTRB(15, 7, 7, 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: palette.divider.withValues(alpha: .8)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: palette.accentFaint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child:
-                    AppIcon(AppIcons.search, size: 18, color: palette.accent),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  'Найти любимый напиток',
-                  style:
-                      AppTypography.body.copyWith(color: palette.textSecondary),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.only(left: 14, right: 4),
+        decoration: BoxDecoration(
+          color: palette.surface.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+        child: Row(
+          children: [
+            AppIcon(
+              AppIcons.search,
+              size: 16,
+              color: palette.textSecondary,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                'Найти любимый напиток...',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body.copyWith(
+                  color: palette.textSecondary,
                 ),
               ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: palette.accent,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                alignment: Alignment.center,
-                child: const _BarcodeGlyph(width: 18, height: 12),
+            ),
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: palette.accent,
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
+              child: BarcodeWidget(
+                barcode: Barcode.code128(),
+                data: '24682468',
+                drawText: false,
+                color: Colors.white,
+                width: 18,
+                height: 16,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _BarcodeGlyph extends StatelessWidget {
-  const _BarcodeGlyph({required this.width, required this.height});
+/// Full-bleed y = 272, h = 114. At 375 px the selected card is 295 px wide at x = 40.
+class _BannerCarousel extends StatefulWidget {
+  const _BannerCarousel({required this.banners, this.onTap});
 
-  final double width;
-  final double height;
+  final List<HomeBanner> banners;
+  final ValueChanged<HomeBanner>? onTap;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        size: Size(width, height),
-        painter: _BarcodePainter(context.palette.textOnAccent),
-      );
+  State<_BannerCarousel> createState() => _BannerCarouselState();
 }
 
-class _BarcodePainter extends CustomPainter {
-  const _BarcodePainter(this.color);
-
-  final Color color;
+class _BannerCarouselState extends State<_BannerCarousel> {
+  static const _itemWidth = 295.0;
+  static const _gap = 10.0;
+  late final ScrollController _controller;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeCap = StrokeCap.round;
-    const weights = [1.0, 1.7, .8, 1.7, 1.0];
-    const gap = 1.25;
-    final total = weights.reduce((a, b) => a + b) + gap * (weights.length - 1);
-    final scale = size.width / total;
-    var x = 0.0;
-    for (final width in weights) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, 0, width * scale, size.height),
-          const Radius.circular(1),
-        ),
-        paint,
-      );
-      x += (width + gap) * scale;
-    }
+  void initState() {
+    super.initState();
+    _controller = ScrollController(initialScrollOffset: _itemWidth + _gap);
   }
 
   @override
-  bool shouldRepaint(_BarcodePainter oldDelegate) => oldDelegate.color != color;
-}
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.eyebrow, required this.title});
-
-  final String eyebrow;
-  final String title;
+  List<HomeBanner> get _banners {
+    if (widget.banners.isEmpty) {
+      return const [
+        HomeBanner(title: ''),
+        HomeBanner(title: ''),
+        HomeBanner(title: ''),
+      ];
+    }
+    if (widget.banners.length == 1) {
+      return [widget.banners.first, widget.banners.first, widget.banners.first];
+    }
+    if (widget.banners.length == 2) {
+      return [widget.banners.first, ...widget.banners, widget.banners.last];
+    }
+    return widget.banners;
+  }
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          eyebrow,
-          style: AppTypography.labelSemibold.copyWith(
-            color: palette.accent,
-            letterSpacing: 1.1,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          title,
-          style: AppTypography.headline.copyWith(
-            color: palette.textPrimary,
-            letterSpacing: -.35,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BannerCarousel extends StatelessWidget {
-  const _BannerCarousel({required this.banners});
-
-  final List<HomeBanner> banners;
-
-  static const _gradients = <List<Color>>[
-    [Color(0xFF98142A), Color(0xFF5D0715)],
-    [Color(0xFF643979), Color(0xFF321340)],
-    [Color(0xFFF16800), Color(0xFFB93A00)],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final items = banners.isEmpty
-        ? const [HomeBanner(title: 'Специальные предложения')]
-        : banners;
+    final banners = _banners;
     return SizedBox(
-      height: 156,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final cardWidth = (constraints.maxWidth * .88).clamp(280.0, 430.0);
-          return ListView.separated(
-            physics: const BouncingScrollPhysics(),
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 11),
-            itemBuilder: (context, index) => SizedBox(
-              width: cardWidth,
-              child: _BannerCard(
-                banner: items[index],
-                colors: _gradients[index % _gradients.length],
-                index: index,
+      height: 114,
+      child: ListView.separated(
+        controller: _controller,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        itemCount: banners.length,
+        separatorBuilder: (_, __) => const SizedBox(width: _gap),
+        itemBuilder: (context, index) {
+          final banner = banners[index];
+          return GestureDetector(
+            onTap: widget.onTap == null ? null : () => widget.onTap!(banner),
+            behavior: HitTestBehavior.opaque,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              child: SizedBox(
+                width: _itemWidth,
+                child: _NetworkFill(
+                  imageUrl: banner.imageUrl,
+                  fallback: banner.fill ?? palette.brandRed,
+                ),
               ),
             ),
           );
@@ -740,269 +625,57 @@ class _BannerCarousel extends StatelessWidget {
   }
 }
 
-class _BannerCard extends StatelessWidget {
-  const _BannerCard({
-    required this.banner,
-    required this.colors,
-    required this.index,
-  });
+/// y = 410, 343 × 160.
+class _PromoCard extends StatelessWidget {
+  const _PromoCard({required this.promo, this.onTap});
 
-  final HomeBanner banner;
-  final List<Color> colors;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colors.last.withValues(alpha: .28),
-            blurRadius: 20,
-            offset: const Offset(0, 9),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (banner.imageUrl != null)
-            _NetworkArtwork(url: banner.imageUrl!, fit: BoxFit.cover),
-          if (banner.imageUrl != null)
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Color(0xCC000000), Color(0x12000000)],
-                ),
-              ),
-            )
-          else ...[
-            Positioned(
-              right: -18,
-              top: -28,
-              child: _PromoMedallion(index: index),
-            ),
-            Positioned(
-              right: 74,
-              bottom: -42,
-              child: Container(
-                width: 105,
-                height: 105,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: .06),
-                ),
-              ),
-            ),
-          ],
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 19, 106, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .14),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'ВЫГОДНО',
-                    style: AppTypography.captionMedium.copyWith(
-                      color: Colors.white,
-                      letterSpacing: .8,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  banner.title.isEmpty ? 'Акции' : banner.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.displayBold.copyWith(
-                    color: Colors.white,
-                    height: 1.05,
-                    letterSpacing: -.4,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  banner.subtitle ?? 'Актуальные предложения уже в каталоге',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label.copyWith(
-                    color: Colors.white.withValues(alpha: .78),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PromoMedallion extends StatelessWidget {
-  const _PromoMedallion({required this.index});
-
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    final icons = [
-      Icons.percent_rounded,
-      Icons.local_fire_department_rounded,
-      Icons.star_rounded
-    ];
-    return Container(
-      width: 132,
-      height: 132,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: .09),
-        border: Border.all(color: Colors.white.withValues(alpha: .09)),
-      ),
-      alignment: Alignment.center,
-      child: Container(
-        width: 76,
-        height: 76,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: .12),
-        ),
-        alignment: Alignment.center,
-        child: Icon(icons[index % icons.length], color: Colors.white, size: 38),
-      ),
-    );
-  }
-}
-
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({required this.card, this.onTap});
-
-  final HomePromoCard card;
+  final HomePromoCard promo;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(24),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Ink(
-          height: 190,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                palette.surface,
-                Color.lerp(palette.surface, palette.accent, .14)!,
-              ],
-            ),
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        child: SizedBox(
+          height: 160,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (card.imageUrl != null)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: 220,
-                    height: 190,
-                    child:
-                        _NetworkArtwork(url: card.imageUrl!, fit: BoxFit.cover),
-                  ),
-                )
-              else
-                const Positioned(
-                  right: 18,
-                  bottom: 5,
-                  child: _KitchenIllustration(),
-                ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      palette.surface,
-                      palette.surface.withValues(alpha: .94),
-                      palette.surface.withValues(alpha: .08),
-                    ],
-                    stops: const [0, .46, 1],
-                  ),
-                ),
+              _NetworkFill(
+                imageUrl: promo.imageUrl,
+                fallback: promo.fill ?? palette.surface,
               ),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppSpacing.xxxl),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: palette.accent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
                     Text(
-                      card.title,
-                      maxLines: 2,
+                      promo.title,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.display.copyWith(
+                      style: AppTypography.headline.copyWith(
                         color: palette.textPrimary,
-                        letterSpacing: -.5,
                       ),
                     ),
-                    const SizedBox(height: 7),
-                    SizedBox(
-                      width: 150,
-                      child: Text(
-                        card.subtitle.isEmpty
-                            ? 'Всё необходимое для отличного вечера'
-                            : card.subtitle,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: palette.textSecondary,
-                          height: 1.22,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Открыть',
-                          style: AppTypography.bodySmallSemibold.copyWith(
-                            color: palette.accent,
+                    const SizedBox(height: AppSpacing.sm),
+                    if (promo.subtitle.isNotEmpty)
+                      SizedBox(
+                        width: 112,
+                        child: Text(
+                          promo.subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.label.copyWith(
+                            color: palette.textPrimary,
+                            height: 1.05,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_rounded,
-                            size: 16, color: palette.accent),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
@@ -1014,241 +687,84 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-class _KitchenIllustration extends StatelessWidget {
-  const _KitchenIllustration();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return SizedBox(
-      width: 158,
-      height: 158,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 136,
-            height: 136,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: palette.accentFaint,
-            ),
-          ),
-          Transform.rotate(
-            angle: -.08,
-            child: Container(
-              width: 92,
-              height: 112,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [palette.accent, const Color(0xFFE34A00)],
-                ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: palette.accent.withValues(alpha: .28),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.restaurant_rounded,
-                  color: Colors.white, size: 46),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+/// Six 98 px tiles in a 3-up wrap. The natural two-row height is 296 px.
 class _CategoryGrid extends StatelessWidget {
   const _CategoryGrid({required this.categories, this.onTap});
 
   final List<HomeCategory> categories;
   final ValueChanged<HomeCategory>? onTap;
 
-  static const _colors = <List<Color>>[
-    [Color(0xFFF16800), Color(0xFFD54A00)],
-    [Color(0xFF7E3EA1), Color(0xFF4D2161)],
-    [Color(0xFFB0172F), Color(0xFF720917)],
-    [Color(0xFF2A7B71), Color(0xFF174B45)],
-    [Color(0xFFB47B29), Color(0xFF704711)],
-    [Color(0xFF3F5E93), Color(0xFF253A5F)],
-  ];
-
   @override
   Widget build(BuildContext context) {
-    if (categories.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 10.0;
-        final tileWidth = (constraints.maxWidth - gap * 2) / 3;
-        return Wrap(
-          spacing: gap,
-          runSpacing: 14,
-          children: [
-            for (var index = 0; index < categories.length; index++)
-              SizedBox(
-                width: tileWidth,
-                child: _CategoryTile(
-                  category: categories[index],
-                  colors: _colors[index % _colors.length],
-                  index: index,
-                  onTap: onTap == null ? null : () => onTap!(categories[index]),
-                ),
-              ),
-          ],
-        );
-      },
+    final visible = categories.take(6).toList(growable: false);
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      runSpacing: AppSpacing.md,
+      children: [
+        for (final category in visible)
+          _CategoryTile(
+            category: category,
+            onTap: onTap == null ? null : () => onTap!(category),
+          ),
+      ],
     );
   }
 }
 
 class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({
-    required this.category,
-    required this.colors,
-    required this.index,
-    this.onTap,
-  });
+  const _CategoryTile({required this.category, this.onTap});
 
   final HomeCategory category;
-  final List<Color> colors;
-  final int index;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Semantics(
-      button: true,
-      label: category.title,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            children: [
-              Ink(
-                height: 108,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: colors,
-                  ),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (category.imageUrl != null)
-                      _NetworkArtwork(
-                          url: category.imageUrl!, fit: BoxFit.cover)
-                    else
-                      _CategoryFallback(index: index),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: .12)
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: .16),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.arrow_outward_rounded,
-                            color: Colors.white, size: 13),
-                      ),
-                    ),
-                  ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 98,
+        height: 144,
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              child: SizedBox(
+                width: 98,
+                height: 98,
+                child: _NetworkFill(
+                  imageUrl: category.imageUrl,
+                  fallback: category.fill ?? palette.accent,
                 ),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 34,
-                child: Text(
-                  category.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmallSemibold.copyWith(
-                    color: palette.textPrimary,
-                    height: 1.15,
-                  ),
+            ),
+            const SizedBox(height: 9),
+            Expanded(
+              child: Text(
+                category.title,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySmall.copyWith(
+                  color: palette.textPrimary,
+                  height: 1,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _CategoryFallback extends StatelessWidget {
-  const _CategoryFallback({required this.index});
-
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    const icons = [
-      Icons.local_bar_rounded,
-      Icons.tapas_rounded,
-      Icons.liquor_rounded,
-      Icons.local_drink_rounded,
-      Icons.smoking_rooms_rounded,
-      Icons.auto_awesome_rounded,
-    ];
-    return Stack(
-      children: [
-        Positioned(
-          right: -16,
-          bottom: -18,
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: .1),
-            ),
-          ),
-        ),
-        Center(
-          child: Icon(
-            icons[index % icons.length],
-            color: Colors.white,
-            size: 40,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _BonusCard extends StatelessWidget {
-  const _BonusCard({required this.data, this.onHistory, this.onSignIn});
+  const _BonusCard({
+    required this.data,
+    this.onHistory,
+    this.onSignIn,
+  });
 
   final HomeViewData data;
   final VoidCallback? onHistory;
@@ -1259,144 +775,334 @@ class _BonusCard extends StatelessWidget {
     final palette = context.palette;
     final signedIn = data.signedIn && data.bonusBalance != null;
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      height: signedIn ? 248 : 199,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(palette.surface, palette.gold, .10)!,
-            palette.surface,
-          ],
-        ),
-        border: Border.all(color: palette.gold.withValues(alpha: .18)),
+        color: palette.surface.withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: palette.gold.withValues(alpha: .16),
-                  borderRadius: BorderRadius.circular(13),
+          Positioned(
+            left: 12,
+            top: 12,
+            child: Row(
+              children: [
+                const AppIcon(AppIcons.bonusStar, size: 19),
+                const SizedBox(width: 2),
+                Text(
+                  'Бонусная карта',
+                  style: AppTypography.title.copyWith(
+                    color: palette.textPrimary,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: const AppIcon(AppIcons.bonusStar, size: 21),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Бонусная карта',
-                      style: AppTypography.title
-                          .copyWith(color: palette.textPrimary),
+              ],
+            ),
+          ),
+          if (signedIn) ...[
+            Positioned(
+              left: 12,
+              top: 35,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${data.bonusBalance}',
+                    style:
+                        AppTypography.display.copyWith(color: palette.accent),
+                  ),
+                  const SizedBox(width: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      data.bonusCaption,
+                      style: AppTypography.bodySmallSemibold.copyWith(
+                        color: palette.textSecondary,
+                      ),
                     ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              right: 13,
+              top: 12,
+              child: _BonusAction(
+                label: 'История',
+                icon: AppIcons.repeat,
+                onTap: onHistory,
+              ),
+            ),
+            Positioned(
+              left: 12,
+              right: 12,
+              top: 71,
+              height: 165,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: palette.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    BarcodeWidget(
+                      barcode: Barcode.qrCode(),
+                      data: data.bonusCardCode ?? '${data.bonusBalance}',
+                      drawText: false,
+                      color: palette.textPrimary,
+                      backgroundColor: Colors.transparent,
+                      width: 110,
+                      height: 110,
+                      padding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 6),
                     Text(
-                      signedIn
-                          ? 'Ваш баланс'
-                          : 'Копите бонусы с каждой покупкой',
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary),
+                      data.qrCaption,
+                      style: AppTypography.label.copyWith(
+                        color: palette.textPrimary,
+                      ),
                     ),
                   ],
                 ),
               ),
-              if (signedIn)
-                TextButton(
-                  onPressed: onHistory,
-                  style: TextButton.styleFrom(foregroundColor: palette.accent),
-                  child: const Text('История'),
+            ),
+          ] else ...[
+            Positioned(
+              left: 12,
+              right: 14,
+              top: 40,
+              height: 147,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: palette.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
                 ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          if (signedIn)
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${data.bonusBalance}',
-                        style: AppTypography.displayLarge.copyWith(
-                          color: palette.gold,
-                          height: 1,
+                child: Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Positioned(
+                      top: 12,
+                      child: AppIcon(
+                        AppIcons.avatar,
+                        size: 40,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    Positioned(
+                      left: 18,
+                      right: 18,
+                      top: 60,
+                      child: Text(
+                        'Авторизируйтесь, чтобы видеть бонусы',
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.body.copyWith(
+                          color: palette.textSecondary,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        data.bonusCaption,
-                        style: AppTypography.bodySmall
-                            .copyWith(color: palette.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 94,
-                  height: 94,
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: BarcodeWidget(
-                    barcode: Barcode.qrCode(),
-                    data: data.bonusCardCode ?? '',
-                  ),
-                ),
-              ],
-            )
-          else
-            Material(
-              color: palette.accent,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                onTap: onSignIn,
-                borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: Center(
-                    child: Text(
-                      'Войти или зарегистрироваться',
-                      style:
-                          AppTypography.bodyBold.copyWith(color: Colors.white),
                     ),
-                  ),
+                    Positioned(
+                      top: 102,
+                      child: _BonusAction(label: 'Войти', onTap: onSignIn),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _NetworkArtwork extends StatelessWidget {
-  const _NetworkArtwork({required this.url, required this.fit});
+class _BonusAction extends StatelessWidget {
+  const _BonusAction({required this.label, this.icon, this.onTap});
 
-  final String url;
-  final BoxFit fit;
+  final String label;
+  final String? icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 122,
+        height: 33,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: context.palette.accentSoft,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              AppIcon(icon!, size: 16, color: Colors.white),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            Text(
+              label,
+              style: AppTypography.bodySmallSemibold.copyWith(
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductSections extends StatelessWidget {
+  const _ProductSections({
+    required this.sections,
+    this.onCategory,
+    this.quantityOf,
+    this.onProductTap,
+    this.onIncrement,
+    this.onDecrement,
+  });
+
+  final List<HomeProductSection> sections;
+  final ValueChanged<HomeCategory>? onCategory;
+  final num Function(ProductView product)? quantityOf;
+  final ValueChanged<ProductView>? onProductTap;
+  final ValueChanged<ProductView>? onIncrement;
+  final ValueChanged<ProductView>? onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < sections.length; index++) ...[
+          _ProductSection(
+            section: sections[index],
+            onCategory: onCategory,
+            quantityOf: quantityOf,
+            onProductTap: onProductTap,
+            onIncrement: onIncrement,
+            onDecrement: onDecrement,
+          ),
+          if (index != sections.length - 1) const SizedBox(height: 32),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProductSection extends StatelessWidget {
+  const _ProductSection({
+    required this.section,
+    this.onCategory,
+    this.quantityOf,
+    this.onProductTap,
+    this.onIncrement,
+    this.onDecrement,
+  });
+
+  final HomeProductSection section;
+  final ValueChanged<HomeCategory>? onCategory;
+  final num Function(ProductView product)? quantityOf;
+  final ValueChanged<ProductView>? onProductTap;
+  final ValueChanged<ProductView>? onIncrement;
+  final ValueChanged<ProductView>? onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return SizedBox(
+      height: 296,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+            child: SizedBox(
+              height: 28,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      section.category.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.headline.copyWith(
+                        color: palette.textPrimary,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: onCategory == null
+                        ? null
+                        : () => onCategory!(section.category),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 46,
+                      height: 28,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: palette.accentSoft,
+                        borderRadius: BorderRadius.circular(AppRadii.pill),
+                      ),
+                      child: Text(
+                        'Все',
+                        style: AppTypography.bodySmallMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.huge),
+          SizedBox(
+            height: ProductCardWide.height,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+              itemCount: section.products.length,
+              separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xl),
+              itemBuilder: (context, index) {
+                final product = section.products[index];
+                return ProductCardWide.fromView(
+                  product,
+                  quantity: quantityOf?.call(product),
+                  onTap: onProductTap == null
+                      ? null
+                      : () => onProductTap!(product),
+                  onIncrement:
+                      onIncrement == null ? null : () => onIncrement!(product),
+                  onDecrement:
+                      onDecrement == null ? null : () => onDecrement!(product),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NetworkFill extends StatelessWidget {
+  const _NetworkFill({required this.imageUrl, required this.fallback});
+
+  final String? imageUrl;
+  final Color fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl?.trim();
+    if (url == null || url.isEmpty) return ColoredBox(color: fallback);
     return Image.network(
       url,
-      fit: fit,
-      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded || frame != null) return child;
-        return const SizedBox.shrink();
-      },
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => ColoredBox(color: fallback),
     );
   }
 }

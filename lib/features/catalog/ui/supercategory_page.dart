@@ -8,7 +8,6 @@ import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
-import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_card.dart';
 import '../../../utils/cart_provider.dart';
@@ -154,7 +153,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
       itemBuilder: (context, index) {
         if (index == 0) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+            padding: const EdgeInsets.only(bottom: 22),
             child: _ChipStrip(
               categories: data.subcategories,
               onTap: _openSubcategory,
@@ -163,7 +162,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
         }
         final ref = data.subcategories[index - 1];
         return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+          padding: const EdgeInsets.only(bottom: 24),
           child: _Section(
             key: ValueKey(ref.id),
             category: ref,
@@ -189,6 +188,7 @@ class _ChipStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return SizedBox(
+      key: const ValueKey('catalog-chip-strip'),
       height: 29,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -272,7 +272,7 @@ class _SectionState extends State<_Section> {
           child: _SectionHeader(
               title: widget.category.name.trim(), onOpen: widget.onOpen),
         ),
-        const SizedBox(height: AppSpacing.huge),
+        const SizedBox(height: 24),
         if (items == null)
           const SizedBox(
               height: 240, child: Center(child: CircularProgressIndicator()))
@@ -310,12 +310,16 @@ class _SectionHeader extends StatelessWidget {
             child: Container(
               width: 46,
               height: 28,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: palette.accentSoft,
                 borderRadius: BorderRadius.circular(AppRadii.pill),
               ),
-              child: const Center(
-                child: AppIcon(AppIcons.cart, size: 16, color: Colors.white),
+              child: Text(
+                'Все',
+                style: AppTypography.bodySmallMedium.copyWith(
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -348,34 +352,36 @@ class _PromoPanel extends StatelessWidget {
           bottomLeft: Radius.circular(AppRadii.lg),
         ),
         child: Container(
+          key: const ValueKey('catalog-featured-panel'),
           height: 245,
           color: palette.brandRed,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(
-                left: AppSpacing.xxxl, right: AppSpacing.xxxl),
+            padding: const EdgeInsets.only(right: AppSpacing.xxxl),
             itemCount: items.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+            separatorBuilder: (_, __) => const SizedBox(width: 6),
             itemBuilder: (context, index) {
               if (index == 0) {
-                return _PromoLead(
-                    title: title,
-                    artwork: items.isEmpty ? null : items.first.imageUrl);
+                return _PromoLead(title: title);
               }
               final item = items[index - 1];
-              return SizedBox(
-                width: 110,
-                child: ProductCard.fromView(
-                  item,
-                  dense: true,
-                  quantity: cart.getCatalogQuantity(item.source),
-                  onTap: () => openProduct(context, item),
-                  onIncrement: () => context
-                      .read<CartProvider>()
-                      .incrementCatalogItem(item.source),
-                  onDecrement: () => context
-                      .read<CartProvider>()
-                      .decrementCatalogItem(item.source),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+                child: SizedBox(
+                  key: ValueKey('catalog-featured-product-${index - 1}'),
+                  width: 110,
+                  child: ProductCard.fromView(
+                    item,
+                    dense: true,
+                    quantity: cart.getCatalogQuantity(item.source),
+                    onTap: () => openProduct(context, item),
+                    onIncrement: () => context
+                        .read<CartProvider>()
+                        .incrementCatalogItem(item.source),
+                    onDecrement: () => context
+                        .read<CartProvider>()
+                        .decrementCatalogItem(item.source),
+                  ),
                 ),
               );
             },
@@ -388,45 +394,51 @@ class _PromoPanel extends StatelessWidget {
 
 /// Panel lead-in: 20/700 title, 10/400 subtitle and the category artwork behind them.
 class _PromoLead extends StatelessWidget {
-  const _PromoLead({required this.title, this.artwork});
+  const _PromoLead({required this.title});
 
   final String title;
-  final String? artwork;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 160,
+      width: 154,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          if (artwork != null)
-            Positioned(
-              left: 0,
-              bottom: 0,
-              right: 0,
-              child: Image.network(
-                artwork!,
-                height: 172,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
+          Positioned(
+            left: -8,
+            top: 65,
+            child: Image.asset(
+              'assets/icons/design/catalog_aperitif_lead.png',
+              width: 134,
+              height: 172,
+              fit: BoxFit.fill,
             ),
-          Padding(
-            padding: const EdgeInsets.only(left: 16, top: 16),
-            child: SizedBox(
-              width: 131,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.headline.copyWith(color: Colors.white),
+          ),
+          Positioned(
+            left: 16,
+            top: 16,
+            width: 131,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.headline.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  'Начало идеального ужина',
+                  maxLines: 1,
+                  overflow: TextOverflow.visible,
+                  style: AppTypography.label.copyWith(
+                    color: Colors.white,
+                    height: 1,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -444,14 +456,17 @@ class _Grid extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+      padding: const EdgeInsets.only(
+        left: AppSpacing.xxxl,
+        right: AppSpacing.xxxl + 1,
+      ),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          mainAxisSpacing: AppSpacing.sm,
-          crossAxisSpacing: AppSpacing.sm,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
           childAspectRatio: 110 / ProductCard.height,
         ),
         itemCount: items.length,

@@ -21,8 +21,8 @@ import '../../product/product_navigation.dart';
 ///
 /// Geometry: a top bar carrying **two lines** (title 20/700 over the delivery address 14/300),
 /// cart rows 343 × 60, r10, 4 px apart (pitch 64), a «Вам также может понравиться» strip of
-/// 160 × 244 cards, and a 129 px glass bar with «Итого:», the 24/700 total, the accent bonus
-/// line and a 179 × 49 «Оформить» pill.
+/// 160 × 244 cards, and a 150 px glass bar with «Итого:», the 24/700 total, the accent bonus
+/// line and a 154 × 49 «Оформить» pill.
 ///
 /// **Delete rule (product requirement, not in the design):** decrementing the last unit must not
 /// remove the line silently. At quantity 1 the minus slot becomes an explicit delete button, so
@@ -34,6 +34,7 @@ class CartPage extends StatefulWidget {
     this.address,
     this.onCheckout,
     this.onCatalog,
+    super.key,
   });
 
   /// Store the cart is being ordered from; used for prices and recommendations.
@@ -117,7 +118,7 @@ class _CartPageState extends State<CartPage> {
                     onBack: () => Navigator.of(context).maybePop(),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.huge),
+                const SizedBox(height: AppSpacing.xxxl),
                 Expanded(
                   child: groups.isEmpty
                       ? AppEmptyState(
@@ -133,20 +134,23 @@ class _CartPageState extends State<CartPage> {
                         )
                       : ListView(
                           padding: EdgeInsets.only(
-                            bottom: 129 +
+                            bottom: 150 +
                                 AppSpacing.huge +
                                 MediaQuery.paddingOf(context).bottom,
                           ),
                           children: [
-                            for (final group in groups)
+                            for (final (index, group) in groups.indexed)
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(
+                                padding: EdgeInsets.fromLTRB(
                                   AppSpacing.xxxl,
                                   0,
                                   AppSpacing.xxxl,
-                                  AppSpacing.xs,
+                                  index == groups.length - 1
+                                      ? 0
+                                      : AppSpacing.xs,
                                 ),
                                 child: _CartRow(
+                                  key: ValueKey('cart-row-$index'),
                                   group: group,
                                   onIncrement: () =>
                                       cart.incrementDisplayGroup(group),
@@ -156,18 +160,22 @@ class _CartPageState extends State<CartPage> {
                                 ),
                               ),
                             if (_recommendations.isNotEmpty) ...[
-                              const SizedBox(height: AppSpacing.huge),
+                              const SizedBox(height: 32),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: AppSpacing.xxxl),
                                 child: Text(
+                                  key: const ValueKey(
+                                      'cart-recommendation-heading'),
                                   'Вам также может понравиться',
                                   style: AppTypography.headline
                                       .copyWith(color: palette.textPrimary),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.huge),
+                              const SizedBox(height: 24),
                               SizedBox(
+                                key:
+                                    const ValueKey('cart-recommendation-strip'),
                                 height: ProductCardWide.height,
                                 child: ListView.separated(
                                   scrollDirection: Axis.horizontal,
@@ -205,6 +213,7 @@ class _CartPageState extends State<CartPage> {
               right: 0,
               bottom: 0,
               child: _TotalsBar(
+                key: const ValueKey('cart-total-bar'),
                 total: cart.getTotalPrice().round(),
                 bonuses: bonuses,
                 onCheckout: widget.onCheckout,
@@ -220,7 +229,12 @@ class _CartPageState extends State<CartPage> {
 /// A cart line: 343 × 60, r10 — 52 px artwork, title 16/500, origin line 10/400 muted,
 /// accent line total 16/700, and the step control whose minus becomes a delete at one unit.
 class _CartRow extends StatelessWidget {
-  const _CartRow({required this.group, this.onIncrement, this.onDelete});
+  const _CartRow({
+    required this.group,
+    this.onIncrement,
+    this.onDelete,
+    super.key,
+  });
 
   final CartDisplayGroup group;
   final VoidCallback? onIncrement;
@@ -339,10 +353,7 @@ class _CartStepper extends StatelessWidget {
               height: _height,
               child: Center(
                 child: last
-                    // Material's delete glyph: the design contains no trash icon anywhere, so
-                    // there is nothing to export for this state.
-                    ? Icon(Icons.delete_outline,
-                        size: 20, color: palette.textPrimary)
+                    ? _DeleteGlyph(color: palette.textPrimary)
                     : const _MinusGlyph(),
               ),
             ),
@@ -386,6 +397,52 @@ class _MinusGlyph extends StatelessWidget {
       );
 }
 
+class _DeleteGlyph extends StatelessWidget {
+  const _DeleteGlyph({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 9,
+        height: 10,
+        child: CustomPaint(painter: _DeleteGlyphPainter(color)),
+      );
+}
+
+class _DeleteGlyphPainter extends CustomPainter {
+  const _DeleteGlyphPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas
+      ..drawLine(const Offset(1, 2.5), const Offset(8, 2.5), paint)
+      ..drawLine(const Offset(3, 1), const Offset(6, 1), paint)
+      ..drawPath(
+        Path()
+          ..moveTo(2, 3)
+          ..lineTo(2.6, 9)
+          ..lineTo(6.4, 9)
+          ..lineTo(7, 3),
+        paint,
+      )
+      ..drawLine(const Offset(3.6, 4.5), const Offset(3.8, 7.5), paint)
+      ..drawLine(const Offset(5.4, 4.5), const Offset(5.2, 7.5), paint);
+  }
+
+  @override
+  bool shouldRepaint(_DeleteGlyphPainter oldDelegate) =>
+      color != oldDelegate.color;
+}
+
 class _PlusGlyph extends StatelessWidget {
   const _PlusGlyph();
 
@@ -416,8 +473,12 @@ class _PlusGlyph extends StatelessWidget {
 
 /// Glass totals bar: «Итого:», the total, the accent bonus line and «Оформить».
 class _TotalsBar extends StatelessWidget {
-  const _TotalsBar(
-      {required this.total, required this.bonuses, this.onCheckout});
+  const _TotalsBar({
+    required this.total,
+    required this.bonuses,
+    this.onCheckout,
+    super.key,
+  });
 
   final int total;
   final int bonuses;
@@ -427,59 +488,76 @@ class _TotalsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return SizedBox(
-      height: 129,
+      height: 150,
       child: AppGlassPanel(
         radius: 0,
         tint: Colors.black.withValues(alpha: 0.2),
         blur: 12,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.huge, AppSpacing.xxl, AppSpacing.xxxl, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Итого:',
-                      style: AppTypography.base(size: 12, weight: 400)
-                          .copyWith(color: palette.textSecondary, height: 1.3),
+        child: Stack(
+          children: [
+            Positioned(
+              left: AppSpacing.huge,
+              top: AppSpacing.huge,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Итого:',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: palette.textSecondary,
                     ),
-                    Text(
-                      formatTenge(total),
-                      style: AppTypography.base(size: 24, weight: 700)
-                          .copyWith(color: palette.textPrimary),
+                  ),
+                  Text(
+                    formatTenge(total),
+                    style: AppTypography.displayBold.copyWith(
+                      color: palette.textPrimary,
                     ),
-                    if (bonuses > 0)
-                      Row(
-                        children: [
-                          Text(
-                            '+$bonuses бонусов',
-                            style: AppTypography.bodyBold
-                                .copyWith(color: palette.accent),
+                  ),
+                  if (bonuses > 0)
+                    Row(
+                      children: [
+                        Text(
+                          '+$bonuses бонусов',
+                          style: AppTypography.bodyBold.copyWith(
+                            color: palette.accent,
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: palette.accent,
-                              shape: BoxShape.circle,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Container(
+                          width: 12,
+                          height: 12,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: palette.textSecondary,
+                              width: 1,
                             ),
                           ),
-                        ],
-                      ),
-                  ],
-                ),
+                          child: Text(
+                            'i',
+                            style: AppTypography.base(size: 8, weight: 600)
+                                .copyWith(
+                              color: palette.textSecondary,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
-              GestureDetector(
+            ),
+            Positioned(
+              right: AppSpacing.xl,
+              top: 36,
+              child: GestureDetector(
                 onTap: onCheckout,
                 behavior: HitTestBehavior.opaque,
                 child: Container(
-                  width: 179,
+                  key: const ValueKey('cart-checkout-button'),
+                  width: 154,
                   height: 49,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
@@ -492,8 +570,8 @@ class _TotalsBar extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

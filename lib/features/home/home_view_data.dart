@@ -1,6 +1,7 @@
 import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart';
+import '../../core/product_view.dart';
 
 /// Everything the home screen renders, as plain data.
 ///
@@ -18,6 +19,7 @@ class HomeViewData {
     required this.banners,
     required this.promoCard,
     required this.categories,
+    this.productSections = const [],
     this.notificationCount = 0,
     this.signedIn = true,
     this.bonusBalance,
@@ -43,6 +45,9 @@ class HomeViewData {
   final HomePromoCard? promoCard;
 
   final List<HomeCategory> categories;
+
+  /// Product rows shown below the bonus card in the scrolled home frames.
+  final List<HomeProductSection> productSections;
 
   /// Unread notifications; 0 hides the badge.
   final int notificationCount;
@@ -104,4 +109,15 @@ class HomeCategory {
   final String title;
   final String? imageUrl;
   final Color? fill;
+}
+
+@immutable
+class HomeProductSection {
+  const HomeProductSection({
+    required this.category,
+    required this.products,
+  });
+
+  final HomeCategory category;
+  final List<ProductView> products;
 }
