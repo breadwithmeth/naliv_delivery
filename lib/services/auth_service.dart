@@ -49,7 +49,12 @@ class AuthService {
   }
 
   static Future<void> clearToken() async {
-    await NotificationService.instance.logoutUser();
+    try {
+      await NotificationService.instance.logoutUser();
+    } catch (error) {
+      // Push deregistration must not prevent a local session from ending.
+      debugPrint('Could not unregister push subscription: $error');
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_tokenExpiryKey);

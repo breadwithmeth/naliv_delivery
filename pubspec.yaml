@@ -45,11 +45,7 @@ dependencies:
     sdk: flutter
   latlong2: ^0.9.1
   url_launcher: ^6.3.2
-  barcode: ^2.2.9
   barcode_widget: ^2.0.4
-  scrollable_positioned_list: ^0.3.8
-  
-  carousel_slider: ^5.1.2
   flutter_svg: ^2.2.4
   sentry_flutter: ^9.16.1
   onesignal_flutter: ^5.1.2
@@ -57,6 +53,7 @@ dependencies:
   webview_flutter: ^4.13.1
   web: ^1.1.1
   socket_io_client: ^3.0.2
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +61,8 @@ dev_dependencies:
   flutter_lints: ^3.0.2
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.7
+  shared_preferences_platform_interface: ^2.4.2
+  path: ^1.9.1
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -95,52 +94,12 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icons/design/
-    - assets/icons/home_active.png
-    - assets/icons/home.png
-    - assets/icons/cart_active.png
-    - assets/icons/cart.png
-    - assets/icons/profile_active.png
-    - assets/icons/profile.png
-    - assets/icons/like_active.png
-    - assets/icons/like.png
-    - assets/icons/flash.png
-    - assets/icons/fav.png
-    - assets/icons/fire.png
-    - assets/icons/gift.png
-    - assets/icons/wine.png
-    - assets/icons/search.png
-
-    - assets/property_icons/litr.png
-    - assets/property_icons/percent.png
+    - assets/icons/kaspi/
     - assets/agreements/offer.md
     - assets/agreements/privacy.md
     - assets/agreements/returnPolicy.md
     - assets/agreements/links.md
     - assets/agreements/nds.md
-    - assets/s/s1.jpg
-    - assets/s/s2.jpg
-    - assets/s/s3.jpg
-    - assets/vectors/vodka.png
-    - assets/vectors/fruit.png
-    - assets/vectors/cocktail.png
-    - assets/vectors/cigarette.png
-    - assets/vectors/mineral-water.png
-    - assets/vectors/chocolate.png
-    - assets/vectors/other.png
-    - assets/cart/cart_button.png
-    - assets/naliv_logo.png
-    - assets/logo_new.svg
-    - assets/s/mc.png
-    - assets/s/visa.png
-    - assets/naliv_logo_loading.png
-    - assets/gradusy_logo_loading.png
-    - assets/txt.svg
-    - assets/Compact.png
-    - assets/Gold_trail.png
-
-
-  shaders:
-      - assets/shaders/glass_refraction.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
@@ -164,25 +123,6 @@ flutter:
     - family: TikTokSans
       fonts:
         - asset: assets/fonts/TikTokSans/TikTokSans-Variable.ttf
-    - family: MontserratAlternates
-      fonts:
-        - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-Black.ttf
-          weight: 900
-        - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-ExtraBold.ttf
-          weight: 800
-        - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Montserrat_Alternates/MontserratAlternates-Regular.ttf
-          weight: 400
-    - family: Raleway
-      fonts:
-        - asset: assets/fonts/Raleway/Raleway-VariableFont_wght.ttf
-        - asset: assets/fonts/Raleway/Raleway-Italic-VariableFont_wght.ttf
-          style: italic
 
     # - family: Trajan Pro
     #   fonts:
@@ -222,7 +162,6 @@ flutter_native_splash:
   # The branding property allows you to specify an image used as branding in the splash screen.
   # It must be a png file. It is supported for Android, iOS and the Web.  For Android 12,
   # see the Android 12 section below.
-  # branding: assets/naliv_logo_loading.png
 
   # To position the branding image at the bottom of the screen you can use bottom, bottomRight,
   # and bottomLeft. The default values is bottom if not specified or specified something else.

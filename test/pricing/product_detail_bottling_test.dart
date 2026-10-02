@@ -1,398 +1,695 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/utils/smart_cart.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../support/bottling_surface_items.dart';
 
 void main() {
-  group('ProductDetailPage self-bottling', () {
-    testWidgets('uses explicit item unit for non-pour quantity labels', (tester) async {
-      final item = Item(
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets(
+      'restores and saves the exact catalog quantity with explicit units',
+      (tester) async {
+    final item = Item(
         itemId: 99,
-        name: 'Fresh lemonade',
+        name: 'Лимонад',
         price: 1200,
         amount: 5,
         quantity: 1,
-        unit: 'л.',
-      );
+        unit: 'л.');
+    final cart = CartProvider()..syncItemSelectionQuantity(item, [], 3);
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-quantity')))
+            .data,
+        '3 л.');
+    await _tap(tester, 'configuration-quantity-plus');
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.totalQuantity, 4);
+    expect(cart.getTotalPrice(), 4800);
+  });
 
-      await tester.pumpWidget(_wrap(item));
-      await tester.pumpAndSettle();
-
-      expect(find.text('1 л.'), findsWidgets);
-      expect(find.text('1 шт.'), findsNothing);
-    });
-
-    testWidgets('shows fixed 100 gram price under image for weight items', (tester) async {
-      final item = Item(
+  testWidgets('weight quantity keeps the real step and bounds', (tester) async {
+    final item = Item(
         itemId: 100,
-        name: 'Gouda cheese',
+        name: 'Сыр',
         price: 5000,
-        amount: 10,
-        quantity: 0.250,
-        unit: 'кг.',
-      );
+        amount: 0.75,
+        quantity: 0.25,
+        unit: 'кг.');
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-quantity-plus');
+    await _tap(tester, 'configuration-quantity-plus');
+    expect(
+        tester
+            .widget<IconButton>(
+                find.byKey(const ValueKey('configuration-quantity-plus')))
+            .onPressed,
+        isNull);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.totalQuantity, 0.75);
+    expect(cart.getTotalPrice(), 3750);
+  });
 
-      await tester.pumpWidget(_wrap(item));
+  testWidgets(
+      'required multi selection blocks save and optional single can be cleared',
+      (tester) async {
+    final item = _optionsItem(amount: 3);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-option-8-51');
+    await _tap(tester, 'configuration-save');
+    expect(cart.items, isEmpty);
+    await _tap(tester, 'configuration-option-8-52');
+    await _tap(tester, 'configuration-option-9-61');
+    await _tap(tester, 'configuration-option-9-61');
+    await _tap(tester, 'configuration-quantity-plus');
+    await _tap(tester, 'configuration-save');
+    final group = cart.activeDisplayGroups.single;
+    expect(group.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
+        {41, 52});
+    expect(group.totalQuantity, 2);
+    expect(group.totalPrice, 2100);
+  });
+
+  testWidgets(
+      'single and multiple options preserve price and relation IDs after reload and edit',
+      (tester) async {
+    final item = _optionsItem();
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-option-7-42');
+    await _tap(tester, 'configuration-option-8-52');
+    await _tap(tester, 'configuration-option-9-61');
+    await _tap(tester, 'configuration-save');
+    final restored = CartProvider();
+    await tester.runAsync(restored.loadCart);
+    final group = restored.activeDisplayGroups.single;
+    expect(group.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
+        {42, 51, 52, 61});
+    expect(group.totalPrice, 1200);
+    expect(group.items.single.toJsonForOrder()['options'], [
+      {'option_item_relation_id': 42, 'amount': 1},
+      {'option_item_relation_id': 51, 'amount': 1},
+      {'option_item_relation_id': 52, 'amount': 1},
+      {'option_item_relation_id': 61, 'amount': 1},
+    ]);
+    await _mount(tester, restored, const CartPage());
+    await _tap(tester, 'cart-edit-${group.key}');
+    for (final key in [
+      'configuration-option-7-42',
+      'configuration-option-8-51',
+      'configuration-option-8-52',
+      'configuration-option-9-61',
+    ]) {
+      expect(tester.widget<CheckboxListTile>(find.byKey(ValueKey(key))).value,
+          isTrue);
+    }
+    await _tap(tester, 'configuration-quantity-plus');
+    await _tap(tester, 'configuration-save');
+    final edited = restored.activeDisplayGroups.single;
+    expect(
+        edited.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
+        {42, 51, 52, 61});
+    expect(edited.totalQuantity, 2);
+    expect(edited.totalPrice, 2400);
+  });
+
+  testWidgets(
+      'editing one option group restores it and leaves sibling configurations intact',
+      (tester) async {
+    final item = _optionsItem();
+    final sweet = [
+      _map(item.options![0].optionItems[1], required: 1),
+      _map(item.options![1].optionItems[0], required: 1)
+    ];
+    final plain = [
+      _map(item.options![0].optionItems[0], required: 1),
+      _map(item.options![1].optionItems[0], required: 1)
+    ];
+    final cart = CartProvider()
+      ..syncItemSelectionQuantity(item, plain, 1)
+      ..syncItemSelectionQuantity(item, sweet, 2);
+    await _mount(tester, cart,
+        ProductDetailPage(item: item, initialBaseVariants: sweet));
+    expect(
+        tester
+            .widget<CheckboxListTile>(
+                find.byKey(const ValueKey('configuration-option-7-42')))
+            .value,
+        isTrue);
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-quantity')))
+            .data,
+        '2 шт.');
+    await _tap(tester, 'configuration-option-9-61');
+    await _tap(tester, 'configuration-save');
+    expect(
+        cart.activeDisplayGroups
+            .singleWhere((group) =>
+                group.key ==
+                SmartCartSelection(item).displayKeyForVariants(plain))
+            .totalQuantity,
+        1);
+    final edited = cart.activeDisplayGroups.singleWhere((group) =>
+        group.key != SmartCartSelection(item).displayKeyForVariants(plain));
+    expect(edited.totalQuantity, 2);
+    expect(
+        edited.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
+        {42, 51, 61});
+    expect(
+        cart.displayGroups.any((group) =>
+            group.key == SmartCartSelection(item).displayKeyForVariants(sweet)),
+        isFalse);
+  });
+
+  testWidgets(
+      'editing into a sibling configuration refuses to overwrite either group',
+      (tester) async {
+    final item = _optionsItem();
+    final plain = [
+      _map(item.options![0].optionItems[0], required: 1),
+      _map(item.options![1].optionItems[0], required: 1)
+    ];
+    final sweet = [
+      _map(item.options![0].optionItems[1], required: 1),
+      _map(item.options![1].optionItems[0], required: 1)
+    ];
+    final cart = CartProvider()
+      ..syncItemSelectionQuantity(item, plain, 1)
+      ..syncItemSelectionQuantity(item, sweet, 2);
+    final before = cart.items.map((item) => item.toJson()).toList();
+    await _mount(tester, cart,
+        ProductDetailPage(item: item, initialBaseVariants: sweet));
+    await _tap(tester, 'configuration-option-7-41');
+    await _tap(tester, 'configuration-save');
+    expect(cart.items.map((item) => item.toJson()).toList(), before);
+    expect(
+        find.byKey(const ValueKey('configuration-feedback')), findsOneWidget);
+  });
+
+  testWidgets('pour promotion does not discount package price', (tester) async {
+    final item = _pourItem(promotions: [
+      ItemPromotion(
+          promotionId: 1,
+          name: 'Скидка',
+          discountType: 'PERCENT',
+          discountValue: 10)
+    ]);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-save');
+    final group = cart.activeDisplayGroups.single;
+    expect(group.totalQuantity, 1);
+    expect(group.optionsTotal, 50);
+    expect(group.subtotalBeforePromotions, 1050);
+    expect(group.totalPrice, 950);
+  });
+
+  testWidgets(
+      'subtract bottles and charges the gift while retaining paid selection',
+      (tester) async {
+    final item = _pourItem(promotions: [
+      ItemPromotion(
+          promotionId: 2,
+          name: '2+1',
+          discountType: 'SUBTRACT',
+          discountValue: 0,
+          baseAmount: 2,
+          addAmount: 1)
+    ]);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-bottle-1-plus');
+    await _tap(tester, 'configuration-save');
+    final group = cart.activeDisplayGroups.single;
+    expect(group.paidBottleCounts, {1: 2});
+    expect(group.bottleCounts, {1: 3});
+    expect(group.totalQuantity, 2);
+    expect(group.freeQuantity, 1);
+    expect(group.totalPrice, 2150);
+    expect(group.subtotalBeforePromotions, 3150);
+    expect(group.toJsonForOrder().single['amount'], 3);
+  });
+
+  testWidgets('3+1 preview cart reopen and stepping retain paid litres only',
+      (tester) async {
+    final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-bottle-93101-plus');
+    await _tap(tester, 'configuration-bottle-93101-plus');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-total')))
+            .data,
+        '3400 ₸');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-volume')))
+            .data,
+        '4 л');
+    await _tap(tester, 'configuration-save');
+    expect(cart.getTotalPrice(), 3400);
+    expect(cart.toJsonForOrder().single['amount'], 4);
+    await _mount(tester, cart, const CartPage());
+    await _tap(tester, 'cart-edit-${cart.activeDisplayGroups.single.key}');
+    expect(
+        tester
+            .widget<Text>(
+                find.byKey(const ValueKey('configuration-bottle-93101')))
+            .data,
+        '3');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-total')))
+            .data,
+        '3400 ₸');
+    await _tap(tester, 'configuration-save');
+    await tester.tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
+    await tester.pumpAndSettle();
+    final group = cart.activeDisplayGroups.single;
+    expect(group.totalQuantity, 4);
+    expect(group.freeQuantity, 1);
+    expect(group.bottleCounts, {93101: 5});
+    expect(group.totalPrice, 4500);
+    expect(cart.toJsonForOrder().single['amount'], 5);
+  });
+
+  testWidgets('impossible whole gift allocation visibly refuses saving',
+      (tester) async {
+    final item = _pourItem(onlyTwoLitres: true, promotions: [
+      ItemPromotion(
+          promotionId: 2,
+          name: '2+1',
+          discountType: 'SUBTRACT',
+          discountValue: 0,
+          baseAmount: 2,
+          addAmount: 1),
+    ]);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('configuration-save')))
+            .onPressed,
+        isNull);
+    expect(
+        find.byKey(const ValueKey('configuration-feedback')), findsOneWidget);
+    expect(cart.items, isEmpty);
+  });
+
+  testWidgets('bottle counts remain whole when stock is not an exact multiple',
+      (tester) async {
+    final item = _pourItem(amount: 2.5, onlyTwoLitres: true);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    expect(
+        tester
+            .widget<IconButton>(
+                find.byKey(const ValueKey('configuration-bottle-2-plus')))
+            .onPressed,
+        isNull);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.bottleCounts, {2: 1});
+    expect(cart.activeDisplayGroups.single.totalQuantity, 2);
+    expect(cart.getTotalPrice(), 2120);
+  });
+
+  testWidgets(
+      'captured category variants retain bounded pour selection and relation payload',
+      (tester) async {
+    final capture = jsonDecode(
+        File('test/fixtures/public_bottling_catalog.json')
+            .readAsStringSync()) as Map;
+    final raw = Map<String, dynamic>.from(
+        (capture['category_samples'] as List).first['item'] as Map);
+    raw['amount'] = 2.5; // Synthetic stock boundary on an otherwise real GET.
+    raw.remove('img'); // Artwork is exercised in the fixture gallery.
+    final item = Item.fromJson(raw);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-bottle-2710-minus');
+    await _tap(tester, 'configuration-bottle-2711-plus');
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.bottleCounts, {2711: 1});
+    expect(cart.getTotalPrice(), 5300);
+    expect(cart.items.single.toJsonForOrder()['options'], [
+      {'option_item_relation_id': 2711, 'amount': 1},
+    ]);
+  });
+
+  testWidgets('zero stock never adds a configuration or allocates bottles',
+      (tester) async {
+    final item = _pourItem(amount: 0);
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('configuration-save')))
+            .onPressed,
+        isNull);
+    expect(
+        tester
+            .widget<IconButton>(
+                find.byKey(const ValueKey('configuration-bottle-1-plus')))
+            .onPressed,
+        isNull);
+    expect(cart.items, isEmpty);
+  });
+
+  testWidgets(
+      'cart cancel discards draft and subsequent save only edits the opened bottle group',
+      (tester) async {
+    final item = _pourItem(withTaste: true);
+    final plain = [_map(item.options![1].optionItems[0], required: 1)];
+    final berry = [_map(item.options![1].optionItems[1], required: 1)];
+    final cart = CartProvider()
+      ..syncItemBottleCounts(item, plain, {1: 1, 2: 1})
+      ..syncItemBottleCounts(item, berry, {2: 1});
+    final before = cart.items.map((item) => item.toJson()).toList();
+    await _mount(tester, cart, const CartPage());
+    await _tap(tester,
+        'cart-edit-${SmartCartSelection(item).displayKeyForVariants(plain)}');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-bottle-1')))
+            .data,
+        '1');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-bottle-2')))
+            .data,
+        '1');
+    await _tap(tester, 'configuration-bottle-1-minus');
+    await _tap(tester, 'configuration-option-7-42');
+    await _tap(tester, 'configuration-back');
+    expect(cart.items.map((item) => item.toJson()).toList(), before);
+    expect(find.byType(CartPage), findsOneWidget);
+    await _tap(tester,
+        'cart-edit-${SmartCartSelection(item).displayKeyForVariants(plain)}');
+    await _tap(tester, 'configuration-bottle-1-minus');
+    await _tap(tester, 'configuration-save');
+    expect(
+        cart.activeDisplayGroups
+            .singleWhere((group) =>
+                group.key ==
+                SmartCartSelection(item).displayKeyForVariants(plain))
+            .bottleCounts,
+        {2: 1});
+    expect(
+        cart.activeDisplayGroups
+            .singleWhere((group) =>
+                group.key ==
+                SmartCartSelection(item).displayKeyForVariants(berry))
+            .bottleCounts,
+        {2: 1});
+    expect(cart.getTotalPrice(), 4240);
+  });
+
+  testWidgets(
+      'cart save and reload restores real labels, selected options and bottle counts',
+      (tester) async {
+    final item = _pourItem(withTaste: true);
+    final plain = [_map(item.options![1].optionItems[0], required: 1)];
+    final berry = [_map(item.options![1].optionItems[1], required: 1)];
+    final plainKey = SmartCartSelection(item).displayKeyForVariants(plain);
+    final berryKey = SmartCartSelection(item).displayKeyForVariants(berry);
+    final cart = CartProvider()
+      ..syncItemBottleCounts(item, plain, {1: 1, 2: 2})
+      ..syncItemBottleCounts(item, berry, {2: 1});
+    await _mount(tester, cart, const CartPage());
+    await tester.pumpAndSettle();
+    final restored = CartProvider();
+    await tester.runAsync(restored.loadCart);
+    final group = restored.activeDisplayGroups
+        .singleWhere((group) => group.key == plainKey);
+    await _mount(tester, restored, const CartPage());
+    await _tap(tester, 'cart-edit-${group.key}');
+    expect(find.text('Бутылка 1 л'), findsOneWidget);
+    expect(find.text('Бутылка 2 л'), findsOneWidget);
+    expect(find.text('Классический'), findsOneWidget);
+    expect(
+        tester
+            .widget<CheckboxListTile>(
+                find.byKey(const ValueKey('configuration-option-7-41')))
+            .value,
+        isTrue);
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-bottle-1')))
+            .data,
+        '1');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-bottle-2')))
+            .data,
+        '2');
+    await _tap(tester, 'configuration-bottle-1-minus');
+    await _tap(tester, 'configuration-save');
+    final edited = restored.activeDisplayGroups
+        .singleWhere((group) => group.key == plainKey);
+    expect(edited.bottleCounts, {2: 2});
+    expect(
+        edited.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
+        {41});
+    expect(
+        restored.activeDisplayGroups
+            .singleWhere((group) => group.key == berryKey)
+            .bottleCounts,
+        {2: 1});
+    expect(restored.getTotalPrice(), 6360);
+  });
+
+  testWidgets(
+      'cart stepper repeats exact pour mix and explicitly deletes final batch',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final item = _pourItem(amount: 7, withTaste: true);
+      final plain = [_map(item.options![1].optionItems[0], required: 1)];
+      final berry = [_map(item.options![1].optionItems[1], required: 1)];
+      final cart = CartProvider()
+        ..syncItemBottleCounts(item, plain, {1: 1, 2: 1})
+        ..syncItemBottleCounts(item, berry, {1: 1});
+      await _mount(tester, cart, const CartPage());
+      final plainKey = SmartCartSelection(item).displayKeyForVariants(plain);
+      Finder control(String label) => find.descendant(
+          of: find.byKey(const ValueKey('cart-row-0')),
+          matching: find.bySemanticsLabel(label));
+      await tester.ensureVisible(control('Добавить выбранный набор бутылок'));
+      await tester.tap(control('Добавить выбранный набор бутылок'));
       await tester.pumpAndSettle();
-
-      expect(find.text('500 ₸'), findsOneWidget);
-      expect(find.text('0.250 кг.'), findsWidgets);
-      expect(find.text('1250 ₸'), findsWidgets);
-      expect(find.text('5000 ₸'), findsNothing);
-    });
-
-    testWidgets('restores existing catalog quantity from the cart', (tester) async {
-      final item = Item(
-        itemId: 501,
-        name: 'Sparkling water',
-        price: 650,
-        amount: 8,
-        quantity: 1,
-        unit: 'шт.',
-      );
-      final cartProvider = CartProvider()
-        ..incrementCatalogItem(item)
-        ..incrementCatalogItem(item)
-        ..incrementCatalogItem(item);
-
-      await tester.pumpWidget(_wrap(item, cartProvider: cartProvider));
+      expect(
+          cart.activeDisplayGroups
+              .singleWhere((group) => group.key == plainKey)
+              .bottleCounts,
+          {1: 2, 2: 2});
+      await tester.tap(control('Добавить выбранный набор бутылок'));
       await tester.pumpAndSettle();
+      expect(
+          cart.activeDisplayGroups
+              .singleWhere((group) => group.key == plainKey)
+              .bottleCounts,
+          {1: 2, 2: 2});
+      expect(
+          cart.activeDisplayGroups
+              .singleWhere((group) => group.key != plainKey)
+              .bottleCounts,
+          {1: 1});
+      await tester.tap(control('Убрать выбранный набор бутылок'));
+      await tester.pumpAndSettle();
+      expect(
+          cart.activeDisplayGroups
+              .singleWhere((group) => group.key == plainKey)
+              .bottleCounts,
+          {1: 1, 2: 1});
+      expect(control('Убрать выбранный набор бутылок'), findsNothing);
+      await tester.tap(control('Удалить товар'));
+      await tester.pumpAndSettle();
+      expect(
+          cart.activeDisplayGroups.single.baseVariants
+              .map(SmartCartSelection.variantRelationId)
+              .toSet(),
+          {42});
+      expect(cart.activeDisplayGroups.single.bottleCounts, {1: 1});
+    } finally {
+      semantics.dispose();
+    }
+  });
+  testWidgets('fractional replacement preview equals saved cart total',
+      (tester) async {
+    final capture = jsonDecode(
+        File('test/fixtures/public_bottling_catalog.json')
+            .readAsStringSync()) as Map;
+    final raw = Map<String, dynamic>.from(
+        (capture['category_samples'] as List).first['item'] as Map);
+    raw.remove('img');
+    raw['options'] = [
+      {
+        'option_id': 579,
+        'name': 'Литраж',
+        'required': 1,
+        'selection': 'SINGLE',
+        'variants': [
+          {
+            'relation_id': 2710,
+            'item_id': 1091,
+            'item_name': 'Бутылка 1.25 л',
+            'parent_item_amount': 1.25,
+            'price_type': 'REPLACE',
+            'price': 500,
+          }
+        ],
+      }
+    ];
+    final cart = CartProvider();
+    await _mount(tester, cart, ProductDetailPage(item: Item.fromJson(raw)));
+    final preview = tester
+        .widget<Text>(find.byKey(const ValueKey('configuration-total')))
+        .data;
+    expect(preview, '500 ₸');
+    await _tap(tester, 'configuration-bottle-2710-plus');
+    expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('configuration-total')))
+            .data,
+        '1000 ₸');
+    await _tap(tester, 'configuration-save');
+    expect(cart.getTotalPrice(), 1000);
+    expect(cart.activeDisplayGroups.single.bottleCounts, {2710: 2});
+    expect(cart.toJsonForOrder().single['amount'], 2.5);
+  });
+}
 
-      expect(find.text('3 шт.'), findsWidgets);
-    });
+Future<void> _mount(
+    WidgetTester tester, CartProvider cart, Widget child) async {
+  await tester.binding.setSurfaceSize(const Size(800, 1400));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(MultiProvider(
+    providers: [
+      ChangeNotifierProvider<CartProvider>.value(value: cart),
+      ChangeNotifierProvider<BusinessProvider>(
+          create: (_) => BusinessProvider()),
+    ],
+    child: MaterialApp(theme: AppTheme.dark(), home: child),
+  ));
+  await tester.pumpAndSettle();
+}
 
-    testWidgets('restores cart quantity for the selected option when opened from cart', (tester) async {
-      final sugarFree = ItemOptionItem(
-        relationId: 41,
-        itemId: 4101,
-        priceType: 'ADD',
-        itemName: 'Без сахара',
-        price: 0,
-        parentItemAmount: 0,
-      );
-      final sweet = ItemOptionItem(
-        relationId: 42,
-        itemId: 4102,
-        priceType: 'ADD',
-        itemName: 'С сахаром',
-        price: 0,
-        parentItemAmount: 0,
-      );
-      final item = Item(
-        itemId: 502,
-        name: 'Lemonade',
-        price: 900,
-        amount: 10,
-        quantity: 1,
-        unit: 'шт.',
-        options: <ItemOption>[
-          ItemOption(
+Future<void> _tap(WidgetTester tester, String key) async {
+  final finder = find.byKey(ValueKey(key));
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+ItemOptionItem _option(int id, String name, double price,
+        {double amount = 0}) =>
+    ItemOptionItem(
+      relationId: id,
+      itemId: 1000 + id,
+      priceType: 'ADD',
+      itemName: name,
+      price: price,
+      parentItemAmount: amount,
+    );
+
+Item _optionsItem({double amount = 10}) => Item(
+      itemId: 502,
+      name: 'Лимонад',
+      description: 'Свежий лимонад с выбранными дополнениями.',
+      price: 900,
+      amount: amount,
+      quantity: 1,
+      unit: 'шт.',
+      options: [
+        ItemOption(
             optionId: 7,
             name: 'Сахар',
             required: 1,
             selection: 'SINGLE',
-            optionItems: <ItemOptionItem>[sugarFree, sweet],
-          ),
-        ],
-      );
-      final sweetVariant = <Map<String, dynamic>>[
-        _variantMap(sweet, required: 1, parentItemAmount: 1),
-      ];
-      final cartProvider = CartProvider()..syncItemSelectionQuantity(item, sweetVariant, 2);
+            optionItems: [
+              _option(41, 'Без сахара', 0),
+              _option(42, 'С сахаром', 0)
+            ]),
+        ItemOption(
+            optionId: 8,
+            name: 'Добавки',
+            required: 1,
+            selection: 'MULTIPLE',
+            optionItems: [_option(51, 'Мята', 100), _option(52, 'Лайм', 150)]),
+        ItemOption(
+            optionId: 9,
+            name: 'Упаковка',
+            required: 0,
+            selection: 'SINGLE',
+            optionItems: [_option(61, 'Подарочная упаковка', 50)]),
+      ],
+    );
 
-      await tester.pumpWidget(
-        _wrap(
-          item,
-          cartProvider: cartProvider,
-          initialBaseVariants: sweetVariant,
-        ),
-      );
-      await tester.pumpAndSettle();
+Item _pourItem(
+        {double amount = 12,
+        bool onlyTwoLitres = false,
+        bool withTaste = false,
+        List<ItemPromotion>? promotions}) =>
+    Item(
+      itemId: 1,
+      name: 'Разливное пиво',
+      description: 'Напиток с доступной тарой.',
+      price: 1000,
+      amount: amount,
+      quantity: 1,
+      unit: 'л.',
+      category: ItemCategory(categoryId: 1, name: 'Разливное пиво'),
+      options: [
+        ItemOption(
+            optionId: 1,
+            name: 'Тара',
+            required: 1,
+            selection: 'SINGLE',
+            optionItems: [
+              if (!onlyTwoLitres) _option(1, 'Бутылка 1 л', 50, amount: 1),
+              _option(2, 'Бутылка 2 л', 120, amount: 2),
+            ]),
+        if (withTaste)
+          ItemOption(
+              optionId: 7,
+              name: 'Вкус',
+              required: 1,
+              selection: 'SINGLE',
+              optionItems: [
+                _option(41, 'Классический', 0),
+                _option(42, 'Ягодный', 0)
+              ]),
+      ],
+      promotions: promotions,
+    );
 
-      expect(find.text('2 шт.'), findsWidgets);
-      expect(cartProvider.getItem(item.itemId, sweetVariant), isNotNull);
-    });
-
-    testWidgets('keeps pour flow for promotion payloads that use variants', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final item = Item.fromJson(<String, dynamic>{
-        'item_id': 30318,
-        'name': 'Пиво розлив Kronenbourg Blanc 1664 1л 4.8%',
-        'price': 2600,
-        'amount': 24,
-        'quantity': 1,
-        'unit': 'л.',
-        'category': <String, dynamic>{
-          'category_id': 53,
-          'name': 'Разливное пиво',
-          'parent_category': 36,
-        },
-        'options': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'option_id': 579,
-            'name': 'Литраж',
-            'required': 1,
-            'selection': 'SINGLE',
-            'variants': <Map<String, dynamic>>[
-              <String, dynamic>{
-                'relation_id': 2710,
-                'item_id': 1091,
-                'price_type': 'ADD',
-                'price': 110,
-                'parent_item_amount': 1,
-              },
-              <String, dynamic>{
-                'relation_id': 2711,
-                'item_id': 1092,
-                'price_type': 'ADD',
-                'price': 100,
-                'parent_item_amount': 2,
-              },
-              <String, dynamic>{
-                'relation_id': 2713,
-                'item_id': 1154,
-                'price_type': 'ADD',
-                'price': 150,
-                'parent_item_amount': 3,
-              },
-            ],
-          },
-        ],
-        'promotions': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'detail_id': 2755,
-            'type': 'SUBTRACT',
-            'base_amount': 2,
-            'add_amount': 1,
-            'name': '2+1',
-            'promotion': <String, dynamic>{
-              'marketing_promotion_id': 50,
-              'name': 'Специальное предложение +1',
-              'start_promotion_date': '2025-07-31T12:00:00.000Z',
-              'end_promotion_date': '2026-09-30T00:00:00.000Z',
-            },
-          },
-        ],
-      });
-
-      expect(item.options, isNotNull);
-      expect(item.options!.single.optionItems, hasLength(3));
-
-      await tester.pumpWidget(_wrap(item));
-      await tester.pumpAndSettle();
-
-      expect(find.text('ОБЪЁМ'), findsOneWidget);
-      expect(find.text('КОЛИЧЕСТВО'), findsNothing);
-      expect(find.textContaining('2600 ₸'), findsWidgets);
-      expect(find.text('1 л'), findsWidgets);
-      expect(find.textContaining('4,8'), findsWidgets);
-      expect(find.textContaining('бут.'), findsNothing);
-      expect(find.textContaining('автоподарок'), findsNothing);
-      expect(find.textContaining('Порог'), findsNothing);
-      expect(find.textContaining('Прогресс считается'), findsNothing);
-      expect(find.text('2+1'), findsOneWidget);
-      expect(find.text('Добавьте ещё 1 л для подарка'), findsOneWidget);
-
-      await tester.tap(find.byIcon(Icons.add_rounded).first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('+1 л в подарок'), findsOneWidget);
-      expect(find.text('Подарок открыт!'), findsOneWidget);
-
-      await tester.tap(find.byIcon(Icons.info_outline_rounded));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Разбор цены'), findsOneWidget);
-      expect(find.text('2 л напитка'), findsOneWidget);
-      expect(find.text('1 л в подарок'), findsOneWidget);
-      expect(find.text('1×2 л'), findsOneWidget);
-    });
-
-    testWidgets('shows bottle-aware promo totals without discounting bottle price', (tester) async {
-      final item = _buildPourItem(
-        amount: 5,
-        bottles: <ItemOptionItem>[
-          ItemOptionItem(
-            relationId: 1,
-            itemId: 101,
-            priceType: 'FIXED',
-            itemName: '1 л бутылка',
-            price: 50,
-            parentItemAmount: 1,
-          ),
-          ItemOptionItem(
-            relationId: 2,
-            itemId: 102,
-            priceType: 'FIXED',
-            itemName: '2 л бутылка',
-            price: 120,
-            parentItemAmount: 2,
-          ),
-        ],
-        promotions: <ItemPromotion>[
-          ItemPromotion(
-            promotionId: 1,
-            name: 'Ten percent',
-            discountType: 'PERCENT',
-            discountValue: 10,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(_wrap(item));
-      await tester.pumpAndSettle();
-
-      expect(find.text('950 ₸'), findsWidgets);
-      expect(find.text('1050 ₸'), findsWidgets);
-      expect(find.text('945 ₸'), findsNothing);
-    });
-
-    testWidgets('loops promo progress and shows reward multiplier after repeated gifts', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final item = _buildPourItem(
-        amount: 10,
-        bottles: <ItemOptionItem>[
-          ItemOptionItem(
-            relationId: 1,
-            itemId: 101,
-            priceType: 'FIXED',
-            itemName: '1 л бутылка',
-            price: 50,
-            parentItemAmount: 1,
-          ),
-          ItemOptionItem(
-            relationId: 2,
-            itemId: 102,
-            priceType: 'FIXED',
-            itemName: '2 л бутылка',
-            price: 100,
-            parentItemAmount: 2,
-          ),
-        ],
-        promotions: <ItemPromotion>[
-          ItemPromotion(
-            promotionId: 1,
-            name: '2+1',
-            discountType: 'SUBTRACT',
-            discountValue: 0,
-            baseAmount: 2,
-            addAmount: 1,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(_wrap(item));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.add_rounded).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.add_rounded).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.add_rounded).first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('+2 л в подарок'), findsOneWidget);
-      expect(find.text('Добавьте ещё 2 л для следующего подарка'), findsOneWidget);
-      expect(find.text('x2'), findsOneWidget);
-    });
-
-    testWidgets('does not overfill when max amount has no exact bottle combination', (tester) async {
-      final item = _buildPourItem(
-        amount: 2.5,
-        bottles: <ItemOptionItem>[
-          ItemOptionItem(
-            relationId: 2,
-            itemId: 102,
-            priceType: 'FIXED',
-            itemName: '2 л бутылка',
-            price: 100,
-            parentItemAmount: 2,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(_wrap(item));
-      await tester.pumpAndSettle();
-
-      expect(find.text('2100 ₸'), findsWidgets);
-
-      expect(find.byIcon(Icons.add_rounded).hitTestable(), findsNothing);
-      expect(find.text('2100 ₸'), findsWidgets);
-      expect(find.text('4200 ₸'), findsNothing);
-    });
-  });
-}
-
-Widget _wrap(
-  Item item, {
-  CartProvider? cartProvider,
-  List<Map<String, dynamic>>? initialBaseVariants,
-}) {
-  final effectiveCartProvider = cartProvider ?? CartProvider();
-
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<CartProvider>.value(value: effectiveCartProvider),
-      ChangeNotifierProvider<BusinessProvider>(create: (_) => BusinessProvider()),
-    ],
-    child: MaterialApp(
-      home: ProductDetailPage(
-        item: item,
-        initialBaseVariants: initialBaseVariants,
-      ),
-    ),
-  );
-}
-
-Map<String, dynamic> _variantMap(
-  ItemOptionItem optionItem, {
-  required int required,
-  required double parentItemAmount,
-}) {
-  return <String, dynamic>{
-    'variant_id': optionItem.relationId,
-    'relation_id': optionItem.relationId,
-    'item_id': optionItem.itemId,
-    'item_name': optionItem.itemName,
-    'price_type': optionItem.priceType,
-    'price': optionItem.price,
-    'parent_item_amount': parentItemAmount,
-    'required': required,
-  };
-}
-
-Item _buildPourItem({
-  required double amount,
-  required List<ItemOptionItem> bottles,
-  List<ItemPromotion> promotions = const <ItemPromotion>[],
-}) {
-  return Item(
-    itemId: 1,
-    name: 'Beer from tap',
-    price: 1000,
-    image: '',
-    amount: amount,
-    category: ItemCategory(categoryId: 1, name: 'Beer'),
-    options: <ItemOption>[
-      ItemOption(
-        optionId: 1,
-        name: 'Bottle',
-        required: 1,
-        selection: 'SINGLE',
-        optionItems: bottles,
-      ),
-    ],
-    promotions: promotions,
-  );
-}
+Map<String, dynamic> _map(ItemOptionItem value, {required int required}) => {
+      'variant_id': value.relationId,
+      'relation_id': value.relationId,
+      'item_id': value.itemId,
+      'item_name': value.itemName,
+      'price_type': value.priceType,
+      'price': value.price,
+      'parent_item_amount':
+          value.parentItemAmount > 0 ? value.parentItemAmount : 1.0,
+      'required': required,
+    };

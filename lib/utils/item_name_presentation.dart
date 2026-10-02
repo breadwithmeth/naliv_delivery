@@ -154,7 +154,7 @@ ItemTitlePresentation presentItemName({
 
 String _stripLeading(String text, String prefix) {
   final pattern = RegExp(
-    '^${RegExp.escape(prefix)}(?:[\\s\\-\\.,:|/]+)?',
+    '^${RegExp.escape(prefix)}(?=\$|[\\s\\-\\.,:|/]+)(?:[\\s\\-\\.,:|/]+)?',
     caseSensitive: false,
   );
   final match = pattern.firstMatch(text);

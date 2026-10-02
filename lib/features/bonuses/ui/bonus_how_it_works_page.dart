@@ -7,12 +7,10 @@ import '../../../ui/app_top_bar.dart';
 
 /// «Как работают бонусы» — the design's explainer frames.
 ///
-/// A static long-read: the copy is taken verbatim from the design (1 бонус = 1₸, the three-step
-/// accrual, the 25 % spending cap, tobacco and delivery exclusions, and the FAQ pointer at the
-/// end). The app had no equivalent screen, so this content exists only in the file.
+/// Readable account guidance with the same benefit exclusivity as checkout.
 ///
-/// Type sizes follow the frames: section headers 20/700, block titles 16/500, body 10/400, step
-/// numbers 14/700 in the accent, and the footer link 14/400 in the accent.
+/// Section headers and block titles retain the reference hierarchy; body text is
+/// deliberately readable at 14 px instead of the reference's 10 px.
 class BonusHowItWorksPage extends StatelessWidget {
   const BonusHowItWorksPage({this.onOpenFaq, super.key});
 
@@ -53,7 +51,7 @@ class BonusHowItWorksPage extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxxl),
             const _Card(
               title: 'Начисление',
-              lines: const [
+              lines: [
                 'После каждого выполненного заказа начисляются Бонусы Продавца.',
                 'Размер начисления зависит от товара и процента, указанного в его карточке.',
                 '1 бонус = 1₸',
@@ -84,16 +82,16 @@ class BonusHowItWorksPage extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxxl),
             const _Card(
               title: 'Использование',
-              lines: const [
-                'Бонусами можно оплатить\u00a0до 25%\u00a0стоимости следующих заказов.',
+              lines: [
+                'Доступная сумма списания показывается при оформлении заказа.',
                 'Списание работает только внутри приложения во время оформления корзины.',
-                'Бонусы не суммируются с промокодом в одном заказе.',
+                'Бонусы, промокод и сертификат нельзя применить вместе.',
               ],
             ),
             const SizedBox(height: AppSpacing.md),
             const _Card(
               title: 'Ограничения',
-              lines: const [
+              lines: [
                 'Доставка и табачная продукция не оплачиваются бонусами.',
                 'Начисление не происходит мгновенно: бонусы появляются после завершения заказа.',
                 'Если нужен полный разбор по кешбэку, акциям и промокодам, откройте FAQ ниже.',
@@ -108,8 +106,8 @@ class BonusHowItWorksPage extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               'Откройте ответы о кешбэке, промокодах и механике акций\u00a01+1 / 2+1 / 3+1.',
-              style: AppTypography.base(size: 10, weight: 400)
-                  .copyWith(color: palette.textSecondary, height: 1.3),
+              style: AppTypography.bodySmall
+                  .copyWith(color: palette.textSecondary),
             ),
             const SizedBox(height: AppSpacing.xl),
             GestureDetector(
@@ -138,8 +136,8 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final bodyStyle = AppTypography.base(size: 10, weight: 400)
-        .copyWith(color: palette.textSecondary, height: 1.3);
+    final bodyStyle =
+        AppTypography.bodySmall.copyWith(color: palette.textSecondary);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xxxl),
       decoration: BoxDecoration(
@@ -165,8 +163,8 @@ class _Card extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               highlight!,
-              style: AppTypography.base(size: 10, weight: 600)
-                  .copyWith(color: palette.textPrimary, height: 1.3),
+              style: AppTypography.bodySmallSemibold
+                  .copyWith(color: palette.textPrimary),
             ),
           ],
         ],
@@ -208,8 +206,8 @@ class _Step extends StatelessWidget {
                 ),
                 Text(
                   body,
-                  style: AppTypography.base(size: 10, weight: 400)
-                      .copyWith(color: palette.textSecondary, height: 1.3),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: palette.textSecondary),
                 ),
               ],
             ),

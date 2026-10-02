@@ -55,16 +55,22 @@ class _BonusHistoryPageState extends State<BonusHistoryPage> {
     try {
       final response = await ApiService.getUserBonuses();
       final data = response?['data'];
+      if (response?['success'] != true || data is! Map) {
+        throw StateError('Bonus data is unavailable');
+      }
+      final rawBalance = data['totalBonuses'];
+      final balance =
+          rawBalance is num ? rawBalance.toInt() : int.tryParse('$rawBalance');
+      final history = data['bonusHistory'];
+      if (balance == null || history is! List) {
+        throw StateError('Bonus balance or history is unavailable');
+      }
       if (!mounted) return;
       setState(() {
-        _balance = data is Map && data['totalBonuses'] is num
-            ? (data['totalBonuses'] as num).toInt()
-            : 0;
-        final history = data is Map ? data['bonusHistory'] : null;
+        _balance = balance;
         _history = [
-          if (history is List)
-            for (final entry in history)
-              if (entry is Map) entry.cast<String, dynamic>(),
+          for (final entry in history)
+            if (entry is Map) entry.cast<String, dynamic>(),
         ];
       });
     } catch (_) {
@@ -98,7 +104,7 @@ class _BonusHistoryPageState extends State<BonusHistoryPage> {
                 Expanded(
                   child: ListView(
                     padding: EdgeInsets.only(
-                      bottom: AppCartButton.clearance +
+                      bottom: AppCartButton.clearanceFor(context) +
                           MediaQuery.paddingOf(context).bottom,
                     ),
                     children: [
@@ -195,7 +201,7 @@ class _BonusHistoryPageState extends State<BonusHistoryPage> {
             AppSpacing.md,
           ),
           child: Container(
-            height: 63,
+            constraints: const BoxConstraints(minHeight: 63),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xl,
               vertical: AppSpacing.md,
@@ -247,7 +253,6 @@ class _BonusHistoryPageState extends State<BonusHistoryPage> {
   }
 }
 
-/// 343 × 56: the total at 32/900 in the accent, with the explainer link on the right.
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.balance, this.onHowItWorks});
 
@@ -258,37 +263,33 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: AppSpacing.lg,
+        runSpacing: AppSpacing.md,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(
-            '${balance ?? 0}',
-            style: AppTypography.base(size: 32, weight: 900)
-                .copyWith(color: palette.accent, height: 1),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.md),
-            child: Text(
-              'бонусов',
-              style: AppTypography.bodySmallSemibold
-                  .copyWith(color: palette.textSecondary),
-            ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onHowItWorks,
-            behavior: HitTestBehavior.opaque,
-            child: Text(
-              'Как работают бонусы?',
-              style: AppTypography.base(size: 12, weight: 400)
-                  .copyWith(color: palette.accent),
-            ),
+          Text.rich(TextSpan(
+            children: [
+              TextSpan(
+                text: '${balance ?? '—'}',
+                style:
+                    AppTypography.displayLarge.copyWith(color: palette.accent),
+              ),
+              TextSpan(
+                text: ' бонусов',
+                style: AppTypography.bodySmallSemibold
+                    .copyWith(color: palette.textSecondary),
+              ),
+            ],
+          )),
+          TextButton(
+            onPressed: onHowItWorks,
+            child: const Text('Как работают бонусы?'),
           ),
         ],
       ),

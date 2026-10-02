@@ -37,40 +37,33 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  testWidgets('opens the phone form without overflowing in either palette',
+  testWidgets('explicit sign-in opens the phone form and back returns home',
       (tester) async {
-    for (final theme in [AppTheme.dark(), AppTheme.light()]) {
-      await _pumpLogin(tester, theme);
-
-      expect(find.text('Персональные акции'), findsOneWidget);
-      await _openPhoneForm(tester);
-
-      expect(find.text('Вход по номеру телефона'), findsOneWidget);
-      expect(find.text('Отправим короткий код подтверждения'), findsOneWidget);
-      expect(find.text('Не приходит SMS-код?'), findsOneWidget);
-      final backRect = tester.getRect(find.byTooltip('Назад'));
-      final wordmarkRect = tester.getRect(
-        find.byKey(const ValueKey('auth-wordmark')),
-      );
-      expect(backRect.left, closeTo(16, .1));
-      expect(backRect.right, lessThan(wordmarkRect.left));
-      expect(
-        tester.getTopLeft(find.text('Вход по номеру телефона')).dy,
-        inInclusiveRange(185, 220),
-      );
-      expect(
-        tester
-            .widget<TextFormField>(
-              find.byKey(const ValueKey('auth-phone-input')),
-            )
-            .controller!
-            .text,
-        '+7',
-      );
-      expect(tester.takeException(), isNull);
-
-      await _disposeLogin(tester);
-    }
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark(),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const LoginPage(startWithPhoneForm: true),
+            )),
+            child: const Text('Открыть вход'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Открыть вход'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Вход по номеру телефона'), findsOneWidget);
+    expect(find.text('Персональные акции'), findsNothing);
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Открыть вход'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _disposeLogin(tester);
   });
 
   testWidgets('validates an incomplete phone before any request',

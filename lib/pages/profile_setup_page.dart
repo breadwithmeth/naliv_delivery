@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
+import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/design/tokens.dart';
+import 'package:naliv_delivery/design/typography.dart';
 import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
 
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({
@@ -107,30 +108,20 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Future<void> _pickDate() async {
+    FocusScope.of(context).unfocus();
     final latestAllowed = _latestAllowedBirthDate;
+    final firstAllowed = DateTime(1920);
+    final initial = _dateOfBirth ?? DateTime(latestAllowed.year - 7, 1, 1);
+    final initialDate = initial.isBefore(firstAllowed)
+        ? firstAllowed
+        : initial.isAfter(latestAllowed)
+            ? latestAllowed
+            : initial;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dateOfBirth ?? DateTime(latestAllowed.year - 7, 1, 1),
-      firstDate: DateTime(1920),
+      initialDate: initialDate,
+      firstDate: firstAllowed,
       lastDate: latestAllowed,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.orange,
-              surface: AppColors.card,
-              onSurface: AppColors.text,
-            ),
-            dialogTheme: DialogThemeData(
-              backgroundColor: AppColors.card,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked == null || !mounted) return;
@@ -185,92 +176,73 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     final refreshedInfo = await ApiService.getFullInfo();
     if (!mounted) return;
     await widget.onCompleted(refreshedInfo);
+    if (mounted) setState(() => _isSaving = false);
   }
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.card,
+        content: Text(
+          message,
+          style:
+              AppTypography.body.copyWith(color: context.palette.textPrimary),
+        ),
+        backgroundColor: context.palette.surface,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      body: Stack(
-        children: [
-          const AppBackground(),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20.s, 18.s, 20.s, 28.s),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _header(),
-                        SizedBox(height: 28.s),
-                        _nameField(),
-                        SizedBox(height: 14.s),
-                        _birthDateField(),
-                        SizedBox(height: 14.s),
-                        _sexPicker(),
-                        SizedBox(height: 24.s),
-                        _saveButton(),
-                      ],
-                    ),
-                  ),
+      backgroundColor: palette.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxxl,
+              vertical: AppSpacing.huge,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _header(),
+                    const SizedBox(height: AppSpacing.huge),
+                    _nameField(),
+                    const SizedBox(height: AppSpacing.xxxl),
+                    _birthDateField(),
+                    const SizedBox(height: AppSpacing.xxxl),
+                    _sexPicker(),
+                    const SizedBox(height: AppSpacing.huge),
+                    _saveButton(),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _header() {
+    final palette = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 58.s,
-          height: 58.s,
-          decoration: BoxDecoration(
-            color: AppColors.orange.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(18.s),
-          ),
-          child: Icon(
-            Icons.verified_user_rounded,
-            color: AppColors.orange,
-            size: 31.s,
-          ),
-        ),
-        SizedBox(height: 18.s),
         Text(
           'Заполните профиль',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 26.sp,
-            fontWeight: FontWeight.w900,
-            height: 1.12,
-          ),
+          style: AppTypography.display.copyWith(color: palette.textPrimary),
         ),
-        SizedBox(height: 8.s),
+        const SizedBox(height: AppSpacing.xl),
         Text(
           'Имя и дата рождения нужны для аккаунта и проверки 18+.',
-          style: TextStyle(
-            color: AppColors.textMute,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            height: 1.4,
-          ),
+          style: AppTypography.body.copyWith(color: palette.textSecondary),
         ),
       ],
     );
@@ -278,8 +250,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
 
   Widget _nameField() {
     return TextFormField(
+      key: const ValueKey('profile-setup-name'),
       controller: _nameController,
       textCapitalization: TextCapitalization.words,
+      textInputAction: TextInputAction.done,
+      autofillHints: const [AutofillHints.name],
       inputFormatters: [LengthLimitingTextInputFormatter(80)],
       validator: (value) {
         final name = value?.trim() ?? '';
@@ -287,12 +262,8 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         if (name.length < 2) return 'Имя слишком короткое';
         return null;
       },
-      style: TextStyle(
-        color: AppColors.text,
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w700,
-      ),
-      cursorColor: AppColors.orange,
+      style:
+          AppTypography.bodyMedium.copyWith(color: context.palette.textPrimary),
       decoration: _inputDecoration(
         label: 'Имя',
         hint: 'Иван Иванов',
@@ -302,111 +273,93 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _birthDateField() {
+    final palette = context.palette;
     final date = _dateOfBirth;
-    return InkWell(
-      borderRadius: BorderRadius.circular(14.s),
-      onTap: _pickDate,
-      child: InputDecorator(
-        decoration: _inputDecoration(
-          label: 'Дата рождения',
-          hint: 'Выберите дату',
-          icon: Icons.cake_rounded,
+    return Semantics(
+      button: true,
+      label: 'Дата рождения',
+      value: date == null ? 'Не выбрана' : _displayDate(date),
+      child: InkWell(
+        key: const ValueKey('profile-setup-birthday'),
+        borderRadius: AppRadii.lgAll,
+        onTap: _pickDate,
+        child: InputDecorator(
+          decoration: _inputDecoration(
+            label: 'Дата рождения',
+            hint: 'Выберите дату',
+            icon: Icons.cake_rounded,
+          ),
+          child: Text(
+            date == null ? 'Выберите дату' : _displayDate(date),
+            style: AppTypography.bodyMedium.copyWith(
+              color: date == null ? palette.textSecondary : palette.textPrimary,
+            ),
+          ),
         ),
-        isEmpty: date == null,
-        child: date == null
-            ? null
-            : Text(
-                _displayDate(date),
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
       ),
     );
   }
 
   Widget _sexPicker() {
+    final palette = context.palette;
     return DropdownButtonFormField<int>(
+      key: const ValueKey('profile-setup-sex'),
       initialValue: _sex,
-      dropdownColor: AppColors.card,
-      iconEnabledColor: AppColors.orange,
+      isExpanded: true,
+      itemHeight: null,
+      dropdownColor: palette.surface,
+      iconEnabledColor: palette.accent,
       decoration: _inputDecoration(
         label: 'Пол',
         hint: 'Не указан',
         icon: Icons.wc_rounded,
       ),
-      style: TextStyle(
-        color: AppColors.text,
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w700,
-      ),
+      style: AppTypography.bodyMedium.copyWith(color: palette.textPrimary),
       items: const [
-        DropdownMenuItem(
-          value: 0,
-          child: Text('Не указан'),
-        ),
-        DropdownMenuItem(
-          value: 1,
-          child: Text('Мужской'),
-        ),
-        DropdownMenuItem(
-          value: 2,
-          child: Text('Женский'),
-        ),
+        DropdownMenuItem(value: 0, child: Text('Не указан')),
+        DropdownMenuItem(value: 1, child: Text('Мужской')),
+        DropdownMenuItem(value: 2, child: Text('Женский')),
       ],
       onChanged: (value) {
         if (value == null) return;
         setState(() => _sex = value);
       },
-      selectedItemBuilder: (context) {
-        const labels = ['Не указан', 'Мужской', 'Женский'];
-        return [
-          for (final label in labels)
-            Text(
-              label,
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w700,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-        ];
-      },
+      selectedItemBuilder: (context) => [
+        for (final label in const ['Не указан', 'Мужской', 'Женский'])
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(label),
+          ),
+      ],
     );
   }
 
   Widget _saveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50.s,
-      child: ElevatedButton(
-        onPressed: _isSaving ? null : _save,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.orange,
-          disabledBackgroundColor: AppColors.orange.withValues(alpha: 0.55),
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14.s),
-          ),
-          textStyle: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w900,
-          ),
+    final palette = context.palette;
+    return FilledButton(
+      key: const ValueKey('profile-setup-save'),
+      onPressed: _isSaving ? null : _save,
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxxl,
+          vertical: AppSpacing.xxxl,
         ),
-        child: _isSaving
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.3,
-                  color: Colors.black,
-                ),
-              )
-            : const Text('Сохранить и продолжить'),
+        textStyle: AppTypography.bodyBold,
       ),
+      child: _isSaving
+          ? SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: palette.textOnAccent,
+                semanticsLabel: 'Сохраняем профиль',
+              ),
+            )
+          : const Text(
+              'Сохранить и продолжить',
+              textAlign: TextAlign.center,
+            ),
     );
   }
 
@@ -415,38 +368,17 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     required String hint,
     required IconData icon,
   }) {
-    final radius = BorderRadius.circular(14.s);
+    final palette = context.palette;
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      hintStyle: TextStyle(color: AppColors.textMute.withValues(alpha: 0.45)),
-      labelStyle: const TextStyle(color: AppColors.textMute),
-      prefixIcon: Padding(
-        padding: EdgeInsets.only(left: 12.s, right: 8.s),
-        child: Icon(icon, color: AppColors.orange, size: 20.s),
-      ),
-      prefixIconConstraints: BoxConstraints(minWidth: 44.s),
-      filled: true,
-      fillColor: AppColors.card,
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.s, vertical: 15.s),
-      border: OutlineInputBorder(borderRadius: radius),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.orange, width: 1.2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.red),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.red),
-      ),
-      errorStyle: TextStyle(color: AppColors.red, fontSize: 11.sp),
+      labelStyle: AppTypography.body.copyWith(color: palette.textSecondary),
+      floatingLabelStyle:
+          AppTypography.body.copyWith(color: palette.textSecondary),
+      prefixIcon: Icon(icon, color: palette.accent, size: 24),
+      contentPadding: const EdgeInsets.all(AppSpacing.xxxl),
+      errorStyle: AppTypography.bodySmall.copyWith(color: palette.error),
+      errorMaxLines: 3,
     );
   }
 }

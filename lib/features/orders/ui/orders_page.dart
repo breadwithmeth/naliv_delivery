@@ -25,14 +25,12 @@ import '../../../pages/order_detail_page.dart';
 /// Status text comes from the app's frozen `orderStatusLabels`; its wording differs from the
 /// design's mock in places («Собирается» rather than «Собираем (15-30 мин)»), and the app's copy
 /// is the real one, so it wins — recorded in `docs/redesign/STATUS.md`.
-///
-/// The order **detail** screen is still the legacy page: its frames (`Карточка заказа`) are the
-/// next step.
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({this.businessId, this.onCart, super.key});
+  const OrdersPage({this.businessId, this.onCart, this.onOpenOrder, super.key});
 
   final int? businessId;
   final VoidCallback? onCart;
+  final ValueChanged<Map<String, dynamic>>? onOpenOrder;
 
   @override
   State<OrdersPage> createState() => _OrdersPageState();
@@ -54,9 +52,41 @@ class _OrdersPageState extends State<OrdersPage> {
       _orders = null;
     });
     try {
-      final orders = await ApiService.getMyOrdersHistoryList(
+      final response = await ApiService.getMyOrdersHistory(
         businessId: widget.businessId,
       );
+      if (response == null) {
+        throw const FormatException('Order history unavailable');
+      }
+      final data = response['data'];
+      List<dynamic>? entries;
+      if (data is List) {
+        entries = data;
+      } else if (data is Map) {
+        for (final key in const [
+          'orders',
+          'history_orders',
+          'order_history',
+          'completed_orders'
+        ]) {
+          if (data[key] is List) {
+            entries = data[key] as List;
+            break;
+          }
+        }
+        if (entries == null) {
+          for (final value in data.values) {
+            if (value is List && value.every((item) => item is Map)) {
+              entries = value;
+              break;
+            }
+          }
+        }
+      }
+      if (entries == null || entries.any((item) => item is! Map)) {
+        throw const FormatException('Order history response has no order list');
+      }
+      final orders = entries.map((item) => asOrderMap(item)!).toList();
       if (!mounted) return;
       setState(() => _orders = orders);
     } catch (_) {
@@ -130,17 +160,19 @@ class _OrdersPageState extends State<OrdersPage> {
         AppSpacing.xxxl,
         0,
         AppSpacing.xxxl,
-        AppCartButton.clearance + MediaQuery.paddingOf(context).bottom,
+        AppCartButton.clearanceFor(context) + MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: orders.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) => _OrderCard(
         order: orders[index],
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => OrderDetailPage(order: orders[index]),
-          ),
-        ),
+        onTap: widget.onOpenOrder == null
+            ? () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => OrderDetailPage(order: orders[index]),
+                  ),
+                )
+            : () => widget.onOpenOrder!(orders[index]),
       ),
     );
   }
@@ -161,12 +193,25 @@ class _OrderCard extends StatelessWidget {
     final total = resolveOrderTotalAmount(order);
     final bonus = _bonusPoints(order);
     final timestamp = _timestamp(order);
+    final scaled = MediaQuery.textScalerOf(context).scale(16) > 20;
+    final date = Text(
+      _humanDate(timestamp),
+      maxLines: scaled ? null : 1,
+      overflow: scaled ? null : TextOverflow.ellipsis,
+      style: AppTypography.title.copyWith(color: palette.textPrimary),
+    );
+    final status = Text(
+      statusText,
+      style: AppTypography.base(size: 12, weight: 400).copyWith(
+        color: canceled ? palette.error : palette.textSecondary,
+      ),
+    );
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 114,
+        height: scaled ? null : 114,
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
         decoration: BoxDecoration(
@@ -174,42 +219,34 @@ class _OrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadii.lg),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    _humanDate(timestamp),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.title
-                        .copyWith(color: palette.textPrimary),
-                  ),
-                ),
-                Text(
-                  statusText,
-                  style: AppTypography.base(size: 12, weight: 400).copyWith(
-                    color: canceled ? palette.error : palette.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+            if (scaled)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [date, const SizedBox(height: 4), status],
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [Expanded(child: date), Flexible(child: status)],
+              ),
             Text(
               '№${order['order_id'] ?? '—'}',
               style: AppTypography.base(size: 12, weight: 400)
                   .copyWith(color: palette.textSecondary),
             ),
-            const Spacer(),
-            Row(
+            if (scaled) const SizedBox(height: 12) else const Spacer(),
+            Wrap(
+              spacing: AppSpacing.huge,
+              runSpacing: 12,
               children: [
                 _Summary(
                   label: 'Сумма',
                   value: total == null ? '—' : formatTenge(total.round()),
                   valueColor: palette.textPrimary,
                 ),
-                const SizedBox(width: AppSpacing.huge),
                 if (bonus != null)
                   _Summary(
                     label: 'Начислено',

@@ -1,0 +1,455 @@
+{
+  "captured_at": "2026-10-02T00:55:23.962418+00:00",
+  "access": "Anonymous public GET only; no authentication or mutation",
+  "provenance": [
+    {
+      "url": "https://njt25.naliv.kz/api/businesses?page=1&limit=1000",
+      "captured_at": "2026-10-02T00:53:24.349844+00:00",
+      "item_count": 0
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories?business_id=11",
+      "captured_at": "2026-10-02T00:53:24.509541+00:00",
+      "item_count": 0
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D0%B2%D0%BE&business_id=11&page=2&limit=50",
+      "captured_at": "2026-10-02T00:53:37.179803+00:00",
+      "item_count": 50
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D0%B2%D0%BE&business_id=11&page=3&limit=50",
+      "captured_at": "2026-10-02T00:53:37.605414+00:00",
+      "item_count": 43
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D0%B2%D0%BE&business_id=6&page=1&limit=50",
+      "captured_at": "2026-10-02T00:53:37.924799+00:00",
+      "item_count": 50
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=11&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:55.781283+00:00",
+      "item_count": 26
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=7&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:55.977595+00:00",
+      "item_count": 24
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=4&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.003027+00:00",
+      "item_count": 26
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=5&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.015676+00:00",
+      "item_count": 29
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=6&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.027928+00:00",
+      "item_count": 31
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=3&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.187294+00:00",
+      "item_count": 26
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=8&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.197618+00:00",
+      "item_count": 9
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=1&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.288008+00:00",
+      "item_count": 14
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=2&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.361391+00:00",
+      "item_count": 23
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=9&page=1&limit=100",
+      "captured_at": "2026-10-02T00:53:56.425384+00:00",
+      "item_count": 32
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D0%B2%D0%BE&business_id=7&page=1&limit=100",
+      "captured_at": "2026-10-02T00:54:09.726669+00:00",
+      "item_count": 100
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D1%86%D1%86%D0%B0&business_id=6&page=1&limit=100",
+      "captured_at": "2026-10-02T00:54:09.768166+00:00",
+      "item_count": 2
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%91%D1%83%D1%82%D1%8B%D0%BB%D0%BA%D0%B0&business_id=7&page=1&limit=100",
+      "captured_at": "2026-10-02T00:54:09.768608+00:00",
+      "item_count": 7
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D1%86%D1%86%D0%B0&business_id=1&page=1&limit=100",
+      "captured_at": "2026-10-02T00:54:09.772821+00:00",
+      "item_count": 2
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/53/items?business_id=6&page=1&limit=100",
+      "captured_at": "2026-10-02T00:55:23.876394+00:00",
+      "item_count": 0
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/53/items?business_id=7&page=1&limit=100",
+      "captured_at": "2026-10-02T00:55:23.903125+00:00",
+      "item_count": 0
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/237/items?business_id=6&page=1&limit=100",
+      "captured_at": "2026-10-02T00:55:23.926255+00:00",
+      "item_count": 15
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/237/items?business_id=1&page=1&limit=100",
+      "captured_at": "2026-10-02T00:55:23.926557+00:00",
+      "item_count": 13
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/192/items?business_id=7&page=1&limit=100",
+      "captured_at": "2026-10-02T00:55:23.961713+00:00",
+      "item_count": 1
+    }
+  ],
+  "category_samples": [
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=6&page=1&limit=100",
+      "item": {
+        "item_id": 30318,
+        "name": "Пиво розлив Kronenbourg Blanc 1664 1л 4.8% светлое нефильтрованное",
+        "description": "Светлое нефильтрованное пиво Kronenbourg 1664 Blanc — европейский пшеничный (witbier) вариант с мягкой, слегка мутной внешностью и тонкой газированностью. Отличается свежим ароматом и деликатной текстурой.\n\nВо вкусе выражены цитрусовые оттенки апельсиновой цедры, легкая пряность кориандра и цветочные ноты, поддержанные мягким хлебным характером пшеничного солода. Нефильтрованный профиль придаёт более насыщенный аромат и округлость послевкусия.\n\nОбъём: 1 л; Алкоголь: 4.8% об.; Тип: светлое нефильтрованное пшеничное (witbier); Страна происхождения: Франция.",
+        "price": 2600,
+        "wholesale_price": null,
+        "wholesale_min_amount": null,
+        "amount": 20,
+        "quantity_step": 1,
+        "unit": "л.",
+        "img": "https://i.ibb.co.com/k2YCYqPW/Gemini-Generated-Image-gb3dzgb3dzgb3dzg.png",
+        "code": "KR-00000624",
+        "category": {
+          "category_id": 221,
+          "name": "Светлое",
+          "parent_category": 215
+        },
+        "visible": 1,
+        "options": [
+          {
+            "option_id": 579,
+            "name": "Литраж",
+            "required": 1,
+            "selection": "SINGLE",
+            "variants": [
+              {
+                "item_name": "Пластиковая бутылка 1л",
+                "relation_id": 2710,
+                "item_id": 1091,
+                "price_type": "ADD",
+                "price": 110,
+                "parent_item_amount": 1
+              },
+              {
+                "item_name": "Пластиковая бутылка 2л",
+                "relation_id": 2711,
+                "item_id": 1092,
+                "price_type": "ADD",
+                "price": 100,
+                "parent_item_amount": 2
+              },
+              {
+                "item_name": "Пластиковая бутылка 3л + ручка",
+                "relation_id": 2713,
+                "item_id": 1154,
+                "price_type": "ADD",
+                "price": 150,
+                "parent_item_amount": 3
+              }
+            ]
+          }
+        ],
+        "promotions": [],
+        "is_liked": false
+      }
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=7&page=1&limit=100",
+      "item": {
+        "item_id": 29137,
+        "name": "Пиво розлив Holsten Pilsener 1л 5% светлое",
+        "description": "Holsten Pilsener — это классическое светлое пиво с крепостью 5%, которое является истинным представителем немецкой пивоваренной традиции. Его освежающий вкус и тонкий аромат делают его идеальным выбором для любителей пива, ценящих качество и традиции. Этот сорт пива отличается гармоничным сочетанием легкой горечи и мягких солодовых нот, что делает его освежающим и прекрасно утоляющим жажду. Holsten Pilsener разливается по традиционным рецептам, которые передаются из поколения в поколение, сохраняя аутентичность и высокие стандарты качества. Великолепно подходит для различных поводов — будь то дружеская встреча или праздничное событие.",
+        "price": 1410,
+        "wholesale_price": null,
+        "wholesale_min_amount": null,
+        "amount": 14.95,
+        "quantity_step": 1,
+        "unit": "л.",
+        "img": "https://i.ibb.co.com/0yC6xGvF/Gemini-Generated-Image-f6s0ghf6s0ghf6s0.png",
+        "code": "KR-00000126",
+        "category": {
+          "category_id": 221,
+          "name": "Светлое",
+          "parent_category": 215
+        },
+        "visible": 1,
+        "options": [
+          {
+            "option_id": 570,
+            "name": "Литраж",
+            "required": 1,
+            "selection": "SINGLE",
+            "variants": [
+              {
+                "item_name": "Пластиковая бутылка 1л",
+                "relation_id": 2674,
+                "item_id": 1091,
+                "price_type": "ADD",
+                "price": 110,
+                "parent_item_amount": 1
+              },
+              {
+                "item_name": "Пластиковая бутылка 2л",
+                "relation_id": 2675,
+                "item_id": 1092,
+                "price_type": "ADD",
+                "price": 100,
+                "parent_item_amount": 2
+              },
+              {
+                "item_name": "Пластиковая бутылка 3л + ручка",
+                "relation_id": 2677,
+                "item_id": 1154,
+                "price_type": "ADD",
+                "price": 150,
+                "parent_item_amount": 3
+              }
+            ]
+          }
+        ],
+        "promotions": [],
+        "is_liked": false
+      }
+    },
+    {
+      "url": "https://njt25.naliv.kz/api/categories/215/items?business_id=1&page=1&limit=100",
+      "item": {
+        "item_id": 1186,
+        "name": "Пиво розлив Бархатное Павлодар 1л 4.3% темное",
+        "description": "Тёмное разливное пиво «Бархатное» из Павлодара — напиток с мягкой, бархатистой текстурой и умеренной плотностью. Отличается свежестью разливного продукта и комфортным ощущением во рту.\n\nВо вкусе доминируют ноты жареного солода, карамели и тёмного шоколада с лёгкой кофейной горчинкой; аромат смещён в сторону обжаренных и карамельных оттенков. Умеренная горечь и сбалансированная сладость создают плавный профиль.\n\nОбъём: 1 л. Крепость: 4,3% об. Тип: тёмное разливное пиво. Производство: Павлодар, Казахстан.",
+        "price": 890,
+        "wholesale_price": null,
+        "wholesale_min_amount": null,
+        "amount": 77.72,
+        "quantity_step": 1,
+        "unit": "л.",
+        "img": "https://i.ibb.co.com/rRybgG17/Gemini-Generated-Image-v6qx1ev6qx1ev6qx.png",
+        "code": "AB-00000374",
+        "category": {
+          "category_id": 220,
+          "name": "Темное",
+          "parent_category": 215
+        },
+        "visible": 1,
+        "options": [
+          {
+            "option_id": 675,
+            "name": "Литраж",
+            "required": 1,
+            "selection": "SINGLE",
+            "variants": [
+              {
+                "item_name": "Пластиковая бутылка 1л",
+                "relation_id": 3094,
+                "item_id": 1091,
+                "price_type": "ADD",
+                "price": 110,
+                "parent_item_amount": 1
+              },
+              {
+                "item_name": "Пластиковая бутылка 2л",
+                "relation_id": 3095,
+                "item_id": 1092,
+                "price_type": "ADD",
+                "price": 100,
+                "parent_item_amount": 2
+              },
+              {
+                "item_name": "Пластиковая бутылка 3л + ручка",
+                "relation_id": 3097,
+                "item_id": 1154,
+                "price_type": "ADD",
+                "price": 150,
+                "parent_item_amount": 3
+              }
+            ]
+          }
+        ],
+        "promotions": [
+          {
+            "detail_id": 8692,
+            "type": "SUBTRACT",
+            "base_amount": 2,
+            "add_amount": 1,
+            "discount": null,
+            "name": "2+1",
+            "promotion": {
+              "marketing_promotion_id": 355,
+              "name": "Выгодный розлив",
+              "start_promotion_date": "2026-06-01T00:00:00.000Z",
+              "end_promotion_date": "2027-08-05T00:00:00.000Z"
+            }
+          }
+        ],
+        "is_liked": false
+      }
+    }
+  ],
+  "search_container_samples": [
+    {
+      "item_id": 29584,
+      "name": "Пластиковая бутылка 1.5",
+      "description": "Бутылка из прозрачного пластика объемом 1,5 литра, предназначенная для хранения и переноски напитков. Ее легкий и прочный корпус позволяет удобно держать ее в руке. Бутылка имеет эргономичную форму и оснащена откидной крышкой, которая легко открывается и закрывается. Она герметична, что предотвращает разливание напитков. С гладкими стенками и широким горлышком бутылку легко чистить и наполнять. Идеально подходит для использования дома, в офисе, на отдыхе или занятиях спортом.",
+      "price": 100,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 292,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "https://i.ibb.co/nq0gj1Gy/84fe95651901.jpg",
+      "code": "AB-00000016",
+      "category": {
+        "category_id": 191,
+        "name": "Утилитарное",
+        "parent_category": 0
+      },
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    },
+    {
+      "item_id": 114103,
+      "name": "Пластиковая бутылка 1.5 с крышкой",
+      "description": ".",
+      "price": 100,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 988,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "#",
+      "code": "01-00004792",
+      "category": null,
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    },
+    {
+      "item_id": 29580,
+      "name": "Пластиковая бутылка 1л",
+      "description": "Пластиковая бутылка емкостью 1 л — удобный и практичный контейнер для хранения и транспортировки различных жидкостей. Изготовленная из высококачественного ПЭТ-пластика, она полностью безопасна для пищевых продуктов, не выделяет вредных веществ и не влияет на вкус и запах содержимого. Бутылка имеет эргономичную форму, оснащена удобной крышкой с винтовым механизмом для легкого открывания и закрывания. Прозрачный материал позволяет легко контролировать уровень жидкости внутри. Благодаря своим компактным размерам и легкому весу бутылку удобно использовать дома, в путешествии или на отдыхе.",
+      "price": 100,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 331,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "https://i.ibb.co/bMMBD8jL/477fe04155a2.jpg",
+      "code": "00-00000198",
+      "category": {
+        "category_id": 191,
+        "name": "Утилитарное",
+        "parent_category": 0
+      },
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    },
+    {
+      "item_id": 114050,
+      "name": "Пластиковая бутылка 1л с крышкой",
+      "description": ".",
+      "price": 100,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 1002,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "#",
+      "code": "01-00004793",
+      "category": null,
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    },
+    {
+      "item_id": 29581,
+      "name": "Пластиковая бутылка 2л",
+      "description": "Пластиковая бутылка емкостью 2 литра. Изготовлена из прочного и легкого пищевого пластика ПЭТ. Предназначена для хранения и транспортировки жидкости, таких как вода, соки, газированные напитки. Бутылка имеет удобную ручку для переноски и плотно закрывающуюся крышку-дозатор. Подходит для многоразового использования и может использоваться как дорожная бутылка, спортивная бутылка или для хранения воды дома. Прозрачные стенки позволяют контролировать уровень жидкости, а широкое горлышко облегчает наполнение и очистку.",
+      "price": 100,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 305,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "https://i.ibb.co/WxkZKg6/43f815636f94.jpg",
+      "code": "00-00000199",
+      "category": {
+        "category_id": 191,
+        "name": "Утилитарное",
+        "parent_category": 0
+      },
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    },
+    {
+      "item_id": 114078,
+      "name": "Пластиковая бутылка 2л с крышкой",
+      "description": ".",
+      "price": 100,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 967,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "#",
+      "code": "01-00004794",
+      "category": null,
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    },
+    {
+      "item_id": 114086,
+      "name": "Пластиковая бутылка 3л с крышкой",
+      "description": ".",
+      "price": 160,
+      "wholesale_price": null,
+      "wholesale_min_amount": null,
+      "amount": 1000,
+      "quantity_step": 1,
+      "unit": "шт",
+      "img": "#",
+      "code": "01-00004795",
+      "category": null,
+      "visible": 1,
+      "options": [],
+      "promotions": []
+    }
+  ],
+  "contract_limits": [
+    "Captured container options are named Литраж, base unit л., variants ADD, parent_item_amount1/2/3 matches explicit bottle labels.",
+    "Business 11 has unconfigured pour products with distinct identities; later business 6 search pages return item 30318 with the same options and relation IDs as its category result. See public_search_pour.json. Never merge products by names.",
+    "No REPLACE option, fractional container variant, per-container stock, or gift-container tariff was returned. Boundary tests that alter those fields are synthetic and identified as such."
+  ]
+}

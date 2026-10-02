@@ -10,6 +10,7 @@ import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
+import '../../../utils/liked_items_provider.dart';
 
 /// Product detail — the design's `Описание товара` frames.
 ///
@@ -26,13 +27,13 @@ import '../../../utils/cart_provider.dart';
 /// * a 129 px glass action bar: total 24/700 plus a 175 × 49 accent «В корзину» pill, which
 ///   becomes a full-width 343 × 54 success-coloured «Добавлено в корзину» pill after adding.
 ///
-/// The design shows **no option or portion UI**; this page therefore drives the existing cart
-/// API through the quantity control only. Items that carry options are a known gap — see the
-/// class doc in the handoff notes.
+/// This is the simple-product surface. Products with options or pour containers
+/// open the complete configuration editor through `openProduct`.
 class ProductPage extends StatefulWidget {
   const ProductPage({
     required this.view,
     this.liked = false,
+    this.businessId,
     this.onLike,
     this.onCart,
     super.key,
@@ -40,6 +41,7 @@ class ProductPage extends StatefulWidget {
 
   final ProductView view;
   final bool liked;
+  final int? businessId;
 
   /// Toggles the favourite flag; the caller owns the API call.
   final VoidCallback? onLike;
@@ -59,7 +61,11 @@ class _ProductPageState extends State<ProductPage> {
   static const double _actionBarHeight = 129;
 
   Future<void> _addToCart() async {
-    context.read<CartProvider>().incrementCatalogItem(widget.view.source);
+    if (!widget.view.available) return;
+    final cart = context.read<CartProvider>();
+    if (cart.getCatalogQuantity(widget.view.source) <= 0) {
+      cart.incrementCatalogItem(widget.view.source);
+    }
     setState(() => _added = true);
     await Future<void>.delayed(const Duration(seconds: 2));
     if (mounted) setState(() => _added = false);
@@ -69,6 +75,11 @@ class _ProductPageState extends State<ProductPage> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final cart = context.watch<CartProvider>();
+    final liked = widget.businessId == null
+        ? widget.liked
+        : context
+            .watch<LikedItemsProvider>()
+            .isLiked(widget.businessId!, widget.view.itemId);
     final quantity = cart.getCatalogQuantity(widget.view.source);
     final topInset = MediaQuery.paddingOf(context).top;
 
@@ -112,9 +123,11 @@ class _ProductPageState extends State<ProductPage> {
                   child: _QuantityControl(
                     quantity: quantity,
                     unit: widget.view.unit,
-                    onIncrement: () => context
-                        .read<CartProvider>()
-                        .incrementCatalogItem(widget.view.source),
+                    onIncrement: widget.view.available
+                        ? () => context
+                            .read<CartProvider>()
+                            .incrementCatalogItem(widget.view.source)
+                        : null,
                     onDecrement: () => context
                         .read<CartProvider>()
                         .decrementCatalogItem(widget.view.source),
@@ -156,9 +169,10 @@ class _ProductPageState extends State<ProductPage> {
                     tooltip: 'В избранное',
                     size: 40,
                     glyphSize: 24,
-                    fill: widget.liked
+                    fill: liked
                         ? palette.brandRed.withValues(alpha: 0.5)
                         : palette.surface.withValues(alpha: 0.75),
+                    color: liked ? Colors.white : palette.textPrimary,
                   ),
                 ],
               ),
@@ -170,9 +184,13 @@ class _ProductPageState extends State<ProductPage> {
             bottom: 0,
             child: _ActionBar(
               height: _actionBarHeight,
-              total: widget.view.price * (quantity <= 0 ? 1 : quantity).toInt(),
+              total: (widget.view.price *
+                      (quantity <= 0
+                          ? widget.view.source.effectiveStepQuantity
+                          : quantity))
+                  .round(),
               added: _added,
-              onAdd: _addToCart,
+              onAdd: widget.view.available ? _addToCart : null,
               onCart: widget.onCart,
             ),
           ),
@@ -221,18 +239,26 @@ class _TitleBlock extends StatelessWidget {
         Row(
           children: [
             if (view.category != null)
-              Text(
-                view.category!,
-                style: AppTypography.base(size: 12, height: 1.3)
-                    .copyWith(color: palette.textSecondary),
+              Flexible(
+                child: Text(
+                  view.category!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.base(size: 12, height: 1.3)
+                      .copyWith(color: palette.textSecondary),
+                ),
               ),
             if (view.category != null && view.country != null)
               const SizedBox(width: AppSpacing.md),
             if (view.country != null)
-              Text(
-                view.country!,
-                style: AppTypography.base(size: 12, height: 1.3)
-                    .copyWith(color: palette.gold),
+              Flexible(
+                child: Text(
+                  view.country!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.base(size: 12, height: 1.3)
+                      .copyWith(color: palette.gold),
+                ),
               ),
           ],
         ),
@@ -571,12 +597,19 @@ class _ActionBar extends StatelessWidget {
                 )
               : Row(
                   children: [
-                    Text(
-                      formatTenge(total),
-                      style: AppTypography.base(size: 24, weight: 700)
-                          .copyWith(color: palette.textPrimary),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          formatTenge(total),
+                          maxLines: 1,
+                          style: AppTypography.base(size: 24, weight: 700)
+                              .copyWith(color: palette.textPrimary),
+                        ),
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: AppSpacing.md),
                     GestureDetector(
                       onTap: onAdd,
                       behavior: HitTestBehavior.opaque,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 import '../pages/map_address_page.dart';
 import '../services/onboarding_service.dart';
@@ -9,105 +10,109 @@ class AddressSelectionModalHelper {
     BuildContext context, {
     Map<String, dynamic>? initialAddress,
     bool openDetailsFirst = false,
+    TileProvider? tileProvider,
+    Future<AddressLocateResult> Function()? locate,
+    String? detailsConfirmButtonLabel,
   }) async {
-    final prefillAddress =
+    final prefill =
         initialAddress ?? await AddressStorageService.getSelectedAddress();
     if (!context.mounted) return null;
-
     if (openDetailsFirst &&
-        prefillAddress != null &&
-        _addressLabel(prefillAddress).isNotEmpty) {
+        prefill != null &&
+        AddressStorageService.coordinates(prefill) != null &&
+        _label(prefill).isNotEmpty) {
+      Map<String, dynamic> mapPrefill = prefill;
       final result = await Navigator.of(context).push<Map<String, dynamic>>(
         MaterialPageRoute(
-          builder: (_) => AddressDetailsPage(
-            address: _addressLabel(prefillAddress),
-            initialEntrance: prefillAddress['entrance']?.toString() ?? '',
-            initialFloor: prefillAddress['floor']?.toString() ?? '',
-            initialApartment: prefillAddress['apartment']?.toString() ?? '',
-            confirmButtonLabel: 'Сохранить адрес',
-            onChangeAddress: (detailsContext) =>
-                _showMap(detailsContext, initialAddress: prefillAddress),
-          ),
-        ),
+            builder: (_) => AddressDetailsPage(
+                  address: _label(prefill),
+                  initialEntrance: prefill['entrance']?.toString() ?? '',
+                  initialFloor: prefill['floor']?.toString() ?? '',
+                  initialApartment: prefill['apartment']?.toString() ?? '',
+                  confirmButtonLabel:
+                      detailsConfirmButtonLabel ?? 'Сохранить адрес',
+                  onChangeAddress: (detailsContext) async {
+                    final selected = await _showMap(
+                      detailsContext,
+                      initialAddress: mapPrefill,
+                      tileProvider: tileProvider,
+                      locate: locate,
+                      collectDetails: false,
+                    );
+                    if (selected != null) mapPrefill = selected;
+                    return selected;
+                  },
+                )),
       );
-
       if (result == null) return null;
-      final changedAddress = result['_selectedAddress'];
-      if (changedAddress is Map) {
-        return Map<String, dynamic>.from(changedAddress);
-      }
-      return <String, dynamic>{...prefillAddress, ...result};
+      final changed = result['_selectedAddress'];
+      if (changed is Map) return Map<String, dynamic>.from(changed);
+      return {
+        ...prefill,
+        'address': _label(prefill),
+        ...result,
+      };
     }
-
-    return _showMap(context, initialAddress: prefillAddress);
+    return _showMap(context,
+        initialAddress: prefill,
+        tileProvider: tileProvider,
+        locate: locate,
+        detailsConfirmButtonLabel: detailsConfirmButtonLabel);
   }
 
   static Future<Map<String, dynamic>?> _showMap(
     BuildContext context, {
     Map<String, dynamic>? initialAddress,
+    TileProvider? tileProvider,
+    Future<AddressLocateResult> Function()? locate,
+    bool collectDetails = true,
+    String? detailsConfirmButtonLabel,
   }) async {
-    final initialCenter =
-        await _resolveInitialCenter(initialAddress: initialAddress);
+    final center = await _initialCenter(initialAddress);
     if (!context.mounted) return null;
-
     return Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(
-        builder: (_) => MapAddressPage(
-          initialLat: initialCenter.lat,
-          initialLon: initialCenter.lon,
-          initialAddress: initialAddress,
-        ),
-      ),
+          builder: (_) => MapAddressPage(
+                initialLat: center.lat,
+                initialLon: center.lon,
+                initialAddress: initialAddress,
+                tileProvider: tileProvider,
+                locate: locate,
+                collectDetails: collectDetails,
+                detailsConfirmButtonLabel:
+                    detailsConfirmButtonLabel ?? 'Подтвердить и выбрать адрес',
+              )),
     );
   }
 
-  static String _addressLabel(Map<String, dynamic> address) {
-    final label = address['address']?.toString().trim() ?? '';
+  static String _label(Map<String, dynamic> address) {
+    final label =
+        (address['address'] ?? address['name'])?.toString().trim() ?? '';
     if (label.isNotEmpty) return label;
-
-    final street = address['street']?.toString().trim() ?? '';
-    final house = address['house']?.toString().trim() ?? '';
-    return <String>[street, house]
-        .where((part) => part.isNotEmpty && part != '-')
+    return [address['street'], address['house']]
+        .where(
+            (part) => part != null && '$part'.trim().isNotEmpty && part != '-')
         .join(', ');
   }
 
-  static Future<CityMapCenter> _resolveInitialCenter(
-      {Map<String, dynamic>? initialAddress}) async {
-    try {
-      if (initialAddress != null &&
-          initialAddress['lat'] != null &&
-          initialAddress['lon'] != null) {
-        return CityMapCenter(
-          lat: (initialAddress['lat'] as num).toDouble(),
-          lon: (initialAddress['lon'] as num).toDouble(),
-        );
-      }
-
-      final selected = await AddressStorageService.getSelectedAddress();
-      if (selected != null &&
-          selected['lat'] != null &&
-          selected['lon'] != null) {
-        return CityMapCenter(
-          lat: (selected['lat'] as num).toDouble(),
-          lon: (selected['lon'] as num).toDouble(),
-        );
-      }
-
-      final history = await AddressStorageService.getAddressHistory();
-      if (history.isNotEmpty && history.first['point'] != null) {
-        final point = history.first['point'];
-        if (point['lat'] != null && point['lon'] != null) {
-          return CityMapCenter(
-            lat: (point['lat'] as num).toDouble(),
-            lon: (point['lon'] as num).toDouble(),
-          );
-        }
-      }
-    } catch (_) {}
-
-    final selectedCity = await OnboardingService.getSelectedCity();
-    return OnboardingService.getCityCenter(selectedCity) ??
+  static Future<CityMapCenter> _initialCenter(
+      Map<String, dynamic>? address) async {
+    final initial =
+        address == null ? null : AddressStorageService.coordinates(address);
+    if (initial != null) return CityMapCenter(lat: initial.$1, lon: initial.$2);
+    final selected = await AddressStorageService.getSelectedAddress();
+    final selectedPoint =
+        selected == null ? null : AddressStorageService.coordinates(selected);
+    if (selectedPoint != null) {
+      return CityMapCenter(lat: selectedPoint.$1, lon: selectedPoint.$2);
+    }
+    final history = await AddressStorageService.getAddressHistory();
+    for (final address in history) {
+      final point = AddressStorageService.coordinates(address);
+      if (point != null) return CityMapCenter(lat: point.$1, lon: point.$2);
+    }
+    final city = await OnboardingService.getSelectedCity();
+    return OnboardingService.getCityCenter(city) ??
         const CityMapCenter(lat: 43.2220, lon: 76.8512);
   }
 }

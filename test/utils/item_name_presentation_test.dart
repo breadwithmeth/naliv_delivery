@@ -33,6 +33,12 @@ void main() {
       expect(result.type, 'Пиво');
     });
 
+    test(
+        'preserves a product name when a metadata marker only matches part of a word',
+        () {
+      expect(presentItemName(rawName: 'Разливное пиво').name, 'Разливное пиво');
+      expect(presentItemName(rawName: 'Бутон').name, 'Бутон');
+    });
     test('uses stored type when category missing', () {
       final result = presentItemName(
         rawName: 'IPA',

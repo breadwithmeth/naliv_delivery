@@ -7,6 +7,9 @@ class BusinessProvider with ChangeNotifier {
   Map<String, dynamic>? _selectedBusiness;
   static const _storageKey = 'selected_business';
 
+  Future<void> _pending = Future<void>.value();
+  bool _disposed = false;
+
   /// Получить текущий выбранный магазин
   Map<String, dynamic>? get selectedBusiness => _selectedBusiness;
 
@@ -20,42 +23,59 @@ class BusinessProvider with ChangeNotifier {
         _selectedBusiness?['businessId'];
   }
 
-  /// Установить выбранный магазин
-  Future<void> setSelectedBusiness(Map<String, dynamic>? business) async {
-    _selectedBusiness = business;
-    notifyListeners();
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (business == null) {
-        await prefs.remove(_storageKey);
-      } else {
-        await prefs.setString(_storageKey, jsonEncode(business));
-      }
-    } catch (_) {}
-  }
-
-  /// Очистить выбранный магазин
-  Future<void> clearSelectedBusiness() async {
-    _selectedBusiness = null;
-    notifyListeners();
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_storageKey);
-    } catch (_) {}
-  }
-
-  Future<void> loadSavedBusiness() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
-      if (raw != null) {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map<String, dynamic>) {
-          _selectedBusiness = decoded;
-          notifyListeners();
+  /// Persists the store before publishing it; a rejected write returns `false`.
+  Future<bool> setSelectedBusiness(Map<String, dynamic>? business) {
+    final next = business == null ? null : Map<String, dynamic>.of(business);
+    return _enqueue(() async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final saved = next == null
+            ? !prefs.containsKey(_storageKey) || await prefs.remove(_storageKey)
+            : await prefs.setString(_storageKey, json.encode(next));
+        if (!saved) {
+          await prefs.reload();
+          return false;
         }
+        _selectedBusiness = next;
+        if (!_disposed) notifyListeners();
+        return true;
+      } catch (error) {
+        try {
+          await (await SharedPreferences.getInstance()).reload();
+        } catch (_) {
+          // The failed operation must not publish an optimistic cache value.
+        }
+        debugPrint('Не удалось сохранить выбранный магазин: $error');
+        return false;
       }
-    } catch (_) {}
+    });
+  }
+
+  /// Clears the persisted store without publishing a rejected removal.
+  Future<bool> clearSelectedBusiness() => setSelectedBusiness(null);
+
+  Future<void> loadSavedBusiness() => _enqueue(() async {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final saved = prefs.getString(_storageKey);
+          _selectedBusiness =
+              saved == null ? null : json.decode(saved) as Map<String, dynamic>;
+          if (!_disposed) notifyListeners();
+        } catch (error) {
+          debugPrint('Не удалось загрузить выбранный магазин: $error');
+        }
+      });
+
+  Future<T> _enqueue<T>(Future<T> Function() operation) {
+    final result = _pending.then((_) => operation());
+    _pending = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   /// Проверить, выбран ли магазин

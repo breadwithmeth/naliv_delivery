@@ -1,10 +1,6 @@
-/// Where the user wants to go. The redesigned home screen emits intent; the app layer maps it
-/// onto routes.
+/// A full-screen destination resolved by the active authentication wrapper.
 ///
-/// This is deliberate: the not-yet-rebuilt screens all demand constructor arguments
-/// (`businessId`, `userInfo`, chat `entryPoint`) that the home screen has no business knowing.
-/// Keeping navigation here as data means the feature can be rendered and tested without the
-/// rest of the app, and the eventual router has one place to change.
+/// Screens emit intent without owning account, store or route constructor data.
 enum AppDestination {
   home,
   favorites,

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../model/item.dart' as item_model;
+import 'order_payment_guard.dart';
 
 /// Класс для работы с API
 class ApiService {
@@ -369,13 +370,13 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           final cities = jsonResponse['data']?['cities'];
-          if (cities is List) {
-            return cities
-                .whereType<Map>()
-                .map((city) => Map<String, dynamic>.from(city))
-                .toList();
+          if (cities is! List) return null;
+          final parsed = <Map<String, dynamic>>[];
+          for (final city in cities) {
+            if (city is! Map<String, dynamic>) return null;
+            parsed.add(city);
           }
-          return const [];
+          return parsed;
         }
 
         debugPrint(
@@ -1291,8 +1292,7 @@ class ApiService {
       if (success) {
         return UserProfileUpdateResult(
           success: true,
-          message:
-              _parseString(jsonResponse['message']) ?? 'Профиль сохранён.',
+          message: _parseString(jsonResponse['message']) ?? 'Профиль сохранён.',
           data: mapFromDynamic(jsonResponse['data']),
           statusCode: response.statusCode,
         );
@@ -2650,21 +2650,17 @@ class ApiService {
     return null;
   }
 
-  /// Получить список сохранённых карт пользователя
-  /// [source] - опциональный параметр для фильтрации по источнику
-  /// Возвращает список карт или null
-  static Future<List<Map<String, dynamic>>?> getUserCards(
-      {String? source}) async {
+  // The saved-card endpoint, not full-info summaries, supplies chargeable IDs.
+  // Keep raw rows so one malformed record does not discard every valid card.
+  static Future<List<dynamic>> getUserCards({String? source}) async {
     final token = await getAuthToken();
     if (token == null) {
-      debugPrint('API getUserCards: no auth token');
-      return null;
+      throw const SavedCardReadException(SavedCardReadFailure.authentication);
     }
     var uri = Uri.parse('$baseUrl/user/cards');
     if (source != null) {
       uri = uri.replace(queryParameters: {'source': source});
     }
-
     try {
       final response = await http.get(
         uri,
@@ -2674,27 +2670,31 @@ class ApiService {
           'Authorization': 'Bearer $token',
         },
       );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
-          final data = jsonResponse['data'] as Map<String, dynamic>;
-          final cards = data['cards'] as List<dynamic>?;
-          return cards?.map((e) => (e as Map).cast<String, dynamic>()).toList();
-        }
-      } else {
-        debugPrint('HTTP Error getUserCards: ${response.statusCode}');
+      if (response.statusCode == 401) {
+        throw const SavedCardReadException(SavedCardReadFailure.authentication);
       }
-    } catch (e) {
-      debugPrint('Network Error getUserCards: $e');
+      if (response.statusCode != 200) {
+        throw const SavedCardReadException(SavedCardReadFailure.unavailable);
+      }
+      final envelope = json.decode(response.body);
+      if (envelope is! Map) {
+        throw const SavedCardReadException(SavedCardReadFailure.invalidData);
+      }
+      if (envelope['success'] != true) {
+        throw const SavedCardReadException(SavedCardReadFailure.unavailable);
+      }
+      final data = envelope['data'];
+      if (data is! Map || data['cards'] is! List) {
+        throw const SavedCardReadException(SavedCardReadFailure.invalidData);
+      }
+      return data['cards'] as List<dynamic>;
+    } on SavedCardReadException {
+      rethrow;
+    } on FormatException {
+      throw const SavedCardReadException(SavedCardReadFailure.invalidData);
+    } catch (_) {
+      throw const SavedCardReadException(SavedCardReadFailure.unavailable);
     }
-    return null;
-  }
-
-  /// Сгенерировать ссылку для добавления новой карты
-  /// Возвращает URL для редиректа или null
-  static Future<String?> generateAddCardLink() async {
-    final result = await generateAddCardLinkResult();
-    return result.link;
   }
 
   static Future<AddCardLinkResult> generateAddCardLinkResult() async {
@@ -2703,6 +2703,7 @@ class ApiService {
       debugPrint('API generateAddCardLink: auth token not found');
       return const AddCardLinkResult(
         success: false,
+        authRequired: true,
         message: 'Нужна авторизация, чтобы привязать новую карту.',
       );
     }
@@ -2717,6 +2718,13 @@ class ApiService {
         },
       );
 
+      if (response.statusCode == 401) {
+        return const AddCardLinkResult(
+          success: false,
+          authRequired: true,
+          message: 'Войдите в аккаунт снова, чтобы привязать новую карту.',
+        );
+      }
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true && jsonResponse['data'] is Map) {
@@ -2748,7 +2756,6 @@ class ApiService {
         }
       } else {
         debugPrint('HTTP Error generateAddCardLink: ${response.statusCode}');
-        debugPrint('Error body: ${response.body}');
         String? message;
         try {
           final Map<String, dynamic> errorJson = json.decode(response.body);
@@ -2807,45 +2814,96 @@ class ApiService {
     String orderId,
     String cardId,
   ) async {
-    final token = await getAuthToken();
+    orderId = orderId.trim();
+    if (orderId.isEmpty || orderId.toLowerCase() == 'null') {
+      return {
+        'success': false,
+        'requestSent': false,
+        'localFailure': true,
+        'error': 'Заказ не найден',
+      };
+    }
+    String? token;
+    try {
+      token = await getAuthToken();
+    } catch (_) {
+      return {
+        'success': false,
+        'requestSent': false,
+        'localFailure': true,
+        'error':
+            'Не удалось прочитать данные авторизации. Оплата не отправлена.',
+      };
+    }
     if (token == null) {
-      debugPrint('API payOrder: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
+      return {
+        'success': false,
+        'requestSent': false,
+        'localFailure': true,
+        'error': 'Требуется авторизация. Оплата не отправлена.',
+      };
+    }
+    final reservation = await OrderPaymentGuard.reserve(orderId);
+    if (reservation != OrderPaymentState.ready) {
+      return {
+        'success': false,
+        'requestSent': false,
+        'localFailure': true,
+        'paymentGuardState': reservation.name,
+        'error': reservation == OrderPaymentState.storageUnavailable
+            ? 'Не удалось сохранить состояние оплаты. Запрос оплаты не отправлен.'
+            : reservation == OrderPaymentState.completed
+                ? 'Заказ уже оплачен. Повторная оплата не отправлена.'
+                : 'Предыдущая оплата ещё не подтверждена. Повторная оплата не отправлена.',
+      };
     }
 
-    final uri = Uri.parse('$baseUrl/orders/$orderId/pay');
+    Map<String, dynamic> result;
     try {
-      final body = {
-        'payment_type': 'card',
-        'card_id': cardId,
-      };
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(body),
-      );
-
-      final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        return jsonResponse;
-      } else {
-        debugPrint(
-            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        debugPrint('Error body: ${response.body}');
-        return {
+      try {
+        final response = await http.post(
+          Uri.parse('$baseUrl/orders/$orderId/pay'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode({'payment_type': 'card', 'card_id': cardId}),
+        );
+        final decoded = json.decode(response.body);
+        if (decoded is! Map) {
+          throw const FormatException('Invalid payment result');
+        }
+        result = Map<String, dynamic>.from(decoded);
+        if (response.statusCode != 200) {
+          result = {
+            ...result,
+            'success': false,
+            'error': result['error'] ?? 'Ошибка оплаты',
+            'statusCode': response.statusCode,
+          };
+        }
+      } catch (e) {
+        debugPrint('Network or response error paying order: $e');
+        result = {
           'success': false,
-          'error': jsonResponse['error'] ?? 'Ошибка оплаты',
-          'statusCode': response.statusCode
+          'error': 'Ошибка сети или разбора ответа',
+          'outcomeUnknown': true,
         };
       }
-    } catch (e) {
-      debugPrint('Network Error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+      final outcome = orderPaymentResultOutcome(result);
+      final state = await OrderPaymentGuard.settle(orderId, outcome);
+      return {
+        ...result,
+        'requestSent': true,
+        'paymentGuardState': state.name,
+        if (outcome == OrderPaymentOutcome.unknown) 'outcomeUnknown': true,
+        if (outcome == OrderPaymentOutcome.refused &&
+            state != OrderPaymentState.ready)
+          'guardPersistenceFailed': true,
+      };
+    } finally {
+      OrderPaymentGuard.release(orderId);
     }
   }
 
@@ -2950,6 +3008,7 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
+    final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API getOrderDetails: no auth token');
@@ -2973,11 +3032,13 @@ class ApiService {
           final data = jsonResponse['data'];
           final mappedData = _asStringKeyedMap(data);
           if (mappedData != null) {
-            final order = _asStringKeyedMap(mappedData['order']);
-            if (order != null) {
-              return order;
+            final order = _asStringKeyedMap(mappedData['order']) ?? mappedData;
+            if (order.isNotEmpty) {
+              await OrderPaymentGuard.reconcileOrder(order,
+                  readRevision: paymentReadRevision,
+                  orderId: orderId.toString());
             }
-            return mappedData;
+            return order;
           }
         } else {
           debugPrint('API getOrderDetails error: ${jsonResponse['message']}');
@@ -3000,6 +3061,7 @@ class ApiService {
     int? businessId,
     String? deliveryType,
   }) async {
+    final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API getMyActiveOrders: no auth token');
@@ -3034,6 +3096,8 @@ class ApiService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
+          await _reconcileOrderList(jsonResponse, paymentReadRevision,
+              preferredKeys: const ['active_orders', 'orders']);
           return jsonResponse;
         } else {
           debugPrint('API getMyActiveOrders error: ${jsonResponse['message']}');
@@ -3067,6 +3131,7 @@ class ApiService {
     int page = 1,
     int? pageSize,
   }) async {
+    final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API getMyOrdersHistory: no auth token');
@@ -3102,6 +3167,13 @@ class ApiService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
+          await _reconcileOrderList(jsonResponse, paymentReadRevision,
+              preferredKeys: const [
+                'orders',
+                'history_orders',
+                'order_history',
+                'completed_orders',
+              ]);
           return jsonResponse;
         }
 
@@ -3137,6 +3209,17 @@ class ApiService {
         'completed_orders',
       ],
     );
+  }
+
+  static Future<void> _reconcileOrderList(
+    Map<String, dynamic> response,
+    int readRevision, {
+    required List<String> preferredKeys,
+  }) async {
+    for (final order
+        in _extractOrderList(response, preferredKeys: preferredKeys)) {
+      await OrderPaymentGuard.reconcileOrder(order, readRevision: readRevision);
+    }
   }
 
   static List<Map<String, dynamic>> _extractOrderList(
@@ -3590,15 +3673,25 @@ class PromotionStory {
   }
 }
 
+enum SavedCardReadFailure { authentication, invalidData, unavailable }
+
+class SavedCardReadException implements Exception {
+  const SavedCardReadException(this.reason);
+
+  final SavedCardReadFailure reason;
+}
+
 class AddCardLinkResult {
   final bool success;
   final String? link;
   final String message;
+  final bool authRequired;
 
   const AddCardLinkResult({
     required this.success,
     this.link,
     required this.message,
+    this.authRequired = false,
   });
 }
 

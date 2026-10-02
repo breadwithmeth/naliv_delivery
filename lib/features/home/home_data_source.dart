@@ -1,4 +1,5 @@
 import '../../utils/api.dart';
+import '../../utils/order_ui_helpers.dart';
 import '../catalog/catalog_data_source.dart';
 import 'home_view_data.dart';
 
@@ -12,43 +13,58 @@ import 'home_view_data.dart';
 ///   tiles plus one large promo card, so the highest-priority supercategory becomes the promo
 ///   card and the remaining six become the tiles. Tile artwork is the supercategory's first
 ///   category image, because the supercategory objects themselves carry no image field.
-/// * **Banners** — `GET /promotions/active` currently returns 22 promotions all named «Акции»
-///   with an **empty** `cover`. Only promotions that actually carry artwork become banners;
-///   when none do, the first few are shown with the design's placeholder fill.
+/// * **Banners** — `GET /promotions/active` may return campaigns without cover
+///   artwork; their real names remain visible against the design's red fill.
 /// * **Bonuses** — `GET /bonuses` gives `totalBonuses` and `bonusCard.cardUuid`; the QR payload
 ///   is the raw `cardUuid`, which is what the existing main page already sends to the till.
-/// * **Notifications** — no endpoint exists, so the badge count is 0.
+/// * **Notifications** — no unread-count endpoint exists; the header opens preferences.
 class HomeDataSource {
   const HomeDataSource({this.businessId});
 
   /// Store to show in the address card; falls back to the first business returned.
   final int? businessId;
 
-  /// Support line. Product copy, not data: `/businesses` exposes no phone number.
-  static const String supportPhone = '+7 (777) 777-77-77';
-  static const String supportCaption = 'Звонок в Call Center';
-
   Future<HomeViewData> load() async {
-    // Fetched together: four independent endpoints, one round trip of latency.
     final responses = await Future.wait<Object?>([
-      ApiService.getBusinesses(),
+      ApiService.getBusinesses(page: 1, limit: 1000),
       ApiService.getSuperCategories(),
-      ApiService.getActivePromotions(),
       ApiService.getUserBonuses(),
+      ApiService.getAvailableCities(),
     ]);
 
     final businesses = _listOf(responses[0], 'businesses');
     final supercategories = _listOf(responses[1], 'supercategories');
-    final promotions = _listOf(responses[2], 'promotions');
-    final bonuses = _mapOf(responses[3]);
+    final bonuses = _mapOf(responses[2]);
+    final cities = {
+      for (final city in _asList(responses[3]))
+        _int(city['city_id']): _string(city['name']),
+    };
+    if (businesses.isEmpty) {
+      throw StateError('Не удалось загрузить магазины');
+    }
 
     final business = _pickBusiness(businesses);
+    final storeId = business == null ? null : _int(business['id']);
+    final promotions = _listOf(
+      await ApiService.getActivePromotions(businessId: storeId),
+      'promotions',
+    );
     final ordered = [...supercategories]
       ..sort((a, b) => _int(b['priority']).compareTo(_int(a['priority'])));
 
     final promoSuper = ordered.isNotEmpty ? ordered.first : null;
     final tiles = ordered.skip(1).take(6).toList();
-    final storeId = business == null ? null : _int(business['id']);
+    final stores = [
+      for (final raw in businesses)
+        if (_int(raw['id']) > 0)
+          HomeStore(
+            id: _int(raw['id']),
+            name: _string(raw['name']) ?? 'Градусы24',
+            address: _string(raw['address']) ?? '',
+            city: _string(raw['_cityName'] ?? raw['city_name']) ??
+                cities[_int(raw['city_id'])],
+          ),
+    ];
     final homeCategories = [
       for (final category in tiles)
         HomeCategory(
@@ -57,23 +73,27 @@ class HomeDataSource {
           imageUrl: _firstCategoryImage(category),
         ),
     ];
-    final productSections = storeId == null
-        ? const <HomeProductSection>[]
-        : await _productSections(
+    final signedIn = await ApiService.isUserLoggedIn();
+    final productSectionsFuture = storeId == null
+        ? Future.value(const <HomeProductSection>[])
+        : _productSections(
             storeId: storeId,
             rawCategories: tiles,
             categories: homeCategories,
           );
+    final activeOrder = signedIn ? await _activeOrder(storeId) : null;
+    final productSections = await productSectionsFuture;
 
     return HomeViewData(
-      phone: supportPhone,
-      callCenterLabel: supportCaption,
       storeName: _string(business?['name']) ?? 'Градусы24',
       storeAddress: _string(business?['address']) ?? '',
       storeId: storeId,
-      notificationCount: 0,
-      signedIn: await ApiService.isUserLoggedIn(),
-      bonusBalance: bonuses == null ? null : _int(bonuses['totalBonuses']),
+      stores: stores,
+      activeOrder: activeOrder,
+      signedIn: signedIn,
+      bonusBalance: bonuses?['totalBonuses'] is num
+          ? (bonuses!['totalBonuses'] as num).toInt()
+          : int.tryParse('${bonuses?['totalBonuses'] ?? ''}'),
       bonusCardCode: _string(bonuses?['bonusCard']?['cardUuid']),
       banners: _banners(promotions),
       promoCard: promoSuper == null
@@ -90,19 +110,45 @@ class HomeDataSource {
     );
   }
 
+  Future<HomeActiveOrder?> _activeOrder(int? storeId) async {
+    try {
+      final orders = await ApiService.getMyActiveOrdersList(
+        businessId: storeId,
+      ).timeout(const Duration(seconds: 5));
+      if (orders.isEmpty) return null;
+      final order = orders.first;
+      final id =
+          _string(order['order_id'] ?? order['order_uuid'] ?? order['id']);
+      if (id == null) return null;
+      return HomeActiveOrder(
+        id: id,
+        status: resolveOrderStatusText(order),
+        source: order,
+      );
+    } on Object {
+      // Status is supplemental; errors never hide public home content.
+      return null;
+    }
+  }
+
   Future<List<HomeProductSection>> _productSections({
     required int storeId,
     required List<Map<String, dynamic>> rawCategories,
     required List<HomeCategory> categories,
   }) async {
     final source = CatalogDataSource(businessId: storeId);
+    final indices = List<int>.generate(categories.length, (index) => index)
+      ..sort((a, b) => _sectionOrder(categories[a].title)
+          .compareTo(_sectionOrder(categories[b].title)));
     final sections = await Future.wait<HomeProductSection?>([
-      for (var index = 0; index < categories.length && index < 3; index++)
+      for (final index in indices.take(3))
         () async {
           final categoryId = _firstLeafCategoryId(rawCategories[index]);
           if (categoryId == null) return null;
           try {
-            final products = await source.items(categoryId, limit: 10);
+            final products = await source
+                .items(categoryId, limit: 10)
+                .timeout(const Duration(seconds: 5));
             if (products.isEmpty) return null;
             return HomeProductSection(
               category: categories[index],
@@ -115,6 +161,14 @@ class HomeDataSource {
         }(),
     ]);
     return sections.whereType<HomeProductSection>().toList(growable: false);
+  }
+
+  int _sectionOrder(String title) {
+    final name = title.toLowerCase();
+    if (name.contains('слабоалкогольн')) return 0;
+    if (name.contains('еда') || name.contains('закуски')) return 1;
+    if (name.contains('крепк')) return 2;
+    return 3;
   }
 
   int? _firstLeafCategoryId(Map<String, dynamic> node) {
@@ -147,6 +201,14 @@ class HomeDataSource {
     return [
       for (final promo in source.take(6))
         HomeBanner(
+          promotionId: _int(promo['marketing_promotion_id'] ??
+                      promo['promotion_id'] ??
+                      promo['id']) >
+                  0
+              ? _int(promo['marketing_promotion_id'] ??
+                  promo['promotion_id'] ??
+                  promo['id'])
+              : null,
           title: _string(promo['name']) ?? '',
           imageUrl: _string(promo['cover']),
         ),

@@ -5,9 +5,73 @@ its original author in the loop: **every question that needs a human answer is l
 the default I am proceeding on**, so nothing blocks unnecessarily, and nothing gets decided
 silently either.
 
-Last updated: 2026-09-22 (during the catalogue/search/product-detail phase).
+Last updated: 2026-10-02 (catalog/card balance correction implemented after quality remediation and clarified gift/Kaspi follow-up). The user's defects supersede the previous completion conclusions. Sections 3 onward are retained historical records, not current acceptance; their sidebar, tiny-type, legacy-resource and queued-route statements are superseded below. `PLAN.md` contains the comprehensive G1–G9 plans and dedicated catalog correction. The supplied gift-container policy and `docs/kaspi.txt` remain unchanged.
 
 ---
+## Current remediation gate
+
+### Catalog/card balance correction
+
+- **Shared card:** 96 px maximum artwork, 14 px two-line name, 12 px combined country/volume and 16 px current price. Price follows metadata instead of sitting beneath a large reserved gap. Old price remains 12 px; duplicate saving text and obsolete `dense`/card-saving APIs were removed, with all home/catalog/cart/campaign sizing consumers migrated. Missing art uses the muted theme surface. Long/wrapped prices and unavailable text take space from artwork, never from readable type or actions.
+- **Actions:** initial add is a separate 44 × 44 px tile; selected quantity uses a quiet full-width stepper. Stock-disabled add stays disabled; increment/decrement, configuration and inherited scaling retain their existing semantics. Detailed savings remain on product/row surfaces.
+- **Catalog:** a concise featured heading/horizontal strip replaces the tall lead illustration; its orphan artwork was removed. Category chips have 44 px minimum height. Ordinary previews display at most two rows; “Все” retains the complete prefetched data and subsequent pagination. Catalog content is bounded to 840 px and grids to four columns.
+- **Observed geometry:** normal cards are 255 px, or 271 px when an old-price row is required by the dataset. Mixed-grid heights are 324/360 px at 1.6×/2×. Full lists use two columns at 320/375 px and 1×, one at larger text; 800 px uses four at 1× and three at larger text. Dark/light actual browser review included missing art, captured product photography, discounts, unavailable stock and selected quantity across those widths/scales. Real wheel scrolling, not semantics-only movement, established the photo/stock views. A 2× live resize 320 → 375 → 800 retained one item / 13 170 ₸.
+- **Actual journeys:** strict fixture `AuthenticationWrapper` home → active catalog → floating cart succeeded. Add/increment changed the running total to 13 170/26 340 ₸; two decrements restored the empty cart. Featured “Все” opened prefetched items without another initial read; scrolling issued page 2 and displayed the three supplied continuation items. The captured Kronenbourg photo opened its real bottle configurator; replacing the default 1 L bottle with one 2 L bottle produced **2 L / 5300 ₸**, then the shared catalog quantity and cart retained that selection/total. No checkout/payment was executed.
+- **Current verification:** focused catalog/home/cart/campaign tests **20 passed**; removed disposable matrix **306 cases passed** across nine shared-card consumer surfaces plus plain/discount/unavailable/selected/high-price/large-quantity states. Full `flutter test --coverage --concurrency=1`: **297 passed**, **10 569 / 14 491 lines = 72.93%**, 94 recorded files. `dart analyze lib test tool`: no issues. Refreshed capture CLI: **82 captures / 50 comparisons**, reviewed with current browser evidence; no pixel-parity claim. Canonical fixture release and tracked release builds passed.
+- **Release smoke/safety:** tracked release at 375 × 812 / DPR 2 rendered intro and actual city onboarding. Public **GET `/api/users/cities` → 200** supplied four city controls. A browser request guard refused production methods other than GET/OPTIONS; no production mutation was attempted. The previous personal-session 401 was not renewed/repeated. Native/mobile IME and authenticated production behavior remain outside this proof.
+- **Automation limits:** an early disposable transport re-finalized its incoming request, and Item's generic serialization did not preserve the API's `variants` envelope; the strict probe was corrected, not allowed to fall through. Semantics-only scroll offsets and screenshots disagreed, so photo/stock acceptance uses real wheel-rendered images. A wrong city-path wait timed out despite visible city controls; a fresh replay observed the correct `/api/users/cities` response. These automation errors are not a clean-console claim.
+- **Cleanup:** removed the disposable card/state probe, mixed transport entry/bundle and screenshot index after proof; closed both owned browser tabs and stopped both isolated servers. Current browser/Figma captures and the canonical fixture release remain ignored. Unrelated Flutter processes were not stopped.
+
+### Implemented changes
+
+- **Readable shared components:** body/actions 16 px, secondary text 14 px, auxiliary text at least 12 px; inherited text scaling remains enabled. One flow-based `ProductCard`, shared quantity controls and content-sized rows replace the narrow/wide copies and fixed-height metadata. Grids/strips adapt their columns and heights.
+- **Home/navigation:** static logo, five 44 px header actions, consistent gutters/section gaps, adaptive store/search/campaign content and category captions. Category artwork remains 98 px; columns adapt from one to three. No drawer, replacement sidebar or bottom tabs. Full-screen profile and explicit `AppDestination` login/notification continuation replace ignored tab-index flags. Missing bonus data is not shown as a zero balance or invented QR.
+- **Cards/authentication:** profile, payment and certificate use the existing `/user/cards?source=halyk` envelope; full-info masks are account summaries, not chargeable IDs. Safe partial reads retain valid rows and expose rejected data. Reads/link preparation exit loading after 12 seconds; retries reject stale completions. Cancellation invalidates the binding baseline until a complete refresh. Reauthentication returns to the requesting route, preserving order/certificate/cart identity; required profile completion stays in the same login route. SMS code entry is a real labelled, writable six-digit field.
+- **Pricing/configuration:** one `CartItem.calculatePrice` breakdown feeds preview/cart/checkout. ADD charges stay outside base promotions; REPLACE substitutes base; FIXED discounts clamp per replacement rate. Exact whole-container allocation supports structured fractional/ml capacities and refuses impossible targets. Atomic staged edits validate required selections, stock, sibling collisions and one promotion snapshot before replacing rows. Explicit mixes survive merge/reload; grouped order serialization conserves paid/free volume. Public category/search metadata did not establish a same-store contract mismatch: the initial comparison used different stores/products.
+- **Clarified gift policy:** paid drink selection remains separate from physical volume. SUBTRACT gifts extend exact whole-container capacity; every ADD bottle, including gift-volume bottles, retains its ordinary tariff outside drink discounts. Cart total/counter and order rows show physical litres. Paid counts drive edits/stepping; a persisted exact gift mix prevents re-gifting on reload and preserves representable repeat/batch mixes. Repeated orders recover a valid paid/free split from fulfilled physical quantities; impossible groups are explicitly refused, not inflated.
+- **Authoritative Kaspi presentation:** `docs/kaspi.txt` links [«Оплата с Kaspi.kz»](https://www.figma.com/design/pNQjZoaE1v2Ud2cpqtU4sq?node-id=6192-46556). Official SVG exports supply compact mark/Gold badge, dark/light full logos and the intact compact payment button. One red button style, full-width accessible hit-area, 52 px height, official object positions, no tint/effects and required clear space replace the generic bank glyph/action. Ordinary text scales; brand artwork is not reflowed/redrawn. Link progress/pending/errors use official contrast-appropriate logos. Kaspi reserves the existing durable guard before link creation; unknown/completed states use neutral status/refresh controls, and only explicit refusal restores a charge action.
+- **Payment safety:** `OrderPaymentGuard` reserves persisted per-order state before POST. Unknown outcomes stay locked across history/detail/new consumers and preference-cache reload; no TTL or new endpoint. Old refusal reads cannot unlock a newer attempt. Storage failure sends no charge request. Unresolved detail shows refresh, not Pay or Repeat; confirmed state remains terminal. Long order names now occupy the full content width above price/quantity, rather than a fixed side slot.
+- **Remaining active families:** themed scrolling startup/profile/birthday/permission surfaces, feature FAQ, readable bonuses and unavailable-data feedback reuse `lib/design/*` and `lib/ui/*`. Unsupported scanner/unread-count/bonus-percentage decorations were removed. Light card confirmation uses readable black text on green.
+- **Cleanup:** removed the proven-unreachable legacy shell/screens and private card/cart/search/dialog helpers, drawer, `ProductCardWide`, duplicate FAQ/theme stack, refractive widget/shader, orphan implementation assets/fonts/tests and unused `ItemVariant`. Removed `carousel_slider` and `scrollable_positioned_list`; live quantity formatting moved from deleted globals to `lib/core/quantity.dart`. Legal material, splash/platform entries and dynamic assets remain. Declared `path` and the required Cupertino icon font dependency; packaging reports no missing icon-font warning.
+- **Verification cleanup:** removed the temporary matrix probe and closed both verification browser tabs and isolated fixture/release HTTP servers after final smoke. Useful Figma reference/capture caches remain ignored.
+
+### Exercised integration
+
+| Check | Current observed result |
+|---|---|
+| Focused cart/bottling/configuration/checkout/repeat/payment regression run | 78 passed |
+| `flutter test --coverage --concurrency=1` | 297 passed; LCOV: 10,549 / 14,471 executable lines, 72.90%, across 94 recorded files |
+| Removed throwaway render probe | 882 passed: all 41 surfaces × 320/375/800 widths × 1×/1.6×/2× × both themes, plus 300 px keyboard insets for 12 relevant surfaces at the two larger scales; render exceptions and unexpected fixture requests asserted absent |
+| `dart analyze lib test tool` | No issues found |
+| `dart run tool/verify_surface.dart all --theme both` | 82 captures at 750 × 1624; 50 applicable frame comparisons completed; 16 capture-only surfaces per theme |
+| `flutter build web --release --no-wasm-dry-run -t tool/dev_surface.dart -o .figma_cache/quality_gallery_web` | Release fixture gallery built |
+| `flutter build web --release --no-wasm-dry-run` | Current tracked `build/web` built |
+
+Coverage describes recorded executable lines, not complete app/backend acceptance. Comparison tests have **no golden threshold**; successful measurement is not a Figma pixel-match verdict. Current metrics, capture-only IDs and visual departures are in `FIDELITY.md`.
+The default-concurrency coverage attempt failed with Dart out-of-memory errors and was not accepted. The full suite was then completed with `--concurrency=1`, not reduced or skipped. A Kaspi refusal regression initially checked the durable state while its failure notice still owned the busy reservation; the assertion now checks the consumer-visible retry state after dismissal, without weakening production payment protection.
+
+
+### Actual fixture/browser observations
+
+- Home logo left the active route unchanged; profile opened normally. Store cancellation preserved scope; confirmation changed the header/data source. Submitted search produced a genuine empty state. Home resize 375 → 320 → 800 → 375 with 2× light text was reviewed.
+- Synthetic bank cancellation did not confirm binding. Baseline refresh/re-add and explicit bank confirmation followed by canonical-list refresh proved a new ID; the light success text is black. A stalled card read exited at 12 seconds and recovered on retry. Synthetic phone `+70000000000` / code `123456` reauthentication returned to cards through the real writable OTP control.
+- Captured store-6 item 30318: one 2 L bottle = **5300 ₸** in preview/cart and created-order detail; pickup with the synthetic 30 ₸ bag = **5330 ₸**. An unsaved 3 L / 8010 ₸ edit was discarded, retaining 2 L / 5300 ₸.
+- Explicitly synthetic item 9201: .5 + 1.25 L = **1.75 L / 4750 ₸**; created rows itemize **1400 + 3350 ₸**, pickup/bag total **4780 ₸**. Synthetic REPLACE item 9202: **1.25 L / 500 ₸**, pickup/bag total **530 ₸**. The fixture resolver matches request rows to the original current-cart paid/gift snapshot, prices drink only on its paid quantity and all physical containers normally, and rejects unknown/mismatched/omitted rows. It has no made-up price or production fallback; physical gift rows cannot earn a second gift.
+- Before the clarified fix, captured item 1186 with paid 1 L + 3 L showed **4 L / 3820 ₸**, with no containers for its 2 gift litres. After: **6 physical L / 3920 ₸**, bottles **1×1 L + 1×2 L + 1×3 L**. Doubling preserved the exact mix: **12 L / 7840 ₸**. Reopen/save did not inflate litres; pickup with the 30 ₸ fixture bag was **3950 ₸**, and create → synthetic payment → detail → Repeat preserved that checkout amount.
+- Literal synthetic 3+1 item 9301: three paid 1 L bottles became **4 physical L / four ordinary 100 ₸ bottles / 3400 ₸**; preview, physical cart counter and created-order detail agreed. Reopen/save stayed stable; pickup/bag total was **3430 ₸**. Selecting a paid 3 L bottle (150 ₸) plus the added 1 L gift bottle (100 ₸) gave **4 L / 3250 ₸**; detail itemized **3150 + 100 + 30 = 3280 ₸**, without per-row re-gifting or invoice-rounding drift.
+- Actual Kaspi fixture action opened the served, explicitly synthetic bank page, not a real bank. Official red compact action and selection mark/Gold badge were reviewed in both themes. Progress/pending/refusal and server-completed navigation were exercised; pending/unreadable state removed the charge action, and explicit refusal restored it only after the notice closed. No support message or real payment was sent.
+- Final Kaspi notice replay at **320 px / 2× dark** kept the official logo intact and both dismiss/support actions readable. Kaspi-only 16 px horizontal dialog insets provide room without reducing text scale; card notice styling is unchanged. The final tracked release was rebuilt and its fresh intro entry smoke-reviewed again at 375 × 812 / DPR 2.
+- Unreadable charge acknowledgment → actual history → same detail kept Pay and Repeat unavailable; refresh remained locked, and return to payment kept Pay disabled. Seeded ordinary rows itemized **13170 + 79020 + 13170 + 30 = 105390 ₸**, matching the summary. The unresolved footer was also reviewed at **320 px / 2× dark** with its refresh action reachable.
+- The previous 39 dark/light baselines were reviewed through contact sheets; added Kaspi and 3+1 baselines received full-size review in both themes. Changed gift cart/configuration/checkout/order and Kaspi states received browser review. Kaspi uncertainty was reviewed at 320 px/2× and resized to 800/375; direct URL fixtures now use one app navigator so notices share the intended text scaler. The final long-name order row was verified from a fresh bundle after bypassing HTTP/service-worker caches.
+- Fresh tracked release at **375 × 812 / DPR 2** rendered intro → actual city onboarding. Production network evidence was **GET `/api/users/cities` → 200** plus OPTIONS preflight, without SMS/account/order/payment mutation. OneSignal/Sentry were blocked by the verification allowlist; initial requests aborted by the deliberate reload are not app failures. No non-request browser error was observed in that release replay.
+
+Automation had wrong-label/text waits, a multiline-name selector mismatch, earlier malformed fixture phone attempts and the previously recorded modifier-key error. City text waiting timed out despite loaded visible semantics and GET 200; observed controls/screenshots proved the route. Corrected native-input/observed-ID journeys are the evidence; this is not a globally error-free automation claim.
+- Follow-up cleanup removed the 882-case throwaway probe and served synthetic bank HTML, closed all owned verification/bank tabs and stopped both follow-up HTTP servers. Useful ignored Figma/capture caches remain; unrelated running Flutter processes were not stopped.
+
+### Verification limits
+
+The former gift/Kaspi prerequisites are resolved by the user's clarification and supplied Figma. The available personal-session read still returned **HTTP 401** from full-info; it was not renewed or re-probed. No authenticated production card list, real bank binding/payment, certificate/order mutation, native permission lifecycle or real mobile IME is established by fixtures. Production remained read-only. Client gift arithmetic/packing and official presentation are verified separately from authenticated production/native-bank behavior.
+
 
 ## 1. How to pick this up
 
@@ -17,47 +81,34 @@ Last updated: 2026-09-22 (during the catalogue/search/product-detail phase).
 | Design dump (regenerate) | `dart run tool/figma_spec.dart spec` → `.figma_cache/spec/` (212 frames) |
 | Design token scales | `dart run tool/design_report.dart` → `.figma_cache/report.md` |
 | Frame renders (compare against) | `dart run tool/figma_spec.dart png --page "Design System (Dark)"` → `.figma_cache/shots/` |
-| Fidelity harnesses | `.figma_cache/*_test.dart` (home, cards) — run with `flutter test` |
-| App running locally | `hub` process `app-web` → `flutter run -d web-server --web-port 8080` |
+| Fixture capture/diff | `dart run tool/verify_surface.dart all --theme both` → ignored `.figma_cache/render/`; 41 surfaces × 2 themes, 25 comparisons per theme |
+| App running locally | `flutter run -d windows -t tool/dev_surface.dart` — strict synthetic gallery with width/text-scale/theme controls |
 | Credentials | `.figma-token`, `.figma-design` (git-ignored); API session in `.figma_cache/session.json` |
 
-**Logged-in app without SMS.** The API session token can be injected into the app's storage:
+**Authentication verification.** The saved personal session returned 401; do not renew it or repeat the failed probe during read-only verification. Use the strict gallery instead. Its synthetic sign-in accepts only `+70000000000` / `123456`; it sends no real SMS. Direct fixture selection supports `surface`, `theme`, `scale`, `keyboard`, `cards` and `payment` query parameters, for example `?surface=cards&theme=light&cards=readTimeout`.
 
-```js
-localStorage.setItem('flutter.auth_token', JSON.stringify(token));      // JSON-encoded!
-localStorage.setItem('flutter.token_expiry', JSON.stringify(String(expMs)));
-localStorage.setItem('flutter.onboarding_completed', 'true');
-```
+**Verifying in a browser.** Flutter web renders to a canvas. Enable its accessibility placeholder to inspect semantics, then use observed controls and native pointer/keyboard events. Re-observe after navigation and wait for route transitions before using new element IDs. For reference screenshots explicitly set 375 × 812 / DPR 2; fixtures supply the 48 px top / 34 px bottom insets. Production web has no simulated status-bar inset.
 
-`shared_preferences_web` stores values JSON-encoded, so **strings must be quoted** — a bare token
-makes the startup gate hang forever on its loader with zero HTTP calls.
-
-**Verifying in a browser.** Flutter web renders to a canvas: there is no DOM to query and
-synthetic DOM events do not reach its text editor. Two consequences:
-
-* taps must use **browser layout coordinates**, not the design frame's — the web build has no
-  status-bar inset, so everything sits 48 px higher than in the frames;
-* typing works by tapping the field with a real pointer, then using `tab.type` / `tab.press`
-  (real key events). Clicking the wrong element looks identical to "the handler is broken".
+Use native typing into the focused Flutter editor. In this pass `browser.fill` produced a Flutter framework logical-key lookup exception; replay with native typing is recorded separately, not silently counted as an error-free first attempt. Release browser inspection does not use the debug-only Dart runtime MCP server.
 
 ---
 
-## 2. Needs your answer (defaults in bold — work continues meanwhile)
+## 2. Current constraints and defaults
 
 | # | Question | Default I am using | Why it matters |
 |---|---|---|---|
-| 1 | **Sidebar**: the design has no tab bar and no drawer anywhere (verified across all 106 frames), so I created one. It opens from the header's account icon and has no «Каталог» entry (the home screen already lists all seven supercategories). | **Account icon opens it; no Каталог row** | Changes how users navigate; one line to change |
+| 1 | **Navigation:** the account action opens the full-screen profile; the user requires deletion of the logo-driven drawer. No bottom tabs or replacement drawer. | **Static logo; full-screen profile** | Header/profile actions preserve supported destinations; G5 owns clean removal |
 | 2 | **Search idle state**: the frame draws the field alone at y = 60 with no header; I keep the consistent header («Поиск» + back) in all four states. | **Consistent header** | Cosmetic, 1 argument |
-| 3 | **Option flows exist but the design has none.** You confirmed options live under «Пиво» → «Розливное/Разливное пиво». The redesigned product page has no option UI, so such items are routed to the **legacy** product page. | **Legacy bridge, documented** | Real functional gap; needs a design for the option/bottling sheet |
+| 3 | **Option flows exist but have no exact Figma frame.** Active option/bottling details now use shared design primitives, required single/multiple and optional choices, whole bottle counts and exact-group cart edits. | **Rebuilt, capture-only** | Preserve frozen pricing and supported behavior without borrowing a simple-product frame as configuration conformance |
 | 4 | **Scheduled delivery** («Запланировать»), **rating + tips** («Как всё прошло»), **notifications inbox**, **card deletion**: the design has them, the frozen backend has no endpoint. 15 frames, excluded per your "build only what the backend supports". | **Not built** | Scope; revisit if the backend grows |
-| 5 | **Pre-existing red tests, now measured precisely:** `flutter test` = **56 pass / 8 fail**, and all 8 failures are `product_detail_bottling_test.dart`. `orders_history_page_test.dart` is **fixed and green** (§3t). I previously wrote "5 tests" for bottling from a partial run; the true count is 8. Verified they fail identically with my edits stashed. | **Left red until their screens are rebuilt** | They are the tripwire for frozen logic; I will fix or delete them when the cart/checkout work lands |
+| 5 | **Client bottling/option regressions are repaired; gift packing/tariff is unverified.** Structured identities/units replace capacity/name guesses; ordinary choices such as «Лайм» and «Классический» remain selectable. | **Behavioral persistence/pricing regressions; explicit G4 prerequisite** | Exact selections, sibling groups and bottle mixes survive save/edit/reload; anonymous metadata is not a gift-container contract |
 | 6 | **Money separators**: the design's own text is inconsistent — price `'11\xa0853 ₸'` (NBSP) but saving `'Выгода 1317 ₸'` (no separator). I format both with NBSP. | **One formatter, NBSP** | Cosmetic |
-| 7 | **Banner artwork**: `/promotions/active` returns 22 promotions named «Акции» with an **empty** `cover`, so the carousel shows the design's placeholder fill. | **Placeholder fill** | Backend data, not code |
+| 7 | **Banner artwork can be missing/failed.** Display actual campaign title/subtitle and CTA for a valid promotion ID. Hide the strip when there are no campaigns. | **Useful campaign copy, no blank placeholder** | No invented promotion destination or reserved empty advertising panel |
 | 8 | **Trailing spaces** in API names («Белое ») are trimmed on display. | **Trim** | Cosmetic |
 
 ---
 
-## 3. Decisions already taken (with evidence)
+## 3. Historical decisions and implementation evidence
 
 * **Portrait only**, all three surfaces: `AndroidManifest.xml` `screenOrientation="portrait"`,
   iOS `UISupportedInterfaceOrientations` = portrait, `SystemChrome` in `main.dart`. Web ignores it.
@@ -83,10 +134,9 @@ synthetic DOM events do not reach its text editor. Two consequences:
 
 ## 3b. Cart specifics (built after your last message)
 
-* **Delete rule — implemented.** At one unit the minus slot becomes a delete button
-  (`Icons.delete_outline`); the line is only removed by that deliberate tap. The design contains
-  **no trash glyph anywhere** (verified across all 106 frames), so this is a Material glyph:
-  the same substitution class as `store`, `scan` and the row's filled heart.
+* **Delete rule — implemented.** At one unit the minus slot becomes a deliberate delete button; the
+  cart's trash glyph is custom-painted so it renders without relying on a Material-font glyph absent
+  from the test/browser rendering environment. The line is never silently removed by decrement.
 * **«Вам также может понравиться» has no endpoint.** The strip is filled from the **first cart
   line's category**, excluding items already in the cart (max 6). This is an inference, not the
   design's data — if a recommendations endpoint appears, replace `_maybeLoadRecommendations`.
@@ -97,8 +147,7 @@ synthetic DOM events do not reach its text editor. Two consequences:
   and whose plus sits in a 21 × 21 accent pill.
 * **Strip cards** are a third measured variant (160 × 244, `ProductCardWide`): badges side by side,
   origin stacked on the right, artwork 152 × 159.
-* **«Оформить» currently opens the legacy checkout.** The redesigned delivery/payment screens are
-  the next feature; the button is live, not dead.
+* **«Оформить» opens the rebuilt checkout.** Supported delivery/pickup, quoting, benefits, order creation and confirmed payment use their existing APIs. Mutating verification is strictly synthetic; see §3ai.
 
 ---
 
@@ -180,6 +229,8 @@ it**. Rebuilding the screen therefore means choosing content:
   than printing a wrong number.
 
 ## 3h. Certificates placeholder (by request) and the intro slides
+
+Historical decision, superseded by §3ag: the certificate placeholder is removed and all active callers now enter the feature certificate page directly. The intro-slide implementation below remains separate from queued city/location onboarding.
 
 * **Certificates is now a placeholder**, as asked: `certificates_placeholder_page.dart` — a
   new-styled stub whose action opens the detailed screen, which in turn bridges to the legacy
@@ -822,14 +873,11 @@ crosses the line, not the app's.
 The previous screen-by-screen execution sequence is frozen. The measured recovery plan now lives in
 `docs/redesign/PLAN.md`.
 
-**Stabilization and API-safety milestones are done and reviewed.** The renderer uses a complete blur fallback
-when shader filters are unsupported, including the first unsupported frame. Mocked API contracts cover the
-home, authentication, and category-item paths without production I/O. Current baseline: **94/94 tests**,
-zero analyzer errors, and zero analyzer warnings. **Authentication presentation is complete:** phone and
-code states use the shared design system, retain frozen auth behavior, and were verified at 375 × 812 in
-the real browser renderer. No next screen is active.
+The renderer uses a complete blur fallback when shader filters are unsupported, including the first unsupported frame. Mocked API contracts cover home, authentication, and category-item paths without production I/O. Authentication presentation is complete and retains frozen auth behavior.
 
-### Per-screen fidelity so far (design vs render, chrome excluded)
+Active cutovers now include onboarding, addresses, saved cards, checkout/fulfillment, certificate purchase and configured products as well as browse/cart/profile/orders/bonuses/help. The gallery covers 24 synthetic surfaces in both themes. Current integration evidence is in §3ai; earlier counts and legacy-bridge claims are historical. Native/bank and authenticated production mutation behavior remain unverified.
+
+### Earlier pixel-diff baseline (not refreshed for this geometry pass)
 
 | Screen | meanΔ | pixels > 32 |
 |---|---|---|
@@ -839,3 +887,171 @@ the real browser renderer. No next screen is active.
 
 Residuals are the deliberately-removed bottom bar, the unexportable icon glyphs, and text
 antialiasing.
+
+## 3aa. Home, catalog, cart and profile fidelity pass
+
+The active feature routes now match the supplied 375 × 812 Figma geometry for home (including lower-scroll bonus/product sections), catalog landing, all-products grid, cart, and profile. Stable widget keys support exact rectangle assertions. Cart last-unit deletion remains explicit; the backend and account data were not mutated.
+
+The home’s supplemental product rows use the existing read-only category-items API. Each optional row is isolated so its failure does not fail the home surface.
+
+Verification:
+
+- `flutter test` → **98/98**.
+- `dart analyze lib test` reports 0 errors and 0 warnings; 28 info-level lints remain.
+- `flutter build web --release --no-wasm-dry-run` regenerated tracked `build/web`.
+- A temporary fixture-only widget harness rendered all six home/catalog/all-products/cart/profile cases after the final spacing changes. It used mocked responses and made no production requests.
+- Release Chromium reached the onboarding screen at a 375 × 812 CSS viewport, with no runtime exceptions. Its screenshot measured 469 × 1015 physical pixels. This release browser smoke did not navigate through authenticated routes; active route geometry was verified in the fixture widget harness.
+- The only browser console error was the pre-existing OneSignal-disabled-origin log; no app runtime exception was reported.
+
+Temporary fixture harness and generated renders were removed after review.
+
+## 3ab. Home functionality correction
+
+The preceding fidelity pass protected rectangles but did **not** prove guest home interactions: the release browser had only reached onboarding. The follow-up opened the active release home against production's read-only GETs and corrected the missing behavior.
+
+- The logo opens the drawer using the header's Scaffold context. The search field, category tiles, promo category card, campaign banners, floating cart and support entry now navigate from the active route. The support control opens the existing chat because the API exposes no support phone; the Figma phone number was a mockup placeholder and is no longer dialed.
+- Stores load from the existing businesses/cities endpoints. The city-grouped sheet selects and persists a `BusinessProvider` store, then reloads price/availability-scoped home content. Switching with a nonempty cart requires explicit confirmation and clears the old store's cart only after consent.
+- Banners use real promotion IDs and show a usable label/CTA when the backend sends no cover. One banner is centered; placeholder banners are inert and never point to an unrelated campaign. The search scan icon no longer encodes a fake barcode. Bonus QR codes require a real `cardUuid`; missing codes show an unavailable state rather than an invented scannable payload.
+- The guest bonus CTA enters the phone form directly and back returns home. The guest gate no longer logs out an already anonymous user or initializes push SDK through that path. Home product rows prioritize the beverage/food categories shown in the reference, while optional failures remain isolated.
+- The active-order card appears only for an authenticated user's recent active order. It uses the frozen read-only active-orders endpoint and existing status labels; tapping it opens order detail. No account was accessed to verify this state: mocked transport and a throwaway 375 × 812 visual render verified its geometry. The render was removed afterward. The aperitif-specific wine artwork and slogan no longer appear on unrelated catalog categories. Promotion item results remain on a **legacy** destination and still need their own visual cutover in the whole-app roadmap.
+
+Verification: `flutter test` **108/108**; `dart analyze lib test` 0 errors, 0 warnings, 27 pre-existing info-level lints; final release web build succeeds. At 375 × 812 release Chromium, guest home, city-grouped store switching (Karaganda → Astana), lower product rows, search, campaign items, catalog category, cart, support, and direct guest phone-form/back were exercised. No production account was mutated; SMS, payment, and order actions were not invoked. Browser reported no runtime exceptions; localhost logged only its known OneSignal-disabled-origin message. The authenticated order card was exercised only with local fixture data.
+
+## 3ac. Repeatable development verification and OMP integration
+
+Project-scoped `.omp/config.yml` enables Dart LSP diagnostics after edits and in delegated tasks, shows turn duration, retains longer diagnostic lines (2,048-byte cap), and caps interactive provider retries at three attempts/60 seconds. `.omp/mcp.json` registers the installed Dart MCP via `cmd.exe /c dart mcp-server`; `.omp/AGENTS.md` records the route, backend-safety, and verification boundaries without replacing the milestone roadmap. No global OMP settings or production API contracts were changed.
+
+The installed `.agents/skills/dart-fix-runtime-errors/SKILL.md` advertised runtime MCP inspection but actually prescribed static analysis and `dart fix`. It now documents DTD discovery, runtime errors/widget inspection, cause-level repair, hot reload, and replay of the failing action. This changes agent instructions only, not application behavior.
+
+- `flutter run -d windows -t tool/dev_surface.dart` opens a **synthetic**, 375 × 812 gallery of active home, catalog, all-products, cart, and profile surfaces with dark/light toggles. Fixture HTTP rejects unknown or authenticated requests; no production account is used. The Windows CMake install stage now gives Sentry's nested plugin installer a concrete staging directory instead of the Flutter runner's unevaluated generator-expression path.
+- `dart run tool/verify_surface.dart all --theme both` renders ten deterministic screenshots with the real app widgets and writes five-by-two difference heatmaps against exporter-named Figma references. It reports mean channel difference and pixels over 32; differences in synthetic labels/products are **not** pass/fail claims. Capture/compare tests live under `tool/design/`, outside normal test auto-discovery. Generated PNGs stay under ignored `.figma_cache/render/`.
+- VS Code's `Design fixtures (Windows)` launch configuration and Tasks for fixture comparison, tests, and analysis provide one-click entry to the same verified commands. The old Chrome debug configuration was not removed or silently changed.
+- `tool/figma_spec.dart png --page \"Design System (Light)\" --frame \"...\"` can export specific frames and skip already present PNGs. The five Light references were fetched into ignored `.figma_cache/shots/`; future clean workstations need local Figma credentials to fetch their own copies.
+
+Verification on this workstation: all ten dark/light captures and comparisons completed; native Windows **debug and release** builds succeeded. The debug gallery attached to Dart MCP: the runtime inspector saw `_FixtureGallery`, `DesignSurfaceApp`, and fixture controls, `get_runtime_errors` returned no errors, and hot reload succeeded. A release-web fixture gallery rendered and switched home → catalog at 375 × 812 without app runtime exceptions. After that isolated build, `flutter build web --release --no-wasm-dry-run` restored the tracked production `build/web`; a fresh 375 × 812 production browser smoke returned to the active guest home with no runtime exceptions. Browser DPR was explicitly set to 2 and the screenshot dimensions were 750 × 1624. The known localhost OneSignal-disabled-origin message remains. The project-scoped OMP config was confirmed effective in this session; the MCP tool registration is ready for the next OMP session, and its same Windows command was verified against a running debug gallery.
+
+## 3ad. Home-adjacent route audit and focused UI pass (2026-09-29)
+
+`PLAN.md` now inventories actual home → one/two-step destinations, their controls, data and loading/empty/error states. Its next cutover milestone is promotion products and read-only order detail, then support; onboarding and account/checkout work remain queued. The home bell and drawer now say **notification settings**, because the active destination edits push preferences; the Figma inbox still has no backend and was not fabricated.
+
+- Home header hides the support label rather than overlapping the right actions in a narrow window; category tiles use two columns below the reference layout while the 375 px geometry stays unchanged.
+- Catalog landing and leaf grids use width-aware columns, card quantity transitions animate, featured heading opens the corresponding leaf, and loaded section items are reused on navigation. Null/failed category reads now show retry instead of pretending to be a valid empty category. Cart recommendations remain optional if that fetch fails.
+- Profile rows are centered on wide windows, telemetry reports loading/failure and rolls back a failed save; switches animate. Notification settings are theme-aware and scrollable, persist the existing three topic switches, retain push permission/topic operations and report loading/errors. There is no push-history feed.
+- Product detail's price and add action now share available width without overflowing at 320/375 px; category/country metadata also truncates safely. Explicit final-unit cart deletion and frozen API contracts remain unchanged.
+
+Verification: `flutter test` **122/122** after the fixes; `dart analyze lib test tool` 0 errors/0 warnings, 27 info-level lints; `dart run tool/verify_surface.dart all --theme both` captured and compared 10 fixture screens at 750 × 1624 physical pixels. The isolated release-web fixture gallery was opened at 375 × 812 CSS pixels / DPR 2: catalog → featured leaf and light profile rendered without runtime browser errors. `flutter build web --release --no-wasm-dry-run` regenerated tracked `build/web`; its production browser smoke reached first-run intro slides with no app runtime exceptions, **not** an authenticated profile or production inbox. Synthetic fixture diffs are content-dependent (home dark mean Δ70.83, catalog dark Δ20.72, profile dark Δ8.03) and do not establish production pixel parity. No account mutation, SMS, payment or order was attempted.
+
+## 3ae. Functional repair pass (2026-09-29)
+
+Home/sidebar route taps now close the drawer before pushing; logout clears the local session even if push deregistration fails, returns from nested profile routes to home, and is hidden for guests. Guest favorites, order history, bonuses and cards request sign-in instead of displaying an authenticated feed as empty. The product-detail route now carries cart/store context from home, catalog, search, favorites and cart recommendations so its cart and like actions have destinations.
+
+Catalog category lists paginate beyond the first page; favorites use the API's already-unwrapped liked-items payload. Failed catalog/search/favorites reads distinguish error from valid empty results. Out-of-stock add controls no longer insert items; product detail's add button does not duplicate a quantity already selected in its stepper. Notification topic preferences no longer default to a falsely subscribed state; failed saves and unsupported push operations report failure instead of appearing successful. Theme and telemetry settings update visible state only after storage succeeds.
+
+**Verification boundary:** requested static checks only. `dart analyze lib test tool` reported 0 errors, 0 warnings and 27 existing info-level lints. No tests, app launch, runtime interaction, production request or release rebuild was performed for this repair pass. Option-product configuration still uses the supported legacy route; a notification inbox remains unavailable without a backend contract.
+
+## 3af. Account icon → full-screen profile (2026-09-29)
+
+The home header's account icon now navigates to the existing `AppDestination.profile` route (`ProfilePage` with its own back button), rather than opening the navigation drawer. The logo still opens the drawer for other destinations. The active wrapper route test exercises account → profile → back and checks that no drawer replaces the page. This preserves the 375 × 812 Figma profile layout in both themes.
+
+The full integration run exposed two stale fixture contracts from the preceding functional repair: prefetched category products were unnecessarily refetched without pagination metadata, and desktop notification topic controls were expected to toggle even though push is unsupported there. The page treats caller-supplied items without continuation metadata as complete; the notification regression now verifies saved choices remain read-only on desktop. Focused route, profile, catalog and notification tests passed; `flutter test` **122/122** and `dart analyze lib test tool` 0 errors/0 warnings (27 info lints). Profile dark/light fixture capture and diff completed; isolated web fixture home account → profile → back rendered at 375 × 812, DPR 2, with no browser runtime errors. These are fixture-only observations, not authenticated production verification.
+
+After those checks, `flutter build web --release --no-wasm-dry-run` regenerated tracked `build/web`. A release-browser smoke at 375 × 812 / DPR 2 reached first-run onboarding without runtime errors; it did **not** reach authenticated production profile.
+
+## 3ag. Useful full-screen profile and home-adjacent cutovers (2026-10-02)
+
+### Active routes and supported behavior
+
+- Home account → `AppDestination.profile` remains a full page with its own back control; the logo still opens the separate drawer. Profile now shows the actual account name/login, address summary and masked-card summary from full-info. Missing collections remain unknown, malformed records fail, and guests see sign-in instead of invented empty account data. Refresh/retry, refresh after child routes, pending feedback and confirmed logout are implemented.
+- Certificates now enter `features/certificates/ui/certificates_page.dart` directly. The obsolete placeholder page and callers are removed. Failed reads/claims are not treated as empty/success; refused claims retain the code. Status changes reject stale responses, pagination uses limit 50/offset, numeric-string and zero balances are respected, and certificate codes are selectable. Purchase keeps its supported legacy payment bridge.
+- Campaign products in `pages/promotion_items_page.dart` use current catalog cards/grids, scoped likes and quantities, full pagination, retryable loading/empty/error and working detail/cart navigation. No exact campaign-list frame exists; comparison against `Каталог - Все товары` was removed in the following pass and the surface is capture-only. Option products retain their supported legacy detail route.
+- `pages/order_detail_page.dart` and the active orders list now distinguish history/read errors from empty data. Detail shows only supplied items/totals/fields/events, preserves repeated statuses at different timestamps, and retains refresh, repeat, payment retry, support and FAQ. Missing dates/totals stay unavailable; no tracking/ETA/rating/tips are invented.
+- `pages/help_chat_page.dart` shows real server history, preserves a failed-send draft and clears it only after acknowledgment, reports session/history/send/poll errors and offers explicit retries. Order attachment requires a user action; entering order support sends nothing automatically. Polls do not overlap, disposal ends in-flight ownership, and `ChatApiService(enableSocket: false)` keeps fixture journeys off Socket.IO. The server's `fromMe: true` identifies the operator, not the visitor.
+
+### Intentional usability changes
+
+- Home star opens bonuses/sign-in; heart opens favorites/sign-in. Empty campaign feeds reserve no advertising panel. Missing/loading/failed artwork shows the campaign's actual copy rather than an unlabeled rectangle.
+- There is **no supplied support telephone contract**: `HomeDataSource.supportPhone` is the display label `Поддержка`. The attempted dial/copy sheet was removed rather than manufacturing a `tel:` destination. Home explicitly offers support chat; native dialing is not implemented or claimed verified.
+- Shared headers grow beyond their 57 px minimum for large text. Light-theme icon discs use the palette's primary foreground; selected hearts retain white. Grid and cart-recommendation steppers are outside product-navigation ancestry, including disabled stock controls. Shared step targets and the floating cart use keyboard-capable `InkWell` controls; cart semantics name the destination, count and total.
+- Narrow/large-text cart rows stack identity above price/quantity; totals and checkout stack without collision. Recommendation cards scale their geometry with text, title width excludes metadata, and the light-theme decrement glyph uses the primary foreground. The totals bar owns layout space instead of covering the last scrollable controls. The reference-width geometry regression still passes.
+- The dev gallery keeps cart ownership across surface navigation, pushes profile children normally, and uses fresh strict socket-disabled chat clients for order → support. Width 320/375/800 and text 1/1.6/2 controls are development-only.
+
+### Exercised verification
+
+- `flutter test --coverage` → **159/159**; LCOV generated at ignored `coverage/lcov.info`. New recommendation stock/navigation and cart keyboard regressions failed before their fixes and passed afterward. The narrow/large-text cart regression reproduced overlapping totals and row overflow before the responsive fix.
+- `dart analyze lib test tool` → **0 errors, 0 warnings, 27 existing info lints**. No new suppression was added.
+- `dart run tool/verify_surface.dart all --theme both` captured and compared **22** deterministic 750 × 1624 surfaces. Cart was recaptured after its final decrement-color fix. Synthetic labels/products and intentional extra identity/failure controls affect diffs; these metrics are not pixel-parity or authenticated-production claims. Profile mean max-channel differences: dark 15.15/255, light 14.38/255.
+- Release fixture browser exercised home account → guest → simulated sign-in → actual synthetic summaries; profile → certificates → failed claim with retained input → redeemed zero balance → back; profile → order history → order detail → support → acknowledged mock send → back; home support entry; and campaign increment → floating cart with exactly the added item and 13,170 ₸ total. Light profile at 320 px/1.6× and 800 px/1×, wide certificates, and narrow cart were reviewed visually.
+- A removed throwaway runtime harness exercised empty campaigns and a 300 px keyboard inset in both themes. The campaign strip reserved no blank space (promo began 24 px below search); support retained its draft and its editor bottom remained at 500 px, above the 512 px keyboard edge.
+- Browser automation initially triggered a Flutter framework logical-key lookup exception during input setup, and one unsettled accessibility hit target opened an underlying product. Both failures were recorded rather than suppressed. The final cart replay and native-typing certificate/filter replay reported no new runtime errors. The fixture transport had no unexpected HTTP during the 22 captures. Widget capture lacks a system font fallback for the `№` glyph; actual release-browser order titles rendered it correctly.
+- `flutter build web --release --no-wasm-dry-run` regenerated the final tracked `build/web`. A fresh production release smoke at 375 × 812 / DPR 2 rendered first-run intro slides with a 750 × 1624 screenshot and no browser runtime errors. It did **not** bypass onboarding or reach an authenticated production profile. Native dialing, production chat sends and payment/order/account mutations were not exercised.
+
+### Remaining scope and safety
+
+First-run city/location onboarding, addresses, saved-card add/confirmation, checkout, certificate purchase and option/bottling presentation remain queued or on documented legacy bridges. Notification inbox/unread state, scheduled delivery, ratings/tips, unsupported card deletion and fabricated operator presence remain excluded. No production SMS, chat send, certificate activation, address/card mutation, order creation or payment was executed. Fixtures and their screenshots do not establish authenticated production readiness.
+
+## 3ah. City, address and saved-card cutovers
+
+### Active routes and real behavior
+
+- `AppEntryGate` still owns first-run `OnboardingPage`. City selection uses the existing supported API/cache and preference keys. Requests fail distinctly from a genuine empty list; valid stale cities remain usable with retry feedback. Manual selection works without location. Location, settings, notifications and telemetry require explicit user action; denial/unsupported services cannot block completion. City and completion writes must succeed before advancing. The unused IP-location path was removed. Public read-only cities supplied the actual `AREA` / `DISTANCE` values; unknown raw enum labels are not displayed.
+- Profile and drawer enter the rebuilt `ProfileAddressesPage`; post-auth address capture uses the same map/search/details flow. Account records and device records are visibly distinct. Editing an account record creates a device copy; removal hides it only on this device. Device records can be added, edited, selected for delivery and removed, with destructive confirmation. No server address CRUD exists or was invented.
+- `MapAddressPage` preserves the production 2GIS template and supports manual search, explicit locate/settings, reverse-geocoding retry and optional delivery details. An unresolved coordinate cannot advance. Debounced search invalidates shortened queries and rejects late success/error replies. Changing the map point preserves typed entrance/floor/apartment. Book/history/selected-address writes are serialized, failed writes attempt rollback and reload persisted state, and selection events emit only after success. SharedPreferences multi-key writes are **not crash-atomic**; rollback/reload failure remains a storage limitation.
+- `ProfileCardsPage`, `AddCardWebViewPage` and `PaymentMethodPage` retain actual hosted-bank and payment contracts. Lists expose loading/empty/read failure/retry; masks and identities come from the server, not fabricated bank metadata. Web reserves its popup before asynchronous link generation. Link/launch/refresh failures remain actionable, duplicate launch is suppressed and pending binding can be cancelled. Bank open/return is **not** success: only a refreshed server ID absent from the baseline confirms binding, even when list size stays unchanged. No unsupported deletion is shown.
+- Payment presentation preserves the existing card and Kaspi calls, order-ID/amount precedence, payload and success routing. The browser fixture exercised selection only; it did not execute payment. Profile refresh after returning from card binding reflects the new synthetic server identity. Address summaries intentionally remain server-only rather than claiming a device edit changed the account.
+
+### Integration fixes
+
+- Idempotent logout no longer fails when an optional token-expiry preference is absent. Malformed cached account data no longer prevents entering profile and performing its fresh read.
+- Grid product content is keyboard reachable without activating disabled stock controls. `AppTopBar` supplies real default back navigation; onboarding explicitly disables back while saving. Address tiles now expose a button/selected state and their accessibility tap preserves delivery coordinates and optional details.
+- Loading-screen fact timers are owned and cancelled on disposal, replacing delayed futures that survived a fast route transition. Radio/checkbox tiles have their own Material ancestry, keeping ink/background visible. Unsupported SVG filters were removed without changing paths or gradients.
+- Strict fixtures now mirror production localization delegates, include timestamped orders, and use the actual request/query envelopes for home preload, card-source reads and geocoding. Unknown requests and non-fixture authorization are rejected; there is no production fallback. Search envelope and locale failures were observed and repaired, not suppressed.
+
+### Exercised verification
+
+- `flutter test --coverage` → **201/201**; ignored `coverage/lcov.info` generated. Focused onboarding/address/card/auth/shared/home/API regressions passed. Boundaries include rejected preference writes and rollback, stale geocoding replies, unresolved map points, retained optional fields, cancelled/failed binding and unchanged-count/new-identity confirmation. The address accessibility regression performs the real semantics action and checks persisted delivery data.
+- `dart analyze lib test tool` → **0 errors, 0 warnings, 27 existing info lints**; no new suppression.
+- `dart run tool/verify_surface.dart all --theme both` → **34** deterministic 750 × 1624 captures and **28** exact-frame comparisons. `promotion`, `onboarding` and `payment_method` are capture-only; standalone `promotion --theme both` also succeeds without a borrowed comparison. Matching light address/book/details/card frames were exported; both themes were visually reviewed. Synthetic content, the fixture map and intentional usability controls make these diagnostic diffs, not pixel-parity claims. Mean max-channel differences: addresses dark/light **11.49/20.56**, details **10.61/10.99**, cards **8.00/7.19**, map **95.22/43.81** (all `/255`).
+- Final release gallery exercised explicit denied location/notification requests, manual city choice, skips and completion into fixture home; profile → addresses → FAQ/back; add → search result → resolved map → details → device save/select; edit with optional fields retained through a map change; cancellation/confirmation of local removal and account-record hiding. Card journeys proved cancellation plus refresh gives no false success, cancellation clears waiting, and explicit mock-bank confirmation plus refresh proves a new ID and updates profile. Card/Kaspi rows changed actual selection without submitting payment.
+- Geometry was reviewed at 320/375/800 widths, dark/light and 1.6×/2× text, including reachable large-text onboarding completion and scrollable card content with its footer owning space. A removed throwaway release probe exercised search/details with a **300 px simulated keyboard inset**, native editor typing and both themes. At 375 dark and 320 light/2×, details confirmation ended at **454 px**, above the **512 px** keyboard edge; apartment fields scrolled into view and retained edited values. Search results and editor also remained above the keyboard. This is layout-inset proof, not a real OS soft-keyboard or permission check.
+- Browser automation recorded an early malformed search-fixture envelope and a transient snackbar covering a card footer. The final geocoder replay succeeded; keyboard opened the hosted-form fixture. No new Flutter runtime exception or unknown fixture HTTP was reported in the final replay/captures. OneSignal and Sentry CDN fetches were blocked by the verification browser allowlist; those integrations are not claimed exercised.
+- `flutter build web --release --no-wasm-dry-run` regenerated tracked `build/web`. A 375 × 812 / DPR 2 smoke rendered the real first-run intro and its sign-in/registration control. It did not bypass entry gates or fabricate an authenticated account.
+
+### Remaining scope and limits
+
+At this earlier pass checkout, certificate purchase and option/bottling remained queued; §3ai supersedes those route claims. Its real OS, bank/native and production-mutation limits remain unchanged. Notification inbox/unread state, scheduled delivery, ratings/tips, unsupported card deletion and fabricated operator presence remain excluded.
+
+## 3ai. Remaining milestones: checkout, certificate purchase and configuration
+
+### Active routes and contracts
+
+* All checkout entries still converge on `lib/pages/checkout_page.dart`, now rebuilt with shared theme/components. Delivery/pickup, optional address details, confirmed store choice, bag/summary, bonus cap, promo/certificate validation and mutually exclusive benefits use the existing contracts. Quote responses belong to the latest address/cart/store/mode; missing, malformed or failed quotes cannot create an order.
+* Creation is **POST `/api/orders/create-order-no-payment`**, with neutral `delivery_time: NOW` and `courier_tips: 0`, actual option/subtract-promotion payloads and no fabricated `saved_card_id: 1`. Definitive refusal preserves input/cart. Unknown acceptance locks resubmission and offers actual order history. Accepted creation snapshots the payable amount and clears the ordered cart once before payment.
+* Completed card/Kaspi status enters `PaymentSuccessPage` with the real order ID and actual OrdersPage destination. Pending or malformed/network-uncertain card acknowledgment cannot show success or repeat the charge. Paying a historical order does not clear the unrelated current cart. No promised delivery ETA is invented.
+* `BusinessProvider` persists before publishing a store and returns success/failure; wrapper, checkout, repeat-order and legacy menu callers do not destroy the cart before a successful write. Address storage clears its completed queue tail when idle, preserving serialized rollback/read behavior without retaining a retired test scheduling zone.
+* Active certificates and profile no longer bridge to the deleted `lib/pages/certificates_page.dart`. The themed purchase sheet accepts arbitrary positive finite amounts and optional recipient/message, reuses saved-card/hosted binding, retains draft/card/pending identity across sheet reopening within its page session, and completes only with both confirmed server payment and a valid supplied certificate code. Pending recovery reads `/api/certificates/purchases/<id>/status`; it never recharges.
+* Option navigation uses the rebuilt existing `ProductDetailPage`. Required single/multiple and optional selections, stock/quantity bounds and whole bottle counts retain SmartCart/pricing/promotions. Cart editing changes the exact base-variant group; cancel is local and sibling collisions are refused. Allocation stepping repeats/removes the exact selected primitive bottle batch; the final batch has an explicit delete action.
+* Persisted option snapshots retain real `item_name`. Known snapshot relation identity wins over the fallback bottle-name heuristic. Product-name metadata extraction requires a word boundary, so «Разливное пиво» cannot become «ное пиво».
+* The checkout footer owns the keyboard inset; while the keyboard is open its header joins the scrollable body. Large-text order-history cards grow rather than clipping totals outside their tappable area. The purchase sheet's close control is constrained to the full-width header, separate from the drag handle.
+
+### Exercised fixture journeys
+
+The release-built development gallery uses strict synthetic credentials/transports only. Unknown requests are rejected, never forwarded to production.
+
+* Failed delivery quote → explicit retry; delivery/pickup fee changes; optional entrance edit; bad promo refusal → valid promo → certificate → bonuses, with mutually exclusive amounts. Refused creation retained cart/input; a later accepted create preserved **102239 ₸** through payment, completed as synthetic order **901**, and entered actual order history.
+* Store-choice cancellation retained the original store/cart. Confirmed change persisted the choice before showing an empty cart; catalogue return uses the fixture's real catalogue destination.
+* Certificate amount **12345**, optional recipient/message and definitive refusal retained the draft. Pending purchase survived close/reopen, status GET completed without another purchase, and supplied **`FIXT-2026-GIFT-0001`** appeared in the refreshed list. Hosted-form cancellation stayed waiting until explicitly cancelled; synthetic bank confirmation plus card refresh introduced the actual new server card identity.
+* Lemonade single + multiple + optional choices produced **1200 ₸**; edit cancellation retained it, while removing gift packaging and saving produced **1150 ₸**. **1×1 L + 1×2 L** pour allocation produced **3 L / 3170 ₸**, stepped to **6 L / 6340 ₸**, returned to the original mix and exposed explicit final-batch deletion.
+* Actual browser review covered the 375 reference, 320 px / 2× light layouts and 800 px / 1.6× dark layouts, window resizing, native keyboard typing and simulated **300 px** keyboard insets. The purchase action and checkout submit remained above that inset; optional checkout fields stayed editable. Simulation does not prove an actual mobile/native IME or OS lifecycle.
+* The final fixture bundle also completed order **901 / 106190 ₸** into actual history and returned a confirmed store change to a populated, correctly scoped catalogue. A final pending purchase recovered by GET and refreshed the supplied certificate list.
+
+### Verification and visual limits
+
+* Focused checkout/certificate/title/active-order layout integration: **45 passed**. Full `flutter test --coverage`: **239 passed**; `coverage/lcov.info` regenerated.
+* `dart analyze lib test tool`: **0 errors, 0 warnings, 24 existing infos**.
+* `dart run tool/verify_surface.dart all --theme both`: **48 captures**, zero unexpected fixture requests, and **36 exact-frame comparisons**, at **750 × 1624** pixels (375 × 812 logical, 48/34 insets). The capture driver settles store-readiness and modal/enabled-state transitions.
+* Newly compared mean max-channel Δ / pixels Δ>32: delivery **31.90 / 24.24% dark**, **30.06 / 22.20% light**; pickup **35.21 / 22.33%**, **33.21 / 23.90%**; purchase **26.75 / 19.89%**, **62.44 / 41.60%**; confirmation **11.38 / 9.83%**, **11.34 / 9.94%**. Synthetic addresses, cards, amounts and extra usable controls differ from the reference; confirmation intentionally replaces the unsupported ETA with real identity/history. These are not pixel-match claims.
+* Configuration/error/payment-method/onboarding/promotion remain capture-only where no exact matching frame exists. Native permission/bank handoff, real card/order/certificate mutation, actual payment and authenticated production journeys are not established by fixtures. Production remained read-only; OneSignal and Sentry CDN requests were blocked, so those integrations were not exercised.
+* Tracked `flutter build web --release --no-wasm-dry-run` completed. The actual production entry rendered the first-run **«Персональные акции»** intro and **«Войти или зарегистрироваться»** control at **375 × 812 / DPR 2**. No SMS, bank, address/card, certificate, order or payment mutation was attempted; release errors contained only the blocked external SDK requests.
+* Browser automation once emitted an unsupported generic modifier-key location and hit the Flutter web key mapper, not an application request path. Final native-input verification used `ControlLeft` with the fixture tab brought to the foreground and produced no new page errors. No application exception suppression was added.
+* All verification browser tabs and both isolated fixture/release servers were closed after smoke proof.
+

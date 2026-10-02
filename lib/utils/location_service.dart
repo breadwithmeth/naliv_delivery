@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,9 +12,11 @@ class LocationService {
   static const double autoAcceptAccuracyMeters = 200;
   static const double manualConfirmationAccuracyMeters = 1000;
 
-  bool get isIosBrowserLocationFlow => kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  bool get isIosBrowserLocationFlow =>
+      kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-  String browserLocationSettingsInstructions({String browserLabel = 'Safari или Chrome'}) {
+  String browserLocationSettingsInstructions(
+      {String browserLabel = 'Safari или Chrome'}) {
     return 'На iPhone доступ к геолокации часто нужно включить для самого браузера. Откройте Настройки > Конфиденциальность и безопасность > Службы геолокации > $browserLabel и выберите «При использовании приложения». После этого вернитесь и нажмите кнопку геолокации еще раз.';
   }
 
@@ -71,7 +73,8 @@ class LocationService {
       if (!serviceEnabled) {
         return LocationPermissionResult(
           success: false,
-          message: 'Геолокация сейчас выключена. Если хотите, можно включить её в настройках устройства. Без неё тоже можно продолжить.',
+          message:
+              'Геолокация сейчас выключена. Если хотите, можно включить её в настройках устройства. Без неё тоже можно продолжить.',
           permissionStatus: LocationPermission.denied,
         );
       }
@@ -105,7 +108,8 @@ class LocationService {
         case LocationPermission.always:
           return LocationPermissionResult(
             success: true,
-            message: 'Геолокация включена. Попробуем определить ваш город автоматически.',
+            message:
+                'Геолокация включена. Попробуем определить ваш город автоматически.',
             permissionStatus: permission,
           );
 
@@ -119,7 +123,8 @@ class LocationService {
     } catch (e) {
       return LocationPermissionResult(
         success: false,
-        message: 'Не получилось получить доступ к геолокации. Можно продолжить без неё и выбрать данные вручную.',
+        message:
+            'Не получилось получить доступ к геолокации. Можно продолжить без неё и выбрать данные вручную.',
         permissionStatus: LocationPermission.denied,
       );
     }
@@ -132,9 +137,11 @@ class LocationService {
   }) async {
     try {
       // Проверяем разрешения
-      LocationPermissionResult permissionResult = await checkAndRequestPermissions();
+      LocationPermissionResult permissionResult =
+          await checkAndRequestPermissions();
       if (!permissionResult.success) {
-        debugPrint('Не удалось получить разрешение: ${permissionResult.message}');
+        debugPrint(
+            'Не удалось получить разрешение: ${permissionResult.message}');
         return null;
       }
 
@@ -166,8 +173,10 @@ class LocationService {
   }
 
   /// Вычисляет расстояние между двумя точками в метрах
-  double calculateDistance(double startLatitude, double startLongitude, double endLatitude, double endLongitude) {
-    return Geolocator.distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude);
+  double calculateDistance(double startLatitude, double startLongitude,
+      double endLatitude, double endLongitude) {
+    return Geolocator.distanceBetween(
+        startLatitude, startLongitude, endLatitude, endLongitude);
   }
 
   /// Отслеживает позицию пользователя (стрим)
@@ -218,10 +227,10 @@ class LocationPermissionResult {
 class LocationPermissionDialog {
   /// Показывает диалог с объяснением необходимости разрешения
   static Future<bool> showPermissionExplanation(BuildContext context) async {
-    bool? result = await showCupertinoDialog<bool>(
+    bool? result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Доступ к геолокации'),
         content: const Text(
           'Приложению необходим доступ к вашему местоположению для:\n\n'
@@ -230,12 +239,11 @@ class LocationPermissionDialog {
           '• Улучшения качества сервиса',
         ),
         actions: [
-          CupertinoDialogAction(
+          TextButton(
             child: const Text('Отказаться'),
             onPressed: () => Navigator.of(context).pop(false),
           ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
+          FilledButton(
             child: const Text('Разрешить'),
             onPressed: () => Navigator.of(context).pop(true),
           ),
@@ -247,20 +255,21 @@ class LocationPermissionDialog {
   }
 
   /// Показывает диалог с ошибкой и предложением перейти в настройки
-  static Future<bool> showPermissionDeniedDialog(BuildContext context, String message, {bool canOpenSettings = true}) async {
-    bool? result = await showCupertinoDialog<bool>(
+  static Future<bool> showPermissionDeniedDialog(
+      BuildContext context, String message,
+      {bool canOpenSettings = true}) async {
+    bool? result = await showDialog<bool>(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Доступ к геолокации'),
         content: Text(message),
         actions: [
-          CupertinoDialogAction(
+          TextButton(
             child: const Text('Закрыть'),
             onPressed: () => Navigator.of(context).pop(false),
           ),
           if (canOpenSettings)
-            CupertinoDialogAction(
-              isDefaultAction: true,
+            FilledButton(
               child: const Text('Настройки'),
               onPressed: () => Navigator.of(context).pop(true),
             ),
@@ -273,9 +282,9 @@ class LocationPermissionDialog {
 
   /// Показывает диалог с информацией о текущем местоположении
   static void showLocationInfo(BuildContext context, Position position) {
-    showCupertinoDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Ваше местоположение'),
         content: Text(
           'Широта: ${position.latitude.toStringAsFixed(6)}\n'
@@ -283,7 +292,7 @@ class LocationPermissionDialog {
           'Точность: ${position.accuracy.toStringAsFixed(1)} м',
         ),
         actions: [
-          CupertinoDialogAction(
+          TextButton(
             child: const Text('Закрыть'),
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -302,7 +311,8 @@ mixin LocationMixin<T extends StatefulWidget> on State<T> {
   /// Запрашивает разрешение и получает текущую позицию
   Future<bool> requestLocationAndGetPosition() async {
     // Показываем объяснение пользователю
-    bool userAccepted = await LocationPermissionDialog.showPermissionExplanation(context);
+    bool userAccepted =
+        await LocationPermissionDialog.showPermissionExplanation(context);
     if (!mounted) {
       return false;
     }
@@ -311,14 +321,16 @@ mixin LocationMixin<T extends StatefulWidget> on State<T> {
     }
 
     // Проверяем и запрашиваем разрешения
-    LocationPermissionResult result = await locationService.checkAndRequestPermissions();
+    LocationPermissionResult result =
+        await locationService.checkAndRequestPermissions();
     if (!mounted) {
       return false;
     }
 
     if (!result.success) {
       // Показываем диалог с ошибкой
-      bool openSettings = await LocationPermissionDialog.showPermissionDeniedDialog(
+      bool openSettings =
+          await LocationPermissionDialog.showPermissionDeniedDialog(
         context,
         result.message,
         canOpenSettings: result.needsSettingsRedirect,

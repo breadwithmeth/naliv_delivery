@@ -1,3 +1,5 @@
+import 'order_payment_guard.dart';
+
 const Map<String, String> orderStatusLabels = <String, String>{
   '0': 'Новый заказ',
   '1': 'Принят магазином',
@@ -39,21 +41,34 @@ bool isTruthy(dynamic value) {
 
 bool isOrderCanceled(Map<String, dynamic> order) {
   final currentStatus = asOrderMap(order['current_status']);
-  final statusCode = currentStatus?['status']?.toString() ?? asOrderMap(order['status'])?['status']?.toString();
+  final statusCode = currentStatus?['status']?.toString() ??
+      asOrderMap(order['status'])?['status']?.toString();
 
-  return isTruthy(order['is_canceled']) || isTruthy(currentStatus?['is_canceled']) || const {'5', '50', '51', '52'}.contains(statusCode);
+  return isTruthy(order['is_canceled']) ||
+      isTruthy(currentStatus?['is_canceled']) ||
+      const {'5', '50', '51', '52'}.contains(statusCode);
 }
 
 bool canPayOrder(Map<String, dynamic> order) {
   if (isOrderCanceled(order)) return false;
-  if (_resolveOrderId(order) == null) return false;
+  if (paymentOrderId(order) == null) return false;
+  final localState = order[OrderPaymentGuard.localStateKey];
+  if (localState != null && localState != OrderPaymentState.ready.name) {
+    return false;
+  }
+  final paymentOutcome = orderPaymentOutcome(order);
+  if (paymentOutcome == OrderPaymentOutcome.completed ||
+      paymentOutcome == OrderPaymentOutcome.pending) {
+    return false;
+  }
 
   final amount = resolveOrderTotalAmount(order);
   if (amount == null || amount <= 0) return false;
 
   final currentStatus = asOrderMap(order['current_status']);
-  final statusCode =
-      currentStatus?['status']?.toString() ?? asOrderMap(order['status'])?['status']?.toString();
+  final statusCode = currentStatus?['status']?.toString() ??
+      asOrderMap(order['status'])?['status']?.toString();
+  if (statusCode == '61') return false;
   if (const {'6', '60', '66'}.contains(statusCode)) {
     return true;
   }
@@ -61,14 +76,10 @@ bool canPayOrder(Map<String, dynamic> order) {
   final paymentStatus = _normalizeStatus(order['payment_status']);
   final kaspiStatus = _normalizeStatus(order['kaspi_status']);
 
-  if (_repayablePaymentStatuses.contains(paymentStatus) ||
+  if (paymentOutcome == OrderPaymentOutcome.refused ||
+      _repayablePaymentStatuses.contains(paymentStatus) ||
       _repayablePaymentStatuses.contains(kaspiStatus)) {
     return true;
-  }
-
-  if (_completedPaymentStatuses.contains(paymentStatus) ||
-      _completedPaymentStatuses.contains(kaspiStatus)) {
-    return false;
   }
 
   return false;
@@ -94,20 +105,30 @@ String resolveOrderStatusText(
   String fallback = 'Статус уточняется',
 }) {
   if (isOrderCanceled(order)) return 'Отменен';
-  return resolveStatusLabel(status ?? asOrderMap(order['current_status']) ?? asOrderMap(order['status']), fallback: fallback);
+  return resolveStatusLabel(
+      status ??
+          asOrderMap(order['current_status']) ??
+          asOrderMap(order['status']),
+      fallback: fallback);
 }
 
-String resolveStatusLabel(Map<String, dynamic>? status, {String fallback = 'Статус уточняется'}) {
+String resolveStatusLabel(Map<String, dynamic>? status,
+    {String fallback = 'Статус уточняется'}) {
   if (status == null) return fallback;
 
-  final explicitText = status['status_description']?.toString() ?? status['status_name']?.toString() ?? status['description']?.toString();
-  if (explicitText != null && explicitText.trim().isNotEmpty && !_isUnknownStatusText(explicitText)) {
+  final explicitText = status['status_description']?.toString() ??
+      status['status_name']?.toString() ??
+      status['description']?.toString();
+  if (explicitText != null &&
+      explicitText.trim().isNotEmpty &&
+      !_isUnknownStatusText(explicitText)) {
     return explicitText.trim();
   }
 
   final code = status['status']?.toString();
   if (code == null || code.isEmpty) return fallback;
-  return orderStatusLabels[code] ?? (int.tryParse(code) == null ? code : 'Статус $code');
+  return orderStatusLabels[code] ??
+      (int.tryParse(code) == null ? code : 'Статус $code');
 }
 
 String resolveDeliveryTypeText(Map<String, dynamic> order) {
@@ -144,16 +165,9 @@ bool isPickupAddress(Map<String, dynamic>? address) {
 
 bool _isUnknownStatusText(String value) {
   final normalized = value.trim().toLowerCase();
-  return normalized == 'неизвестно' || normalized == 'неизвестный статус' || normalized.contains('unknown');
-}
-
-String? _resolveOrderId(Map<String, dynamic> order) {
-  final raw = order['order_id'] ?? order['order_uuid'] ?? order['id'];
-  final normalized = raw?.toString().trim();
-  if (normalized == null || normalized.isEmpty || normalized.toLowerCase() == 'null') {
-    return null;
-  }
-  return normalized;
+  return normalized == 'неизвестно' ||
+      normalized == 'неизвестный статус' ||
+      normalized.contains('unknown');
 }
 
 num? _asNum(dynamic value) {
@@ -166,22 +180,7 @@ String _normalizeStatus(dynamic value) {
   return value?.toString().trim().toLowerCase().replaceAll('-', '_') ?? '';
 }
 
-const Set<String> _completedPaymentStatuses = <String>{
-  'completed',
-  'paid',
-  'processed',
-  'success',
-  'succeeded',
-};
-
 const Set<String> _repayablePaymentStatuses = <String>{
-  'failed',
-  'rejected',
-  'canceled',
-  'cancelled',
-  'expired',
-  'error',
-  'declined',
   'awaiting_payment',
   'waiting_for_payment',
   'payment_required',

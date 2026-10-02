@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Design: capture and compare both themes",
+      "type": "shell",
+      "command": "dart run tool/verify_surface.dart all --theme both",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Design: run Flutter tests",
+      "type": "shell",
+      "command": "flutter test",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Design: analyze app, tests, and tools",
+      "type": "shell",
+      "command": "dart analyze lib test tool",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

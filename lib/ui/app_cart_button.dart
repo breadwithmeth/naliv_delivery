@@ -6,14 +6,10 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
 
-/// The single floating cart control. Two shapes, both measured from the design:
+/// The single floating cart control, without a bottom navigation bar.
 ///
-/// * empty cart — the 78 px scalloped button from `Главная`, cart glyph only;
-/// * filled cart — the 133.2 × 42 pill from `Поиск - Удачный поиск`: item-count badge,
-///   cart glyph, then the order total (`92 190 ₸`, 14/400).
-///
-/// There is deliberately no bottom bar behind it: the product has no tab bar, and the design's
-/// own search frames show the pill floating on its own.
+/// The filled shape grows and wraps its readable count and price at large text
+/// scales. Scrollable consumers reserve [clearanceFor] plus their device inset.
 class AppCartButton extends StatelessWidget {
   const AppCartButton({
     required this.itemCount,
@@ -30,16 +26,19 @@ class AppCartButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool visible;
 
-  static const double pillHeight = 42;
   static const double _pillRadius = 11;
   static const double roundSize = 78;
 
-  static const double _badge = 18;
   static const double _gap = 5.6;
   static const double _padding = 12;
 
-  /// Height to reserve at the bottom of a scrollable so content clears the button.
-  static const double clearance = pillHeight + 34;
+  /// Reserves space for the floating control, its bottom gap and text scaling.
+  static double clearanceFor(BuildContext context) =>
+      (MediaQuery.textScalerOf(context).scale(16) * 2.6 + 36)
+          .clamp(roundSize, double.infinity)
+          .toDouble() +
+      AppSpacing.huge +
+      AppSpacing.xxxl;
 
   bool get _filled => itemCount > 0 && total != null;
 
@@ -47,10 +46,22 @@ class AppCartButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!visible) return const SizedBox.shrink();
     final palette = context.palette;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: _filled ? _pill(context, palette) : _round(context, palette),
+    return Semantics(
+      container: true,
+      button: true,
+      enabled: onTap != null,
+      label: _filled
+          ? 'Открыть корзину, товаров: $itemCount, ${formatTenge(total!)}'
+          : 'Открыть корзину',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: _filled
+            ? BorderRadius.circular(_pillRadius)
+            : BorderRadius.circular(roundSize / 2),
+        child: ExcludeSemantics(
+          child: _filled ? _pill(context, palette) : _round(context, palette),
+        ),
+      ),
     );
   }
 
@@ -79,18 +90,23 @@ class AppCartButton extends StatelessWidget {
 
   Widget _pill(BuildContext context, AppPalette palette) {
     return Container(
-      height: pillHeight,
-      padding: const EdgeInsets.symmetric(horizontal: _padding),
+      constraints: const BoxConstraints(minHeight: AppSpacing.touchTarget),
+      padding: const EdgeInsets.symmetric(
+          horizontal: _padding, vertical: AppSpacing.md),
       decoration: BoxDecoration(
         color: palette.accentSoft,
         borderRadius: BorderRadius.circular(_pillRadius),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Wrap(
+        spacing: _gap,
+        runSpacing: AppSpacing.xs,
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Container(
-            width: _badge,
-            height: _badge,
+            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: palette.brandRed,
@@ -98,15 +114,10 @@ class AppCartButton extends StatelessWidget {
             ),
             child: Text(
               '$itemCount',
-              style: AppTypography.base(size: 9, weight: 500).copyWith(
-                color: Colors.white,
-                height: 1,
-              ),
+              style: AppTypography.labelMedium.copyWith(color: Colors.white),
             ),
           ),
-          const SizedBox(width: _gap),
           const AppIcon(AppIcons.cart, size: 22, color: Colors.white),
-          const SizedBox(width: _gap),
           Text(
             formatTenge(total!),
             style: AppTypography.body.copyWith(color: Colors.white),

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "dart-flutter-runtime": {
+      "type": "stdio",
+      "command": "cmd.exe",
+      "args": [
+        "/c", "dart", "mcp-server",
+        "--disable", "all",
+        "--enable", "roots,dtd,flutter_app_lifecycle,widget_inspector,get_runtime_errors,get_app_logs,hot_reload,hot_restart,flutter_driver_command"
+      ],
+      "instructions": false,
+      "timeout": 30000
+    }
+  }
+}

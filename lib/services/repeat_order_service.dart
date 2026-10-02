@@ -5,6 +5,8 @@ import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
+import 'package:naliv_delivery/utils/smart_cart.dart';
+import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
 
 class RepeatOrderException implements Exception {
   const RepeatOrderException(this.message);
@@ -54,33 +56,39 @@ class RepeatOrderService {
     final order = await _resolveOrderForRepeat(sourceOrder);
     final business = extractBusiness(order);
     if (business == null) {
-      throw const RepeatOrderException('Не удалось определить магазин этого заказа.');
+      throw const RepeatOrderException(
+          'Не удалось определить магазин этого заказа.');
     }
 
     final deliveryType = resolveDeliveryType(order);
     final buildResult = buildCartItemsFromOrder(order);
     if (buildResult.items.isEmpty) {
-      throw const RepeatOrderException('Не удалось восстановить товары из этого заказа.');
+      throw const RepeatOrderException(
+          'Не удалось восстановить товары из этого заказа.');
+    }
+
+    if (!await businessProvider.setSelectedBusiness(business)) {
+      throw const RepeatOrderException(
+          'Не удалось сохранить магазин. Корзина не изменена.');
     }
 
     cartProvider.clearCart();
 
     var addedItemsCount = 0;
     final skippedItems = <String>[...buildResult.skippedItems];
-    for (final item in buildResult.items) {
-      final added = cartProvider.addItem(item);
+    for (final group in CartDisplayGroup.groupItems(buildResult.items)) {
+      final added = cartProvider.addDisplayGroupItems(group.items);
       if (added) {
-        addedItemsCount += 1;
+        addedItemsCount += group.items.length;
       } else {
-        skippedItems.add(item.name);
+        skippedItems.add(group.name);
       }
     }
 
     if (addedItemsCount == 0) {
-      throw const RepeatOrderException('Не удалось добавить товары из этого заказа в корзину.');
+      throw const RepeatOrderException(
+          'Не удалось добавить товары из этого заказа в корзину.');
     }
-
-    await businessProvider.setSelectedBusiness(business);
 
     final restoredAddress = extractDeliveryAddress(order);
     if (deliveryType == 'DELIVERY' && restoredAddress != null) {
@@ -98,11 +106,13 @@ class RepeatOrderService {
   }
 
   @visibleForTesting
-  static Future<Map<String, dynamic>> resolveOrderForTesting(Map<String, dynamic> sourceOrder) {
+  static Future<Map<String, dynamic>> resolveOrderForTesting(
+      Map<String, dynamic> sourceOrder) {
     return _resolveOrderForRepeat(sourceOrder);
   }
 
-  static Future<Map<String, dynamic>> _resolveOrderForRepeat(Map<String, dynamic> sourceOrder) async {
+  static Future<Map<String, dynamic>> _resolveOrderForRepeat(
+      Map<String, dynamic> sourceOrder) async {
     final inlineItems = _asMapList(sourceOrder['items']);
     if (inlineItems.isNotEmpty) {
       return sourceOrder;
@@ -122,14 +132,16 @@ class RepeatOrderService {
   }
 
   @visibleForTesting
-  static RepeatOrderBuildResult buildCartItemsFromOrder(Map<String, dynamic> order) {
+  static RepeatOrderBuildResult buildCartItemsFromOrder(
+      Map<String, dynamic> order) {
     final businessId = _businessIdOf(extractBusiness(order));
     final orderItems = _asMapList(order['items']);
     final builtItems = <CartItem>[];
     final skippedItems = <String>[];
 
     for (final orderItem in orderItems) {
-      final cartItem = _cartItemFromOrderItem(orderItem, businessId: businessId);
+      final cartItem =
+          _cartItemFromOrderItem(orderItem, businessId: businessId);
       if (cartItem == null) {
         final skippedName = _firstNonEmptyString([
           orderItem['name'],
@@ -142,8 +154,57 @@ class RepeatOrderService {
       builtItems.add(cartItem);
     }
 
+    final recovered = <CartItem>[];
+    for (final group in CartDisplayGroup.groupItems(builtItems)) {
+      if (firstSubtractPromotion(group.promotions) == null) {
+        recovered.addAll(group.items);
+        continue;
+      }
+      if (group.selection?.usesPourFlow != true) {
+        if (group.items.any((item) => item.selectedVariants
+            .any(SmartCartSelection.looksBottleLikeVariant))) {
+          skippedItems.add('${group.name}: магазин не передал данные тары');
+        } else {
+          recovered.addAll(group.items);
+        }
+        continue;
+      }
+      final paid = subtractPromotionPaidQuantityForPhysicalQuantity(
+          group.totalQuantity, group.promotions);
+      if (paid == null || group.paidBottleCounts.isEmpty) {
+        skippedItems
+            .add('${group.name}: нельзя точно восстановить объём и тару');
+        continue;
+      }
+      try {
+        final gifts = group.selection!
+            .giftBottleBreakdown(paid, availableCounts: group.paidBottleCounts);
+        final giftRows = Map<int, int>.from(gifts);
+        final paidRows = <CartItem>[];
+        for (final row in group.items) {
+          final bottle = group.selection!.filteredBottles.singleWhere(
+              (bottle) => row.selectedVariants.any((variant) =>
+                  SmartCartSelection.variantRelationId(variant) ==
+                  bottle.relationId));
+          final volume = group.selection!.volumeForBottle(bottle);
+          final count = (row.quantity / volume).round();
+          final giftCount = (giftRows[bottle.relationId] ?? 0).clamp(0, count);
+          giftRows[bottle.relationId] =
+              (giftRows[bottle.relationId] ?? 0) - giftCount;
+          final paidQuantity = row.quantity - giftCount * volume;
+          if (paidQuantity > 0) {
+            paidRows.add(
+                row.copyWith(quantity: paidQuantity, giftBottleCounts: gifts));
+          }
+        }
+        recovered.addAll(paidRows);
+      } on StateError {
+        skippedItems
+            .add('${group.name}: нельзя точно восстановить объём и тару');
+      }
+    }
     return RepeatOrderBuildResult(
-      items: builtItems,
+      items: recovered,
       skippedItems: skippedItems,
     );
   }
@@ -197,7 +258,8 @@ class RepeatOrderService {
   }
 
   @visibleForTesting
-  static Map<String, dynamic>? extractDeliveryAddress(Map<String, dynamic> order) {
+  static Map<String, dynamic>? extractDeliveryAddress(
+      Map<String, dynamic> order) {
     if (resolveDeliveryType(order) != 'DELIVERY') {
       return null;
     }
@@ -214,7 +276,9 @@ class RepeatOrderService {
       address['name'],
     ]);
 
-    if ((addressText == null || addressText.isEmpty) && lat == null && lon == null) {
+    if ((addressText == null || addressText.isEmpty) &&
+        lat == null &&
+        lon == null) {
       return null;
     }
 
@@ -228,13 +292,16 @@ class RepeatOrderService {
       'floor': _firstNonEmptyString([address['floor']]) ?? '',
       'apartment': _firstNonEmptyString([address['apartment']]) ?? '',
       'comment': _firstNonEmptyString([
-        address['comment'],
-        address['other'],
-        address['extra'],
-        order['extra'],
-      ]) ?? '',
-      if (_firstNonEmptyString([address['city']]) != null) 'city': _firstNonEmptyString([address['city']]),
-      if (_firstNonEmptyString([address['country']]) != null) 'country': _firstNonEmptyString([address['country']]),
+            address['comment'],
+            address['other'],
+            address['extra'],
+            order['extra'],
+          ]) ??
+          '',
+      if (_firstNonEmptyString([address['city']]) != null)
+        'city': _firstNonEmptyString([address['city']]),
+      if (_firstNonEmptyString([address['country']]) != null)
+        'country': _firstNonEmptyString([address['country']]),
       if (lat != null || lon != null)
         'point': <String, dynamic>{
           if (lat != null) 'lat': lat,
@@ -258,14 +325,17 @@ class RepeatOrderService {
     }
 
     final selectedVariants = _extractSelectedVariants(orderItem);
-    final snapshot = _resolveSnapshot(orderItem, businessId: businessId, selectedVariants: selectedVariants);
+    final snapshot = _resolveSnapshot(orderItem,
+        businessId: businessId, selectedVariants: selectedVariants);
     final promotions = _extractPromotions(orderItem, snapshot);
-    final stepQuantity = _resolveStepQuantity(orderItem, snapshot, selectedVariants);
+    final stepQuantity =
+        _resolveStepQuantity(orderItem, snapshot, selectedVariants);
     final itemName = _firstNonEmptyString([
-      orderItem['name'],
-      orderItem['item_name'],
-      snapshot?['name'],
-    ]) ?? 'Товар';
+          orderItem['name'],
+          orderItem['item_name'],
+          snapshot?['name'],
+        ]) ??
+        'Товар';
     final image = _firstNonEmptyString([
       orderItem['img'],
       orderItem['image'],
@@ -273,7 +343,50 @@ class RepeatOrderService {
       snapshot?['image'],
       snapshot?['img'],
     ]);
-    final unitPrice = _resolveUnitPrice(orderItem, snapshot, quantity);
+    var unitPrice = _resolveUnitPrice(orderItem, snapshot, quantity);
+    var resolvedVariants = selectedVariants;
+    final draft = CartItem(
+        itemId: itemId,
+        name: itemName,
+        price: unitPrice,
+        quantity: quantity,
+        stepQuantity: stepQuantity,
+        selectedVariants: selectedVariants,
+        promotions: promotions,
+        itemData: snapshot);
+    final catalog = draft.snapshotItem;
+    if (catalog != null && SmartCartSelection(catalog).usesPourFlow) {
+      unitPrice = catalog.price;
+      final selection = SmartCartSelection(catalog);
+      resolvedVariants = [
+        for (final selected in selectedVariants)
+          for (final option in catalog.options!)
+            for (final variant in option.optionItems)
+              if (variant.relationId ==
+                  SmartCartSelection.variantRelationId(selected))
+                {
+                  ...selected,
+                  'price': variant.price,
+                  'price_type': variant.priceType,
+                  'item_name': variant.itemName,
+                  'parent_item_amount':
+                      selection.bottleRelationIds.contains(variant.relationId)
+                          ? selection.volumeForBottle(variant)
+                          : variant.parentItemAmount,
+                  'required': option.required,
+                },
+      ];
+      if (resolvedVariants.length != selectedVariants.length) return null;
+      final selectedBottles = selection.filteredBottles.where((bottle) =>
+          resolvedVariants.any((variant) =>
+              SmartCartSelection.variantRelationId(variant) ==
+              bottle.relationId));
+      if (selectedBottles.length != 1) return null;
+      final volume = selection.volumeForBottle(selectedBottles.single);
+      if ((quantity / volume - (quantity / volume).round()).abs() > 0.0000001) {
+        return null;
+      }
+    }
 
     return CartItem(
       itemId: itemId,
@@ -284,7 +397,7 @@ class RepeatOrderService {
       image: image,
       itemType: _firstNonEmptyString([orderItem['item_type']]),
       packagingType: _firstNonEmptyString([orderItem['packaging_type']]),
-      selectedVariants: selectedVariants,
+      selectedVariants: resolvedVariants,
       promotions: promotions,
       itemData: snapshot,
       maxAmount: _resolveMaxAmount(orderItem, snapshot),
@@ -292,7 +405,10 @@ class RepeatOrderService {
   }
 
   static double _resolveQuantity(Map<String, dynamic> orderItem) {
-    return _asDouble(orderItem['amount'] ?? orderItem['quantity'] ?? orderItem['count']) ?? 0;
+    return _asDouble(orderItem['amount'] ??
+            orderItem['quantity'] ??
+            orderItem['count']) ??
+        0;
   }
 
   static double _resolveUnitPrice(
@@ -300,12 +416,14 @@ class RepeatOrderService {
     Map<String, dynamic>? snapshot,
     double quantity,
   ) {
-    final directPrice = _asDouble(orderItem['price'] ?? orderItem['unit_price'] ?? snapshot?['price']);
+    final directPrice = _asDouble(
+        orderItem['price'] ?? orderItem['unit_price'] ?? snapshot?['price']);
     if (directPrice != null && directPrice > 0) {
       return directPrice;
     }
 
-    final lineTotal = _asDouble(orderItem['total_cost'] ?? orderItem['total'] ?? orderItem['sum']);
+    final lineTotal = _asDouble(
+        orderItem['total_cost'] ?? orderItem['total'] ?? orderItem['sum']);
     if (lineTotal != null && lineTotal > 0 && quantity > 0) {
       return lineTotal / quantity;
     }
@@ -325,7 +443,10 @@ class RepeatOrderService {
       }
     }
 
-    final explicitStep = _asDouble(orderItem['step_quantity'] ?? orderItem['quantity_step'] ?? snapshot?['step_quantity'] ?? snapshot?['quantity_step']);
+    final explicitStep = _asDouble(orderItem['step_quantity'] ??
+        orderItem['quantity_step'] ??
+        snapshot?['step_quantity'] ??
+        snapshot?['quantity_step']);
     if (explicitStep != null && explicitStep > 0) {
       return explicitStep;
     }
@@ -337,7 +458,9 @@ class RepeatOrderService {
     Map<String, dynamic> orderItem,
     Map<String, dynamic>? snapshot,
   ) {
-    final raw = _asDouble(snapshot?['amount'] ?? orderItem['available_amount'] ?? orderItem['max_amount']);
+    final raw = _asDouble(snapshot?['amount'] ??
+        orderItem['available_amount'] ??
+        orderItem['max_amount']);
     if (raw == null || raw <= 0) {
       return null;
     }
@@ -355,7 +478,8 @@ class RepeatOrderService {
     return _asMapList(snapshot?['promotions']);
   }
 
-  static List<Map<String, dynamic>> _extractSelectedVariants(Map<String, dynamic> orderItem) {
+  static List<Map<String, dynamic>> _extractSelectedVariants(
+      Map<String, dynamic> orderItem) {
     final variants = <Map<String, dynamic>>[];
     final candidates = <List<Map<String, dynamic>>>[
       _asMapList(orderItem['options']),
@@ -378,7 +502,8 @@ class RepeatOrderService {
       }
     }
 
-    variants.sort((left, right) => _variantStableKey(left).compareTo(_variantStableKey(right)));
+    variants.sort((left, right) =>
+        _variantStableKey(left).compareTo(_variantStableKey(right)));
     return variants;
   }
 
@@ -403,7 +528,8 @@ class RepeatOrderService {
       nestedVariant?['item_name'],
       nestedVariant?['name'],
     ]);
-    final price = _asDouble(raw['price'] ?? raw['option_price'] ?? nestedVariant?['price']);
+    final price = _asDouble(
+        raw['price'] ?? raw['option_price'] ?? nestedVariant?['price']);
     final parentItemAmount = _asDouble(
       raw['parent_item_amount'] ??
           raw['variant_parent_item_amount'] ??
@@ -419,8 +545,11 @@ class RepeatOrderService {
       if (relationId != null) 'relation_id': relationId,
       if (itemId != null) 'item_id': itemId,
       if (itemName != null) 'item_name': itemName,
-      if (_firstNonEmptyString([raw['price_type'], nestedVariant?['price_type']]) != null)
-        'price_type': _firstNonEmptyString([raw['price_type'], nestedVariant?['price_type']]),
+      if (_firstNonEmptyString(
+              [raw['price_type'], nestedVariant?['price_type']]) !=
+          null)
+        'price_type': _firstNonEmptyString(
+            [raw['price_type'], nestedVariant?['price_type']]),
       if (price != null) 'price': price,
       if (parentItemAmount != null) 'parent_item_amount': parentItemAmount,
       'required': _asInt(raw['required']) ?? 0,
@@ -453,8 +582,10 @@ class RepeatOrderService {
       return null;
     }
 
-    final price = _resolveUnitPrice(orderItem, null, _resolveQuantity(orderItem));
-    final stepQuantity = _resolveStepQuantity(orderItem, null, selectedVariants);
+    final price =
+        _resolveUnitPrice(orderItem, null, _resolveQuantity(orderItem));
+    final stepQuantity =
+        _resolveStepQuantity(orderItem, null, selectedVariants);
     final image = _firstNonEmptyString([
       orderItem['image'],
       orderItem['img'],
@@ -463,15 +594,19 @@ class RepeatOrderService {
 
     return <String, dynamic>{
       'item_id': itemId,
-      'name': _firstNonEmptyString([orderItem['name'], orderItem['item_name']]) ?? 'Товар',
+      'name':
+          _firstNonEmptyString([orderItem['name'], orderItem['item_name']]) ??
+              'Товар',
       'price': price,
       if (image != null) 'image': image,
       if (image != null) 'img': image,
       'quantity': stepQuantity,
       'step_quantity': stepQuantity,
       if (businessId != null) 'business_id': businessId,
-      if (_asMap(orderItem['category']) != null) 'category': _asMap(orderItem['category']),
-      if (_extractPromotions(orderItem, null).isNotEmpty) 'promotions': _extractPromotions(orderItem, null),
+      if (_asMap(orderItem['category']) != null)
+        'category': _asMap(orderItem['category']),
+      if (_extractPromotions(orderItem, null).isNotEmpty)
+        'promotions': _extractPromotions(orderItem, null),
     };
   }
 
@@ -493,7 +628,8 @@ class RepeatOrderService {
   }
 
   static int? _businessIdOf(Map<String, dynamic>? business) {
-    return _asInt(business?['id'] ?? business?['business_id'] ?? business?['businessId']);
+    return _asInt(
+        business?['id'] ?? business?['business_id'] ?? business?['businessId']);
   }
 
   static String _variantStableKey(Map<String, dynamic> variant) {
@@ -509,14 +645,18 @@ class RepeatOrderService {
       return value;
     }
     if (value is Map) {
-      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
+      return value
+          .map((key, entryValue) => MapEntry(key.toString(), entryValue));
     }
     return null;
   }
 
   static List<Map<String, dynamic>> _asMapList(dynamic value) {
     if (value is List) {
-      return value.map(_asMap).whereType<Map<String, dynamic>>().toList(growable: false);
+      return value
+          .map(_asMap)
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
     }
     final single = _asMap(value);
     if (single != null) {
@@ -551,7 +691,9 @@ class RepeatOrderService {
   static String? _firstNonEmptyString(List<dynamic> values) {
     for (final value in values) {
       final normalized = value?.toString().trim();
-      if (normalized != null && normalized.isNotEmpty && normalized.toLowerCase() != 'null') {
+      if (normalized != null &&
+          normalized.isNotEmpty &&
+          normalized.toLowerCase() != 'null') {
         return normalized;
       }
     }

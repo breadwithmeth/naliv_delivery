@@ -1,10 +1,5 @@
 /// A catalogue item reduced to exactly what a product card renders.
 ///
-/// This is a **pure translation** of the rules the old `lib/shared/product_card.dart` applied
-/// inline, extracted so the redesigned card (and the catalogue, search and favourites screens)
-/// can share it. The arithmetic is deliberately identical — the data layer is frozen — and the
-/// null behaviour is reproduced rather than cleaned up:
-///
 /// * `oldPrice`, `discount` and `saving` are **null** when no discount promotion is active.
 ///   There is no "old price" field on the API; the struck price is simply `item.price`.
 /// * `saving` is null (not 0) when the computed saving is under 1 ₸.
@@ -15,6 +10,7 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../model/item.dart';
+import '../models/cart_item.dart';
 import '../utils/bonus_rules.dart';
 import '../utils/item_name_presentation.dart';
 
@@ -83,13 +79,22 @@ class ProductView {
   /// `0 < item.amount <= 5`.
   final bool lowStock;
 
-  /// Mirrors `shared/product_card.dart:157-177` and `:651-664`.
+  /// Builds display prices, promotion metadata and name attributes for [item].
   factory ProductView.fromItem(Item item, {num quantity = 0}) {
-    final promotion = _discountPromotion(item);
     final basePrice = item.price;
-    final discounted =
-        promotion?.calculateDiscountedPrice(basePrice) ?? basePrice;
-    final hasDiscount = promotion != null;
+    final discounted = CartItem(
+      itemId: item.itemId,
+      name: item.name,
+      price: basePrice,
+      quantity: 1,
+      stepQuantity: item.effectiveStepQuantity,
+      selectedVariants: const [],
+      promotions: [
+        for (final promotion in item.promotions ?? const <ItemPromotion>[])
+          if (promotion.isActive) promotion.toJson(),
+      ],
+    ).totalPrice;
+    final hasDiscount = discounted < basePrice;
 
     final presentation = presentItemName(
       rawName: item.name,
@@ -100,9 +105,8 @@ class ProductView {
     final outOfStock = amount != null && amount <= 0;
     final points = outOfStock ? 0 : _bonusPoints(item, discounted);
     final savingAmount = hasDiscount ? basePrice - discounted : 0.0;
-    final percent = hasDiscount
-        ? promotion.calculateEffectiveDiscountPercent(basePrice)
-        : 0;
+    final percent = hasDiscount && basePrice > 0
+        ? ((basePrice - discounted) / basePrice * 100).round() : 0;
 
     return ProductView(
       itemId: item.itemId,
@@ -124,19 +128,6 @@ class ProductView {
     );
   }
 
-  /// First promotion that is active, is a percentage or fixed discount, and actually discounts.
-  static ItemPromotion? _discountPromotion(Item item) {
-    for (final promotion in item.promotions ?? const <ItemPromotion>[]) {
-      if (!promotion.isActive) continue;
-      if (promotion.discountType != 'PERCENT' &&
-          promotion.discountType != 'FIXED') {
-        continue;
-      }
-      if (promotion.discountValue <= 0) continue;
-      return promotion;
-    }
-    return null;
-  }
 
   /// 3 % of the discounted price, zero for tobacco (`BonusRules`).
   static int _bonusPoints(Item item, double discountedPrice) {

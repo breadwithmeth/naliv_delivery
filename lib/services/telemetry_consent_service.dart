@@ -24,9 +24,12 @@ class TelemetryConsentService {
 
   /// Updates consent and immediately refreshes Sentry scope to reflect the new state.
   static Future<void> setConsent(bool allowed) async {
-    _cachedConsent = allowed;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_consentKey, allowed);
+    if (!await prefs.setBool(_consentKey, allowed)) {
+      throw StateError('Could not save telemetry consent');
+    }
+    _cachedConsent = allowed;
+    _hasStoredConsent = true;
 
     await Sentry.configureScope((scope) async {
       if (!allowed) {

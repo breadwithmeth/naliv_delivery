@@ -11,16 +11,15 @@ import '../../core/product_view.dart';
 @immutable
 class HomeViewData {
   const HomeViewData({
-    required this.phone,
-    required this.callCenterLabel,
     required this.storeName,
     required this.storeAddress,
     this.storeId,
     required this.banners,
     required this.promoCard,
     required this.categories,
+    this.stores = const [],
+    this.activeOrder,
     this.productSections = const [],
-    this.notificationCount = 0,
     this.signedIn = true,
     this.bonusBalance,
     this.bonusCaption = 'бонусов',
@@ -28,16 +27,16 @@ class HomeViewData {
     this.bonusCardCode,
   });
 
-  /// Support line in the header.
-  final String phone;
-  final String callCenterLabel;
-
   /// Current store (delivery address of the pickup point) shown in the address card.
   final String storeName;
   final String storeAddress;
 
   /// `businesses[].id` of [storeName] — screens that are still business-scoped need it.
   final int? storeId;
+
+  /// Available stores from the same read-only businesses response.
+  final List<HomeStore> stores;
+  final HomeActiveOrder? activeOrder;
 
   final List<HomeBanner> banners;
 
@@ -49,13 +48,10 @@ class HomeViewData {
   /// Product rows shown below the bonus card in the scrolled home frames.
   final List<HomeProductSection> productSections;
 
-  /// Unread notifications; 0 hides the badge.
-  final int notificationCount;
-
   /// Signed-out state swaps the bonus card for a sign-in prompt.
   final bool signedIn;
 
-  /// Bonus balance; null hides the bonus card entirely.
+  /// Loaded balance; null shows an explicit unavailable state, not a fake zero.
   final int? bonusBalance;
   final String bonusCaption;
   final String qrCaption;
@@ -65,9 +61,45 @@ class HomeViewData {
 }
 
 @immutable
+class HomeActiveOrder {
+  const HomeActiveOrder({
+    required this.id,
+    required this.status,
+    required this.source,
+  });
+
+  final String id;
+  final String status;
+  final Map<String, dynamic> source;
+}
+
+@immutable
+class HomeStore {
+  const HomeStore({
+    required this.id,
+    required this.name,
+    required this.address,
+    this.city,
+  });
+
+  final int id;
+  final String name;
+  final String address;
+  final String? city;
+}
+
+@immutable
 class HomeBanner {
-  const HomeBanner(
-      {required this.title, this.subtitle, this.fill, this.imageUrl});
+  const HomeBanner({
+    required this.title,
+    this.promotionId,
+    this.subtitle,
+    this.fill,
+    this.imageUrl,
+  });
+
+  /// Null for design-only placeholders. Never route one to an unrelated offer.
+  final int? promotionId;
 
   final String title;
   final String? subtitle;

@@ -18,6 +18,7 @@ class AppIconButton extends StatelessWidget {
     this.size = 40,
     this.glyphSize,
     this.fill,
+    this.color,
     this.radius,
     this.tooltip,
     super.key,
@@ -28,15 +29,16 @@ class AppIconButton extends StatelessWidget {
   final double size;
   final double? glyphSize;
   final Color? fill;
+  final Color? color;
   final double? radius;
   final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final button = GestureDetector(
+    final button = InkWell(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      borderRadius: BorderRadius.circular(radius ?? AppRadii.pill),
       child: Container(
         width: size,
         height: size,
@@ -46,7 +48,11 @@ class AppIconButton extends StatelessWidget {
           boxShadow: AppShadows.control(palette),
         ),
         child: Center(
-          child: AppIcon(asset, size: glyphSize ?? (size >= 40 ? 17 : 20)),
+          child: AppIcon(
+            asset,
+            size: glyphSize ?? (size >= 40 ? 17 : 20),
+            color: color ?? palette.textPrimary,
+          ),
         ),
       ),
     );

@@ -5,6 +5,8 @@
 //   dart run tool/figma_spec.dart spec          # dump every frame of the design pages
 //   dart run tool/figma_spec.dart spec --page "Design System (Dark)"
 //   dart run tool/figma_spec.dart png           # render frames to PNG for visual diffing
+//   dart run tool/figma_spec.dart png --page "Design System (Light)" --frame "Главная - Без входа в аккаунт,Каталог"
+//   dart run tool/figma_spec.dart png --page "Design System (Light)" --frame "Каталог" --force
 //   dart run tool/figma_spec.dart frames        # list pages/frames only
 //
 // Credentials: `.figma-token` at the repo root (git-ignored) or FIGMA_TOKEN env var.
@@ -29,7 +31,8 @@ Future<void> main(List<String> args) async {
   final root = _repoRoot();
   final token = _readToken(root);
   final fileKey = _readFileKey(root);
-  final outDir = Directory('${root.path}/.figma_cache')..createSync(recursive: true);
+  final outDir = Directory('${root.path}/.figma_cache')
+    ..createSync(recursive: true);
   final api = _FigmaApi(token, fileKey);
 
   switch (cmd) {
@@ -50,11 +53,14 @@ Future<void> main(List<String> args) async {
 Map<String, String> _parseFlags(List<String> args) {
   final flags = <String, String>{};
   for (var i = 0; i < args.length; i++) {
-    if (args[i].startsWith('--') && i + 1 < args.length) {
-      flags[args[i].substring(2)] = args[++i];
-    } else if (args[i].startsWith('--')) {
-      flags[args[i].substring(2)] = 'true';
+    final arg = args[i];
+    if (!arg.startsWith('--')) {
+      throw ArgumentError('Unexpected argument: $arg');
     }
+    final key = arg.substring(2);
+    flags[key] = i + 1 < args.length && !args[i + 1].startsWith('--')
+        ? args[++i]
+        : 'true';
   }
   return flags;
 }
@@ -65,7 +71,8 @@ Directory _repoRoot() {
     if (File('${dir.path}/pubspec.yaml').existsSync()) return dir;
     final parent = dir.parent;
     if (parent.path == dir.path) {
-      throw StateError('pubspec.yaml not found above ${Directory.current.path}');
+      throw StateError(
+          'pubspec.yaml not found above ${Directory.current.path}');
     }
     dir = parent;
   }
@@ -76,7 +83,8 @@ String _readToken(Directory root) {
   if (fromEnv != null && fromEnv.trim().isNotEmpty) return fromEnv.trim();
   final file = File('${root.path}/.figma-token');
   if (!file.existsSync()) {
-    throw StateError('missing .figma-token at ${root.path} (or set FIGMA_TOKEN)');
+    throw StateError(
+        'missing .figma-token at ${root.path} (or set FIGMA_TOKEN)');
   }
   return file.readAsStringSync().trim();
 }
@@ -86,13 +94,15 @@ String _readFileKey(Directory root) {
   if (fromEnv != null && fromEnv.trim().isNotEmpty) return _extractKey(fromEnv);
   final file = File('${root.path}/.figma-design');
   if (!file.existsSync()) {
-    throw StateError('missing .figma-design at ${root.path} (or set FIGMA_FILE)');
+    throw StateError(
+        'missing .figma-design at ${root.path} (or set FIGMA_FILE)');
   }
   return _extractKey(file.readAsStringSync().trim());
 }
 
 String _extractKey(String urlOrKey) {
-  final match = RegExp(r'figma\.com/(?:design|file)/([A-Za-z0-9]+)').firstMatch(urlOrKey);
+  final match =
+      RegExp(r'figma\.com/(?:design|file)/([A-Za-z0-9]+)').firstMatch(urlOrKey);
   return match?.group(1) ?? urlOrKey;
 }
 
@@ -106,7 +116,7 @@ class _FigmaApi {
   /// Back off generously (honouring `Retry-After`) rather than failing the run.
   Future<Map<String, dynamic>> get(String path) async {
     const maxAttempts = 10;
-    for (var attempt = 0; ; attempt++) {
+    for (var attempt = 0;; attempt++) {
       final res = await http.get(
         Uri.parse('$_api/$path'),
         headers: {'X-Figma-Token': token},
@@ -129,7 +139,8 @@ class _FigmaApi {
 
   Future<List<_FrameRef>> designFrames({String? page}) async {
     final file = await get('files/$fileKey?depth=2');
-    final pages = (file['document']['children'] as List).cast<Map<String, dynamic>>();
+    final pages =
+        (file['document']['children'] as List).cast<Map<String, dynamic>>();
     final refs = <_FrameRef>[];
     for (final p in pages) {
       final name = p['name'] as String;
@@ -164,7 +175,8 @@ Future<void> _listFrames(_FigmaApi api, Map<String, String> opts) async {
   stdout.writeln('${frames.length} frames');
 }
 
-Future<void> _dumpSpec(_FigmaApi api, Directory outDir, Map<String, String> opts) async {
+Future<void> _dumpSpec(
+    _FigmaApi api, Directory outDir, Map<String, String> opts) async {
   final frames = await api.designFrames(page: opts['page']);
   // The `nodes` endpoint is throttled per call, so fetch many frames per request: a whole
   // design page is only ~20 MB. Resumable — already-written frames are skipped.
@@ -177,7 +189,8 @@ Future<void> _dumpSpec(_FigmaApi api, Directory outDir, Map<String, String> opts
     final slice = frames.skip(i).take(batch).toList();
     final pending = <_FrameRef>[];
     for (final f in slice) {
-      final dir = Directory('${outDir.path}/spec/${_slug(f.page)}')..createSync(recursive: true);
+      final dir = Directory('${outDir.path}/spec/${_slug(f.page)}')
+        ..createSync(recursive: true);
       if (File('${dir.path}/${f.slug}.json').existsSync() && !force) continue;
       pending.add(f);
     }
@@ -194,13 +207,16 @@ Future<void> _dumpSpec(_FigmaApi api, Directory outDir, Map<String, String> opts
         stderr.writeln('no document for ${f.name} (${f.id})');
         continue;
       }
-      final spec = _compactNode((entry['document'] as Map).cast<String, dynamic>());
-      final dir = Directory('${outDir.path}/spec/${_slug(f.page)}')..createSync(recursive: true);
+      final spec =
+          _compactNode((entry['document'] as Map).cast<String, dynamic>());
+      final dir = Directory('${outDir.path}/spec/${_slug(f.page)}')
+        ..createSync(recursive: true);
       File('${dir.path}/${f.slug}.json')
           .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(spec));
     }
     done += slice.length;
-    stdout.writeln('[$done/${frames.length}] ${slice.first.page} .. ${slice.last.name}');
+    stdout.writeln(
+        '[$done/${frames.length}] ${slice.first.page} .. ${slice.last.name}');
   }
 
   for (final f in frames) {
@@ -220,14 +236,33 @@ Future<void> _dumpSpec(_FigmaApi api, Directory outDir, Map<String, String> opts
   stdout.writeln('wrote ${index.length} frame specs to ${outDir.path}/spec');
 }
 
-Future<void> _dumpPng(_FigmaApi api, Directory outDir, Map<String, String> opts) async {
-  final frames = await api.designFrames(page: opts['page']);
+Future<void> _dumpPng(
+    _FigmaApi api, Directory outDir, Map<String, String> opts) async {
+  final available = await api.designFrames(page: opts['page']);
+  final requested =
+      opts['frame']?.split(',').map((name) => name.trim()).toSet();
+  if (requested != null) {
+    final missing = requested
+        .difference(available.map((frame) => frame.name.trim()).toSet());
+    if (missing.isNotEmpty) {
+      throw ArgumentError('Unknown Figma frame(s): ${missing.join(', ')}');
+    }
+  }
   final scale = opts['scale'] ?? '2';
   final shots = Directory('${outDir.path}/shots')..createSync(recursive: true);
+  final frames = [
+    for (final frame in available)
+      if ((requested == null || requested.contains(frame.name.trim())) &&
+          (opts['force'] == 'true' ||
+              !File('${shots.path}/${_slug(frame.page)}__${frame.slug}.png')
+                  .existsSync()))
+        frame,
+  ];
   for (var i = 0; i < frames.length; i += 8) {
     final slice = frames.skip(i).take(8).toList();
     final ids = slice.map((f) => f.id).join(',');
-    final res = await api.get('images/${api.fileKey}?ids=$ids&format=png&scale=$scale');
+    final res =
+        await api.get('images/${api.fileKey}?ids=$ids&format=png&scale=$scale');
     final images = (res['images'] as Map).cast<String, dynamic>();
     for (final f in slice) {
       final url = images[f.id] as String?;
@@ -236,21 +271,27 @@ Future<void> _dumpPng(_FigmaApi api, Directory outDir, Map<String, String> opts)
         continue;
       }
       final bytes = await http.readBytes(Uri.parse(url));
-      File('${shots.path}/${_slug(f.page)}__${f.slug}.png').writeAsBytesSync(bytes);
+      File('${shots.path}/${_slug(f.page)}__${f.slug}.png')
+          .writeAsBytesSync(bytes);
     }
     stdout.writeln('rendered ${i + slice.length}/${frames.length}');
   }
+  if (frames.isEmpty) stdout.writeln('All requested Figma PNGs already exist.');
 }
 
 /// Exports named nodes as SVG. The map is `{file-safe name: nodeId}`; a frame or component
 /// node renders with all of its children, so a whole icon (bell + badge) comes out in one file.
-Future<void> _dumpSvg(_FigmaApi api, Directory outDir, Map<String, String> opts) async {
+Future<void> _dumpSvg(
+    _FigmaApi api, Directory outDir, Map<String, String> opts) async {
   final mapFile = File(opts['map'] ?? '${outDir.path}/icons.json');
   if (!mapFile.existsSync()) {
-    throw StateError('missing icon map at ${mapFile.path} — expected {"name": "nodeId"}');
+    throw StateError(
+        'missing icon map at ${mapFile.path} — expected {"name": "nodeId"}');
   }
-  final map = (jsonDecode(mapFile.readAsStringSync()) as Map).cast<String, String>();
-  final dir = Directory(opts['out'] ?? 'assets/icons/design')..createSync(recursive: true);
+  final map =
+      (jsonDecode(mapFile.readAsStringSync()) as Map).cast<String, String>();
+  final dir = Directory(opts['out'] ?? 'assets/icons/design')
+    ..createSync(recursive: true);
   final entries = map.entries.toList();
   var written = 0;
   for (var i = 0; i < entries.length; i += 10) {
@@ -293,7 +334,9 @@ Map<String, dynamic> _compactNode(Map<String, dynamic> n) {
     out['w'] = _round(bb['width']);
     out['h'] = _round(bb['height']);
   }
-  if (n['opacity'] != null && (n['opacity'] as num) < 1) out['opacity'] = n['opacity'];
+  if (n['opacity'] != null && (n['opacity'] as num) < 1) {
+    out['opacity'] = n['opacity'];
+  }
   if (n['visible'] == false) out['hidden'] = true;
   final corner = n['cornerRadius'];
   if (corner != null) out['r'] = corner;
@@ -332,9 +375,11 @@ List<String> _paint(Object? paints) {
     } else if (type.startsWith('GRADIENT')) {
       final stops = (p['gradientStops'] as List? ?? const [])
           .map((s) => (s as Map).cast<String, dynamic>())
-          .map((s) => '${_hex((s['color'] as Map).cast<String, dynamic>())}@${_round(s['position'])}')
+          .map((s) =>
+              '${_hex((s['color'] as Map).cast<String, dynamic>())}@${_round(s['position'])}')
           .join(',');
-      out.add('$type(${p['gradientHandlePositions'] != null ? 'stops:$stops' : ''})');
+      out.add(
+          '$type(${p['gradientHandlePositions'] != null ? 'stops:$stops' : ''})');
     } else if (type == 'IMAGE') {
       out.add('IMAGE:${p['imageRef']}:${p['scaleMode']}');
     } else {
@@ -347,7 +392,8 @@ List<String> _paint(Object? paints) {
 String _hex(Map<String, dynamic> c) => '#'
     '${_b(c['r'])}${_b(c['g'])}${_b(c['b'])}';
 
-String _b(Object? v) => ((v as num) * 255).round().toRadixString(16).padLeft(2, '0').toUpperCase();
+String _b(Object? v) =>
+    ((v as num) * 255).round().toRadixString(16).padLeft(2, '0').toUpperCase();
 
 List<Map<String, dynamic>> _effects(Object? effects) {
   final out = <Map<String, dynamic>>[];
@@ -360,7 +406,8 @@ List<Map<String, dynamic>> _effects(Object? effects) {
     if (e['color'] != null) {
       final c = (e['color'] as Map).cast<String, dynamic>();
       final alpha = (c['a'] as num? ?? 1).toDouble();
-      shadow['color'] = '${_hex(c)}${alpha < 1 ? '@${alpha.toStringAsFixed(2)}' : ''}';
+      shadow['color'] =
+          '${_hex(c)}${alpha < 1 ? '@${alpha.toStringAsFixed(2)}' : ''}';
     }
     if (e['offset'] != null) {
       shadow['offset'] = [_round(e['offset']['x']), _round(e['offset']['y'])];

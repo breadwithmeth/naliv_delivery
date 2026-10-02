@@ -1,16 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'add_card_webview_page.dart';
-import 'faq_page.dart';
-import '../shared/app_theme.dart';
+import '../design/theme.dart';
+import '../design/tokens.dart';
+import '../design/typography.dart';
+import '../ui/app_states.dart';
+import '../ui/app_top_bar.dart';
 import '../utils/api.dart';
-import '../utils/responsive.dart';
 import '../utils/web_window.dart';
+import 'card_flow.dart';
+import 'card_widgets.dart';
 
 class ProfileCardsPage extends StatefulWidget {
-  const ProfileCardsPage({super.key});
+  const ProfileCardsPage({super.key, this.openCardForm});
+
+  final Future<bool> Function(Uri)? openCardForm;
 
   @override
   State<ProfileCardsPage> createState() => _ProfileCardsPageState();
@@ -18,480 +22,173 @@ class ProfileCardsPage extends StatefulWidget {
 
 class _ProfileCardsPageState extends State<ProfileCardsPage>
     with WidgetsBindingObserver {
-  static const String _webAddCardWindowName = 'gradusy24_add_card';
-
-  bool _isLoading = true;
-  String? _error;
-  List<Map<String, dynamic>> _cards = <Map<String, dynamic>>[];
-  int _revealedCount = 0;
-  bool _awaitingCardAdd = false;
-  int _cardCountBeforeAdd = 0;
-  _ProfileCardFeedback? _cardFeedback;
+  late final CardFlow _flow;
 
   @override
   void initState() {
     super.initState();
+    _flow = CardFlow(
+      readCards: () => ApiService.getUserCards(source: 'halyk'),
+      openForm: (uri, window) => openHostedCardForm(context, uri, window,
+          openCardForm: widget.openCardForm),
+      requiresWindow: kIsWeb && widget.openCardForm == null,
+      reserveWindow: kIsWeb && widget.openCardForm == null
+          ? () => reserveWebNamedWindow(cardFormWindowName)
+          : null,
+      closeWindow: closeReservedWebWindow,
+    )..addListener(_changed);
     WidgetsBinding.instance.addObserver(this);
-    _load();
+    _flow.refresh();
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _flow.awaiting) _flow.refresh();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _flow.removeListener(_changed);
+    _flow.dispose();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _awaitingCardAdd) {
-      _awaitingCardAdd = false;
-      _load(showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
-    }
-  }
-
-  Future<void> _load(
-      {bool showRefreshFeedback = false, int? previousCount}) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final data = await ApiService.getFullInfo();
-      final cards = (data?['cards'] as List<dynamic>? ?? <dynamic>[])
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _cards = cards;
-        _isLoading = false;
-      });
-      if (showRefreshFeedback) {
-        final previous = previousCount ?? 0;
-        if (_cards.length > previous) {
-          _setCardFeedback('Новая карта сохранена и готова к оплате.',
-              _ProfileCardFeedbackTone.success);
-        } else {
-          _setCardFeedback(
-            'Мы обновили список карт. Если новая карта еще не появилась, завершите привязку в форме банка и попробуйте обновить список снова.',
-            _ProfileCardFeedbackTone.info,
-          );
-        }
-      }
-      _revealItems();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Не удалось загрузить карты: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _revealItems() {
-    final total = _cards.length;
-    _revealedCount = 0;
-    for (int i = 0; i < total; i++) {
-      Future.delayed(Duration(milliseconds: 60 * i), () {
-        if (mounted) setState(() => _revealedCount = i + 1);
-      });
-    }
-    Future.delayed(Duration(milliseconds: 60 * total + 100), () {
-      if (mounted && _revealedCount < 999) setState(() => _revealedCount = 999);
-    });
-  }
-
-  Future<void> _addCard() async {
-    _cardCountBeforeAdd = _cards.length;
-
-    final webWindowHandle = _reserveWebAddCardWindow();
-
-    final result = await ApiService.generateAddCardLinkResult();
-    if (!result.success || result.link == null) {
-      _setCardFeedback(result.message, _ProfileCardFeedbackTone.error);
-      return;
-    }
-
-    final link = result.link!;
-    final uri = Uri.tryParse(link);
-    if (uri == null) {
-      _setCardFeedback(
-          'Получена некорректная ссылка для добавления карты. Попробуйте еще раз.',
-          _ProfileCardFeedbackTone.error);
-      return;
-    }
-
-    if (_supportsEmbeddedCardFlow) {
-      if (!mounted) return;
-      _setCardFeedback('Открываем защищенную форму банка для привязки карты.',
-          _ProfileCardFeedbackTone.info);
-      final shouldRefresh = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => AddCardWebViewPage(initialUrl: link)),
-      );
-      if (shouldRefresh == true && mounted) {
-        await _load(
-            showRefreshFeedback: true, previousCount: _cardCountBeforeAdd);
-      }
-      return;
-    }
-
-    if (kIsWeb) {
-      final opened = navigateReservedWebWindow(
-        webWindowHandle,
-        uri.toString(),
-        windowName: _webAddCardWindowName,
-      );
-      if (opened) {
-        _awaitingCardAdd = true;
-        _setCardFeedback(
-          'Открываем форму банка в новой вкладке. После завершения привязки вернитесь и обновите список карт.',
-          _ProfileCardFeedbackTone.info,
-        );
-        return;
-      }
-
-      _setCardFeedback('Не удалось открыть форму банка для привязки карты.',
-          _ProfileCardFeedbackTone.error);
-      return;
-    }
-
-    if (await canLaunchUrl(uri)) {
-      _awaitingCardAdd = true;
-      _setCardFeedback(
-          'Открываем форму банка. После возвращения список карт обновится автоматически.',
-          _ProfileCardFeedbackTone.info);
-      final mode = defaultTargetPlatform == TargetPlatform.iOS
-          ? LaunchMode.inAppWebView
-          : LaunchMode.externalApplication;
-      await launchUrl(uri, mode: mode);
-      return;
-    }
-
-    _setCardFeedback('Не удалось открыть форму банка для привязки карты.',
-        _ProfileCardFeedbackTone.error);
-  }
-
-  Object? _reserveWebAddCardWindow() {
-    if (!kIsWeb) return null;
-
-    final windowHandle = reserveWebNamedWindow(_webAddCardWindowName);
-    if (windowHandle == null) {
-      _setCardFeedback(
-        'Браузер заблокировал открытие вкладки для формы банка. Разрешите всплывающие окна и попробуйте снова.',
-        _ProfileCardFeedbackTone.error,
-      );
-      return null;
-    }
-
-    return windowHandle;
-  }
-
-  bool get _supportsEmbeddedCardFlow {
-    if (kIsWeb) return false;
-
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-      case TargetPlatform.macOS:
-        return true;
-      case TargetPlatform.iOS:
-      case TargetPlatform.fuchsia:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        return false;
-    }
-  }
-
-  void _setCardFeedback(String message, _ProfileCardFeedbackTone tone) {
-    if (!mounted) return;
-    setState(() {
-      _cardFeedback = _ProfileCardFeedback(message: message, tone: tone);
-    });
-  }
-
-  Future<void> _refreshOnScroll() async {
-    await _load();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    const scrollPhysics =
-        AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics());
-
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.text,
-        title: const Text('Мои карты',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        scrolledUnderElevation: 0,
-      ),
-      body: Stack(
-        children: [
-          const AppBackground(),
-          RefreshIndicator(
-            color: AppColors.orange,
-            backgroundColor: AppColors.card,
-            onRefresh: _refreshOnScroll,
-            child: _isLoading
-                ? ListView(
-                    physics: scrollPhysics,
-                    children: const [
-                      SizedBox(
-                        height: 520,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation(AppColors.orange)),
-                        ),
-                      ),
-                    ],
-                  )
-                : _error != null
-                    ? ListView(
-                        physics: scrollPhysics,
-                        children: [
-                          SizedBox(height: 520, child: _errorView()),
-                        ],
-                      )
-                    : _cards.isEmpty
-                        ? ListView(
-                            physics: scrollPhysics,
-                            children: [
-                              SizedBox(height: 560, child: _emptyView()),
-                            ],
-                          )
-                        : ListView(
-                            physics: scrollPhysics,
-                            padding:
-                                EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 24.s),
-                            children: [
-                              if (_cardFeedback != null)
-                                Padding(
-                                  padding: EdgeInsets.only(bottom: 10.s),
-                                  child: _cardFeedbackBanner(_cardFeedback!),
-                                ),
-                              Padding(
-                                padding: EdgeInsets.only(bottom: 10.s),
-                                child: const FaqShortcutCard(
-                                  title: 'Вопросы по картам и оплате',
-                                  subtitle:
-                                      'Посмотрите ответы о привязке карты, удаленных счетах и списании средств.',
-                                  initialSection: FaqSection.payment,
-                                  icon: Icons.credit_card_rounded,
+      backgroundColor: palette.background,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: AppTopBar(
+                      title: 'Мои карты',
+                      onBack: () => Navigator.of(context).maybePop()),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _flow.refresh,
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                        if (_flow.message != null)
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            sliver: SliverToBoxAdapter(
+                                child: CardFlowFeedback(flow: _flow)),
+                          ),
+                        if (_flow.loading)
+                          const SliverToBoxAdapter(
+                              child: SizedBox(height: 120, child: AppLoading()))
+                        else ...[
+                          if (_flow.error != null ||
+                              _flow.partialWarning != null)
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              sliver: SliverToBoxAdapter(
+                                  child: CardReadFeedback(flow: _flow)),
+                            )
+                          else if (_flow.cards.isEmpty)
+                            const SliverToBoxAdapter(
+                              child: AppEmptyState(
+                                title: 'Добавленных карт нет',
+                                subtitle:
+                                    'Добавьте карту в защищённой форме банка, и она появится здесь после обновления списка',
+                              ),
+                            ),
+                          if (_flow.error == null && _flow.cards.isNotEmpty)
+                            SliverPadding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              sliver: SliverList.builder(
+                                itemCount: _flow.cards.length,
+                                itemBuilder: (_, index) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: SavedCardRow(
+                                      card: _flow.cards[index],
+                                      key: ValueKey(
+                                          'saved-card-${_flow.cards[index].id}')),
                                 ),
                               ),
-                              ..._cards
-                                  .take(_revealedCount.clamp(0, _cards.length))
-                                  .map(_animatedCardTile),
-                              _addCardButton(),
-                            ],
+                            ),
+                          const SliverPadding(
+                            padding: EdgeInsets.fromLTRB(16, 24, 16, 24),
+                            sliver: SliverToBoxAdapter(child: CardFaqPanel()),
                           ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _animatedCardTile(Map<String, dynamic> card) {
-    final id = card['id']?.toString() ??
-        card['mask']?.toString() ??
-        card.hashCode.toString();
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('card_$id'),
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: _cardTile(card),
-    );
-  }
-
-  Widget _cardTile(Map<String, dynamic> card) {
-    final mask = card['mask']?.toString() ?? '••••';
-    final brand = card['brand']?.toString() ??
-        card['payment_system']?.toString() ??
-        'Карта';
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.s),
-      padding: EdgeInsets.all(14.s),
-      decoration: AppDecorations.card(radius: 16.s),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10.s),
-            decoration: AppDecorations.pill(color: AppColors.blue),
-            child: const Icon(Icons.credit_card, color: AppColors.orange),
-          ),
-          SizedBox(width: 10.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(mask,
-                    style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w900)),
-                SizedBox(height: 4.s),
-                Text(brand,
-                    style: const TextStyle(
-                        color: AppColors.textMute,
-                        fontWeight: FontWeight.w700)),
+                          if (!_flow.awaiting)
+                            SliverToBoxAdapter(
+                              child: Center(
+                                child: TextButton(
+                                  key: const ValueKey('refresh-card-list'),
+                                  onPressed:
+                                      _flow.preparing ? null : _flow.refresh,
+                                  child: const Text('Обновить список'),
+                                ),
+                              ),
+                            ),
+                        ],
+                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      key: const ValueKey('add-card-button'),
+                      onPressed: _flow.canAdd ? _flow.addCard : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: palette.accentSoft,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                        minimumSize: const Size(44, 49),
+                        textStyle: AppTypography.title,
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_flow.preparing)
+                            const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                          else
+                            const Icon(Icons.add, size: 24),
+                          const SizedBox(width: AppSpacing.lg),
+                          Flexible(
+                              child: Text(
+                            _flow.preparing
+                                ? 'Открываем банк…'
+                                : _flow.addState == CardAddState.launchFailed
+                                    ? 'Открыть форму снова'
+                                    : 'Добавить новую карту',
+                            textAlign: TextAlign.center,
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _emptyView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.credit_card_off_outlined,
-                color: AppColors.textMute, size: 48),
-            const SizedBox(height: 12),
-            const Text('Добавленных карт нет',
-                style: TextStyle(
-                    color: AppColors.text, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            const Text(
-              'Добавьте карту в защищенной форме банка, и она появится здесь после обновления списка.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMute),
-            ),
-            SizedBox(height: 14.s),
-            const FaqShortcutCard(
-              title: 'Не получается добавить карту?',
-              subtitle:
-                  'В FAQ собраны ответы по привязке карты и оплате заказов.',
-              initialSection: FaqSection.payment,
-              icon: Icons.help_center_rounded,
-            ),
-            if (_cardFeedback != null) ...[
-              SizedBox(height: 14.s),
-              _cardFeedbackBanner(_cardFeedback!),
-            ],
-            SizedBox(height: 16.s),
-            _addCardButton(expanded: false),
-          ],
         ),
       ),
     );
   }
-
-  Widget _addCardButton({bool expanded = true}) {
-    final button = OutlinedButton.icon(
-      icon: const Icon(Icons.add, color: AppColors.orange),
-      label: const Text('Добавить новую карту',
-          style:
-              TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: AppColors.orange, width: 1.2),
-        padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-        backgroundColor: Colors.white.withValues(alpha: 0.02),
-      ),
-      onPressed: _addCard,
-    );
-
-    if (expanded) {
-      return Padding(
-        padding: EdgeInsets.only(top: 6.s),
-        child: SizedBox(width: double.infinity, child: button),
-      );
-    }
-    return button;
-  }
-
-  Widget _cardFeedbackBanner(_ProfileCardFeedback feedback) {
-    final Color accent;
-    final IconData icon;
-    switch (feedback.tone) {
-      case _ProfileCardFeedbackTone.success:
-        accent = const Color(0xFF2A8C3E);
-        icon = Icons.check_circle_rounded;
-      case _ProfileCardFeedbackTone.error:
-        accent = AppColors.red;
-        icon = Icons.error_outline_rounded;
-      case _ProfileCardFeedbackTone.info:
-        accent = AppColors.orange;
-        icon = Icons.info_outline_rounded;
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(12.s),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16.s),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: accent, size: 18.s),
-          SizedBox(width: 10.s),
-          Expanded(
-            child: Text(
-              feedback.message,
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  height: 1.35),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _errorView() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.s),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.red),
-            SizedBox(height: 12.s),
-            Text(_error ?? 'Ошибка',
-                style: const TextStyle(
-                    color: AppColors.text, fontWeight: FontWeight.w800)),
-            SizedBox(height: 10.s),
-            ElevatedButton(
-              onPressed: _load,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: Colors.black),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-enum _ProfileCardFeedbackTone { success, error, info }
-
-class _ProfileCardFeedback {
-  final String message;
-  final _ProfileCardFeedbackTone tone;
-
-  const _ProfileCardFeedback({required this.message, required this.tone});
 }

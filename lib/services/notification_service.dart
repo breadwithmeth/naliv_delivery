@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import '../core/destinations.dart';
 import 'onesignal_web_bridge_stub.dart'
     if (dart.library.js_interop) 'onesignal_web_bridge_web.dart';
 
@@ -185,7 +186,9 @@ class NotificationService {
     await initialize();
 
     if (_isWeb) {
-      await OneSignalWebBridge.addTag(_topicTag(topic), 'true');
+      if (!await OneSignalWebBridge.addTag(_topicTag(topic), 'true')) {
+        throw StateError('Could not subscribe to notification topic');
+      }
       return;
     }
 
@@ -197,7 +200,9 @@ class NotificationService {
     await initialize();
 
     if (_isWeb) {
-      await OneSignalWebBridge.removeTag(_topicTag(topic));
+      if (!await OneSignalWebBridge.removeTag(_topicTag(topic))) {
+        throw StateError('Could not unsubscribe from notification topic');
+      }
       return;
     }
 
@@ -310,24 +315,24 @@ class NotificationService {
 
   void _navigateToOrder(String? orderId) {
     if (orderId != null && orderId.isNotEmpty) {
-      AppNavigator.goToHomeTab(4);
+      AppNavigator.goToHome(destination: AppDestination.orders);
     }
   }
 
   void _navigateToPromotions(String? businessId) {
     if (businessId != null && businessId.isNotEmpty) {
-      AppNavigator.goToHomeTab(0);
+      AppNavigator.goToHome();
     }
   }
 
   void _navigateToDeliveryTracking(String? orderId) {
     if (orderId != null && orderId.isNotEmpty) {
-      AppNavigator.goToHomeTab(4);
+      AppNavigator.goToHome(destination: AppDestination.orders);
     }
   }
 
   void _navigateToHome() {
-    AppNavigator.goToHomeTab(0);
+    AppNavigator.goToHome();
   }
 
   Future<String?> _resolveExternalId() async {

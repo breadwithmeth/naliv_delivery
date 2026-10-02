@@ -1,242 +1,130 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/model/item.dart';
-import 'package:naliv_delivery/pages/cart_page.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/pages/product_detail_page.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-  });
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  group('CartProvider order', () {
-    test('keeps display order stable when regrouping an existing item', () {
-      final firstItem = _buildPourItem(itemId: 801, name: 'First beer');
-      final secondItem = Item(
+  test('keeps display order stable when regrouping an existing item', () {
+    final first = _pourItem();
+    final second = Item(
         itemId: 802,
-        name: 'Salted chips',
+        name: 'Чипсы',
         price: 500,
         amount: 10,
         quantity: 1,
-        unit: 'шт.',
-      );
-      final cartProvider = CartProvider()
-        ..syncItemBottleCounts(
-          firstItem,
-          const <Map<String, dynamic>>[],
-          <int, int>{1: 1},
-        )
-        ..incrementCatalogItem(secondItem);
-
-      expect(
-        cartProvider.displayGroups.map((group) => group.itemId).toList(growable: false),
-        <int>[801, 802],
-      );
-
-      cartProvider.syncItemBottleCounts(
-        firstItem,
-        const <Map<String, dynamic>>[],
-        <int, int>{2: 1},
-      );
-
-      expect(
-        cartProvider.displayGroups.map((group) => group.itemId).toList(growable: false),
-        <int>[801, 802],
-      );
-    });
+        unit: 'шт.');
+    final cart = CartProvider()
+      ..syncItemBottleCounts(first, [], {1: 1})
+      ..incrementCatalogItem(second);
+    expect(
+        cart.displayGroups.map((group) => group.itemId).toList(), [801, 802]);
+    cart.syncItemBottleCounts(first, [], {2: 1});
+    expect(
+        cart.displayGroups.map((group) => group.itemId).toList(), [801, 802]);
   });
 
-  group('CartPage layout', () {
-    testWidgets('lays out standard cart rows without exceptions', (tester) async {
-      tester.view.physicalSize = const Size(430, 932);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final item = Item(
-        itemId: 701,
-        name: 'Sparkling water',
-        price: 650,
-        amount: 8,
-        quantity: 1,
-        unit: 'шт.',
-      );
-      final cartProvider = CartProvider()
-        ..incrementCatalogItem(item)
-        ..incrementCatalogItem(item)
-        ..incrementCatalogItem(item);
-
-      await tester.pumpWidget(_wrap(cartProvider));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('Корзина'), findsOneWidget);
-      expect(find.textContaining('Sparkling water'), findsOneWidget);
-    });
-
-    testWidgets('stepper taps do not open the detail page', (tester) async {
-      tester.view.physicalSize = const Size(430, 932);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final item = Item(
+  testWidgets(
+      'cart quantity controls mutate quantity without entering the editor',
+      (tester) async {
+    final item = Item(
         itemId: 703,
-        name: 'Tonic water',
+        name: 'Тоник',
         price: 700,
-        amount: 8,
+        amount: 4,
         quantity: 1,
-        unit: 'шт.',
-      );
-      final cartProvider = CartProvider()
-        ..incrementCatalogItem(item)
-        ..incrementCatalogItem(item)
-        ..incrementCatalogItem(item);
-
-      await tester.pumpWidget(_wrap(cartProvider));
+        unit: 'шт.');
+    final cart = CartProvider()..syncItemSelectionQuantity(item, [], 3);
+    final semantics = tester.ensureSemantics();
+    try {
+      await _mount(tester, cart);
+      await tester.tap(find.bySemanticsLabel('Добавить одну штуку'));
       await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.add).first);
+      expect(cart.getCatalogQuantity(item), 4);
+      expect(cart.getTotalPrice(), 2800);
+      expect(find.byType(ProductDetailPage), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Убрать одну штуку'));
       await tester.pumpAndSettle();
+      expect(cart.getCatalogQuantity(item), 3);
+      expect(cart.getTotalPrice(), 2100);
+      expect(find.byType(ProductDetailPage), findsNothing);
+    } finally {
+      semantics.dispose();
+    }
+  });
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('В корзину'), findsNothing);
-      expect(cartProvider.getCatalogQuantity(item), 4);
-    });
-
-    testWidgets('single item decrements to zero, then trash removes it', (tester) async {
-      tester.view.physicalSize = const Size(430, 932);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final item = Item(
+  testWidgets(
+      'the final weight portion has an explicit delete, not a decrement',
+      (tester) async {
+    final item = Item(
         itemId: 704,
-        name: 'Ginger ale',
-        price: 700,
-        amount: 8,
-        quantity: 1,
-        unit: 'шт.',
-      );
-      final cartProvider = CartProvider()..incrementCatalogItem(item);
-
-      await tester.pumpWidget(_wrap(cartProvider));
+        name: 'Сыр',
+        price: 5000,
+        amount: 2,
+        quantity: 0.25,
+        unit: 'кг.');
+    final cart = CartProvider()..syncItemSelectionQuantity(item, [], 0.5);
+    final semantics = tester.ensureSemantics();
+    try {
+      await _mount(tester, cart);
+      await tester.tap(find.bySemanticsLabel('Убрать одну штуку'));
       await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.remove).first);
+      expect(cart.activeDisplayGroups.single.totalQuantity, 0.25);
+      expect(cart.getTotalPrice(), 1250);
+      expect(find.bySemanticsLabel('Убрать одну штуку'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Удалить товар'));
       await tester.pumpAndSettle();
-
-      expect(find.textContaining('Ginger ale'), findsOneWidget);
-      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
-      expect(cartProvider.getCatalogQuantity(item), 0);
-
-      await tester.tap(find.byIcon(Icons.delete_outline).first);
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Ginger ale'), findsNothing);
-      expect(find.text('Ваша корзина пуста'), findsOneWidget);
-    });
-
-    testWidgets('lays out bottle-edit cart rows without exceptions', (tester) async {
-      tester.view.physicalSize = const Size(430, 932);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final item = _buildPourItem();
-      final cartProvider = CartProvider()
-        ..syncItemBottleCounts(
-          item,
-          const <Map<String, dynamic>>[],
-          <int, int>{1: 1, 2: 1},
-        );
-
-      await tester.pumpWidget(_wrap(cartProvider));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('Изменить'), findsOneWidget);
-      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
-    });
-
-    testWidgets('uses the shell back action without popping its navigator',
-        (tester) async {
-      var backCalls = 0;
-      final cartProvider = CartProvider();
-
-      await tester.pumpWidget(
-        _wrap(
-          cartProvider,
-          onBack: () => backCalls += 1,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
-      await tester.pumpAndSettle();
-
-      expect(backCalls, 1);
-      expect(find.text('Корзина'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+      expect(cart.items, isEmpty);
+      expect(cart.hasActiveItems, isFalse);
+    } finally {
+      semantics.dispose();
+    }
   });
 }
 
-Widget _wrap(
-  CartProvider cartProvider, {
-  VoidCallback? onBack,
-}) {
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<CartProvider>.value(value: cartProvider),
-      ChangeNotifierProvider<BusinessProvider>(create: (_) => BusinessProvider()),
-    ],
-    child: MaterialApp(
-      home: CartPage(onBack: onBack),
-    ),
-  );
+Future<void> _mount(WidgetTester tester, CartProvider cart) async {
+  await tester.binding.setSurfaceSize(const Size(375, 812));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(ChangeNotifierProvider<CartProvider>.value(
+    value: cart,
+    child: MaterialApp(theme: AppTheme.dark(), home: const CartPage()),
+  ));
+  await tester.pumpAndSettle();
 }
 
-Item _buildPourItem({
-  int itemId = 702,
-  String name = 'Beer from tap',
-}) {
-  return Item(
-    itemId: itemId,
-    name: name,
-    price: 1000,
-    image: '',
-    amount: 8,
-    unit: 'л.',
-    category: ItemCategory(categoryId: 1, name: 'Beer'),
-    options: <ItemOption>[
-      ItemOption(
-        optionId: 1,
-        name: 'Bottle',
-        required: 1,
-        selection: 'SINGLE',
-        optionItems: <ItemOptionItem>[
-          ItemOptionItem(
-            relationId: 1,
-            itemId: 101,
-            priceType: 'FIXED',
-            itemName: '1 л бутылка',
-            price: 50,
-            parentItemAmount: 1,
-          ),
-          ItemOptionItem(
-            relationId: 2,
-            itemId: 102,
-            priceType: 'FIXED',
-            itemName: '3 л бутылка',
-            price: 180,
-            parentItemAmount: 3,
-          ),
-        ],
-      ),
-    ],
-  );
-}
+Item _pourItem() => Item(
+      itemId: 801,
+      name: 'Разливное пиво',
+      price: 1000,
+      amount: 8,
+      unit: 'л.',
+      options: [
+        ItemOption(
+            optionId: 1,
+            name: 'Тара',
+            required: 1,
+            selection: 'SINGLE',
+            optionItems: [
+              ItemOptionItem(
+                  relationId: 1,
+                  itemId: 101,
+                  priceType: 'FIXED',
+                  itemName: 'Бутылка 1 л',
+                  price: 50,
+                  parentItemAmount: 1),
+              ItemOptionItem(
+                  relationId: 2,
+                  itemId: 102,
+                  priceType: 'FIXED',
+                  itemName: 'Бутылка 3 л',
+                  price: 180,
+                  parentItemAmount: 3),
+            ])
+      ],
+    );

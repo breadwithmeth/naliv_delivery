@@ -14,54 +14,81 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/bottling_surface_items.dart';
+
 void main() {
   setUpAll(_loadDesignFont);
 
-  testWidgets('filled cart follows the measured 375px frame', (tester) async {
+  testWidgets('gift litres stay visible when paid bottle quantity changes',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
-    await tester.binding.setSurfaceSize(const Size(375, 812));
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    expect(
+        cart.syncItemBottleCounts(
+            syntheticThreePlusOneSurfaceItem(onlyOneLitre: true),
+            [],
+            {93101: 3}),
+        isTrue);
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: cart,
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: const CartPage(),
+      ),
+    ));
+    await tester.pump();
+    final row = find.byKey(const ValueKey('cart-row-0'));
+    expect(find.descendant(of: row, matching: find.text('4')), findsOneWidget);
+    expect(cart.activeDisplayGroups.single.totalQuantity, 3);
+    await tester.tap(
+        find.descendant(of: row, matching: find.byIcon(Icons.add_rounded)));
+    await tester.pump();
+    expect(find.descendant(of: row, matching: find.text('5')), findsOneWidget);
+    expect(cart.activeDisplayGroups.single.totalQuantity, 4);
+    expect(cart.activeDisplayGroups.single.totalOrderQuantity, 5);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('narrow large-text cart keeps names, totals and checkout usable',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(320, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final cart = _filledCart();
-
-    await http.runWithClient(
-      () async {
-        await tester.pumpWidget(
-          ChangeNotifierProvider.value(
-            value: cart,
-            child: MaterialApp(
-              theme: AppTheme.dark(),
-              home: const CartPage(
-                businessId: 1,
-                address: 'г. Темиртау, ул. Ленина, 16',
-              ),
+    var checkedOut = false;
+    await http.runWithClient(() async {
+      await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: cart,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.6),
             ),
+            child: child!,
           ),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump();
-      },
-      () => _recommendationsClient,
+          home: CartPage(
+            businessId: 1,
+            onCheckout: () => checkedOut = true,
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }, () => _recommendationsClient);
+    final checkout = find.byKey(const ValueKey('cart-checkout-button'));
+    final total = find.text('105\u00A0360 ₸');
+    expect(tester.getRect(total).overlaps(tester.getRect(checkout)), isFalse);
+    final firstRow = find.byKey(const ValueKey('cart-row-0'));
+    final name = find.descendant(
+      of: firstRow,
+      matching: find.text('Aperol, Аперитив, Италия'),
     );
-
-    Rect rect(String key) => tester.getRect(find.byKey(ValueKey(key)));
-
-    expect(rect('cart-row-0'), const Rect.fromLTWH(16, 95, 343, 60));
-    expect(rect('cart-row-1'), const Rect.fromLTWH(16, 159, 343, 60));
-    expect(rect('cart-row-2'), const Rect.fromLTWH(16, 223, 343, 60));
-    expect(
-      rect('cart-recommendation-heading'),
-      const Rect.fromLTWH(16, 315, 343, 26),
-    );
-    expect(
-      rect('cart-recommendation-strip'),
-      const Rect.fromLTWH(0, 365, 375, 244),
-    );
-    expect(rect('cart-total-bar'), const Rect.fromLTWH(0, 662, 375, 150));
-    expect(
-      rect('cart-checkout-button'),
-      const Rect.fromLTWH(209, 698, 154, 49),
-    );
+    expect(tester.getSize(name).width, greaterThan(100));
+    await tester.tap(checkout);
+    expect(checkedOut, isTrue);
+    expect(cart.getTotalPrice(), 105360);
     expect(tester.takeException(), isNull);
   });
 }
@@ -96,8 +123,9 @@ CartProvider _filledCart() {
 }
 
 MockClient get _recommendationsClient => MockClient((request) async {
-      if (request.url.path.contains('/categories/') &&
-          request.url.path.endsWith('/items')) {
+      if (request.method == 'GET' &&
+          request.url.path == '/api/categories/10/items' &&
+          request.url.queryParameters['business_id'] == '1') {
         return http.Response(
           jsonEncode({
             'success': true,
@@ -119,7 +147,8 @@ MockClient get _recommendationsClient => MockClient((request) async {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      return http.Response('{}', 404);
+      throw StateError(
+          'Unexpected cart fixture request: ${request.method} ${request.url}');
     });
 
 Future<void> _loadDesignFont() async {

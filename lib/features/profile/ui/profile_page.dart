@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,32 +12,23 @@ import '../../../services/telemetry_consent_service.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
 
-/// Profile — the design's `Профиль` and `Профиль - Переключение свитчей` frames.
-///
-/// Geometry: the standard top bar, an 80 px avatar disc (accent @50 %, 47.5 px glyph) centred at
-/// y = 139, then eight 343 × 58 rows from y = 231 at a 62 px pitch, separated by 1 px lines —
-/// except between the two switch rows, which read as one group. Each row is transparent with a
-/// radius-10 hit area: icon 24 at x = 32, title 16/500 at x = 72, subtitle 10/400 muted beneath
-/// it, and either a chevron (24, x = 319) or a 50 × 30 switch (x = 297). «Выйти» sits centred at
-/// y = 733 in error red.
-///
-/// The switch states are real: «Сбор информации» is `TelemetryConsentService` and «Тема
-/// оформления» is [ThemeController] — the design draws the switch, this wires it.
+import '../profile_account.dart';
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
-    this.addressSummary,
-    this.cardsSummary,
+    this.account,
+    this.loadAccount,
     this.onNavigate,
+    this.onSignIn,
     this.onLogout,
     super.key,
   });
 
-  /// Row subtitles that reflect the account: «Нет сохранённых адресов», «Добавленных карт нет»…
-  final String? addressSummary;
-  final String? cardsSummary;
-
-  final ValueChanged<AppDestination>? onNavigate;
-  final VoidCallback? onLogout;
+  final ProfileAccount? account;
+  final Future<ProfileAccount?> Function()? loadAccount;
+  final FutureOr<void> Function(AppDestination)? onNavigate;
+  final Future<void> Function()? onSignIn;
+  final Future<void> Function()? onLogout;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -43,17 +36,112 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool? _consent;
+  bool _consentSaving = false;
+  bool _consentLoadFailed = false;
+  bool _themeSaving = false;
+  ProfileAccount? _account;
+  bool _accountLoading = false;
+  bool _accountFailed = false;
+  bool _signingIn = false;
+  bool _loggingOut = false;
 
   @override
   void initState() {
     super.initState();
+    _account = widget.account;
+    _refreshAccount();
     _loadConsent();
   }
 
   Future<void> _loadConsent() async {
-    final allowed = await TelemetryConsentService.loadConsent();
-    if (!mounted) return;
-    setState(() => _consent = allowed);
+    setState(() {
+      _consent = null;
+      _consentLoadFailed = false;
+    });
+    try {
+      final allowed = await TelemetryConsentService.loadConsent();
+      if (!mounted) return;
+      setState(() => _consent = allowed);
+    } catch (_) {
+      if (mounted) setState(() => _consentLoadFailed = true);
+    }
+  }
+
+  Future<void> _refreshAccount() async {
+    final load = widget.loadAccount;
+    if (load == null || _accountLoading) return;
+    setState(() {
+      _accountLoading = true;
+      _accountFailed = false;
+    });
+    try {
+      final account = await load();
+      if (mounted) setState(() => _account = account);
+    } catch (_) {
+      if (mounted) setState(() => _accountFailed = true);
+    } finally {
+      if (mounted) setState(() => _accountLoading = false);
+    }
+  }
+
+  Future<void> _openDestination(AppDestination destination) async {
+    final navigate = widget.onNavigate;
+    if (navigate == null) return;
+    await navigate(destination);
+    if (mounted) await _refreshAccount();
+  }
+
+  Future<void> _signIn() async {
+    if (_signingIn || widget.onSignIn == null) return;
+    setState(() => _signingIn = true);
+    try {
+      await widget.onSignIn!();
+      if (mounted) await _refreshAccount();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть вход в аккаунт')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    if (_loggingOut || widget.onLogout == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Выйти из аккаунта?'),
+        content: const Text(
+            'Корзина сохранится. Для заказов и карт понадобится вход.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Остаться'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Выйти'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    setState(() => _loggingOut = true);
+    try {
+      await widget.onLogout!();
+    } finally {
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
+
+  String _summary(String? saved, String emptyGuest) {
+    if (_accountLoading && saved == null) return 'Загрузка…';
+    if (_accountFailed && saved == null) return 'Не удалось загрузить';
+    if (_account == null) return emptyGuest;
+    return saved ?? 'Откройте, чтобы посмотреть';
   }
 
   @override
@@ -65,7 +153,7 @@ class _ProfilePageState extends State<ProfilePage> {
           AppIcons.orders, 'История заказов', 'Активные и завершённые заказы',
           destination: AppDestination.orders),
       const _RowSpec(
-          AppIcons.certificates, 'Сертификаты', 'Покупка, активация и подарки',
+          AppIcons.certificates, 'Сертификаты', 'Покупка и активация по коду',
           destination: AppDestination.certificates),
       const _RowSpec(
           AppIcons.support, 'Поддержка', 'Вопросы по заказам и оплате',
@@ -74,109 +162,214 @@ class _ProfilePageState extends State<ProfilePage> {
           AppIcons.faq, 'FAQ', 'Вход, карты, доставка, бонусы и возвраты',
           destination: AppDestination.faq),
       _RowSpec(AppIcons.addresses, 'Адреса',
-          widget.addressSummary ?? 'Нет сохранённых адресов',
+          _summary(_account?.addressSummary, 'Войдите, чтобы сохранить адрес'),
           destination: AppDestination.addresses),
       _RowSpec(AppIcons.cards, 'Карты',
-          widget.cardsSummary ?? 'Добавленных карт нет',
+          _summary(_account?.cardsSummary, 'Войдите, чтобы управлять картами'),
           destination: AppDestination.cards),
       _RowSpec(
-          AppIcons.analytics, 'Сбор информации', 'Анонимные отчёты об ошибках',
-          switchValue: _consent, onSwitch: (value) async {
-        setState(() => _consent = value);
-        await TelemetryConsentService.setConsent(value);
-      }),
-      _RowSpec(AppIcons.theme, 'Тема оформления',
-          'Переключение светлой и тёмной темы',
+          AppIcons.analytics,
+          'Сбор информации',
+          _consentLoadFailed
+              ? 'Не удалось загрузить · нажмите, чтобы повторить'
+              : _consent == null
+                  ? 'Загрузка настройки…'
+                  : _consentSaving
+                      ? 'Сохраняем настройку…'
+                      : 'Анонимные отчёты об ошибках',
+          switchValue: _consent,
+          onSwitch: _consent == null || _consentSaving
+              ? null
+              : (value) async {
+                  setState(() {
+                    _consent = value;
+                    _consentSaving = true;
+                  });
+                  try {
+                    await TelemetryConsentService.setConsent(value);
+                  } catch (_) {
+                    await _loadConsent();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context)
+                        .showSnackBar(const SnackBar(
+                      content: Text('Не удалось сохранить настройку'),
+                    ));
+                  } finally {
+                    if (mounted) setState(() => _consentSaving = false);
+                  }
+                }),
+      _RowSpec(
+          AppIcons.theme,
+          'Тема оформления',
+          _themeSaving
+              ? 'Сохраняем тему…'
+              : 'Переключение светлой и тёмной темы',
           // The design's switch is binary and shows the *effective* theme: following the OS into
           // dark reads as on, and toggling pins an explicit mode.
           switchValue: Theme.of(context).brightness == Brightness.dark,
-          onSwitch: (value) =>
-              theme.setMode(value ? ThemeMode.dark : ThemeMode.light)),
+          onSwitch: _themeSaving
+              ? null
+              : (value) async {
+                  setState(() => _themeSaving = true);
+                  try {
+                    await theme
+                        .setMode(value ? ThemeMode.dark : ThemeMode.light);
+                  } catch (_) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Не удалось сохранить тему')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _themeSaving = false);
+                  }
+                }),
     ];
 
     return Scaffold(
+      backgroundColor: palette.background,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-              child: AppTopBar(
-                title: 'Профиль',
-                onBack: () => Navigator.of(context).maybePop(),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Center(
-              child: Container(
-                key: const ValueKey('profile-avatar'),
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: palette.accent.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                  child: AppTopBar(
+                    title: 'Профиль',
+                    onBack: () => Navigator.of(context).maybePop(),
+                  ),
                 ),
-                child:
-                    const Center(child: AppIcon(AppIcons.avatar, size: 47.5)),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.only(
-                  top: AppSpacing.xs,
-                  bottom:
-                      AppSpacing.huge + MediaQuery.paddingOf(context).bottom,
-                ),
-                children: [
-                  for (var i = 0; i < rows.length; i++) ...[
-                    _ProfileRow(
-                      rowKey: ValueKey('profile-row-$i'),
-                      spec: rows[i],
-                      onTap: rows[i].destination == null
-                          ? null
-                          : () => widget.onNavigate?.call(rows[i].destination!),
-                    ),
-                    if (i < rows.length - 1) ...[
-                      const SizedBox(height: AppSpacing.xxs),
-                      if (i < 6) ...[
-                        Divider(
-                          height: 1,
-                          thickness: 1,
-                          indent: AppSpacing.xxxl,
-                          endIndent: AppSpacing.xxxl,
-                          color: palette.divider,
-                        ),
-                        const SizedBox(height: 1),
-                      ],
-                    ],
-                  ],
-                  const SizedBox(height: AppSpacing.xl),
-                  Center(
-                    child: GestureDetector(
-                      onTap: widget.onLogout,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        key: const ValueKey('profile-logout'),
-                        width: 94,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                        ),
-                        child: Text(
-                          'Выйти',
-                          style:
-                              AppTypography.body.copyWith(color: palette.error),
-                        ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshAccount,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.only(
+                        top: AppSpacing.xl,
+                        bottom: AppSpacing.huge +
+                            MediaQuery.paddingOf(context).bottom,
                       ),
+                      children: [
+                        Center(
+                          child: AnimatedContainer(
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 200),
+                            key: const ValueKey('profile-avatar'),
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: palette.accent.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: AppIcon(AppIcons.avatar, size: 47.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xxxl),
+                          child: Column(
+                            children: [
+                              if (_account != null) ...[
+                                Text(
+                                  _account!.name ?? 'Личный кабинет',
+                                  key: const ValueKey('profile-name'),
+                                  textAlign: TextAlign.center,
+                                  style: AppTypography.titleMedium
+                                      .copyWith(color: palette.textPrimary),
+                                ),
+                                if (_account!.phone != null)
+                                  Text(
+                                    _account!.phone!,
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.bodySmall
+                                        .copyWith(color: palette.textSecondary),
+                                  ),
+                              ] else if (widget.onSignIn != null)
+                                FilledButton(
+                                  key: const ValueKey('profile-sign-in'),
+                                  onPressed: _signingIn ? null : _signIn,
+                                  child: Text(_signingIn
+                                      ? 'Открываем вход…'
+                                      : 'Войти или зарегистрироваться'),
+                                ),
+                              if (_accountLoading)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: AppSpacing.md),
+                                  child: LinearProgressIndicator(),
+                                ),
+                              if (_accountFailed)
+                                TextButton.icon(
+                                  onPressed: _refreshAccount,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text(
+                                      'Не удалось обновить · повторить'),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        for (var i = 0; i < rows.length; i++) ...[
+                          _ProfileRow(
+                            rowKey: ValueKey('profile-row-$i'),
+                            spec: rows[i],
+                            onTap: rows[i].destination != null
+                                ? widget.onNavigate == null
+                                    ? null
+                                    : () =>
+                                        _openDestination(rows[i].destination!)
+                                : i == 6 && _consentLoadFailed
+                                    ? _loadConsent
+                                    : rows[i].switchValue != null &&
+                                            rows[i].onSwitch != null
+                                        ? () => rows[i]
+                                            .onSwitch!(!rows[i].switchValue!)
+                                        : null,
+                          ),
+                          if (i < rows.length - 1) ...[
+                            const SizedBox(height: AppSpacing.xxs),
+                            if (i < 6) ...[
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                indent: AppSpacing.xxxl,
+                                endIndent: AppSpacing.xxxl,
+                                color: palette.divider,
+                              ),
+                              const SizedBox(height: 1),
+                            ],
+                          ],
+                        ],
+                        if (_account != null && widget.onLogout != null) ...[
+                          const SizedBox(height: AppSpacing.xl),
+                          Center(
+                            child: TextButton.icon(
+                              key: const ValueKey('profile-logout'),
+                              onPressed: _loggingOut ? null : _logout,
+                              style: TextButton.styleFrom(
+                                  foregroundColor: palette.error),
+                              icon: AppIcon(AppIcons.logout,
+                                  size: 19, color: palette.error),
+                              label: Text(_loggingOut ? 'Выходим…' : 'Выйти'),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -211,77 +404,86 @@ class _ProfileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-        child: Container(
-          key: rowKey,
-          height: 58,
-          padding: const EdgeInsets.only(
-            left: AppSpacing.xxxl,
-            right: AppSpacing.xl,
-          ),
-          decoration:
-              BoxDecoration(borderRadius: BorderRadius.circular(AppRadii.lg)),
-          child: Row(
-            children: [
-              AppIcon(spec.icon, size: 24, color: palette.accent),
-              const SizedBox(width: AppSpacing.xxxl),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      spec.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.titleMedium
-                          .copyWith(color: palette.textPrimary),
-                    ),
-                    Text(
-                      spec.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              if (spec.onSwitch != null)
-                _ProfileSwitch(
-                  key: ValueKey(
-                    spec.icon == AppIcons.theme
-                        ? 'profile-theme-switch'
-                        : 'profile-telemetry-switch',
+    return Semantics(
+      button: spec.destination != null,
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+          child: Container(
+            key: rowKey,
+            constraints: const BoxConstraints(minHeight: 58),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxxl,
+              AppSpacing.md,
+              AppSpacing.xl,
+              AppSpacing.md,
+            ),
+            decoration:
+                BoxDecoration(borderRadius: BorderRadius.circular(AppRadii.lg)),
+            child: Row(
+              children: [
+                AppIcon(spec.icon, size: 24, color: palette.accent),
+                const SizedBox(width: AppSpacing.xxxl),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        spec.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.titleMedium
+                            .copyWith(color: palette.textPrimary),
+                      ),
+                      Text(
+                        spec.subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.label
+                            .copyWith(color: palette.textSecondary),
+                      ),
+                    ],
                   ),
-                  value: spec.switchValue ?? false,
-                  onChanged: spec.onSwitch!,
-                  themeIcon: spec.icon == AppIcons.theme,
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.xs),
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Center(
-                      child: Transform.flip(
-                        flipX: true,
-                        child: AppIcon(
-                          AppIcons.back,
-                          width: 6,
-                          height: 13,
-                          color: palette.textSecondary,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                if (spec.destination == null)
+                  _ProfileSwitch(
+                    key: ValueKey(
+                      spec.icon == AppIcons.theme
+                          ? 'profile-theme-switch'
+                          : 'profile-telemetry-switch',
+                    ),
+                    label: spec.title,
+                    value: spec.switchValue ?? false,
+                    onChanged: spec.onSwitch,
+                    themeIcon: spec.icon == AppIcons.theme,
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.xs),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Center(
+                        child: Transform.flip(
+                          flipX: true,
+                          child: AppIcon(
+                            AppIcons.back,
+                            width: 6,
+                            height: 13,
+                            color: palette.textSecondary,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -291,60 +493,75 @@ class _ProfileRow extends StatelessWidget {
 
 class _ProfileSwitch extends StatelessWidget {
   const _ProfileSwitch({
+    required this.label,
     required this.value,
     required this.onChanged,
     required this.themeIcon,
     super.key,
   });
 
+  final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
   final bool themeIcon;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     return Semantics(
+      label: label,
       toggled: value,
-      button: true,
-      child: GestureDetector(
-        onTap: () => onChanged(!value),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+      enabled: onChanged != null,
+      child: InkWell(
+        onTap: onChanged == null ? null : () => onChanged!(!value),
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        child: SizedBox(
           width: 50,
-          height: 30,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color:
-                themeIcon || value ? palette.accentSoft : palette.surfaceMuted,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-          ),
-          child: AnimatedAlign(
-            duration: const Duration(milliseconds: 150),
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: themeIcon
-                  ? DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: CustomPaint(
-                        painter: _ThemeGlyphPainter(
-                          dark: value,
-                          color: palette.accentSoft,
+          height: 48,
+          child: Center(
+            child: AnimatedContainer(
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 150),
+              width: 50,
+              height: 30,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color:
+                    themeIcon || value ? palette.accentSoft : palette.divider,
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+                border: Border.all(
+                    color: palette.textSecondary.withValues(alpha: 0.25)),
+              ),
+              child: AnimatedAlign(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 150),
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: themeIcon
+                      ? DecoratedBox(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: CustomPaint(
+                            painter: _ThemeGlyphPainter(
+                              dark: value,
+                              color: palette.accentSoft,
+                            ),
+                          ),
+                        )
+                      : const DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                    )
-                  : const DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                ),
+              ),
             ),
           ),
         ),

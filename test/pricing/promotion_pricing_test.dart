@@ -64,7 +64,9 @@ void main() {
       expect(item.totalPrice, 950);
     });
 
-    test('subtract promo keeps paid quantity and surfaces gifted value separately', () {
+    test(
+        'subtract promo keeps paid quantity and surfaces gifted value separately',
+        () {
       final item = CartItem(
         itemId: 1,
         name: 'Beer',
@@ -141,5 +143,7 @@ void main() {
 }
 
 String _formatQty(double qty) {
-  return (qty - qty.roundToDouble()).abs() < 0.001 ? qty.toStringAsFixed(0) : qty.toStringAsFixed(2);
+  return (qty - qty.roundToDouble()).abs() < 0.001
+      ? qty.toStringAsFixed(0)
+      : qty.toStringAsFixed(2);
 }

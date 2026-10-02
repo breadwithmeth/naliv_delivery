@@ -16,10 +16,24 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 /// 3. GET  /api/widget/:publicKey/sessions/:id/messages?afterId=N
 /// 4. POST /api/widget/:publicKey/sessions/:id/messages
 class ChatApiService {
+  /// Creates an owned REST transport with optional Socket.IO delivery.
+  ///
+  /// [dispose] closes the supplied [client]. Set [enableSocket] to `false`
+  /// when requests must stay inside an isolated HTTP fixture.
+  ChatApiService({http.Client? client, bool enableSocket = true})
+      : _client = client ?? http.Client(),
+        _enableSocket = enableSocket;
+
+  final http.Client _client;
+  final bool _enableSocket;
+  bool _disposed = false;
+  bool _polling = false;
+  int _historyLoads = 0;
+
   // ─── Конфигурация ───────────────────────────────────────────────────
   static const String _baseUrl = 'https://bm.drawbridge.kz';
 
-  /// Публичный ключ виджета (замени на реальный).
+  /// Публичный ключ виджета поддержки.
   static const String _publicKey = 'wgt_Ioj4vp2arln68wZeSMeyWd4l';
 
   // ─── Ключи SharedPreferences ────────────────────────────────────────
@@ -47,7 +61,8 @@ class ChatApiService {
 
   String? get sessionId => _sessionId;
   bool get isSocketConnected => _socketConnected;
-  bool get hasSession => _sessionId != null && _sessionToken != null;
+  bool get hasSession =>
+      !_disposed && _sessionId != null && _sessionToken != null;
 
   // ═══════════════════════════════════════════════════════════════════
   // Инициализация
@@ -55,6 +70,7 @@ class ChatApiService {
 
   /// Восстанавливает сессию из SharedPreferences и запускает polling.
   Future<void> init() async {
+    if (_disposed) return;
     await _restoreSession();
     if (hasSession) {
       _startPolling();
@@ -67,9 +83,12 @@ class ChatApiService {
   // ═══════════════════════════════════════════════════════════════════
 
   Future<WidgetConfig?> fetchConfig() async {
+    if (_disposed) return null;
     try {
       final uri = Uri.parse('$_baseUrl/api/widget/$_publicKey/config');
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      final response =
+          await _client.get(uri).timeout(const Duration(seconds: 8));
+      if (_disposed) return null;
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return WidgetConfig.fromJson(data['widget'] as Map<String, dynamic>);
@@ -91,6 +110,7 @@ class ChatApiService {
     String? phone,
   }) async {
     if (hasSession) return true;
+    if (_disposed) return false;
 
     try {
       final uri = Uri.parse('$_baseUrl/api/widget/$_publicKey/sessions');
@@ -99,13 +119,14 @@ class ChatApiService {
       if (email != null && email.isNotEmpty) body['email'] = email;
       if (phone != null && phone.isNotEmpty) body['phone'] = phone;
 
-      final response = await http
+      final response = await _client
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
             body: body.isNotEmpty ? jsonEncode(body) : '{}',
           )
           .timeout(const Duration(seconds: 10));
+      if (_disposed) return false;
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -114,6 +135,7 @@ class ChatApiService {
 
         if (_sessionId != null && _sessionToken != null) {
           await _persistSession();
+          if (_disposed) return false;
           _startPolling();
           _connectSocket();
           debugPrint('[ChatApi] Сессия создана: $_sessionId');
@@ -158,9 +180,7 @@ class ChatApiService {
 
       if (body.isEmpty) return false;
 
-      debugPrint('[ChatApi] PATCH profile: $body');
-
-      final response = await http
+      final response = await _client
           .patch(
             uri,
             headers: {
@@ -170,6 +190,7 @@ class ChatApiService {
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 10));
+      if (_disposed) return false;
 
       if (response.statusCode == 200) {
         debugPrint('[ChatApi] Профиль обновлён');
@@ -196,7 +217,7 @@ class ChatApiService {
       final uri = Uri.parse(
         '$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/messages',
       );
-      final response = await http
+      final response = await _client
           .post(
             uri,
             headers: {
@@ -206,13 +227,13 @@ class ChatApiService {
             body: jsonEncode({'content': text}),
           )
           .timeout(const Duration(seconds: 10));
+      if (_disposed) return const SendResult.failure('Чат закрыт');
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final msg = data['message'];
         if (msg != null) {
           final cm = ChatMessage.fromJson(msg as Map<String, dynamic>);
-          _updateLastId(cm.id);
           // НЕ добавляем в стрим — страница получит через SendResult
           return SendResult.success(cm);
         }
@@ -232,13 +253,17 @@ class ChatApiService {
     }
   }
 
-  /// Загружает историю сообщений (полную или с afterId).
-  Future<FetchResult> fetchHistory({int limit = 100}) async {
+  /// Загружает историю; polling запрашивает только сообщения после курсора.
+  Future<FetchResult> fetchHistory({
+    int limit = 100,
+    bool afterLatest = false,
+  }) async {
     if (!hasSession) return const FetchResult.failure('Нет активной сессии');
+    _historyLoads++;
 
     try {
       final params = <String, String>{'limit': limit.toString()};
-      if (_lastMessageId != null) {
+      if (afterLatest && _lastMessageId != null) {
         params['afterId'] = _lastMessageId.toString();
       }
 
@@ -246,14 +271,18 @@ class ChatApiService {
         '$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/messages',
       ).replace(queryParameters: params);
 
-      final response = await http.get(
+      final response = await _client.get(
         uri,
         headers: {'Authorization': 'Bearer $_sessionToken'},
       ).timeout(const Duration(seconds: 10));
+      if (_disposed) return const FetchResult.failure('Чат закрыт');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final list = data['messages'] as List<dynamic>? ?? [];
+        final list = data['messages'];
+        if (list is! List) {
+          return const FetchResult.failure('Некорректный ответ сервера');
+        }
         final messages = list
             .map((j) => ChatMessage.fromJson(j as Map<String, dynamic>))
             .toList();
@@ -273,6 +302,8 @@ class ChatApiService {
     } catch (e) {
       debugPrint('[ChatApi] Ошибка загрузки истории: $e');
       return const FetchResult.failure('Сетевая ошибка');
+    } finally {
+      _historyLoads--;
     }
   }
 
@@ -281,6 +312,7 @@ class ChatApiService {
   // ═══════════════════════════════════════════════════════════════════
 
   void _startPolling() {
+    if (_disposed) return;
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       _pollTick();
@@ -293,18 +325,23 @@ class ChatApiService {
   }
 
   Future<void> _pollTick() async {
-    if (!hasSession) return;
-
-    final result = await fetchHistory();
-    switch (result) {
-      case FetchSuccess(:final messages):
-        for (final m in messages) {
-          _messageController.add(m);
-        }
-      case FetchSessionExpired():
-        _messageController.addError('SESSION_EXPIRED');
-      case FetchFailure():
-        break; // тихая ошибка polling
+    if (!hasSession || _polling || _historyLoads != 0) return;
+    _polling = true;
+    try {
+      final result = await fetchHistory(afterLatest: true);
+      if (_disposed) return;
+      switch (result) {
+        case FetchSuccess(:final messages):
+          for (final message in messages) {
+            _messageController.add(message);
+          }
+        case FetchSessionExpired():
+          _messageController.addError('SESSION_EXPIRED');
+        case FetchFailure(:final error):
+          _messageController.addError(error);
+      }
+    } finally {
+      _polling = false;
     }
   }
 
@@ -313,7 +350,7 @@ class ChatApiService {
   // ═══════════════════════════════════════════════════════════════════
 
   void _connectSocket() {
-    if (!hasSession) return;
+    if (!hasSession || !_enableSocket) return;
 
     _socket?.dispose();
     _socket = io.io(
@@ -330,6 +367,7 @@ class ChatApiService {
     );
 
     _socket!.onConnect((_) {
+      if (_disposed) return;
       _socketConnected = true;
       _connectionController.add(ChatConnectionState.connected);
       debugPrint('[ChatApi] Socket.IO подключён');
@@ -340,14 +378,15 @@ class ChatApiService {
     });
 
     _socket!.on('message:new', (data) {
+      if (_disposed) return;
       if (data is Map<String, dynamic>) {
         final msg = ChatMessage.fromJson(data);
-        _updateLastId(msg.id);
         _messageController.add(msg);
       }
     });
 
     _socket!.onDisconnect((_) {
+      if (_disposed) return;
       _socketConnected = false;
       _connectionController.add(ChatConnectionState.disconnected);
       debugPrint('[ChatApi] Socket.IO отключён');
@@ -372,6 +411,7 @@ class ChatApiService {
 
   Future<void> _persistSession() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed) return;
     await prefs.setString(
         _prefsSessionKey,
         jsonEncode({
@@ -382,6 +422,7 @@ class ChatApiService {
 
   Future<void> _restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed) return;
     final raw = prefs.getString(_prefsSessionKey);
     if (raw == null) return;
     try {
@@ -414,8 +455,12 @@ class ChatApiService {
 
   /// Закрывает все ресурсы.
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     _stopPolling();
     _socket?.dispose();
+    _socket = null;
+    _client.close();
     _messageController.close();
     _connectionController.close();
   }
@@ -459,14 +504,6 @@ class ChatMessage {
           ? DateTime.tryParse(json['timestamp'].toString())
           : null,
       status: json['status']?.toString(),
-    );
-  }
-
-  factory ChatMessage.local(String text) {
-    return ChatMessage(
-      content: text,
-      isFromOperator: false,
-      timestamp: DateTime.now(),
     );
   }
 }

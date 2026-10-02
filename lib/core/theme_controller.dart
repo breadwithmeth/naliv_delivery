@@ -26,9 +26,11 @@ class ThemeController extends ChangeNotifier {
 
   Future<void> setMode(ThemeMode mode) async {
     if (mode == _mode) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!await prefs.setString(_key, mode.name)) {
+      throw StateError('Could not save theme mode');
+    }
     _mode = mode;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, mode.name);
   }
 }

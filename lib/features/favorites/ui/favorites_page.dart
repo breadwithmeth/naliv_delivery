@@ -179,7 +179,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
         AppSpacing.xxxl,
         0,
         AppSpacing.xxxl,
-        AppCartButton.clearance + MediaQuery.paddingOf(context).bottom,
+        AppCartButton.clearanceFor(context) + MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: visible.length + (_loadingMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
@@ -201,6 +201,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
             item,
             liked: liked.isLiked(widget.businessId, item.itemId),
             onLike: () => _unlike(item),
+            onCart: widget.onCart,
+            businessId: widget.businessId,
           ),
           onLike: () => _unlike(item),
           onIncrement: () =>

@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:naliv_delivery/utils/api.dart';
@@ -36,6 +35,18 @@ class OnboardingState {
   final bool notificationPromptSeen;
 }
 
+class OnboardingCitiesResult {
+  const OnboardingCitiesResult({
+    required this.cities,
+    this.isStale = false,
+    this.failed = false,
+  });
+
+  final List<OnboardingCity> cities;
+  final bool isStale;
+  final bool failed;
+}
+
 class OnboardingService {
   static const String _completedKey = 'onboarding_completed';
   static const String _selectedCityKey = 'onboarding_selected_city';
@@ -63,48 +74,55 @@ class OnboardingService {
       List<OnboardingCity>.unmodifiable(_citiesCache);
 
   static Future<void> _hydrateCitiesFromPrefs() async {
-    if (_citiesCache.isNotEmpty) return;
-
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_availableCitiesCacheKey);
-    if (raw == null || raw.isEmpty) return;
-
-    try {
-      final decoded = json.decode(raw);
-      if (decoded is! List) return;
-
-      final parsedCities = <OnboardingCity>[];
-      final parsedIds = <int, String>{};
-
-      for (final item in decoded) {
-        if (item is! Map) continue;
-        final city = Map<String, dynamic>.from(item);
-        final parsed = _parseCity(city);
-        if (parsed == null) continue;
-        parsedCities.add(parsed);
-        parsedIds[parsed.id] = parsed.name;
+    final cities = <OnboardingCity>[];
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = json.decode(raw);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is! Map) continue;
+            final parsed = _parseCity(Map<String, dynamic>.from(item));
+            if (parsed != null &&
+                !cities.any((city) =>
+                    city.id == parsed.id || city.name == parsed.name)) {
+              cities.add(parsed);
+            }
+          }
+        }
+      } catch (_) {
+        // Corrupt cache is not a list of available cities.
       }
+    }
+    _replaceCities(cities);
+  }
 
-      if (parsedCities.isEmpty) return;
-
-      _citiesCache = parsedCities;
-      _cityIds = parsedIds;
-    } catch (_) {}
+  static void _replaceCities(List<OnboardingCity> cities) {
+    _citiesCache = cities;
+    _cityIds = {for (final city in cities) city.id: city.name};
   }
 
   static OnboardingCity? _parseCity(Map<String, dynamic> city) {
     final idValue = city['city_id'] ?? city['id'];
     final id =
         idValue is int ? idValue : int.tryParse(idValue?.toString() ?? '');
-    final name = city['name']?.toString().trim();
-    if (id == null || name == null || name.isEmpty) return null;
+    final nameValue = city['name'];
+    final name = nameValue is String ? nameValue.trim() : null;
+    if (id == null || id <= 0 || name == null || name.isEmpty) return null;
 
     return OnboardingCity(
-        id: id, name: name, deliveryType: city['delivery_type']?.toString());
+      id: id,
+      name: name,
+      deliveryType: city['delivery_type'] is String
+          ? (city['delivery_type'] as String).trim()
+          : null,
+    );
   }
 
   static Future<OnboardingState> getState() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     return OnboardingState(
       isCompleted: prefs.getBool(_completedKey) ?? false,
       selectedCity: prefs.getString(_selectedCityKey),
@@ -116,7 +134,11 @@ class OnboardingService {
 
   static Future<void> setSelectedCity(String city) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_selectedCityKey, city);
+    await _persist(
+      prefs,
+      prefs.setString(_selectedCityKey, city),
+      'Could not save selected city',
+    );
   }
 
   static Future<String?> getSelectedCity() async {
@@ -126,75 +148,73 @@ class OnboardingService {
 
   static Future<List<OnboardingCity>> fetchAvailableCities(
       {bool forceRefresh = false}) async {
-    await _hydrateCitiesFromPrefs();
-
-    if (!forceRefresh && _citiesCache.isNotEmpty) {
-      return cachedCities;
-    }
-
-    final response = await ApiService.getAvailableCities();
-    if (response == null || response.isEmpty) {
-      return cachedCities;
-    }
-
-    final parsedCities = <OnboardingCity>[];
-    final parsedIds = <int, String>{};
-
-    for (final city in response) {
-      final parsed = _parseCity(city);
-      if (parsed == null) continue;
-      parsedCities.add(parsed);
-      parsedIds[parsed.id] = parsed.name;
-    }
-
-    if (parsedCities.isEmpty) {
-      return cachedCities;
-    }
-
-    _citiesCache = parsedCities;
-    _cityIds = parsedIds;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _availableCitiesCacheKey,
-      json.encode([
-        for (final city in parsedCities)
-          {
-            'city_id': city.id,
-            'name': city.name,
-            'delivery_type': city.deliveryType,
-          },
-      ]),
-    );
-
-    return cachedCities;
+    return (await loadAvailableCities(forceRefresh: forceRefresh)).cities;
   }
 
-  /// Best-effort IP geolocation to preselect a city. Returns a city name if it matches available cities.
-  static Future<String?> guessCityByIp() async {
-    // Skip IP lookup on web to avoid CORS failures in browsers; rely on city list/location instead.
-    if (kIsWeb) return null;
+  static Future<OnboardingCitiesResult> loadAvailableCities(
+      {bool forceRefresh = true}) async {
     try {
-      if (_citiesCache.isEmpty) return null;
-      final resp = await http
-          .get(Uri.parse('https://ipapi.co/json/'))
-          .timeout(const Duration(seconds: 4));
-      if (resp.statusCode != 200) return null;
-      final data = json.decode(resp.body);
-      final cityName = data['city']?.toString();
-      if (cityName == null || cityName.isEmpty) return null;
+      await _hydrateCitiesFromPrefs();
+      if (!forceRefresh && _citiesCache.isNotEmpty) {
+        return OnboardingCitiesResult(cities: cachedCities, isStale: true);
+      }
 
-      final match = _citiesCache.firstWhere(
-        (c) => c.name.toLowerCase() == cityName.toLowerCase(),
-        orElse: () => _citiesCache.firstWhere(
-          (c) => c.name.toLowerCase().contains(cityName.toLowerCase()),
-          orElse: () => const OnboardingCity(id: -1, name: ''),
-        ),
+      final response = await ApiService.getAvailableCities()
+          .timeout(const Duration(seconds: 10));
+      if (response == null) {
+        return OnboardingCitiesResult(
+          cities: cachedCities,
+          isStale: _citiesCache.isNotEmpty,
+          failed: true,
+        );
+      }
+
+      final cities = <OnboardingCity>[];
+      for (final city in response) {
+        final parsed = _parseCity(city);
+        if (parsed != null &&
+            !cities.any(
+                (city) => city.id == parsed.id || city.name == parsed.name)) {
+          cities.add(parsed);
+        }
+      }
+      if (response.isNotEmpty && cities.isEmpty) {
+        return OnboardingCitiesResult(
+          cities: cachedCities,
+          isStale: _citiesCache.isNotEmpty,
+          failed: true,
+        );
+      }
+
+      // A successful empty response must clear previously available cities.
+      _replaceCities(cities);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (!await prefs.setString(
+          _availableCitiesCacheKey,
+          json.encode([
+            for (final city in cities)
+              {
+                'city_id': city.id,
+                'name': city.name,
+                'delivery_type': city.deliveryType,
+              },
+          ]),
+        )) {
+          throw StateError('Could not cache available cities');
+        }
+      } catch (error) {
+        // Fresh server data remains usable even if the cache cannot be saved.
+        debugPrint('Could not cache onboarding cities: $error');
+      }
+      return OnboardingCitiesResult(cities: cachedCities);
+    } catch (error) {
+      debugPrint('Could not load onboarding cities: $error');
+      return OnboardingCitiesResult(
+        cities: cachedCities,
+        isStale: _citiesCache.isNotEmpty,
+        failed: true,
       );
-
-      return match.name.isEmpty ? null : match.name;
-    } catch (_) {
-      return null;
     }
   }
 
@@ -212,17 +232,50 @@ class OnboardingService {
 
   static Future<void> markLocationPromptSeen() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_locationPromptSeenKey, true);
+    await _persist(
+      prefs,
+      prefs.setBool(_locationPromptSeenKey, true),
+      'Could not save location prompt choice',
+    );
   }
 
   static Future<void> markNotificationPromptSeen() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_notificationPromptSeenKey, true);
+    await _persist(
+      prefs,
+      prefs.setBool(_notificationPromptSeenKey, true),
+      'Could not save notification prompt choice',
+    );
   }
 
   static Future<void> complete({required String city}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_selectedCityKey, city);
-    await prefs.setBool(_completedKey, true);
+    await _persist(
+      prefs,
+      prefs.setString(_selectedCityKey, city),
+      'Could not save selected city',
+    );
+    await _persist(
+      prefs,
+      prefs.setBool(_completedKey, true),
+      'Could not save onboarding completion',
+    );
+  }
+
+  static Future<void> _persist(
+    SharedPreferences prefs,
+    Future<bool> write,
+    String failure,
+  ) async {
+    try {
+      if (await write) return;
+    } catch (_) {
+      await prefs.reload();
+      rethrow;
+    }
+    // SharedPreferences updates its memory cache before the platform write.
+    // Restore persisted state so a rejected completion cannot open the gate.
+    await prefs.reload();
+    throw StateError(failure);
   }
 }

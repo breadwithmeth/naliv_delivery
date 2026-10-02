@@ -1,0 +1,58 @@
+{
+  "url": "https://njt25.naliv.kz/api/items/search?name=%D0%9F%D0%B8%D0%B2%D0%BE&business_id=6&page=3&limit=50",
+  "captured_at": "2026-10-02T01:12:17.190384+00:00",
+  "response_item": {
+    "item_id": 30318,
+    "name": "Пиво розлив Kronenbourg Blanc 1664 1л 4.8% светлое нефильтрованное",
+    "description": "Светлое нефильтрованное пиво Kronenbourg 1664 Blanc — европейский пшеничный (witbier) вариант с мягкой, слегка мутной внешностью и тонкой газированностью. Отличается свежим ароматом и деликатной текстурой.\n\nВо вкусе выражены цитрусовые оттенки апельсиновой цедры, легкая пряность кориандра и цветочные ноты, поддержанные мягким хлебным характером пшеничного солода. Нефильтрованный профиль придаёт более насыщенный аромат и округлость послевкусия.\n\nОбъём: 1 л; Алкоголь: 4.8% об.; Тип: светлое нефильтрованное пшеничное (witbier); Страна происхождения: Франция.",
+    "price": 2600,
+    "wholesale_price": null,
+    "wholesale_min_amount": null,
+    "amount": 20,
+    "quantity_step": 1,
+    "unit": "л.",
+    "img": "https://i.ibb.co.com/k2YCYqPW/Gemini-Generated-Image-gb3dzgb3dzgb3dzg.png",
+    "code": "KR-00000624",
+    "category": {
+      "category_id": 221,
+      "name": "Светлое",
+      "parent_category": 215
+    },
+    "visible": 1,
+    "options": [
+      {
+        "option_id": 579,
+        "name": "Литраж",
+        "required": 1,
+        "selection": "SINGLE",
+        "variants": [
+          {
+            "item_name": "Пластиковая бутылка 1л",
+            "relation_id": 2710,
+            "item_id": 1091,
+            "price_type": "ADD",
+            "price": 110,
+            "parent_item_amount": 1
+          },
+          {
+            "item_name": "Пластиковая бутылка 2л",
+            "relation_id": 2711,
+            "item_id": 1092,
+            "price_type": "ADD",
+            "price": 100,
+            "parent_item_amount": 2
+          },
+          {
+            "item_name": "Пластиковая бутылка 3л + ручка",
+            "relation_id": 2713,
+            "item_id": 1154,
+            "price_type": "ADD",
+            "price": 150,
+            "parent_item_amount": 3
+          }
+        ]
+      }
+    ],
+    "promotions": []
+  }
+}

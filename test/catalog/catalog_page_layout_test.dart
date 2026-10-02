@@ -8,65 +8,28 @@ import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/catalog/ui/category_products_page.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
+import 'package:naliv_delivery/features/product/ui/product_page.dart';
 import 'package:naliv_delivery/model/item.dart';
+import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('catalog landing follows the measured 375px frame',
+  testWidgets('category card stepper updates the cart, card opens details',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    await http.runWithClient(
-      () async {
-        await tester.pumpWidget(
-          ChangeNotifierProvider(
-            create: (_) => CartProvider(),
-            child: MaterialApp(
-              theme: AppTheme.dark(),
-              home: SupercategoryPage(
-                supercategoryId: 1,
-                businessId: 1,
-                title: 'Слабоалкогольные напитки',
-                onSearch: () {},
-                onCart: () {},
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump();
-      },
-      () => _catalogClient,
-    );
-
-    Rect rect(String key) => tester.getRect(find.byKey(ValueKey(key)));
-
-    expect(rect('catalog-chip-strip'), const Rect.fromLTWH(0, 103, 375, 29));
-    expect(
-      rect('catalog-featured-panel'),
-      const Rect.fromLTWH(16, 154, 359, 245),
-    );
-    expect(
-      rect('catalog-featured-product-0'),
-      const Rect.fromLTWH(176, 170, 110, 213),
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('all-products grid preserves Figma card bounds and pitch',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
+    final cart = CartProvider();
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => CartProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: cart),
+          ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
+        ],
         child: MaterialApp(
           theme: AppTheme.dark(),
           home: CategoryProductsPage(
@@ -74,27 +37,165 @@ void main() {
             title: 'Белое',
             businessId: 1,
             initialItems: _products,
-            onSearch: () {},
-            onCart: () {},
           ),
         ),
       ),
     );
+    final first = find.byKey(const ValueKey('category-product-0'));
+    Finder step(String label) => find.descendant(
+          of: first,
+          matching: find.byWidgetPredicate(
+              (widget) => widget is StepTap && widget.label == label),
+        );
+    await tester.tap(step('Добавить'));
     await tester.pump();
-
-    Rect product(int index) =>
-        tester.getRect(find.byKey(ValueKey('category-product-$index')));
-
-    expect(product(0), const Rect.fromLTWH(16, 103, 110, 240));
-    expect(product(1), const Rect.fromLTWH(132, 103, 110, 240));
-    expect(product(2), const Rect.fromLTWH(248, 103, 110, 240));
-    expect(product(3), const Rect.fromLTWH(16, 349, 110, 240));
+    expect(cart.getCatalogQuantity(_products.first.source), 1);
+    await tester.tap(step('Уменьшить количество'));
+    await tester.pump();
+    expect(cart.getCatalogQuantity(_products.first.source), 0);
+    await tester.tapAt(tester.getRect(first).topLeft + const Offset(50, 130));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProductPage), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-}
 
-MockClient get _catalogClient => MockClient((request) async {
-      if (request.url.path.endsWith('/categories/supercategories')) {
+  testWidgets('narrow catalog product opens without a layout overflow',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => CartProvider()),
+          ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: CategoryProductsPage(
+            categoryId: 10,
+            title: 'Белое',
+            businessId: 1,
+            initialItems: _products,
+          ),
+        ),
+      ),
+    );
+    final first = find.byKey(const ValueKey('category-product-0'));
+    await tester.tapAt(tester.getRect(first).topLeft + const Offset(50, 130));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProductPage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'failed leaf request retries; successful empty response stays empty',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var reads = 0;
+    final client = MockClient((request) async {
+      if (request.method != 'GET' ||
+          request.url.path != '/api/categories/10/items' ||
+          request.url.queryParameters['business_id'] != '1') {
+        throw StateError('Unexpected request: $request');
+      }
+      reads++;
+      if (reads == 1) return http.Response('temporarily unavailable', 503);
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'data': {'items': <Object>[]},
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const CategoryProductsPage(
+              categoryId: 10,
+              title: 'Белое',
+              businessId: 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Не удалось загрузить товары'), findsOneWidget);
+      await tester.tap(find.text('Повторить'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('В этой категории пока нет товаров'), findsOneWidget);
+      expect(reads, 2);
+      expect(tester.takeException(), isNull);
+    }, () => client);
+  });
+
+  testWidgets(
+      'failed catalog landing retries; missing category is not a spinner',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var reads = 0;
+    final client = MockClient((request) async {
+      if (request.method != 'GET' ||
+          request.url.path != '/api/categories/supercategories') {
+        throw StateError('Unexpected request: $request');
+      }
+      reads++;
+      if (reads == 1) return http.Response('temporarily unavailable', 503);
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'data': {'supercategories': <Object>[]},
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.dark(),
+            home: const SupercategoryPage(
+              supercategoryId: 1,
+              businessId: 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Не удалось загрузить категорию'), findsOneWidget);
+      await tester.tap(find.text('Повторить'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('В этой категории пока нет товаров'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(reads, 2);
+      expect(tester.takeException(), isNull);
+    }, () => client);
+  });
+
+  testWidgets('featured heading opens its products without another request',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var itemReads = 0;
+    final client = MockClient((request) async {
+      if (request.method != 'GET' ||
+          request.url.scheme != 'https' ||
+          request.url.host != 'njt25.naliv.kz') {
+        throw StateError('Unexpected request: $request');
+      }
+      if (request.url.path == '/api/categories/supercategories') {
         return http.Response(
           jsonEncode({
             'success': true,
@@ -109,7 +210,6 @@ MockClient get _catalogClient => MockClient((request) async {
                       'name': 'Вино',
                       'subcategories': [
                         {'category_id': 10, 'name': 'Аперитив'},
-                        {'category_id': 11, 'name': 'Белое'},
                       ],
                     },
                   ],
@@ -121,21 +221,47 @@ MockClient get _catalogClient => MockClient((request) async {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      if (request.url.path.contains('/categories/') &&
-          request.url.path.endsWith('/items')) {
+      if (request.url.path == '/api/categories/10/items' &&
+          request.url.queryParameters['business_id'] == '1') {
+        itemReads++;
         return http.Response(
           jsonEncode({
             'success': true,
             'data': {
-              'items': [_itemJson(100), _itemJson(101), _itemJson(102)]
+              'items': [_itemJson(100)]
             },
           }),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      return http.Response('{}', 404);
+      throw StateError('Unexpected request: $request');
     });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const SupercategoryPage(
+              supercategoryId: 1,
+              businessId: 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      expect(itemReads, 1);
+      await tester.tap(find.text('Аперитив').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(CategoryProductsPage), findsOneWidget);
+      expect(itemReads, 1);
+      expect(tester.takeException(), isNull);
+    }, () => client);
+  });
+}
 
 Map<String, dynamic> _itemJson(int id) => {
       'item_id': id,

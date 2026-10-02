@@ -1,14 +1,8 @@
-/// Typography for the Градусы24 redesign.
+/// Readable typography for the Градусы24 design system.
 ///
-/// The design uses one family — TikTok Sans, weights 300–900, sizes 6–32, line height
-/// ×1.3 almost everywhere. Roles below mirror the styles that actually dominate the 212
-/// frames (counts in comments), so a screen can always pick an existing role instead of
-/// inventing a size.
-///
-/// The family ships as a **variable** font. The optical-size axis matters: measured against
-/// the file's own text boxes, the 16pt static instances drift −6% wide at 8px and +1.7% at
-/// 20px, while `opsz = fontSize` reproduces the design within 1%. [AppTypography.base]
-/// therefore always sets both `wght` and `opsz`.
+/// Consumer text deliberately uses 12–16 px roles instead of the reference's
+/// 6–10 px metadata. Layouts retain the OS text scaler rather than shrink text.
+/// The bundled variable font uses both weight and optical-size axes.
 library;
 
 import 'package:flutter/material.dart';
@@ -47,67 +41,40 @@ abstract final class AppTypography {
     );
   }
 
-  // --- Roles ---------------------------------------------------------------------------
-  // name                          size/weight  design evidence
-  /// "Италия", "0,5 л" — the smallest secondary line.
-  static TextStyle get caption => base(size: 8);
+  /// Auxiliary metadata that is not a primary action or product name.
+  static final TextStyle caption = base(size: 12);
+  static final TextStyle captionMedium = base(size: 12, weight: 500);
+  static final TextStyle label = base(size: 12);
+  static final TextStyle labelMedium = base(size: 12, weight: 500);
+  static final TextStyle labelSemibold = base(size: 12, weight: 600);
+  static final TextStyle labelBold = base(size: 12, weight: 700);
 
-  /// Discount / bonus badges.
-  static TextStyle get captionMedium => base(size: 8, weight: 500);
+  /// Readable previous price.
+  static final TextStyle strikethrough =
+      base(size: 12, decoration: TextDecoration.lineThrough);
 
-  /// The workhorse secondary text (596 uses).
-  static TextStyle get label => base(size: 10);
+  /// Secondary content, including store details and product names.
+  static final TextStyle bodySmall = base(size: 14);
+  static final TextStyle bodySmallSemibold = base(size: 14, weight: 600);
+  static final TextStyle bodySmallBold = base(size: 14, weight: 700);
+  static final TextStyle bodySmallMedium = base(size: 14, weight: 500);
+  static final TextStyle bodySmallTight = base(size: 14, height: 1);
 
-  static TextStyle get labelMedium => base(size: 10, weight: 500);
-  static TextStyle get labelSemibold => base(size: 10, weight: 600);
+  /// Primary body text and action labels.
+  static final TextStyle body = base(size: 16);
+  static final TextStyle bodyMedium = base(size: 16, weight: 500);
+  static final TextStyle bodyBold = base(size: 16, weight: 700);
+  static final TextStyle bodyLight = base(size: 16, weight: 300);
 
-  /// Pill and badge labels ("История").
-  static TextStyle get labelBold => base(size: 10.8, weight: 700);
-
-  /// Old price, struck through (230 uses).
-  static TextStyle get strikethrough =>
-      base(size: 8, decoration: TextDecoration.lineThrough);
-
-  static TextStyle get bodySmall => base(size: 12);
-
-  static TextStyle get bodySmallSemibold => base(size: 12, weight: 600);
-
-  /// Store name and other emphasised 12px labels (72 uses).
-  static TextStyle get bodySmallBold => base(size: 12, weight: 700);
-
-  /// Tab labels, section "Все" pills (230 uses).
-  static TextStyle get bodySmallMedium => base(size: 12, weight: 500);
-
-  /// Tight single-line labels (numbers in steppers, 276 uses of lh×1.0 at 12px).
-  static TextStyle get bodySmallTight => base(size: 12, height: 1);
-
-  static TextStyle get body => base(size: 14);
-
-  /// Buttons, list rows (370 uses).
-  static TextStyle get bodyMedium => base(size: 14, weight: 500);
-
-  static TextStyle get bodyBold => base(size: 14, weight: 700);
-
-  /// Search placeholder ("Найти любимый напиток…").
-  static TextStyle get bodyLight => base(size: 14, weight: 300);
-
-  static TextStyle get titleRegular => base(size: 16);
-  static TextStyle get titleMedium => base(size: 16, weight: 500);
-
-  /// Card and list titles (449 uses — the most common heading).
-  static TextStyle get title => base(size: 16, weight: 700);
-
-  /// Section headers ("Вам также может понравиться").
-  static TextStyle get headline => base(size: 20, weight: 700);
-  static TextStyle get headlineMedium => base(size: 20, weight: 500);
-
-  /// Screen titles and hero prices.
-  static TextStyle get display => base(size: 24, weight: 900);
-  static TextStyle get displayBold => base(size: 24, weight: 700);
-
-  /// Onboarding and empty-state headlines.
-  static TextStyle get displayLarge => base(size: 32, weight: 900);
-  static TextStyle get displayLargeRegular => base(size: 32, weight: 700);
+  static final TextStyle titleRegular = base(size: 16);
+  static final TextStyle titleMedium = base(size: 16, weight: 500);
+  static final TextStyle title = base(size: 16, weight: 700);
+  static final TextStyle headline = base(size: 20, weight: 700);
+  static final TextStyle headlineMedium = base(size: 20, weight: 500);
+  static final TextStyle display = base(size: 24, weight: 900);
+  static final TextStyle displayBold = base(size: 24, weight: 700);
+  static final TextStyle displayLarge = base(size: 32, weight: 900);
+  static final TextStyle displayLargeRegular = base(size: 32, weight: 700);
 
   /// Material text theme wired from the roles above, coloured for [palette].
   static TextTheme textTheme(AppPalette palette) {

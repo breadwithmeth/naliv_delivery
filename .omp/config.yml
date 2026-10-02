@@ -1,0 +1,19 @@
+# Repository-scoped tooling. Keep global model and approval preferences unchanged.
+lsp:
+  diagnosticsOnEdit: true
+
+task:
+  enableLsp: true
+
+display:
+  showTurnTime: true
+
+# Keep long Dart exception lines intact instead of dropping them at 768 bytes.
+tools:
+  outputMaxColumns: 2048
+
+# Interactive failures should surface promptly rather than parking this project
+# behind many provider retries. This does not alter tool or test timeouts.
+retry:
+  maxRetries: 3
+  maxDelayMs: 60000

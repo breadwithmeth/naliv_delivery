@@ -2,22 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/design/typography.dart';
-import 'package:naliv_delivery/pages/faq_page.dart'
-    show FaqEntry, FaqRepository, FaqSection, FaqSectionData;
+import 'package:naliv_delivery/features/faq/data/faq_repository.dart';
+import 'package:naliv_delivery/features/faq/models/faq.dart';
 import 'package:naliv_delivery/ui/app_search_field.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
+import 'package:naliv_delivery/ui/surfaces.dart';
 
-/// Rebuilt FAQ, matching the two design frames (`FAQ` and `FAQ - Не удалось загрузить`).
-///
-/// The copy is the app's own — the design is silent on which questions to ask, and the rule for a
-/// silent design is "build what the app needs". So the 44 real entries in 7 sections come from
-/// [FaqRepository], the same frozen source the legacy screen read; only the chrome is rebuilt.
-///
-/// One deliberate omission: the design's "Не удалось загрузить FAQ" frame has no honest trigger
-/// here. That content is a local constant, so it cannot fail to load, and inventing a failure state
-/// to match a frame would be fabricating a state the user can never reach. Recorded in
-/// `docs/redesign/STATUS.md` rather than faked.
 class FaqPage extends StatefulWidget {
   const FaqPage({this.initialSection, super.key});
 
@@ -36,14 +27,14 @@ class _FaqPageState extends State<FaqPage> {
 
   String _query = '';
 
-  /// The design shows the first answer already open, so the screen does not read as a wall of
-  /// closed rows. Keyed `section:entry` because numbers are only unique within a section.
+  // Numbers are unique within a section, not across the entire repository.
   late String _openKey = _keyOf(
       FaqRepository.sections.first, FaqRepository.sections.first.entries.first);
 
   static String _keyOf(FaqSectionData section, FaqEntry entry) =>
       '${section.number}:${entry.number}';
 
+  // Keep the seven local sections mounted so shortcuts can reach offscreen anchors.
   final Map<int, GlobalKey> _sectionKeys = <int, GlobalKey>{};
 
   @override
@@ -122,25 +113,30 @@ class _FaqPageState extends State<FaqPage> {
                       title: 'Ничего не найдено',
                       subtitle: 'Попробуйте изменить запрос',
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
+                  : SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
                         AppSpacing.xxxl,
                         0,
                         AppSpacing.xxxl,
-                        AppSpacing.huge,
+                        AppSpacing.huge + MediaQuery.paddingOf(context).bottom,
                       ),
-                      itemCount: sections.length,
-                      itemBuilder: (context, index) => _Section(
-                        key: _sectionKeys.putIfAbsent(
-                          sections[index].number,
-                          () => GlobalKey(),
-                        ),
-                        section: sections[index],
-                        openKey: _openKey,
-                        onToggle: (entry) {
-                          final key = _keyOf(sections[index], entry);
-                          setState(() => _openKey = _openKey == key ? '' : key);
-                        },
+                      child: Column(
+                        children: [
+                          for (final section in sections)
+                            _Section(
+                              headerKey: _sectionKeys.putIfAbsent(
+                                section.number,
+                                () => GlobalKey(),
+                              ),
+                              section: section,
+                              openKey: _openKey,
+                              onToggle: (entry) {
+                                final key = _keyOf(section, entry);
+                                setState(() =>
+                                    _openKey = _openKey == key ? '' : key);
+                              },
+                            ),
+                        ],
                       ),
                     ),
             ),
@@ -156,12 +152,13 @@ class _Section extends StatelessWidget {
     required this.section,
     required this.openKey,
     required this.onToggle,
-    super.key,
+    required this.headerKey,
   });
 
   final FaqSectionData section;
   final String openKey;
   final ValueChanged<FaqEntry> onToggle;
+  final Key headerKey;
 
   @override
   Widget build(BuildContext context) {
@@ -171,10 +168,12 @@ class _Section extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
+          key: headerKey,
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           child: Text(
             section.title,
-            style: AppTypography.label.copyWith(color: palette.textSecondary),
+            style: AppTypography.bodySmallSemibold
+                .copyWith(color: palette.textSecondary),
           ),
         ),
         for (final entry in section.entries)
@@ -210,47 +209,39 @@ class _EntryCard extends StatelessWidget {
       button: true,
       expanded: isOpen,
       label: entry.question,
-      child: GestureDetector(
+      child: AppSurface(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child:
-                        Text(entry.question, style: AppTypography.titleMedium),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(entry.question, style: AppTypography.titleMedium),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                AnimatedRotation(
+                  turns: isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: palette.textSecondary,
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  AnimatedRotation(
-                    turns: isOpen ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 150),
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 20,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              if (isOpen) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  entry.answer,
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: palette.textSecondary),
                 ),
               ],
+            ),
+            if (isOpen) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                entry.answer,
+                style: AppTypography.bodyMedium
+                    .copyWith(color: palette.textSecondary),
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

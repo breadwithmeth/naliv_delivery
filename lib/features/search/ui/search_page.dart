@@ -81,7 +81,14 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _openProduct(ProductView item, bool liked) {
-    openProduct(context, item, liked: liked, onLike: () => _toggleLike(item));
+    openProduct(
+      context,
+      item,
+      liked: liked,
+      onLike: () => _toggleLike(item),
+      onCart: widget.onCart,
+      businessId: widget.businessId,
+    );
   }
 
   Future<void> _toggleLike(ProductView item) async {
@@ -171,7 +178,7 @@ class _SearchPageState extends State<SearchPage> {
         AppSpacing.xxxl,
         0,
         AppSpacing.xxxl,
-        AppCartButton.clearance + MediaQuery.paddingOf(context).bottom,
+        AppCartButton.clearanceFor(context) + MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: results.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),

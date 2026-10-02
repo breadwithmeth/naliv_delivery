@@ -18,6 +18,7 @@ class AppTopBar extends StatelessWidget {
     this.trailing,
     this.subtitle,
     this.showBack = true,
+    this.backEnabled = true,
     super.key,
   });
 
@@ -32,6 +33,7 @@ class AppTopBar extends StatelessWidget {
   /// Replaces the search action when a screen needs something else.
   final Widget? trailing;
   final bool showBack;
+  final bool backEnabled;
 
   static const double height = 57;
 
@@ -44,13 +46,18 @@ class AppTopBar extends StatelessWidget {
     final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.only(top: _topGap),
-      child: SizedBox(
-        height: height,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: height),
         child: Row(
           children: [
             if (showBack)
               AppIconButton(
-                  asset: AppIcons.back, onTap: onBack, tooltip: 'Назад')
+                asset: AppIcons.back,
+                onTap: backEnabled
+                    ? onBack ?? () => Navigator.of(context).maybePop()
+                    : null,
+                tooltip: 'Назад',
+              )
             else
               const SizedBox(width: 40),
             Expanded(

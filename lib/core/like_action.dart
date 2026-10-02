@@ -7,10 +7,8 @@ import '../utils/liked_storage_service.dart';
 
 /// Toggles a product's favourite flag.
 ///
-/// This is the exact flow the old product card ran inline (`shared/product_card.dart:119-136`)
-/// and it must stay in one place now that three screens offer the action: call the API first,
-/// persist locally, then update the provider — so a failed request never leaves the UI showing
-/// a like the backend does not have.
+/// Updates the backend first, then persists the confirmed state locally and
+/// notifies the provider. A failed request leaves the displayed state unchanged.
 ///
 /// Returns the new state, or null when the request failed.
 Future<bool?> toggleItemLike(

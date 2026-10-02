@@ -1,407 +1,442 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_map/flutter_map.dart';
 
-import '../shared/app_theme.dart';
+import '../design/theme.dart';
+import '../design/typography.dart';
+import '../features/faq/ui/faq_page.dart' as redesigned;
+import '../ui/app_states.dart';
+import '../ui/app_top_bar.dart';
+import '../ui/surfaces.dart';
+import '../utils/address_storage_service.dart';
 import '../utils/api.dart';
-import '../utils/responsive.dart';
 import '../widgets/address_selection_modal_material.dart';
-import 'faq_page.dart';
+import '../features/faq/models/faq.dart';
+import 'map_address_page.dart';
 
 class ProfileAddressesPage extends StatefulWidget {
-  const ProfileAddressesPage({super.key});
+  const ProfileAddressesPage({super.key, this.tileProvider, this.locate});
+
+  final TileProvider? tileProvider;
+  final Future<AddressLocateResult> Function()? locate;
 
   @override
   State<ProfileAddressesPage> createState() => _ProfileAddressesPageState();
 }
 
 class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
-  static const _hiddenKey = 'profile_hidden_addresses';
-  static const _localKey = 'profile_local_addresses';
-
-  bool _isLoading = true;
-  bool _isMutating = false;
+  bool _loading = true;
+  bool _busy = false;
   String? _error;
-  List<Map<String, dynamic>> _serverAddresses = <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _localAddresses = <Map<String, dynamic>>[];
-  Set<String> _hiddenIds = <String>{};
-  int _revealedCount = 0;
-  String? _hidingId;
-  final Set<String> _animatedIds = <String>{};
+  List<Map<String, dynamic>> _server = [];
+  AddressBookSnapshot _book = const AddressBookSnapshot(
+    localAddresses: [],
+    hiddenIds: {},
+    selectedAddress: null,
+  );
 
   @override
   void initState() {
     super.initState();
-    _loadAll();
+    _load();
   }
 
-  Future<void> _loadAll() async {
+  Future<void> _load() async {
+    if (_busy) return;
     setState(() {
-      _isLoading = true;
+      _loading = true;
       _error = null;
     });
-
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _hiddenIds = (prefs.getStringList(_hiddenKey) ?? <String>[]).toSet();
-      _localAddresses = _decodeList(prefs.getStringList(_localKey) ?? <String>[]);
-
+      final book = await AddressStorageService.getBookSnapshot();
+      if (!mounted) return;
+      setState(() => _book = book);
       final data = await ApiService.getFullInfo();
-      final addresses = (data?['addresses'] as List<dynamic>? ?? <dynamic>[]).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-
-      if (!mounted) return;
-      setState(() {
-        _serverAddresses = addresses;
-        _isLoading = false;
-      });
-      _revealItems();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Не удалось загрузить адреса: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _revealItems() {
-    final total = _visibleAddresses.length;
-    _revealedCount = 0;
-    for (int i = 0; i < total; i++) {
-      Future.delayed(Duration(milliseconds: 60 * i), () {
-        if (mounted) setState(() => _revealedCount = i + 1);
-      });
-    }
-    Future.delayed(Duration(milliseconds: 60 * total + 100), () {
-      if (mounted && _revealedCount < 999) setState(() => _revealedCount = 999);
-    });
-  }
-
-  List<Map<String, dynamic>> _decodeList(List<String> raw) {
-    return raw
-        .map((item) {
-          try {
-            final decoded = json.decode(item);
-            if (decoded is Map<String, dynamic>) return decoded;
-          } catch (_) {}
-          return <String, dynamic>{};
-        })
-        .where((e) => e.isNotEmpty)
-        .toList();
-  }
-
-  Future<void> _persistLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_localKey, _localAddresses.map(json.encode).toList());
-    await prefs.setStringList(_hiddenKey, _hiddenIds.toList());
-  }
-
-  String _idOf(Map<String, dynamic> addr) {
-    return addr['id']?.toString() ??
-        addr['address_id']?.toString() ??
-        addr['uuid']?.toString() ??
-        addr['address']?.toString() ??
-        '${addr['lat']}_${addr['lon']}_${addr['address']}';
-  }
-
-  List<Map<String, dynamic>> get _visibleAddresses {
-    final seen = <String>{};
-    final combined = [..._localAddresses, ..._serverAddresses];
-    final filtered = <Map<String, dynamic>>[];
-    for (final addr in combined) {
-      final id = _idOf(addr);
-      if (id.isEmpty || _hiddenIds.contains(id) || seen.contains(id)) continue;
-      seen.add(id);
-      filtered.add(addr);
-    }
-    return filtered;
-  }
-
-  Future<void> _addOrEditAddress({Map<String, dynamic>? initial}) async {
-    if (_isMutating) return;
-    setState(() => _isMutating = true);
-    try {
-      final picked = await AddressSelectionModalHelper.show(context, initialAddress: initial);
-      if (picked == null) return;
-      final newAddr = {
-        ...picked,
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'source': initial == null ? 'profile_add' : 'profile_edit',
-        'edited_from': initial != null ? _idOf(initial) : null,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-      if (initial != null) {
-        _hiddenIds.add(_idOf(initial));
+      if (data == null) throw StateError('Адреса аккаунта недоступны');
+      final raw = data['addresses'];
+      if (raw is! List) {
+        throw const FormatException('Некорректный список адресов');
       }
-      _localAddresses.insert(0, newAddr);
-      await _persistLocal();
-      if (!mounted) return;
-      setState(() {});
+      final addresses = <Map<String, dynamic>>[];
+      for (final item in raw) {
+        if (item is! Map) throw const FormatException('Некорректный адрес');
+        addresses.add(Map<String, dynamic>.from(item));
+      }
+      if (mounted) setState(() => _server = addresses);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'Не удалось обновить адреса. Сохранённые на устройстве адреса остаются доступны.');
+      }
     } finally {
-      if (mounted) setState(() => _isMutating = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _deleteAddress(Map<String, dynamic> addr) async {
-    if (_isMutating) return;
-    final id = _idOf(addr);
-    setState(() {
-      _isMutating = true;
-      _hidingId = id;
-    });
-    await Future.delayed(const Duration(milliseconds: 350));
-    _hiddenIds.add(id);
-    await _persistLocal();
+  List<({Map<String, dynamic> address, bool local})> get _visible {
+    final entries = <({Map<String, dynamic> address, bool local})>[];
+    final seen = <String>{};
+    for (final local in [true, false]) {
+      for (final address in local ? _book.localAddresses : _server) {
+        final id = AddressStorageService.identity(address);
+        if (_book.hiddenIds.contains(id) || !seen.add(id)) continue;
+        entries.add((address: address, local: local));
+      }
+    }
+    return entries;
+  }
+
+  String _label(Map<String, dynamic> address) {
+    final label =
+        (address['address'] ?? address['name'])?.toString().trim() ?? '';
+    if (label.isNotEmpty) return label;
+    return [address['street'], address['house']]
+        .where((value) =>
+            value != null && '$value'.trim().isNotEmpty && value != '-')
+        .join(', ');
+  }
+
+  Map<String, dynamic> _delivery(Map<String, dynamic> address) =>
+      {...address, 'address': _label(address)};
+
+  void _feedback(String message) {
     if (!mounted) return;
-    setState(() {
-      _hidingId = null;
-      _isMutating = false;
-    });
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _refreshBook() async {
+    final next = await AddressStorageService.getBookSnapshot();
+    if (mounted) setState(() => _book = next);
+  }
+
+  Future<void> _select(Map<String, dynamic> address) async {
+    if (_busy || _loading) return;
+    setState(() => _busy = true);
+    try {
+      final normalized =
+          AddressStorageService.deliveryAddress(_delivery(address));
+      if (normalized == null) {
+        _feedback(
+            'У адреса нет точных координат. Уточните его на карте перед выбором.');
+        return;
+      }
+      final saved = await AddressStorageService.selectBookAddress(normalized);
+      if (!saved) {
+        _feedback(
+            'Не удалось выбрать адрес. Предыдущий адрес доставки сохранён.');
+        return;
+      }
+      await _refreshBook();
+      _feedback('Адрес выбран для доставки');
+    } catch (_) {
+      _feedback('Не удалось выбрать адрес. Попробуйте снова.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _addOrEdit({Map<String, dynamic>? initial}) async {
+    if (_busy || _loading) return;
+    setState(() => _busy = true);
+    try {
+      final picked = await AddressSelectionModalHelper.show(
+        context,
+        initialAddress:
+            initial == null ? <String, dynamic>{} : _delivery(initial),
+        openDetailsFirst: initial != null,
+        tileProvider: widget.tileProvider,
+        locate: widget.locate,
+        detailsConfirmButtonLabel: 'Сохранить на устройстве',
+      );
+      if (picked == null || !mounted) return;
+      final saved = await AddressStorageService.saveBookAddress(picked,
+          replacing: initial == null ? null : _delivery(initial));
+      if (!saved) {
+        _feedback(
+            'Не удалось сохранить адрес на устройстве. Предыдущие данные не изменены.');
+        return;
+      }
+      await _refreshBook();
+      _feedback('Адрес сохранён на этом устройстве');
+    } catch (_) {
+      _feedback('Не удалось сохранить адрес на устройстве. Попробуйте снова.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _remove(Map<String, dynamic> address,
+      {required bool local}) async {
+    if (_busy || _loading) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(local
+            ? 'Удалить адрес с устройства?'
+            : 'Скрыть адрес на устройстве?'),
+        content: Text(local
+            ? 'Этот адрес будет удалён только с этого устройства. Если он выбран для доставки, выбор будет сброшен.'
+            : 'Адрес останется в аккаунте, но не будет показан на этом устройстве. Если он выбран для доставки, выбор будет сброшен.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Отмена')),
+          TextButton(
+            key: const Key('address_remove_confirm'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: context.palette.error),
+            child:
+                Text(local ? 'Удалить с устройства' : 'Скрыть на устройстве'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final saved =
+          await AddressStorageService.removeBookAddress(_delivery(address));
+      if (!saved) {
+        _feedback(
+            'Не удалось изменить адреса. Адрес и текущий выбор сохранены.');
+        return;
+      }
+      await _refreshBook();
+      _feedback(local
+          ? 'Адрес удалён с устройства'
+          : 'Адрес скрыт на этом устройстве');
+    } catch (_) {
+      _feedback('Не удалось изменить адреса. Попробуйте снова.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _menu(Map<String, dynamic> address, bool local) async {
+    if (_busy || _loading) return;
+    final action = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_label(address)),
+        content: SingleChildScrollView(
+            child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+                local
+                    ? 'Сохранён на этом устройстве'
+                    : 'Адрес из аккаунта. Изменения сохраняются как отдельная копия только на этом устройстве.',
+                style: AppTypography.bodySmall
+                    .copyWith(color: context.palette.textSecondary)),
+            const SizedBox(height: 16),
+            FilledButton(
+              style: FilledButton.styleFrom(shape: const StadiumBorder()),
+              onPressed: () => Navigator.pop(dialogContext, 'edit'),
+              child: const Text('Изменить адрес', textAlign: TextAlign.center),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: context.palette.error,
+                shape: const StadiumBorder(),
+              ),
+              onPressed: () => Navigator.pop(dialogContext, 'remove'),
+              child: Text(
+                  local ? 'Удалить с устройства' : 'Скрыть на устройстве',
+                  textAlign: TextAlign.center),
+            ),
+          ],
+        )),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'))
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'edit') await _addOrEdit(initial: address);
+    if (action == 'remove') await _remove(address, local: local);
   }
 
   @override
   Widget build(BuildContext context) {
-    final addresses = _visibleAddresses;
-
+    final entries = _visible;
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.text,
-        title: const Text('Мои адреса', style: TextStyle(fontWeight: FontWeight.w800)),
-        actions: [
-          IconButton(
-            onPressed: _isMutating ? null : () => _addOrEditAddress(),
-            icon: const Icon(Icons.add_location_alt_rounded, color: AppColors.orange),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          const AppBackground(),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)))
-          else if (_error != null)
-            _errorView()
-          else if (addresses.isEmpty)
-            _emptyView()
-          else
-            ListView(
-              padding: EdgeInsets.fromLTRB(14.s, 10.s, 14.s, 80.s),
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(bottom: 10.s),
-                  child: const FaqShortcutCard(
-                    title: 'Вопросы по адресу и доставке',
-                    subtitle:
-                        'Посмотрите ответы про GPS, ручной ввод адреса и ограничения по доставке.',
-                    initialSection: FaqSection.delivery,
-                    icon: Icons.location_on_rounded,
+      backgroundColor: palette.background,
+      body: SafeArea(
+          child: Center(
+              child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(children: [
+            AppTopBar(
+                title: 'Мои адреса', onBack: () => Navigator.pop(context)),
+            const SizedBox(height: 24),
+            Expanded(
+                child: _loading && entries.isEmpty
+                    ? const AppLoading()
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: LayoutBuilder(
+                            builder: (context, constraints) => ListView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.only(bottom: 24),
+                                  children: [
+                                    if (_loading)
+                                      const LinearProgressIndicator(),
+                                    if (_error != null) ...[
+                                      AppErrorState(
+                                          message: _error!,
+                                          onRetry: _busy ? null : _load),
+                                      const SizedBox(height: 24),
+                                    ],
+                                    if (entries.isEmpty && _error == null)
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                            top: constraints.maxHeight > 400
+                                                ? 147
+                                                : 24),
+                                        child: const AppEmptyState(
+                                          title: 'Адресов пока нет',
+                                          subtitle:
+                                              'Добавьте адрес, чтобы мы могли подобрать ближайший магазин и ускорить доставку',
+                                        ),
+                                      ),
+                                    if (entries.isEmpty && _error == null)
+                                      const SizedBox(height: 24),
+                                    _faqCard(empty: entries.isEmpty),
+                                    if (entries.isNotEmpty)
+                                      const SizedBox(height: 24),
+                                    for (final entry in entries) ...[
+                                      _addressCard(entry.address, entry.local),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ],
+                                )),
+                      )),
+            Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 24),
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(minWidth: 252, maxWidth: 400),
+                  child: FilledButton.icon(
+                    key: const Key('address_book_add'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 49),
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: _busy || _loading ? null : () => _addOrEdit(),
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text('Добавить адрес',
+                        textAlign: TextAlign.center),
                   ),
-                ),
-                ...addresses
-                    .take(_revealedCount.clamp(0, addresses.length))
-                    .map(_animatedAddressTile),
-              ],
-            ),
-          if (_isMutating)
-            Container(
-              color: Colors.black.withValues(alpha: 0.25),
-              child: const Center(
-                child: SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
-                ),
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.orange,
-        foregroundColor: Colors.black,
-        onPressed: _isMutating ? null : () => _addOrEditAddress(),
-        icon: const Icon(Icons.add),
-        label: const Text('Добавить адрес'),
-      ),
-    );
-  }
-
-  Widget _animatedAddressTile(Map<String, dynamic> addr) {
-    final id = _idOf(addr);
-    final isHiding = _hidingId == id;
-    final shouldAnimate = !_animatedIds.contains(id);
-    _animatedIds.add(id);
-
-    Widget child = _addressTile(addr);
-
-    if (shouldAnimate) {
-      child = TweenAnimationBuilder<double>(
-        key: ValueKey('addr_$id'),
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-        builder: (context, value, animatedChild) {
-          return Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: Opacity(opacity: value, child: animatedChild),
-          );
-        },
-        child: child,
-      );
-    }
-
-    return KeyedSubtree(
-      key: ValueKey(id),
-      child: ClipRect(
-        child: AnimatedAlign(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          heightFactor: isHiding ? 0.0 : 1.0,
-          alignment: Alignment.topCenter,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: isHiding ? 0.0 : 1.0,
-            child: child,
-          ),
+                )),
+          ]),
         ),
-      ),
+      ))),
     );
   }
 
-  Widget _addressTile(Map<String, dynamic> addr) {
-    final entrance = addr['entrance']?.toString();
-    final floor = addr['floor']?.toString();
-    final apartment = addr['apartment']?.toString();
+  Widget _addressCard(Map<String, dynamic> address, bool local) {
+    final palette = context.palette;
+    final selected = AddressStorageService.sameAddress(
+        _book.selectedAddress, _delivery(address));
     final details = [
-      if (entrance != null && entrance.isNotEmpty) 'Подъезд $entrance',
-      if (floor != null && floor.isNotEmpty) 'Этаж $floor',
-      if (apartment != null && apartment.isNotEmpty) 'Кв. $apartment',
-    ].join(' • ');
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.s),
-      padding: EdgeInsets.all(14.s),
-      decoration: AppDecorations.card(radius: 16.s),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(9.s),
-                decoration: AppDecorations.pill(color: AppColors.blue),
-                child: const Icon(Icons.home_rounded, color: AppColors.orange),
-              ),
-              SizedBox(width: 10.s),
-              Expanded(
-                child: Text(
-                  addr['address']?.toString() ?? 'Адрес без названия',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: AppColors.text, fontSize: 15.sp, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
+      if ('${address['entrance'] ?? ''}'.isNotEmpty)
+        'Подъезд ${address['entrance']}',
+      if ('${address['floor'] ?? ''}'.isNotEmpty) 'Этаж ${address['floor']}',
+      if ('${address['apartment'] ?? ''}'.isNotEmpty)
+        'Кв. ${address['apartment']}',
+    ].join(', ');
+    final id = AddressStorageService.identity(address);
+    return Semantics(
+      button: true,
+      enabled: !_busy && !_loading,
+      selected: selected,
+      child: AppSurface(
+        key: ValueKey('address_select_$id'),
+        onTap: _busy || _loading ? null : () => _select(address),
+        padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+        child: Row(children: [
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(
+                    _label(address).isEmpty
+                        ? 'Уточните адрес на карте'
+                        : _label(address),
+                    style: AppTypography.title
+                        .copyWith(color: palette.textPrimary)),
+                if (details.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(details,
+                      style: AppTypography.label
+                          .copyWith(color: palette.textSecondary)),
+                ],
+                const SizedBox(height: 6),
+                Text(
+                    '${local ? 'На этом устройстве' : 'Из аккаунта'}${selected ? ' · Для доставки' : ''}',
+                    style: AppTypography.label.copyWith(
+                        color:
+                            selected ? palette.accent : palette.textSecondary)),
+              ])),
+          IconButton(
+            key: ValueKey('address_menu_$id'),
+            tooltip: 'Действия с адресом ${_label(address)}',
+            onPressed: _busy || _loading ? null : () => _menu(address, local),
+            icon: Icon(Icons.more_horiz, color: palette.textSecondary),
           ),
-          if (details.isNotEmpty) ...[
-            SizedBox(height: 8.s),
-            Text(
-              details,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppColors.textMute, fontWeight: FontWeight.w700, fontSize: 12.sp),
-            ),
-          ],
-          SizedBox(height: 10.s),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _actionButton(
-                label: 'Редактировать',
-                icon: Icons.edit_location_alt_rounded,
-                color: AppColors.orange,
-                onPressed: _isMutating ? null : () => _addOrEditAddress(initial: addr),
-              ),
-              SizedBox(width: 8.s),
-              _actionButton(
-                label: 'Скрыть',
-                icon: Icons.visibility_off_outlined,
-                color: AppColors.textMute,
-                onPressed: _isMutating ? null : () => _deleteAddress(addr),
-              ),
-            ],
-          ),
-        ],
+        ]),
       ),
     );
   }
 
-  Widget _actionButton({required String label, required IconData icon, required Color color, required VoidCallback? onPressed}) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: color, size: 18),
-      label: Text(label),
-      style: TextButton.styleFrom(
-        foregroundColor: color,
-        minimumSize: const Size(0, 40),
-        padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 8.s),
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  Widget _emptyView() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.s),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.location_off_outlined, color: AppColors.textMute, size: 48),
-            SizedBox(height: 12.s),
-            const Text('Адресов пока нет', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-            SizedBox(height: 6.s),
-            const Text(
-              'Добавьте адрес, чтобы мы могли подобрать ближайший магазин и ускорить доставку.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMute),
-            ),
-            SizedBox(height: 14.s),
-            const FaqShortcutCard(
-              title: 'Не определяется адрес?',
-              subtitle:
-                  'В FAQ есть подсказки по GPS и ручному вводу адреса.',
-              initialSection: FaqSection.delivery,
-              icon: Icons.map_rounded,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _errorView() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.s),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.red),
-            SizedBox(height: 12.s),
-            Text(_error ?? 'Ошибка', style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800)),
-            SizedBox(height: 10.s),
-            ElevatedButton(
-              onPressed: _loadAll,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: Colors.black),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
+  Widget _faqCard({required bool empty}) {
+    final palette = context.palette;
+    return AppSurface(
+      fill: palette.accentFaint,
+      border: Border.all(color: palette.accent.withValues(alpha: .3)),
+      padding: const EdgeInsets.all(16),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) =>
+            const redesigned.FaqPage(initialSection: FaqSection.delivery),
+      )),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        CircleAvatar(
+            radius: 16,
+            backgroundColor: palette.accentFaint,
+            child: Icon(Icons.question_mark, color: palette.accent, size: 20)),
+        const SizedBox(width: 12),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+              empty ? 'Не определяется адрес?' : 'Вопросы по адресу и доставке',
+              style:
+                  AppTypography.bodyBold.copyWith(color: palette.textPrimary)),
+          const SizedBox(height: 8),
+          Text(
+              empty
+                  ? 'В FAQ есть подсказки по GPS и ручному вводу адреса'
+                  : 'Посмотрите ответы про GPS, ручной ввод адреса и ограничения по доставке',
+              style:
+                  AppTypography.label.copyWith(color: palette.textSecondary)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Icon(Icons.open_in_new, color: palette.accent, size: 16),
+            const SizedBox(width: 6),
+            Flexible(
+                child: Text('Открыть FAQ',
+                    style: AppTypography.body.copyWith(color: palette.accent))),
+          ]),
+        ])),
+      ]),
     );
   }
 }

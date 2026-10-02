@@ -15,7 +15,10 @@ class CatalogDataSource {
 
   /// All supercategories, with their categories and subcategories flattened into [CategoryRef]s.
   Future<List<SupercategoryView>> supercategories() async {
-    final raw = await ApiService.getSuperCategories() ?? const [];
+    final raw = await ApiService.getSuperCategories();
+    if (raw == null) {
+      throw StateError('Не удалось загрузить категории');
+    }
     return [
       for (final entry in raw) _supercategory(entry),
     ];
@@ -30,14 +33,16 @@ class CatalogDataSource {
       businessId: businessId,
       limit: limit,
     );
-    if (response == null) return const [];
+    if (response == null || !response.success) {
+      throw StateError('Не удалось выполнить поиск');
+    }
     return [
       for (final entry in response.data.items)
         ProductView.fromItem(Item.fromCategoryItem(entry)),
     ];
   }
 
-  /// The user's liked items — same envelope as a category listing, so it maps identically.
+  /// The user's liked items. ApiService already unwraps the response's `data`.
   ///
   /// Returns the page's products plus whether the backend has more, so a caller can append.
   Future<({List<ProductView> items, bool hasMore})> likedItems({
@@ -49,9 +54,8 @@ class CatalogDataSource {
       page: page,
       limit: limit,
     );
-    final data = raw?['data'];
-    if (data is! Map) return (items: const <ProductView>[], hasMore: false);
-    final entries = data['items'];
+    if (raw == null) throw StateError('Не удалось загрузить избранное');
+    final entries = raw['items'];
     final items = <ProductView>[
       if (entries is List)
         for (final entry in entries)
@@ -59,12 +63,13 @@ class CatalogDataSource {
             ProductView.fromItem(
                 Item.fromCategoryItem(entry.cast<String, dynamic>())),
     ];
-    final pagination = data['pagination'];
+    final pagination = raw['pagination'];
     var hasMore = false;
     if (pagination is Map) {
-      final totalPages = pagination['total_pages'] ?? pagination['totalPages'];
-      final current = pagination['page'];
-      if (totalPages is num && current is num) hasMore = current < totalPages;
+      final totalPages =
+          _int(pagination['total_pages'] ?? pagination['totalPages']);
+      final current = _int(pagination['page']);
+      if (totalPages != null && current != null) hasMore = current < totalPages;
     }
     return (items: items, hasMore: hasMore);
   }
@@ -87,6 +92,13 @@ class CatalogDataSource {
     int categoryId, {
     int page = 1,
     int limit = 60,
+  }) async =>
+      (await itemsPage(categoryId, page: page, limit: limit)).items;
+
+  Future<({List<ProductView> items, bool hasMore})> itemsPage(
+    int categoryId, {
+    int page = 1,
+    int limit = 60,
   }) async {
     final response = await ApiService.getCategoryItemsTyped(
       categoryId,
@@ -94,11 +106,16 @@ class CatalogDataSource {
       page: page,
       limit: limit,
     );
-    if (response == null) return const [];
-    return [
-      for (final entry in response.data.items)
-        ProductView.fromItem(Item.fromCategoryItem(entry)),
-    ];
+    if (response == null || !response.success) {
+      throw StateError('Не удалось загрузить товары категории');
+    }
+    return (
+      items: [
+        for (final entry in response.data.items)
+          ProductView.fromItem(Item.fromCategoryItem(entry)),
+      ],
+      hasMore: response.data.pagination.hasNextPage,
+    );
   }
 
   SupercategoryView _supercategory(Map<String, dynamic> raw) {

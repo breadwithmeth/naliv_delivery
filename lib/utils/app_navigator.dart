@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+import '../core/destinations.dart';
 
 class AppNavigator {
   AppNavigator._();
@@ -8,10 +9,10 @@ class AppNavigator {
 
   static NavigatorState? get _nav => key.currentState;
 
-  static Future<void> goToHomeTab(int tabIndex) async {
+  static Future<void> goToHome({AppDestination? destination}) async {
     await _nav?.pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => AuthenticationWrapper(initialTabIndex: tabIndex),
+        builder: (_) => AuthenticationWrapper(initialDestination: destination),
       ),
       (route) => false,
     );

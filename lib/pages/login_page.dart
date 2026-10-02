@@ -9,7 +9,10 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
-import 'faq_page.dart';
+import '../features/faq/models/faq.dart';
+import '../features/faq/faq_navigation.dart';
+import '../core/destinations.dart';
+import 'profile_setup_page.dart';
 
 // Форматирует ввод номера в +7 700 123 45 67
 class PhoneTextInputFormatter extends TextInputFormatter {
@@ -67,12 +70,22 @@ class PhoneTextInputFormatter extends TextInputFormatter {
   }
 }
 
-class LoginPage extends StatefulWidget {
-  final int? redirectTabIndex;
-  final bool openCheckoutOnSuccess;
+enum LoginCompletionMode { replaceRoot, returnAuthenticated }
 
-  const LoginPage(
-      {super.key, this.redirectTabIndex, this.openCheckoutOnSuccess = false});
+class LoginPage extends StatefulWidget {
+  final AppDestination? destinationAfterSignIn;
+
+  /// Entry from an explicit "Войти" action, bypassing introductory slides.
+  final bool startWithPhoneForm;
+
+  final LoginCompletionMode completionMode;
+
+  const LoginPage({
+    super.key,
+    this.destinationAfterSignIn,
+    this.startWithPhoneForm = false,
+    this.completionMode = LoginCompletionMode.replaceRoot,
+  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -91,6 +104,7 @@ class _LoginPageState extends State<LoginPage>
   bool _isLoading = false;
   bool _showAuthForm = false;
   int _currentPage = 0;
+  Map<String, dynamic>? _profileSetupUser;
 
   late final AnimationController _iconPulse;
 
@@ -127,6 +141,8 @@ class _LoginPageState extends State<LoginPage>
   @override
   void initState() {
     super.initState();
+    _showAuthForm = widget.startWithPhoneForm;
+    if (_showAuthForm) _ensurePhonePrefix();
     _iconPulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -300,15 +316,19 @@ class _LoginPageState extends State<LoginPage>
       if (data != null && mounted) {
         await NotificationService.instance.syncTokenWithServerIfNeeded();
         if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => AuthenticationWrapper(
-              initialTabIndex: widget.redirectTabIndex,
-              openCheckoutOnStart: widget.openCheckoutOnSuccess,
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+        if (widget.completionMode == LoginCompletionMode.returnAuthenticated) {
+          await _continueReauthentication();
+        } else {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => AuthenticationWrapper(
+                initialDestination: widget.destinationAfterSignIn,
+              ),
             ),
-          ),
-          (route) => false,
-        );
+            (route) => false,
+          );
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -331,12 +351,48 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
+  Future<void> _continueReauthentication() async {
+    final userInfo = await ApiService.getFullInfo();
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    final user = userInfo?['user'];
+    if (user is! Map) {
+      throw StateError('Не удалось подтвердить профиль. Повторите вход.');
+    }
+    if (ProfileSetupPage.isRequiredFor(userInfo)) {
+      setState(() => _profileSetupUser = Map<String, dynamic>.from(user));
+    } else {
+      Navigator.of(context).pop<bool>(true);
+    }
+  }
+
+  Future<void> _completeProfileSetup(
+      Map<String, dynamic>? refreshedUserInfo) async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    if (refreshedUserInfo?['user'] is Map &&
+        !ProfileSetupPage.isRequiredFor(refreshedUserInfo)) {
+      Navigator.of(context).pop<bool>(true);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text(
+          'Не удалось подтвердить заполненный профиль. Повторите сохранение.'),
+      backgroundColor: context.palette.surface,
+    ));
+  }
+
   // ═══════════════════════════════════════════════════════════
   //  BUILD
   // ═══════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
+    final profileSetupUser = _profileSetupUser;
+    if (profileSetupUser != null) {
+      return ProfileSetupPage(
+        initialUser: profileSetupUser,
+        onCompleted: _completeProfileSetup,
+      );
+    }
     final palette = context.palette;
     return Scaffold(
       backgroundColor: palette.background,
@@ -381,11 +437,18 @@ class _LoginPageState extends State<LoginPage>
               child: AppIconButton(
                 asset: AppIcons.back,
                 tooltip: 'Назад',
-                onTap: () => setState(() {
-                  _showAuthForm = false;
-                  _codeSent = false;
-                  _codeController.clear();
-                }),
+                onTap: () {
+                  if (widget.startWithPhoneForm &&
+                      Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    setState(() {
+                      _showAuthForm = false;
+                      _codeSent = false;
+                      _codeController.clear();
+                    });
+                  }
+                },
               ),
             )
           else if (canClose)
@@ -712,90 +775,48 @@ class _LoginPageState extends State<LoginPage>
 
   Widget _otpInput() {
     final palette = context.palette;
-    return Semantics(
-      label: 'Код из SMS',
-      textField: true,
-      child: GestureDetector(
-        onTap: () => _codeFocusNode.requestFocus(),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Row(
-              children: List.generate(6, (index) {
-                final code = _codeController.text;
-                final hasValue = index < code.length;
-                final isActive =
-                    _codeFocusNode.hasFocus && code.length == index;
-                final borderColor = isActive
-                    ? palette.accent
-                    : hasValue
-                        ? palette.accent.withValues(alpha: .45)
-                        : palette.divider;
-                return Expanded(
-                  child: Container(
-                    margin: EdgeInsets.only(right: index == 5 ? 0 : 8),
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: palette.surface,
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      border: Border.all(
-                        color: borderColor,
-                        width: isActive ? 1.5 : 1,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      hasValue ? code[index] : '',
-                      style: AppTypography.headlineMedium.copyWith(
-                        color: palette.textPrimary,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0,
-                child: TextFormField(
-                  key: const ValueKey('auth-code-input'),
-                  controller: _codeController,
-                  focusNode: _codeFocusNode,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(6),
-                  ],
-                  onChanged: (_) {
-                    if (mounted) setState(() {});
-                    if (!_isLoading &&
-                        _codeController.text.trim().length == 6) {
-                      _verifyCode();
-                    }
-                  },
-                  onFieldSubmitted: (_) {
-                    if (!_isLoading &&
-                        _codeController.text.trim().length == 6) {
-                      _verifyCode();
-                    }
-                  },
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    counterText: '',
-                  ),
-                  style: const TextStyle(color: Colors.transparent),
-                  cursorColor: Colors.transparent,
-                  maxLength: 6,
-                ),
-              ),
-            ),
-          ],
-        ),
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadii.lg),
+      borderSide: BorderSide(color: palette.divider),
+    );
+    return TextFormField(
+      key: const ValueKey('auth-code-input'),
+      controller: _codeController,
+      focusNode: _codeFocusNode,
+      autofocus: true,
+      autofillHints: const [AutofillHints.oneTimeCode],
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
+      autocorrect: false,
+      enableSuggestions: false,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      onChanged: (_) {
+        if (mounted) setState(() {});
+        if (!_isLoading && _codeController.text.trim().length == 6) {
+          _verifyCode();
+        }
+      },
+      onFieldSubmitted: (_) {
+        if (!_isLoading && _codeController.text.trim().length == 6) {
+          _verifyCode();
+        }
+      },
+      decoration: InputDecoration(
+        labelText: 'Код из SMS',
+        counterText: '',
+        filled: true,
+        fillColor: palette.surface,
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border.copyWith(
+            borderSide: BorderSide(color: palette.accent, width: 1.5)),
+        contentPadding: const EdgeInsets.all(16),
       ),
+      style: AppTypography.body.copyWith(color: palette.textPrimary),
+      maxLength: 6,
     );
   }
 

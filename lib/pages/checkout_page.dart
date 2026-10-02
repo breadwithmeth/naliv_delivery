@@ -1,41 +1,62 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/faq_page.dart';
-import 'package:naliv_delivery/pages/payment_method_page.dart';
-import 'package:naliv_delivery/services/onboarding_service.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/address_storage_service.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/app_navigator.dart';
-import 'package:naliv_delivery/utils/bonus_rules.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
-import 'package:naliv_delivery/utils/certificate_checkout_math.dart';
-import 'package:naliv_delivery/utils/item_name_presentation.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
-import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../design/theme.dart';
+import '../design/typography.dart';
+import '../features/cart/ui/cart_page.dart' as feature_cart;
+import '../features/checkout/checkout_contract.dart';
+import '../features/orders/ui/orders_page.dart';
+import '../services/onboarding_service.dart';
+import '../ui/app_states.dart';
+import '../ui/app_top_bar.dart';
+import '../ui/surfaces.dart';
+import '../utils/address_storage_service.dart';
+import '../utils/api.dart';
+import '../utils/app_navigator.dart';
+import '../utils/bonus_rules.dart';
+import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
+import '../utils/certificate_checkout_math.dart';
+import '../utils/item_name_presentation.dart';
 import '../utils/smart_cart.dart';
-import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
-import 'cart_page.dart';
+import '../utils/subtract_promotion_math.dart';
+import '../widgets/address_selection_modal_material.dart';
+import '../features/faq/models/faq.dart';
+import '../features/faq/faq_navigation.dart';
+import 'login_page.dart';
+import 'payment_method_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
-  final String? initialDeliveryType;
-  final Map<String, dynamic>? initialAddress;
 
   const CheckoutPage({
     super.key,
     this.initialDeliveryType,
     this.initialAddress,
+    this.addressPicker,
+    this.openCardForm,
+    this.onPaymentCompleted,
+    this.onCatalog,
   });
+
+  final String? initialDeliveryType;
+  final Map<String, dynamic>? initialAddress;
+  final Future<Map<String, dynamic>?> Function(
+      BuildContext, Map<String, dynamic>?, bool)? addressPicker;
+  final Future<bool> Function(Uri)? openCardForm;
+  final Future<void> Function(String orderId)? onPaymentCompleted;
+  final VoidCallback? onCatalog;
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  static const List<int> _courierTipPresetAmounts = <int>[100, 200];
-  static const Map<int, int> _bagItemIdsByShopId = <int, int>{
+  static const _bagIds = <int, int>{
     1: 48044,
     2: 50848,
     6: 50837,
@@ -48,2824 +69,1513 @@ class _CheckoutPageState extends State<CheckoutPage> {
     9: 46063,
     10: 51676,
   };
-  static const double _checkoutBagPrice = 30.0;
+  static const _bagPrice = 30.0;
 
+  final _entrance = TextEditingController();
+  final _floor = TextEditingController();
+  final _apartment = TextEditingController();
+  final _promo = TextEditingController();
+  final _certificate = TextEditingController();
+  CartProvider? _cart;
+  BusinessProvider? _business;
+  Map<String, dynamic>? _address;
+  CheckoutQuote? _quote;
+  Map<String, dynamic>? _promoData;
+  Map<String, dynamic>? _certificateData;
+  String _mode = 'DELIVERY';
+  String _cartSnapshot = '';
+  int? _storeSnapshot;
+  int _revision = 0;
+  int _quoteRequest = 0;
+  int _benefitRequest = 0;
+  bool _initializing = true;
+  bool? _loggedIn;
+  bool _loadingBonus = false;
+  double? _bonusBalance;
+  String? _bonusError;
   bool _useBonus = false;
-  Map<String, dynamic>? _selectedAddress;
-  Map<String, dynamic>? _deliveryData;
-  Map<String, dynamic>? _bonusData;
-  bool _isCalculatingDelivery = false;
-  bool _isSubmitting = false;
-  // Тип доставки: DELIVERY, PICKUP, SCHEDULED
-  String _deliveryType = 'DELIVERY';
-  int _selectedCourierTips = 0;
-  bool _showAllCheckoutItems = false;
+  bool _quoting = false;
+  bool _validating = false;
+  bool _submitting = false;
+  bool _pickingAddress = false;
+  bool _switchingStore = false;
+  bool _creationUncertain = false;
+  bool _created = false;
+  String? _quoteError;
+  String? _addressError;
+  String? _benefitError;
+  String? _submitError;
 
-  bool get _isPromoCodeApplied => _appliedPromoData != null;
-  // Время доставки: NOW или конкретное время
-  String _deliveryTime = 'NOW';
-  DateTime? _selectedDeliveryDateTime;
-  final TextEditingController _entranceController = TextEditingController();
-  final TextEditingController _floorController = TextEditingController();
-  final TextEditingController _apartmentController = TextEditingController();
-  final TextEditingController _promoCodeController = TextEditingController();
-  bool _isValidatingPromo = false;
-  Map<String, dynamic>? _appliedPromoData;
-  bool _isValidatingCertificate = false;
-  Map<String, dynamic>? _appliedCertificateData;
-
-  void _handleBack() {
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
-    } else {
-      // Safeguard: if this is the last route, return to cart instead of a blank screen.
-      navigator
-          .pushReplacement(MaterialPageRoute(builder: (_) => const CartPage()));
-    }
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    _floorController.dispose();
-    _apartmentController.dispose();
-    _promoCodeController.dispose();
-    super.dispose();
-  }
+  bool get _delivery => _mode == 'DELIVERY';
+  int? get _businessId => _id(_business?.selectedBusiness);
+  List<CartDisplayGroup> get _groups => _cart!.activeDisplayGroups;
+  bool get _hasItems => _cart?.hasActiveItems == true;
+  bool get _busy =>
+      _initializing || _submitting || _switchingStore || _pickingAddress;
+  bool get _quoteReady => !_delivery || (!_quoting && _quote != null);
+  bool get _canSubmit =>
+      _loggedIn == true &&
+      _hasItems &&
+      _businessId != null &&
+      _quoteReady &&
+      !_initializing &&
+      !_busy &&
+      !_validating &&
+      !_creationUncertain &&
+      !_created &&
+      (!_delivery || _normalizedAddress() != null);
 
   @override
   void initState() {
     super.initState();
-    final initialDeliveryType =
-        widget.initialDeliveryType?.trim().toUpperCase();
-    if (initialDeliveryType == 'PICKUP' || initialDeliveryType == 'DELIVERY') {
-      _deliveryType = initialDeliveryType!;
+    if (widget.initialDeliveryType?.trim().toUpperCase() == 'PICKUP') {
+      _mode = 'PICKUP';
     }
-    if (widget.initialAddress != null) {
-      _selectedAddress = Map<String, dynamic>.from(widget.initialAddress!);
-      _syncAddressDetailControllers(_selectedAddress);
-    }
-    _initAddressSelection();
-    _loadUserBonuses();
-  }
-
-  Future<void> _initAddressSelection() async {
-    if (widget.initialAddress != null) {
-      if (_deliveryType == 'DELIVERY' && _selectedAddress != null) {
-        await AddressStorageService.saveSelectedAddress(_selectedAddress!);
-      }
-      await _calculateDelivery();
-      return;
-    }
-
-    final address = await AddressStorageService.getSelectedAddress();
-    if (mounted && address != null) {
-      setState(() {
-        _selectedAddress = address;
-      });
-      _syncAddressDetailControllers(address);
-    }
-    await _calculateDelivery();
-  }
-
-  Future<void> _loadUserBonuses() async {
-    if (await ApiService.isUserLoggedIn()) {
-      final bonuses = await ApiService.getUserBonuses();
-      debugPrint('Loaded bonuses: $bonuses');
-      if (mounted) {
-        setState(() {
-          _bonusData = bonuses;
-        });
-      }
-    }
-  }
-
-  Future<void> _showAddressSelectionModal({
-    Map<String, dynamic>? initialAddress,
-  }) async {
-    if (!mounted) return;
-    final selected = await AddressSelectionModalHelper.show(
-      context,
-      initialAddress: initialAddress ?? _addressWithDetails(),
-      openDetailsFirst: _selectedAddress != null,
-    );
-    if (mounted && selected != null) {
-      setState(() {
-        _selectedAddress = selected;
-        _deliveryData = null;
-      });
-      _syncAddressDetailControllers(selected);
-      // Сохраняем выбранный адрес со всеми деталями
-      await AddressStorageService.saveSelectedAddress(selected);
-      await AddressStorageService.markAsLaunched();
-      // Рассчитываем доставку по новому адресу
-      await _calculateDelivery();
-    }
-  }
-
-  Future<void> _showBusinessSelectionSheet() async {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final availableCities =
-        (await OnboardingService.fetchAvailableCities(forceRefresh: true))
-            .map((city) => city.name)
-            .toList();
-    final selectedCity = await OnboardingService.getSelectedCity();
-    final businesses = await ApiService.getAllBusinesses();
-
-    if (!mounted) return;
-    if (businesses == null || businesses.isEmpty) {
-      await _showNotice('Магазины не найдены',
-          'Не удалось загрузить список магазинов. Попробуйте ещё раз.');
-      return;
-    }
-
-    final preparedBusinesses =
-        List<Map<String, dynamic>>.from(businesses).map((business) {
-      return {
-        ...business,
-        '_cityName': _detectBusinessCity(business, availableCities) ?? '',
-      };
-    }).toList();
-
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
-    final selectedBusiness = businessProvider.selectedBusiness;
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      backgroundColor: AppColors.card,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      builder: (sheetContext) {
-        return _CheckoutShopCitySheet(
-          allBusinesses: preparedBusinesses,
-          availableCities: availableCities,
-          selectedCity: selectedCity,
-          selectedBusiness: selectedBusiness,
-        );
-      },
-    );
-
-    if (!mounted || result == null) return;
-
-    final currentBusinessId = _businessIdOf(selectedBusiness);
-    final nextBusinessId = _businessIdOf(result);
-    if (currentBusinessId != null && currentBusinessId == nextBusinessId) {
-      return;
-    }
-
-    final shouldSwitch = await AppDialogs.show<bool>(
-      context,
-      title: 'Сменить магазин?',
-      content: const Text(
-        'Смена магазина очистит текущую корзину и вернёт вас к выбору товаров.',
-        style: TextStyle(color: AppColors.textMute),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
-          child: const Text('Отмена'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: TextButton.styleFrom(foregroundColor: AppColors.orange),
-          child: const Text('Сменить'),
-        ),
-      ],
-    );
-
-    if (shouldSwitch != true || !mounted) return;
-
-    final nextCity = result['_cityName']?.toString();
-    if (nextCity != null && nextCity.isNotEmpty && nextCity != selectedCity) {
-      await OnboardingService.setSelectedCity(nextCity);
-      await AddressStorageService.removeSelectedAddress();
-    }
-
-    cartProvider.clearCart();
-    await businessProvider.setSelectedBusiness(result);
-    if (!mounted) return;
-    await AppNavigator.goToHomeTab(0);
-  }
-
-  Future<void> _submitOrder() async {
-    // Проверяем авторизацию
-    final loggedIn = await ApiService.isUserLoggedIn();
-    if (!mounted) return;
-    if (!loggedIn) {
-      await _showNotice('Нужна авторизация',
-          'Пожалуйста, авторизуйтесь, чтобы оформить заказ.');
-      return;
-    }
-
-    if (_isSubmitting) return;
-    setState(() => _isSubmitting = true);
-
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
-    if (businessProvider.selectedBusiness == null) {
-      await _showNotice('Магазин не выбран',
-          'Пожалуйста, выберите магазин перед оформлением заказа.');
-      setState(() => _isSubmitting = false);
-      return;
-    }
-    if (_selectedAddress == null && _deliveryType == 'DELIVERY') {
-      await _showAddressSelectionModal();
-      if (_selectedAddress == null) {
-        setState(() => _isSubmitting = false);
-        return;
-      }
-    }
-
-    if (_deliveryType == 'DELIVERY' && !_hasCompleteAddressDetails()) {
-      await _showAddressSelectionModal(initialAddress: _addressWithDetails());
-      if (!_hasCompleteAddressDetails()) {
-        setState(() => _isSubmitting = false);
-        return;
-      }
-    }
-
-    final normalizedAddress = _addressWithDetails();
-    if (_deliveryType == 'DELIVERY' && normalizedAddress['lat'] == null) {
-      setState(() => _isSubmitting = false);
-      return;
-    }
-    final businessId = _asInt(_businessIdOf(businessProvider.selectedBusiness));
-    if (businessId == null) {
-      await _showNotice('Магазин не выбран',
-          'Не удалось определить магазин для оформления заказа.');
-      setState(() => _isSubmitting = false);
-      return;
-    }
-    final bagItemId = _bagItemIdForBusinessId(businessId);
-    final orderItems = _orderItemsWithBag(cartProvider, bagItemId: bagItemId);
-    final certificateAmount = _getCertificateAmount();
-    final certificate = _appliedCertificate();
-    final isPickup = _deliveryType == 'PICKUP';
-    final courierTips = isPickup ? 0 : _getCourierTips();
-    if (_deliveryType == 'DELIVERY') {
-      await AddressStorageService.saveSelectedAddress(normalizedAddress);
-      if (mounted) {
-        setState(() {
-          _selectedAddress = normalizedAddress;
-        });
-      }
-    }
-
-    final body = <String, dynamic>{
-      'business_id': businessId,
-      'street': isPickup
-          ? ''
-          : normalizedAddress['street'] ?? normalizedAddress['address'] ?? '',
-      'house': isPickup ? '' : normalizedAddress['house'] ?? '-',
-      'lat': isPickup ? 0.0 : normalizedAddress['lat'] ?? 0.0,
-      'lon': isPickup ? 0.0 : normalizedAddress['lon'] ?? 0.0,
-      'apartment': isPickup ? '' : normalizedAddress['apartment'] ?? '',
-      'entrance': isPickup ? '' : normalizedAddress['entrance'] ?? '',
-      'floor': isPickup ? '' : normalizedAddress['floor'] ?? '',
-      'extra': isPickup ? '' : normalizedAddress['comment'] ?? '',
-      'items': orderItems,
-      'delivery_type': _deliveryType,
-      'delivery_time': _deliveryTime,
-      'total_amount': _getTotalWithDelivery(),
-      'courier_tips': courierTips,
-      'use_bonuses': _useBonus,
-      if (_useBonus) 'bonus_amount': _getUsedBonuses(),
-      if (_selectedDeliveryDateTime != null)
-        'scheduled_time': _selectedDeliveryDateTime!.toIso8601String(),
-      'saved_card_id': 1,
-      if (_appliedPromoData != null && certificate == null)
-        'promo_code': _promoCodeController.text.trim(),
-      if (certificate != null && certificateAmount > 0) ...{
-        if (_certificateIdOf(certificate) != null)
-          'certificate_id': _certificateIdOf(certificate),
-        if (_certificateIdOf(certificate) == null &&
-            certificate['code'] != null)
-          'certificate_code': certificate['code'].toString(),
-        'certificate_amount': certificateAmount,
-      },
-    };
-    try {
-      final result = await ApiService.createUserOrder(body);
-      if (result['success'] == true) {
-        cartProvider.clearCart();
-      }
-
-      if (!mounted) return;
-
-      if (result['success'] == true) {
-        final orderData = result['data'];
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentMethodPage(
-              orderData: orderData,
-              displayAmount: _getTotalWithDelivery(),
-            ),
-          ),
-        );
-      } else {
-        final errorMessage = result['error'] is Map
-            ? result['error']['message']
-            : result['error'];
-        await _showNotice('Ошибка создания заказа', '$errorMessage');
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  /// Рассчитать стоимость доставки по адресу
-  Future<void> _calculateDelivery() async {
-    if (_selectedAddress == null || _deliveryType != 'DELIVERY') return;
-    if (_isCalculatingDelivery) return;
-    setState(() => _isCalculatingDelivery = true);
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
-    if (businessProvider.selectedBusiness == null) {
-      await _showNotice('Магазин не выбран',
-          'Сначала выберите магазин, чтобы рассчитать доставку.');
-      setState(() => _isCalculatingDelivery = false);
-      return;
-    }
-    // Предполагаем, что в _selectedAddress есть ключ 'address_id'
-    final businessId = businessProvider.selectedBusiness!['id'];
-    try {
-      final data = await ApiService.calculateDeliveryByAddress(
-        businessId: businessId,
-        lat: _selectedAddress!['lat'],
-        lon: _selectedAddress!['lon'],
-      );
-
-      if (mounted) {
-        setState(() {
-          _deliveryData = data;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        await _showNotice(
-            'Доставка не рассчитана', 'Не удалось рассчитать доставку: $e');
-      }
-    } finally {
-      if (mounted) setState(() => _isCalculatingDelivery = false);
-    }
-  }
-
-  /// Показать диалог выбора времени доставки
-  Future<void> _showDeliveryTimeSelection() async {
-    final isPickup = _deliveryType == 'PICKUP';
-    final result = await AppDialogs.show<String>(
-      context,
-      title: isPickup ? 'Когда забрать заказ' : 'Когда доставить заказ',
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.schedule, color: AppColors.orange),
-            title: Text(isPickup ? 'Как можно скорее' : 'Сейчас',
-                style: const TextStyle(
-                    color: AppColors.text, fontWeight: FontWeight.w700)),
-            subtitle: Text(
-                isPickup
-                    ? 'Забрать в ближайшее время'
-                    : 'Доставка в ближайшее время',
-                style: const TextStyle(color: AppColors.textMute)),
-            onTap: () => Navigator.pop(context, 'NOW'),
-          ),
-          const Divider(color: Color(0x229FB0C8)),
-          ListTile(
-            leading: const Icon(Icons.calendar_today, color: AppColors.orange),
-            title: const Text('Запланировать',
-                style: TextStyle(
-                    color: AppColors.text, fontWeight: FontWeight.w700)),
-            subtitle: const Text('Выберите дату и время',
-                style: TextStyle(color: AppColors.textMute)),
-            onTap: () async {
-              Navigator.pop(context);
-              await _showDateTimePicker();
-            },
-          ),
-          if (_deliveryTime != 'NOW' && _selectedDeliveryDateTime != null) ...[
-            const Divider(color: Color(0x229FB0C8)),
-            ListTile(
-              leading: const Icon(Icons.clear, color: AppColors.orange),
-              title: const Text('Сбросить',
-                  style: TextStyle(
-                      color: AppColors.text, fontWeight: FontWeight.w700)),
-              subtitle: const Text('Очистить выбранное время',
-                  style: TextStyle(color: AppColors.textMute)),
-              onTap: () => Navigator.pop(context, 'RESET'),
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
-          child: const Text('Отмена'),
-        ),
-      ],
-    );
-
-    if (result != null && mounted) {
-      setState(() {
-        if (result == 'NOW') {
-          _deliveryTime = 'NOW';
-          _selectedDeliveryDateTime = null;
-        } else if (result == 'RESET') {
-          _deliveryTime = 'NOW';
-          _selectedDeliveryDateTime = null;
-        }
-      });
-    }
-  }
-
-  /// Показать выбор даты и времени
-  Future<void> _showDateTimePicker() async {
-    final now = DateTime.now();
-    final maxDate = now.add(const Duration(days: 1));
-    final isPickup = _deliveryType == 'PICKUP';
-
-    // Выбор даты
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: maxDate,
-      helpText: isPickup ? 'Выберите дату самовывоза' : 'Выберите дату доставки',
-      cancelText: 'Отмена',
-      confirmText: 'Далее',
-      locale: const Locale('ru', 'RU'),
-    );
-
-    if (selectedDate == null || !mounted) return;
-
-    // Выбор времени
-    final selectedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
-      helpText:
-          isPickup ? 'Выберите время самовывоза' : 'Выберите время доставки',
-      cancelText: 'Отмена',
-      confirmText: 'Готово',
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            alwaysUse24HourFormat: true,
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (selectedTime == null || !mounted) return;
-
-    final selectedDateTime = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-      selectedTime.hour,
-      selectedTime.minute,
-    );
-
-    // Проверяем, что выбранное время не в прошлом
-    if (selectedDateTime.isBefore(now)) {
-      await _showNotice(
-          'Некорректное время', 'Нельзя выбрать время в прошлом.');
-      return;
-    }
-
-    // Проверяем, что время в пределах 24 часов
-    if (selectedDateTime.isAfter(now.add(const Duration(hours: 24)))) {
-      await _showNotice('Некорректное время',
-          '${isPickup ? 'Самовывоз доступен' : 'Доставка возможна'} только в течение 24 часов.');
-      return;
-    }
-
-    setState(() {
-      _deliveryTime = 'SCHEDULED';
-      _selectedDeliveryDateTime = selectedDateTime;
-    });
-  }
-
-  String _getDeliveryTimeText() {
-    if (_deliveryTime == 'NOW') {
-      return 'Сейчас';
-    } else if (_selectedDeliveryDateTime != null) {
-      final today = DateTime.now();
-      final tomorrow = today.add(const Duration(days: 1));
-
-      String dateText;
-      if (_selectedDeliveryDateTime!.day == today.day &&
-          _selectedDeliveryDateTime!.month == today.month) {
-        dateText = 'Сегодня';
-      } else if (_selectedDeliveryDateTime!.day == tomorrow.day &&
-          _selectedDeliveryDateTime!.month == tomorrow.month) {
-        dateText = 'Завтра';
-      } else {
-        dateText =
-            '${_selectedDeliveryDateTime!.day}.${_selectedDeliveryDateTime!.month.toString().padLeft(2, '0')}';
-      }
-
-      final timeText =
-          '${_selectedDeliveryDateTime!.hour.toString().padLeft(2, '0')}:${_selectedDeliveryDateTime!.minute.toString().padLeft(2, '0')}';
-      return '$dateText в $timeText';
-    }
-    return 'Выберите время';
-  }
-
-  String _fulfillmentTimeText() {
-    if (_deliveryType == 'PICKUP' && _deliveryTime == 'NOW') {
-      return 'Как можно скорее';
-    }
-    return _getDeliveryTimeText();
-  }
-
-  /// Получить итоговую сумму с учетом доставки
-  double _getTotalWithDelivery() {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
-    final itemsTotal = cartProvider.getTotalPrice();
-    final bagCost = _checkoutBagCost(
-        cartProvider.displayGroups, businessProvider.selectedBusiness);
-    final hasCertificate = _appliedCertificateData != null;
-    final promoDiscount = hasCertificate
-        ? 0.0
-        : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-
-    // Bonuses apply only to items (not delivery).
-    final bonusApplied =
-        _useBonus && _bonusData != null && _bonusData!['success'] == true
-            ? _getUsedBonuses()
-            : 0.0;
-    final certificateApplied = _getCertificateAmount();
-    final payableItemsTotal = (itemsTotal +
-            bagCost -
-            promoDiscount -
-            bonusApplied -
-            certificateApplied)
-        .clamp(0.0, double.infinity)
-        .toDouble();
-
-    return payableItemsTotal +
-        _getEffectiveDeliveryCost() +
-        _getServiceFeeAmount() +
-        _getCourierTips();
-  }
-
-  double _getEffectiveDeliveryCost() {
-    if (_deliveryType != 'DELIVERY') {
-      return 0.0;
-    }
-    final baseDeliveryCost =
-        (_deliveryData?['base_delivery_cost'] as num?)?.toDouble();
-    final fallbackDeliveryCost =
-        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-    final promoDeliveryPrice = _appliedCertificateData == null
-        ? (_appliedPromoData?['final_delivery_price'] as num?)?.toDouble()
-        : null;
-    final deliveryCost = promoDeliveryPrice != null
-        ? promoDeliveryPrice - _getServiceFeeAmount()
-        : baseDeliveryCost ?? fallbackDeliveryCost;
-    return deliveryCost
-        .clamp(0.0, double.infinity)
-        .toDouble();
-  }
-
-  double _getServiceFeeAmount() {
-    if (_deliveryType != 'DELIVERY') {
-      return 0.0;
-    }
-    final serviceFee =
-        (_deliveryData?['service_fee_amount'] as num?)?.toDouble();
-    if (serviceFee != null) {
-      return serviceFee.clamp(0.0, double.infinity).toDouble();
-    }
-
-    final totalDelivery =
-        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-    final baseDelivery =
-        (_deliveryData?['base_delivery_cost'] as num?)?.toDouble();
-    if (baseDelivery == null) {
-      return 0.0;
-    }
-    return (totalDelivery - baseDelivery)
-        .clamp(0.0, double.infinity)
-        .toDouble();
-  }
-
-  int _getCourierTips() {
-    if (_deliveryType != 'DELIVERY') {
-      return 0;
-    }
-    return _selectedCourierTips.clamp(0, 999999);
-  }
-
-  /// Получить сумму использованных бонусов
-  double _getUsedBonuses() {
-    if (!_useBonus || _bonusData == null || _bonusData!['success'] != true) {
-      return 0.0;
-    }
-
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final itemsTotal = cartProvider.getTotalPrice();
-
-    // Максимум 30% от суммы товаров можно оплатить бонусами, доставка не покрывается бонусами.
-    final maxBonusUsage = itemsTotal * 0.30;
-    final availableBonuses =
-        (_bonusData!['data']['totalBonuses'] as num?)?.toDouble() ?? 0.0;
-
-    // Возвращаем меньшее из: доступные бонусы, максимально допустимое использование (30%), или сумма товаров
-    return [availableBonuses, maxBonusUsage, itemsTotal]
-        .reduce((a, b) => a < b ? a : b);
-  }
-
-  double _certificateOrderSubtotal() {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
-    return cartProvider.getTotalPrice() +
-        _checkoutBagCost(
-            cartProvider.displayGroups, businessProvider.selectedBusiness);
-  }
-
-  Map<String, dynamic>? _appliedCertificate() {
-    if (_appliedCertificateData == null) return null;
-    final certificate =
-        ApiService.mapFromDynamic(_appliedCertificateData!['certificate']);
-    if (certificate.isNotEmpty) return certificate;
-    final code = _promoCodeController.text.trim();
-    if (code.isNotEmpty) {
-      return <String, dynamic>{'code': code};
-    }
-    return null;
-  }
-
-  double _certificateMaxAvailableAmount() {
-    if (_appliedCertificateData == null) return 0.0;
-    final data = _appliedCertificateData!;
-    return _asDouble(
-      data['max_available_amount'] ??
-          data['certificate_amount'] ??
-          data['amount'] ??
-          _appliedCertificate()?['balance'],
-    );
-  }
-
-  double _getCertificateAmount() {
-    if (_appliedCertificateData == null) {
-      return 0.0;
-    }
-    return certificateAppliedAmount(
-      itemsTotal: _certificateOrderSubtotal(),
-      bonusAmount: _getUsedBonuses(),
-      maxAvailableAmount: _certificateMaxAvailableAmount(),
-    );
-  }
-
-  int _getEarnedBonuses() {
-    if (_isPromoCodeApplied) {
-      return 0;
-    }
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    return _calculateEarnedBonuses(cartProvider.displayGroups);
-  }
-
-  void _dismissKeyboard() {
-    FocusManager.instance.primaryFocus?.unfocus();
+    if (widget.initialAddress != null) _setAddress(widget.initialAddress!);
+    _promo.addListener(_codeChanged);
+    _certificate.addListener(_codeChanged);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final cartProvider = Provider.of<CartProvider>(context);
-    final displayGroups = cartProvider.displayGroups;
-    final businessProvider = Provider.of<BusinessProvider>(context);
-    final bool hasCheckoutBag =
-        _shouldAddCheckoutBag(displayGroups, businessProvider.selectedBusiness);
-    final double bagCost = hasCheckoutBag ? _checkoutBagPrice : 0.0;
-    final int checkoutItemCount =
-        displayGroups.length + (hasCheckoutBag ? 1 : 0);
-    final deliveryCost = _getEffectiveDeliveryCost();
-    final serviceFeeAmount = _getServiceFeeAmount();
-    final itemsTotal = cartProvider.getTotalPrice();
-    final hasCertificate = _appliedCertificateData != null;
-    final promoDiscount = hasCertificate
-        ? 0.0
-        : (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    final totalWithDelivery = _getTotalWithDelivery();
-    final earnedBonuses = _getEarnedBonuses();
-    final bool canUseBonus =
-        _bonusData != null && _bonusData!['success'] == true;
-    final double bonusUsed = _useBonus ? _getUsedBonuses() : 0.0;
-    final double certificateUsed = _getCertificateAmount();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final cart = context.read<CartProvider>();
+    final business = context.read<BusinessProvider>();
+    if (identical(cart, _cart) && identical(business, _business)) return;
+    _cart?.removeListener(_dependenciesChanged);
+    _business?.removeListener(_dependenciesChanged);
+    _cart = cart;
+    _business = business;
+    _cartSnapshot = _snapshotCart();
+    _storeSnapshot = _businessId;
+    cart.addListener(_dependenciesChanged);
+    business.addListener(_dependenciesChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _initialize();
+    });
+  }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          _handleBack();
+  @override
+  void dispose() {
+    _cart?.removeListener(_dependenciesChanged);
+    _business?.removeListener(_dependenciesChanged);
+    for (final controller in [
+      _entrance,
+      _floor,
+      _apartment,
+      _promo,
+      _certificate
+    ]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  String _snapshotCart() => jsonEncode({
+        'items': _cart!.toJsonForOrder(),
+        'total': _cart!.getTotalPrice(),
+      });
+
+  void _dependenciesChanged() {
+    if (!mounted || _created || _switchingStore) return;
+    final nextCart = _snapshotCart();
+    final nextStore = _businessId;
+    if (nextCart == _cartSnapshot && nextStore == _storeSnapshot) return;
+    _cartSnapshot = nextCart;
+    _storeSnapshot = nextStore;
+    setState(_invalidate);
+    _calculateDelivery();
+  }
+
+  void _invalidate() {
+    _revision++;
+    _quoteRequest++;
+    _benefitRequest++;
+    _quote = null;
+    _quoting = false;
+    _quoteError = null;
+    _promoData = null;
+    _certificateData = null;
+    _validating = false;
+    _benefitError = null;
+    _useBonus = false;
+    _submitError = null;
+  }
+
+  Future<void> _initialize() async {
+    try {
+      if (widget.initialAddress == null) {
+        final saved = await AddressStorageService.getSelectedAddress();
+        if (!mounted) return;
+        if (saved != null) _setAddress(saved);
+      }
+    } catch (_) {
+      if (mounted) {
+        _addressError =
+            'Не удалось прочитать сохранённый адрес. Выберите адрес заново.';
+      }
+    }
+    try {
+      final loggedIn = await ApiService.isUserLoggedIn();
+      if (!mounted) return;
+      setState(() {
+        _loggedIn = loggedIn;
+        _initializing = false;
+      });
+      _calculateDelivery();
+      if (loggedIn) _loadBonuses();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loggedIn = false;
+        _initializing = false;
+        _submitError = 'Не удалось проверить авторизацию. Войдите в аккаунт.';
+      });
+    }
+  }
+
+  Future<void> _loadBonuses() async {
+    if (_loadingBonus) return;
+    setState(() {
+      _loadingBonus = true;
+      _bonusError = null;
+    });
+    try {
+      final result = await ApiService.getUserBonuses();
+      if (!mounted) return;
+      final data = ApiService.mapFromDynamic(result?['data']);
+      final balance = checkoutAmount(data['totalBonuses']);
+      setState(() {
+        _bonusBalance = result?['success'] == true ? balance : null;
+        if (_bonusBalance == null) _bonusError = 'Не удалось загрузить бонусы';
+      });
+    } catch (_) {
+      if (mounted) setState(() => _bonusError = 'Не удалось загрузить бонусы');
+    } finally {
+      if (mounted) setState(() => _loadingBonus = false);
+    }
+  }
+
+  void _setAddress(Map<String, dynamic> address) {
+    _address = Map<String, dynamic>.from(address);
+    _entrance.text = address['entrance']?.toString() ?? '';
+    _floor.text = address['floor']?.toString() ?? '';
+    _apartment.text = address['apartment']?.toString() ?? '';
+  }
+
+  Map<String, dynamic>? _normalizedAddress() {
+    if (_address == null) return null;
+    final value = <String, dynamic>{
+      ..._address!,
+      'address': ApiService.formatAddressSummary(_address, emptyText: ''),
+      'entrance': _entrance.text.trim(),
+      'floor': _floor.text.trim(),
+      'apartment': _apartment.text.trim(),
+    };
+    return AddressStorageService.deliveryAddress(value);
+  }
+
+  Future<void> _pickAddress() async {
+    if (_busy) return;
+    setState(() {
+      _pickingAddress = true;
+      _addressError = null;
+    });
+    try {
+      final current = _normalizedAddress() ?? _address;
+      final selected = widget.addressPicker != null
+          ? await widget.addressPicker!(context, current, _address != null)
+          : await AddressSelectionModalHelper.show(context,
+              initialAddress: current, openDetailsFirst: _address != null);
+      if (!mounted || selected == null) return;
+      setState(() {
+        _setAddress(selected);
+        _invalidate();
+      });
+      final normalized = _normalizedAddress();
+      if (normalized == null) {
+        setState(() => _addressError =
+            'Для адреса нужны точные координаты и название. Выберите его на карте.');
+        return;
+      }
+      if (!await AddressStorageService.saveSelectedAddress(normalized)) {
+        if (mounted) {
+          setState(() => _addressError =
+              'Адрес не сохранён на устройстве. Повторите сохранение.');
         }
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.bgDeep,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          centerTitle: true,
-          foregroundColor: AppColors.text,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-            onPressed: _handleBack,
-          ),
-          title: Text('Оформление',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.sp)),
-        ),
-        bottomNavigationBar: _bottomCheckoutBar(total: totalWithDelivery),
-        body: Stack(
-          children: [
-            const AppBackground(),
-            GestureDetector(
-              onTap: _dismissKeyboard,
-              behavior: HitTestBehavior.translucent,
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.fromLTRB(16.s, 4.s, 16.s, 100.s),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _fulfillmentSection(
-                        businessProvider: businessProvider,
-                        deliveryCost: deliveryCost,
-                      ),
-                      SizedBox(height: 28.s),
-                      _orderPreviewSection(
-                        displayGroups: displayGroups,
-                        hasCheckoutBag: hasCheckoutBag,
-                        checkoutItemCount: checkoutItemCount,
-                      ),
-                      SizedBox(height: 28.s),
-                      if (_deliveryType == 'DELIVERY') ...[
-                        _courierTipsSection(),
-                        SizedBox(height: 24.s),
-                      ],
-                      _paymentSummarySection(
-                        itemsTotal: itemsTotal,
-                        bagCost: bagCost,
-                        deliveryCost: deliveryCost,
-                        serviceFeeAmount: serviceFeeAmount,
-                        promoDiscount: promoDiscount,
-                        bonusUsed: bonusUsed,
-                        certificateUsed: certificateUsed,
-                        earnedBonuses: earnedBonuses,
-                        totalWithDelivery: totalWithDelivery,
-                        canUseBonus: canUseBonus,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+      }
+      if (mounted) _calculateDelivery();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _addressError =
+            'Не удалось выбрать или сохранить адрес. Попробуйте ещё раз.');
+      }
+    } finally {
+      if (mounted) setState(() => _pickingAddress = false);
+    }
   }
 
-  Widget _checkoutSectionHeader({
-    required String title,
-    Widget? trailing,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        if (trailing != null) trailing,
-      ],
-    );
+  Future<void> _saveAddress() async {
+    final normalized = _normalizedAddress();
+    if (normalized == null || _busy) return;
+    try {
+      final saved = await AddressStorageService.saveSelectedAddress(normalized);
+      if (!mounted) return;
+      setState(() => _addressError = saved
+          ? null
+          : 'Адрес не сохранён на устройстве. Повторите сохранение.');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _addressError =
+            'Адрес не сохранён на устройстве. Повторите сохранение.');
+      }
+    }
   }
 
-  Widget _fulfillmentSection({
-    required BusinessProvider businessProvider,
-    required double deliveryCost,
-  }) {
-    final isDelivery = _deliveryType == 'DELIVERY';
-    final deliveryValue = _isCalculatingDelivery
-        ? 'считаем...'
-        : _deliveryData == null
-            ? '-'
-            : deliveryCost > 0
-            ? _money(deliveryCost)
-            : 'Бесплатно';
-
-    return Column(
-      children: [
-        _deliveryTabs(),
-        SizedBox(height: 20.s),
-        _routeStop(
-          icon: Icons.storefront_outlined,
-          eyebrow: isDelivery ? null : 'Забрать из',
-          title: businessProvider.selectedBusinessName ?? 'Магазин',
-          subtitle: businessProvider.selectedBusiness?['address']?.toString(),
-          onTap: _showBusinessSelectionSheet,
-          isOrigin: isDelivery,
-          isDestination: !isDelivery,
-        ),
-        if (isDelivery) ...[
-          _routeConnector(),
-          _routeStop(
-            icon: Icons.location_on_rounded,
-            title: _selectedAddress == null ? 'Выберите адрес' : _addressText(),
-            subtitle: _addressDetailsText(),
-            onTap: () => _showAddressSelectionModal(),
-            isWarning:
-                _selectedAddress == null || !_hasCompleteAddressDetails(),
-            isDestination: true,
-          ),
-        ],
-        SizedBox(height: 16.s),
-        Padding(
-          padding: EdgeInsets.only(left: 4.s),
-          child: Row(
-            children: [
-              Expanded(
-                child: _routeMetaAction(
-                  icon: Icons.schedule_rounded,
-                  label: isDelivery ? 'Когда доставить' : 'Когда забрать',
-                  value: _fulfillmentTimeText(),
-                  onTap: _showDeliveryTimeSelection,
-                ),
-              ),
-              if (isDelivery) ...[
-                Container(
-                  width: 1,
-                  height: 22.s,
-                  margin: EdgeInsets.symmetric(horizontal: 14.s),
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
-                Expanded(
-                  child: _routeMetaAction(
-                    icon: Icons.local_shipping_outlined,
-                    label: 'Стоимость',
-                    value: deliveryValue,
-                    isLoading: _isCalculatingDelivery,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
+  Future<void> _calculateDelivery() async {
+    final request = ++_quoteRequest;
+    final revision = _revision;
+    final address = _normalizedAddress();
+    final businessId = _businessId;
+    if (!_delivery || !_hasItems || address == null || businessId == null) {
+      if (mounted) {
+        setState(() {
+          _quote = null;
+          _quoting = false;
+        });
+      }
+      return;
+    }
+    setState(() {
+      _quote = null;
+      _quoting = true;
+      _quoteError = null;
+      _benefitRequest++;
+      _promoData = null;
+      _certificateData = null;
+      _validating = false;
+    });
+    CheckoutQuote? quote;
+    try {
+      quote = CheckoutQuote.fromResponse(
+          await ApiService.calculateDeliveryByAddress(
+        businessId: businessId,
+        lat: address['lat'] as double,
+        lon: address['lon'] as double,
+      ));
+    } catch (_) {
+      quote = null;
+    }
+    if (!mounted ||
+        request != _quoteRequest ||
+        revision != _revision ||
+        !_delivery) {
+      return;
+    }
+    setState(() {
+      _quoting = false;
+      _quote = quote;
+      _quoteError = quote == null
+          ? 'Не удалось рассчитать доставку. Без расчёта заказ не отправится.'
+          : null;
+    });
   }
 
-  Widget _orderPreviewSection({
-    required List<CartDisplayGroup> displayGroups,
-    required bool hasCheckoutBag,
-    required int checkoutItemCount,
-  }) {
-    const collapsedLimit = 3;
-    final visibleItemCount = _showAllCheckoutItems
-        ? displayGroups.length
-        : displayGroups.length > collapsedLimit
-            ? collapsedLimit
-            : displayGroups.length;
-    final hiddenCount = displayGroups.length - visibleItemCount;
-    final canExpand = hiddenCount > 0 || (_showAllCheckoutItems && displayGroups.length > collapsedLimit);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _checkoutSectionHeader(
-          title: 'Ваш заказ',
-          trailing: Text(
-            '$checkoutItemCount поз.',
-            style: TextStyle(
-              color: AppColors.textMute,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        SizedBox(height: 8.s),
-        for (int i = 0; i < visibleItemCount; i++) ...[
-          if (i > 0) _softDivider(),
-          _itemTile(displayGroups[i]),
-        ],
-        if (hasCheckoutBag) ...[
-          if (visibleItemCount > 0) _softDivider(),
-          _bagTile(),
-        ],
-        if (canExpand) ...[
-          _softDivider(),
-          Center(
-            child: TextButton.icon(
-              onPressed: () {
-                setState(() => _showAllCheckoutItems = !_showAllCheckoutItems);
-              },
-              icon: Icon(
-                _showAllCheckoutItems
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: 18.s,
-              ),
-              label: Text(
-                _showAllCheckoutItems ? 'Свернуть' : 'Ещё $hiddenCount',
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.textMute,
-                textStyle: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
+  void _changeMode(String mode) {
+    if (_busy || _mode == mode) return;
+    setState(() {
+      _mode = mode;
+      _invalidate();
+    });
+    _calculateDelivery();
   }
 
-  Widget _paymentSummarySection({
-    required double itemsTotal,
-    required double bagCost,
-    required double deliveryCost,
-    required double serviceFeeAmount,
-    required double promoDiscount,
-    required double bonusUsed,
-    required double certificateUsed,
-    required int earnedBonuses,
-    required double totalWithDelivery,
-    required bool canUseBonus,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _checkoutSectionHeader(title: 'Расчёт'),
-        SizedBox(height: 12.s),
-        _summaryRow('Товары', _money(itemsTotal)),
-        if (bagCost > 0) ...[
-          SizedBox(height: 8.s),
-          _summaryRow('Пакет', _money(bagCost)),
-        ],
-        if (_deliveryType == 'DELIVERY') ...[
-          SizedBox(height: 8.s),
-          _summaryRow(
-            'Доставка',
-            deliveryCost > 0
-                ? _money(deliveryCost)
-                : _deliveryData != null
-                    ? 'Бесплатно'
-                    : '-',
-          ),
-          if (serviceFeeAmount > 0) ...[
-            SizedBox(height: 8.s),
-            _summaryRow('Сервисный сбор', _money(serviceFeeAmount)),
-          ],
-        ],
-        SizedBox(height: 6.s),
-        _discountAction(
-          canUseBonus: canUseBonus,
-          promoDiscount: promoDiscount,
-          bonusUsed: bonusUsed,
-          certificateUsed: certificateUsed,
-        ),
-        if (earnedBonuses > 0)
-          Padding(
-            padding: EdgeInsets.only(top: 4.s),
-            child: _summaryRow(
-              'Начислится',
-              '+$earnedBonuses ₸',
-              valueColor: Colors.greenAccent,
-            ),
-          ),
-        Padding(
-          padding: EdgeInsets.only(top: 14.s),
-          child: Divider(
-            color: Colors.white.withValues(alpha: 0.12),
-            height: 1,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(top: 14.s, bottom: 4.s),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text(
-                  'К оплате',
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Text(
-                _money(totalWithDelivery),
-                style: TextStyle(
-                  color: AppColors.orange,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  void _codeChanged() {
+    if (!mounted) return;
+    setState(() {
+      _benefitRequest++;
+      _validating = false;
+      _promoData = null;
+      _certificateData = null;
+      _benefitError = null;
+    });
   }
 
-  Widget _deliveryTabs() {
-    return Container(
-      padding: EdgeInsets.all(4.s),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(18.s),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        children: [
-          _deliveryTab('Доставка', 'DELIVERY'),
-          _deliveryTab('Самовывоз', 'PICKUP'),
-        ],
-      ),
-    );
+  void _toggleBonuses(bool value) {
+    if (_busy) return;
+    setState(() {
+      _benefitRequest++;
+      _validating = false;
+      _useBonus = value;
+      if (value) {
+        _promoData = null;
+        _certificateData = null;
+      }
+      _benefitError = null;
+    });
   }
 
-  Widget _routeStop({
-    required IconData icon,
-    String? eyebrow,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-    bool isWarning = false,
-    bool isOrigin = false,
-    bool isDestination = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10.s),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 4.s),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 28.s,
-              height: 28.s,
-              child: Icon(
-                icon,
-                color: isWarning ? AppColors.red : AppColors.orange,
-                size: isDestination ? 21.s : 18.s,
-              ),
-            ),
-            SizedBox(width: 8.s),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (eyebrow != null) ...[
-                    Text(
-                      eyebrow,
-                      style: TextStyle(
-                        color: AppColors.textMute,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 2.s),
-                  ],
-                  Text(
-                    title,
-                    maxLines: isDestination ? 2 : 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.text,
-                      fontWeight:
-                          isDestination ? FontWeight.w900 : FontWeight.w700,
-                      fontSize: isDestination ? 16.sp : 13.sp,
-                      height: 1.2,
-                    ),
-                  ),
-                  if (subtitle != null && subtitle.isNotEmpty) ...[
-                    SizedBox(height: 2.s),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: isWarning
-                            ? AppColors.red.withValues(alpha: 0.95)
-                            : AppColors.textMute,
-                        fontSize: 12.sp,
-                        fontWeight:
-                            isWarning ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                      maxLines: isOrigin ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+  Future<void> _validateCode({required bool certificate}) async {
+    if (_validating || _busy || _useBonus) return;
+    final code = (certificate ? _certificate : _promo).text.trim();
+    if (code.isEmpty) {
+      setState(() => _benefitError = 'Введите код');
+      return;
+    }
+    if (_loggedIn != true) {
+      setState(() => _benefitError = 'Войдите в аккаунт, чтобы применить код');
+      return;
+    }
+    if (!_quoteReady || !_hasItems || _businessId == null) {
+      setState(() => _benefitError =
+          'Выберите магазин и адрес, дождитесь расчёта доставки');
+      return;
+    }
+    final revision = _revision;
+    final request = ++_benefitRequest;
+    final controller = certificate ? _certificate : _promo;
+    setState(() {
+      _validating = true;
+      _benefitError = null;
+    });
+    try {
+      final result = certificate
+          ? await ApiService.validateCertificate(
+              code: code, orderSubtotal: _itemsSubtotal)
+          : await ApiService.validatePromoCode({
+              'promo_code': code,
+              'business_id': _businessId,
+              'order_subtotal': _itemsSubtotal,
+              'delivery_price': _delivery ? _quote!.deliveryPrice : 0,
+              'items': _orderItems()
+                  .map((item) => {
+                        'item_id': item['item_id'],
+                        'amount': item['amount'],
+                      })
+                  .toList(),
+            });
+      if (!mounted ||
+          revision != _revision ||
+          request != _benefitRequest ||
+          controller.text.trim() != code ||
+          _useBonus) {
+        return;
+      }
+      final data = ApiService.mapFromDynamic(result['data']);
+      var accepted = result['success'] == true && data.isNotEmpty;
+      if (certificate) {
+        final actualCertificate =
+            ApiService.mapFromDynamic(data['certificate']);
+        final available = _certificateAvailable(data);
+        accepted = accepted &&
+            data['can_use'] != false &&
+            available != null &&
+            available > 0;
+        if (accepted && actualCertificate.isEmpty) {
+          data['certificate'] = {'code': code};
+        }
+      } else {
+        accepted = accepted &&
+            (checkoutAmount(data['promo_discount']) != null ||
+                checkoutAmount(data['final_delivery_price']) != null);
+        if (data.containsKey('promo_discount') &&
+            checkoutAmount(data['promo_discount']) == null) {
+          accepted = false;
+        }
+        if (data.containsKey('final_delivery_price') &&
+            checkoutAmount(data['final_delivery_price']) == null) {
+          accepted = false;
+        }
+      }
+      setState(() {
+        if (accepted) {
+          _promoData = certificate ? null : {...data, 'promo_code': code};
+          _certificateData = certificate ? data : null;
+          _useBonus = false;
+        } else {
+          _benefitError = _errorMessage(
+              result['error'], 'Код не применён. Проверьте код и условия.');
+        }
+      });
+    } catch (_) {
+      if (mounted && revision == _revision && request == _benefitRequest) {
+        setState(() =>
+            _benefitError = 'Не удалось проверить код. Попробуйте ещё раз.');
+      }
+    } finally {
+      if (mounted && request == _benefitRequest) {
+        setState(() => _validating = false);
+      }
+    }
+  }
+
+  Future<void> _selectStore() async {
+    if (_busy) return;
+    final selected = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _CheckoutStoreSheet(selectedId: _businessId),
+    );
+    if (!mounted || selected == null || _id(selected) == _businessId) return;
+    final confirmed = !_hasItems ||
+        await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Сменить магазин?'),
+                content: const Text(
+                    'Смена магазина очистит корзину и вернёт вас к выбору товаров.'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Отмена')),
+                  FilledButton(
+                      key: const ValueKey('checkout-confirm-store'),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Сменить')),
                 ],
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: 4.s),
-              child: Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textMute,
-                size: 18.s,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _routeConnector() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        width: 1.5.s,
-        height: 17.s,
-        margin: EdgeInsets.only(left: 13.25.s),
-        color: AppColors.orange.withValues(alpha: 0.3),
-      ),
-    );
-  }
-
-  Widget _routeMetaAction({
-    required IconData icon,
-    required String label,
-    required String value,
-    VoidCallback? onTap,
-    bool isLoading = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8.s),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 7.s),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.orange, size: 16.s),
-            SizedBox(width: 7.s),
-            if (isLoading)
-              SizedBox.square(
-                dimension: 14.s,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.orange,
-                ),
-              )
-            else
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textMute,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 1.s),
-                    Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (onTap != null)
-              Icon(
-                Icons.expand_more_rounded,
-                color: AppColors.textMute,
-                size: 17.s,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _softDivider() {
-    return Divider(
-      color: Colors.white.withValues(alpha: 0.07),
-      height: 1,
-      indent: 2.s,
-      endIndent: 2.s,
-    );
-  }
-
-  Widget _deliveryTab(String label, String value) {
-    final bool active = _deliveryType == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (_deliveryType == value) return;
-          setState(() {
-            _deliveryType = value;
-            if (value == 'PICKUP') {
-              _deliveryData = null;
-              _selectedCourierTips = 0;
-            } else {
-              _calculateDelivery();
+            ) ==
+            true;
+    if (!mounted || !confirmed) return;
+    setState(() => _switchingStore = true);
+    final previous = _business!.selectedBusiness;
+    String? previousCity;
+    Map<String, dynamic>? previousAddress;
+    var storeChanged = false;
+    var cityChanged = false;
+    try {
+      previousCity = await OnboardingService.getSelectedCity();
+      previousAddress = await AddressStorageService.getSelectedAddress();
+      final city = selected.remove('_checkoutCity')?.toString();
+      if (!await _business!.setSelectedBusiness(selected)) {
+        throw StateError('Магазин не сохранён');
+      }
+      storeChanged = true;
+      if (city != null && city.isNotEmpty && city != previousCity) {
+        cityChanged = true;
+        await OnboardingService.setSelectedCity(city);
+        if (!await AddressStorageService.removeSelectedAddress()) {
+          throw StateError('Не удалось сбросить адрес предыдущего города');
+        }
+      }
+      if (!mounted) return;
+      _cart!.clearCart();
+      _goCatalog();
+    } catch (_) {
+      var restored = true;
+      if (storeChanged) {
+        restored = await _business!.setSelectedBusiness(previous);
+      }
+      if (cityChanged) {
+        try {
+          if (previousCity != null) {
+            await OnboardingService.setSelectedCity(previousCity);
+          } else {
+            final prefs = await SharedPreferences.getInstance();
+            if (!await prefs.remove('onboarding_selected_city')) {
+              restored = false;
             }
+          }
+          if (previousAddress != null &&
+              !await AddressStorageService.saveSelectedAddress(
+                  previousAddress)) {
+            restored = false;
+          }
+        } catch (_) {
+          restored = false;
+        }
+      }
+      if (mounted) {
+        setState(() => _submitError = restored
+            ? 'Магазин не изменён: не удалось сохранить выбор. Корзина сохранена.'
+            : 'Не удалось сохранить выбор и восстановить настройки. Корзина сохранена; выберите магазин заново.');
+      }
+    } finally {
+      if (mounted) {
+        final persistenceError = _submitError;
+        setState(() => _switchingStore = false);
+        _dependenciesChanged();
+        if (persistenceError != null) {
+          setState(() => _submitError = persistenceError);
+        }
+      }
+    }
+  }
+
+  Future<void> _submitOrder() async {
+    if (!_canSubmit) return;
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+    final revision = _revision;
+    var mutationStarted = false;
+    try {
+      if (!await ApiService.isUserLoggedIn()) {
+        if (mounted) {
+          setState(() {
+            _loggedIn = false;
+            _submitError = 'Войдите в аккаунт, чтобы оформить заказ';
           });
+        }
+        return;
+      }
+      if (!mounted || revision != _revision || !_hasItems || !_quoteReady) {
+        return;
+      }
+      final address = _normalizedAddress();
+      if (_delivery && address == null) {
+        setState(() => _addressError = 'Выберите адрес с точными координатами');
+        return;
+      }
+      if (_delivery &&
+          !await AddressStorageService.saveSelectedAddress(address!)) {
+        if (mounted) {
+          setState(() => _addressError =
+              'Адрес не сохранён на устройстве. Повторите сохранение перед заказом.');
+        }
+        return;
+      }
+      if (!mounted || revision != _revision || !_hasItems || !_quoteReady) {
+        return;
+      }
+      final amount = _total;
+      final certificate =
+          ApiService.mapFromDynamic(_certificateData?['certificate']);
+      final certificateId =
+          _integer(certificate['certificate_id'] ?? certificate['id']);
+      final body = <String, dynamic>{
+        'business_id': _businessId,
+        'street': _delivery ? address!['street'] ?? address['address'] : '',
+        'house': _delivery ? address!['house'] ?? '-' : '',
+        'lat': _delivery ? address!['lat'] : 0.0,
+        'lon': _delivery ? address!['lon'] : 0.0,
+        'apartment': _delivery ? address!['apartment'] : '',
+        'entrance': _delivery ? address!['entrance'] : '',
+        'floor': _delivery ? address!['floor'] : '',
+        'extra': _delivery ? address!['comment'] ?? '' : '',
+        'items': _orderItems(),
+        'delivery_type': _mode,
+        'delivery_time': 'NOW',
+        'total_amount': amount,
+        'courier_tips': 0,
+        'use_bonuses': _useBonus,
+        if (_useBonus) 'bonus_amount': _bonusUsed,
+        if (_promoData != null) 'promo_code': _promoData!['promo_code'],
+        if (_certificateData != null && _certificateUsed > 0) ...{
+          if (certificateId != null) 'certificate_id': certificateId,
+          if (certificateId == null)
+            'certificate_code': certificate['code'] ?? _certificate.text.trim(),
+          'certificate_amount': _certificateUsed,
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: 10.s),
-          decoration: BoxDecoration(
-            color: active ? AppColors.orange : Colors.transparent,
-            borderRadius: BorderRadius.circular(18.s),
+      };
+      mutationStarted = true;
+      final result = await ApiService.createUserOrder(body);
+      final order = checkoutCreatedOrder(result);
+      if (order != null) {
+        _created = true;
+        _cart!.clearCart();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+          builder: (_) => PaymentMethodPage(
+            orderData: order,
+            displayAmount: amount,
+            openCardForm: widget.openCardForm,
+            onPaymentCompleted: widget.onPaymentCompleted,
           ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? Colors.black : AppColors.text,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  static String _fmtQty(double qty) {
-    return (qty - qty.roundToDouble()).abs() < 0.001
-        ? qty.toStringAsFixed(0)
-        : qty.toStringAsFixed(2);
-  }
-
-  static String _displayQty(CartDisplayGroup item) {
-    return subtractPromotionBundleLabel(
-      item.totalQuantity,
-      item.promotions,
-      formatQuantity: _fmtQty,
-    );
-  }
-
-  Widget _itemTile(CartDisplayGroup item) {
-    final snapshot = item.itemSnapshot;
-    final itemTitle = snapshot != null
-        ? presentItemName(
-            rawName: snapshot.name,
-            categoryName: snapshot.category?.name,
-          )
-        : presentItemName(
-            rawName: item.name,
-            storedType: item.itemType,
-            storedPackagingType: item.packagingType,
-          );
-    final double rawTotal = item.subtotalBeforePromotions;
-    final bool hasSavings = item.totalPrice < rawTotal - 0.001;
-    final bottleBreakdown = item.bottleBreakdownLabel;
-    final attributeText = itemTitle.attributes.join(' • ');
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.s),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (attributeText.isNotEmpty)
-                  Text(
-                    attributeText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.textMute,
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                if (attributeText.isNotEmpty) SizedBox(height: 2.s),
-                Text(
-                  itemTitle.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w900,
-                    height: 1.22,
-                  ),
-                ),
-                SizedBox(height: 6.s),
-                Wrap(
-                  spacing: 10.s,
-                  runSpacing: 5.s,
-                  children: [
-                    _itemMeta('x${_displayQty(item)}'),
-                    if (bottleBreakdown != null) ...[
-                      for (final part in _bottleBreakdownParts(bottleBreakdown))
-                        _itemMeta(part, icon: Icons.local_drink_outlined),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 12.s),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (hasSavings)
-                Text(
-                  _money(rawTotal),
-                  style: TextStyle(
-                    color: AppColors.textMute.withValues(alpha: 0.5),
-                    fontSize: 11.sp,
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: AppColors.textMute.withValues(alpha: 0.5),
-                  ),
-                ),
-              Text(
-                _money(item.totalPrice),
-                style: TextStyle(
-                  color: AppColors.orange,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<String> _bottleBreakdownParts(String value) {
-    return value
-        .split(' • ')
-        .map((part) => part.trim())
-        .where((part) => part.isNotEmpty)
-        .toList(growable: false);
-  }
-
-  Widget _itemMeta(String label, {IconData? icon}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, color: AppColors.orange, size: 12.s),
-          SizedBox(width: 4.s),
-        ],
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textMute,
-            fontSize: 11.sp,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
-  int? _bagItemIdForBusiness(Map<String, dynamic>? business) {
-    final businessId = _asInt(_businessIdOf(business));
-    if (businessId == null) {
-      return null;
+        ));
+      } else if (mounted) {
+        setState(() {
+          _creationUncertain =
+              result['success'] == true || result['statusCode'] == null;
+          _submitError = _creationUncertain
+              ? 'Статус создания заказа неизвестен. Проверьте «Мои заказы» перед новым оформлением. Корзина сохранена.'
+              : _errorMessage(
+                  result['error'], 'Заказ не создан. Корзина сохранена.');
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _creationUncertain = mutationStarted;
+          _submitError = mutationStarted
+              ? 'Статус создания заказа неизвестен. Проверьте «Мои заказы» перед новым оформлением.'
+              : 'Не удалось подготовить заказ. Корзина и введённые данные сохранены.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-    return _bagItemIdForBusinessId(businessId);
   }
 
-  int? _bagItemIdForBusinessId(int businessId) {
-    return _bagItemIdsByShopId[businessId];
+  bool get _addBag {
+    final bagId = _bagIds[_businessId];
+    if (bagId == null || !_hasItems) return false;
+    return !_groups.any((item) {
+      if (item.itemId == bagId) return true;
+      final name = (item.itemSnapshot?.name ?? item.name)
+          .toLowerCase()
+          .replaceAll('ё', 'е');
+      return name.contains('пакет') || name.contains('bag');
+    });
   }
 
-  bool _shouldAddCheckoutBag(
-      Iterable<CartDisplayGroup> items, Map<String, dynamic>? business) {
-    final bagItemId = _bagItemIdForBusiness(business);
-    return items.isNotEmpty &&
-        bagItemId != null &&
-        !_hasExplicitBag(items, bagItemId);
-  }
-
-  double _checkoutBagCost(
-      Iterable<CartDisplayGroup> items, Map<String, dynamic>? business) {
-    return _shouldAddCheckoutBag(items, business) ? _checkoutBagPrice : 0.0;
-  }
-
-  List<Map<String, dynamic>> _orderItemsWithBag(CartProvider cartProvider,
-      {required int? bagItemId}) {
-    final items = cartProvider.items
-        .map((item) => item.toJsonForOrder())
-        .toList(growable: true);
-    if (bagItemId == null) {
-      return items;
-    }
-
-    final hasBag = items.any((item) => _asInt(item['item_id']) == bagItemId);
-    if (!hasBag) {
+  List<Map<String, dynamic>> _orderItems() {
+    final items = _cart!.toJsonForOrder();
+    if (_addBag) {
       items.add({
-        'item_id': bagItemId,
+        'item_id': _bagIds[_businessId],
         'amount': 1,
-        'options': const <Map<String, dynamic>>[],
+        'options': <Map<String, dynamic>>[]
       });
     }
     return items;
   }
 
-  bool _hasExplicitBag(Iterable<CartDisplayGroup> items, int bagItemId) {
-    return items.any((item) {
-      if (item.itemId == bagItemId) {
-        return true;
-      }
-      final snapshot = item.itemSnapshot;
-      final name = snapshot?.name ?? item.name;
-      final normalized = name.toLowerCase().replaceAll('ё', 'е');
-      return normalized.contains('пакет') || normalized.contains('bag');
-    });
+  double get _bagCost => _addBag ? _bagPrice : 0;
+  double get _itemsSubtotal => _cart!.getTotalPrice() + _bagCost;
+  double get _bonusUsed => _useBonus && _bonusBalance != null
+      ? math.min(_bonusBalance!, _cart!.getTotalPrice() * 0.3)
+      : 0;
+  double? _certificateAvailable(Map<String, dynamic> data) {
+    final certificate = ApiService.mapFromDynamic(data['certificate']);
+    return checkoutAmount(data['max_available_amount'] ??
+        data['certificate_amount'] ??
+        data['amount'] ??
+        certificate['balance']);
   }
 
-  Widget _bagTile() {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 11.s),
-      child: Row(
-        children: [
-          Icon(
-            Icons.shopping_bag_outlined,
-            color: AppColors.orange,
-            size: 17.s,
-          ),
-          SizedBox(width: 9.s),
-          Expanded(
-            child: Text(
-              'Пакет',
-              style: TextStyle(
-                color: AppColors.text,
-                fontWeight: FontWeight.w800,
-                fontSize: 13.sp,
-              ),
-            ),
-          ),
-          _itemMeta('x1'),
-          SizedBox(width: 14.s),
-          Text(
-            _money(_checkoutBagPrice),
-            style: TextStyle(
-                color: AppColors.orange,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w900),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, String value,
-      {Color valueColor = AppColors.text}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-        Text(value,
-            style: TextStyle(
-                color: valueColor,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-
-  Widget _courierTipsSection() {
-    final tips = _getCourierTips();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _checkoutSectionHeader(
-          title: 'Чаевые курьеру',
-          trailing: tips > 0
-              ? Text(
-                  _money(tips.toDouble()),
-                  style: TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                )
-              : null,
-        ),
-        SizedBox(height: 10.s),
-        _courierTipsSelector(),
-      ],
-    );
-  }
-
-  Widget _courierTipsSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            for (int i = 0; i < _courierTipPresetAmounts.length; i++) ...[
-              if (i > 0) SizedBox(width: 8.s),
-              Expanded(
-                child: _courierTipButton(
-                  label: _money(_courierTipPresetAmounts[i].toDouble()),
-                  amount: _courierTipPresetAmounts[i],
-                ),
-              ),
-            ],
-            SizedBox(width: 8.s),
-            Expanded(
-              child: _courierTipButton(
-                label: _selectedCourierTips > 0 &&
-                        !_courierTipPresetAmounts
-                            .contains(_selectedCourierTips)
-                    ? _money(_selectedCourierTips.toDouble())
-                    : 'Другая',
-                amount: null,
-                onTap: _showCustomCourierTipDialog,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _courierTipButton({
-    required String label,
-    required int? amount,
-    VoidCallback? onTap,
-  }) {
-    final selected = amount != null
-        ? _selectedCourierTips == amount
-        : _selectedCourierTips > 0 &&
-            !_courierTipPresetAmounts.contains(_selectedCourierTips);
-    final foreground = selected ? Colors.black : AppColors.text;
-
-    return GestureDetector(
-      onTap: onTap ??
-          () {
-            if (amount == null) return;
-            setState(() {
-              _selectedCourierTips = selected ? 0 : amount;
-            });
-          },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(vertical: 8.s, horizontal: 6.s),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.orange
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.s),
-          border: Border.all(
-            color: selected
-                ? AppColors.orange
-                : Colors.white.withValues(alpha: 0.13),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: foreground,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w900)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showCustomCourierTipDialog() async {
-    final controller = TextEditingController(
-      text: _selectedCourierTips > 0 &&
-              !_courierTipPresetAmounts.contains(_selectedCourierTips)
-          ? _selectedCourierTips.toString()
-          : '',
-    );
-
-    final result = await AppDialogs.show<int>(
-      context,
-      title: 'Чаевые курьеру',
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        keyboardType: TextInputType.number,
-        style: const TextStyle(color: AppColors.text),
-        decoration: InputDecoration(
-          hintText: 'Введите сумму',
-          hintStyle: TextStyle(
-              color: AppColors.textMute.withValues(alpha: 0.55)),
-          suffixText: '₸',
-          suffixStyle: const TextStyle(color: AppColors.textMute),
-          filled: true,
-          fillColor: AppColors.cardDark,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.orange, width: 1),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context, rootNavigator: true).pop(0),
-          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
-          child: const Text('Убрать'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
-          style: TextButton.styleFrom(foregroundColor: AppColors.textMute),
-          child: const Text('Отмена'),
-        ),
-        TextButton(
-          onPressed: () {
-            final amount = _asInt(controller.text.trim()) ?? 0;
-            Navigator.of(context, rootNavigator: true).pop(amount);
-          },
-          style: TextButton.styleFrom(foregroundColor: AppColors.orange),
-          child: const Text('Готово'),
-        ),
-      ],
-    );
-    controller.dispose();
-    if (!mounted || result == null) return;
-    setState(() {
-      _selectedCourierTips = result.clamp(0, 999999);
-    });
-  }
-
-  Widget _bottomCheckoutBar({required double total}) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(16.s, 10.s, 16.s, 10.s),
-      decoration: BoxDecoration(
-        color: AppColors.bgDeep,
-        border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Text(_money(total),
-                style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w900)),
-            SizedBox(width: 14.s),
-            Expanded(
-              child: _primaryButton(
-                label: _isSubmitting ? 'Отправка…' : 'Подтвердить',
-                onTap: _isSubmitting ? null : _submitOrder,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _primaryButton({required String label, required VoidCallback? onTap}) {
-    final bool disabled = onTap == null;
-    return GestureDetector(
-      onTap: disabled ? null : onTap,
-      child: Opacity(
-        opacity: disabled ? 0.7 : 1,
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: 14.s),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(23.s),
-            gradient: const LinearGradient(
-                colors: [Color(0xFF8B1F1E), AppColors.red]),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10)),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 16.s),
-              SizedBox(width: 9.s),
-              Text(label,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _addressText() {
-    return ApiService.formatAddressSummary(_selectedAddress,
-        emptyText: 'Выберите адрес');
-  }
-
-  String _addressDetailsText() {
-    if (_selectedAddress == null) {
-      return 'Выбрать';
-    }
-
-    final parts = <String>[];
-    final entrance = _entranceController.text.trim();
-    final floor = _floorController.text.trim();
-    final apartment = _apartmentController.text.trim();
-
-    if (entrance.isNotEmpty) parts.add('под. $entrance');
-    if (floor.isNotEmpty) parts.add('эт. $floor');
-    if (apartment.isNotEmpty) parts.add('кв. $apartment');
-
-    return parts.isEmpty ? 'Уточнить детали' : parts.join(' · ');
-  }
-
-  void _syncAddressDetailControllers(Map<String, dynamic>? address) {
-    _entranceController.text = address?['entrance']?.toString() ?? '';
-    _floorController.text = address?['floor']?.toString() ?? '';
-    _apartmentController.text = address?['apartment']?.toString() ?? '';
-  }
-
-  Map<String, dynamic> _addressWithDetails() {
-    return {
-      ...?_selectedAddress,
-      'entrance': _entranceController.text.trim(),
-      'floor': _floorController.text.trim(),
-      'apartment': _apartmentController.text.trim(),
-    };
-  }
-
-  bool _hasCompleteAddressDetails() {
-    return _entranceController.text.trim().isNotEmpty &&
-        _floorController.text.trim().isNotEmpty &&
-        _apartmentController.text.trim().isNotEmpty;
-  }
-
-  Future<void> _showNotice(String title, String message) {
-    return AppDialogs.showMessage(
-      context,
-      title: title,
-      message: message,
-    );
-  }
-
-  dynamic _businessIdOf(Map<String, dynamic>? business) {
-    return business?['id'] ??
-        business?['business_id'] ??
-        business?['businessId'];
-  }
-
-  int? _asInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    return int.tryParse(value?.toString() ?? '');
-  }
-
-  double _asDouble(dynamic value) {
-    if (value is num) {
-      return value.toDouble();
-    }
-    return double.tryParse(
-          value?.toString().replaceAll(' ', '').replaceAll(',', '.') ?? '',
-        ) ??
-        0.0;
-  }
-
-  int? _certificateIdOf(Map<String, dynamic> certificate) {
-    return _asInt(certificate['certificate_id'] ?? certificate['id']);
-  }
-
-  String? _detectBusinessCity(
-      Map<String, dynamic> business, List<String> availableCities) {
-    final rawSources = [
-      business['city'],
-      business['city_name'],
-      business['cityName'],
-      business['city_title'],
-      business['cityTitle'],
-      business['address'],
-      business['description'],
-    ];
-
-    for (final source in rawSources) {
-      if (source == null) continue;
-      final text = source.toString();
-      for (final city in availableCities) {
-        if (_textMatchesCity(text, city)) {
-          return city;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  bool _textMatchesCity(String text, String city) {
-    final normalizedText = _normalizeText(text);
-    final normalizedCity = _normalizeText(city);
-    return normalizedCity.isNotEmpty && normalizedText.contains(normalizedCity);
-  }
-
-  String _normalizeText(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll('ё', 'е')
-        .replaceAll(RegExp(r'[^a-zа-я0-9]+'), ' ')
-        .trim();
-  }
-
-  void _toggleBonuses(bool value) {
-    setState(() {
-      _useBonus = value;
-      if (value) {
-        _appliedPromoData = null;
-        _appliedCertificateData = null;
-        _promoCodeController.clear();
-      }
-    });
-  }
-
-  Widget _discountAction({
-    required bool canUseBonus,
-    required double promoDiscount,
-    required double bonusUsed,
-    required double certificateUsed,
-  }) {
-    final discount = promoDiscount + bonusUsed + certificateUsed;
-    final hasDiscount = discount > 0;
-
-    return InkWell(
-      onTap: () => _showBenefitSheet(canUseBonus: canUseBonus),
-      borderRadius: BorderRadius.circular(8.s),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 10.s),
-        child: Row(
-          children: [
-            Icon(
-              hasDiscount
-                  ? Icons.check_circle_rounded
-                  : Icons.local_activity_outlined,
-              color: hasDiscount ? Colors.greenAccent : AppColors.orange,
-              size: 17.s,
-            ),
-            SizedBox(width: 8.s),
-            Expanded(
-              child: Text(
-                'Скидка',
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            Text(
-              hasDiscount ? '-${_money(discount)}' : 'Добавить',
-              style: TextStyle(
-                color: hasDiscount ? Colors.greenAccent : AppColors.textMute,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            SizedBox(width: 3.s),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textMute,
-              size: 17.s,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showBenefitSheet({required bool canUseBonus}) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.s)),
-      ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final bonusBalance =
-                _asDouble(_bonusData?['data']?['totalBonuses']);
-            final hasBonuses = canUseBonus && bonusBalance > 0;
-            final isChecking =
-                _isValidatingPromo || _isValidatingCertificate;
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  18.s,
-                  10.s,
-                  18.s,
-                  MediaQuery.viewInsetsOf(context).bottom + 18.s,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36.s,
-                        height: 4.s,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 12.s),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Скидка',
-                            style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 17.sp,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        _faqInfoButton(),
-                      ],
-                    ),
-                    if (hasBonuses) ...[
-                      SizedBox(height: 8.s),
-                      _bonusToggleTile(
-                        canUseBonus: canUseBonus,
-                        onChanged: (value) {
-                          _toggleBonuses(value);
-                          setSheetState(() {});
-                        },
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12.s),
-                        child: Divider(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          height: 1,
-                        ),
-                      ),
-                    ] else
-                      SizedBox(height: 12.s),
-                    TextField(
-                      enabled: !_useBonus,
-                      controller: _promoCodeController,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: _useBonus
-                          ? null
-                          : (_) async {
-                              final applied =
-                                  await _validateAndApplyBenefitCode();
-                              if (applied && sheetContext.mounted) {
-                                Navigator.of(sheetContext).pop();
-                              } else if (sheetContext.mounted) {
-                                setSheetState(() {});
-                              }
-                            },
-                      onTapOutside: (_) => _dismissKeyboard(),
-                      textCapitalization: TextCapitalization.characters,
-                      onChanged: (_) {
-                        if (_appliedPromoData != null ||
-                            _appliedCertificateData != null) {
-                          setState(() {
-                            _appliedPromoData = null;
-                            _appliedCertificateData = null;
-                          });
-                          setSheetState(() {});
-                        }
-                      },
-                      style: TextStyle(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.sp,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Промокод или сертификат',
-                        hintStyle: TextStyle(
-                          color: AppColors.textMute,
-                          fontSize: 12.sp,
-                        ),
-                        isDense: true,
-                        filled: true,
-                        fillColor: AppColors.cardDark,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 14.s,
-                          vertical: 13.s,
-                        ),
-                        suffixIcon: _useBonus
-                            ? Icon(
-                                Icons.lock_outline_rounded,
-                                color: AppColors.textMute,
-                                size: 18.s,
-                              )
-                            : isChecking
-                                ? Padding(
-                                    padding: EdgeInsets.all(12.s),
-                                    child: SizedBox.square(
-                                      dimension: 18.s,
-                                      child: const CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.orange,
-                                      ),
-                                    ),
-                                  )
-                                : IconButton(
-                                    tooltip: 'Применить',
-                                    onPressed: () async {
-                                      final applied =
-                                          await _validateAndApplyBenefitCode();
-                                      if (applied && sheetContext.mounted) {
-                                        Navigator.of(sheetContext).pop();
-                                      } else if (sheetContext.mounted) {
-                                        setSheetState(() {});
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.arrow_forward_rounded,
-                                      color: AppColors.orange,
-                                      size: 20.s,
-                                    ),
-                                  ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.orange,
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      child: _appliedBenefitBanner(),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+  double get _certificateUsed => _certificateData == null
+      ? 0
+      : certificateAppliedAmount(
+          itemsTotal: _itemsSubtotal,
+          bonusAmount: _bonusUsed,
+          maxAvailableAmount: _certificateAvailable(_certificateData!) ?? 0,
         );
-      },
-    );
+  double get _promoDiscount => _certificateData == null
+      ? checkoutAmount(_promoData?['promo_discount']) ?? 0
+      : 0;
+  double get _serviceFee => _delivery ? _quote?.serviceFee ?? 0 : 0;
+  double get _deliveryCost {
+    if (!_delivery || _quote == null) return 0;
+    final promoPrice = _certificateData == null
+        ? checkoutAmount(_promoData?['final_delivery_price'])
+        : null;
+    return promoPrice != null
+        ? math.max(0, promoPrice - _serviceFee)
+        : _quote!.baseDeliveryCost;
   }
 
-  Widget _bonusToggleTile({
-    required bool canUseBonus,
-    ValueChanged<bool>? onChanged,
-  }) {
-    final bonusBalance = _asDouble(_bonusData?['data']?['totalBonuses']);
-    final hasBonuses = canUseBonus && bonusBalance > 0;
-    return Row(
-      children: [
-        Container(
-          width: 30.s,
-          height: 30.s,
-          decoration: AppDecorations.pill(
-            color: (hasBonuses ? AppColors.orange : AppColors.textMute)
-                .withValues(alpha: 0.12),
-          ),
-          child: Icon(
-            Icons.stars_rounded,
-            color: hasBonuses ? AppColors.orange : AppColors.textMute,
-            size: 16.s,
-          ),
-        ),
-        SizedBox(width: 10.s),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Бонусы',
-                style: TextStyle(
-                  color: hasBonuses ? AppColors.text : AppColors.textMute,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                canUseBonus ? _money(bonusBalance) : '-',
-                style: TextStyle(
-                  color: AppColors.textMute,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Switch.adaptive(
-          value: _useBonus && hasBonuses,
-          activeTrackColor: AppColors.orange,
-          activeThumbColor: Colors.black,
-          onChanged: hasBonuses ? (onChanged ?? _toggleBonuses) : null,
-        ),
-      ],
-    );
+  double get _total =>
+      math.max(
+          0, _itemsSubtotal - _promoDiscount - _bonusUsed - _certificateUsed) +
+      _deliveryCost +
+      _serviceFee;
+
+  int get _earnedBonuses {
+    if (_promoData != null) return 0;
+    final eligible = _groups.fold<double>(0, (sum, group) {
+      final item = group.itemSnapshot;
+      return BonusRules.isBonusExcludedText(
+              name: item?.name ?? group.name,
+              description: item?.description,
+              categoryName: item?.category?.name,
+              code: item?.code)
+          ? sum
+          : sum + group.totalPrice;
+    });
+    return BonusRules.calculateEarnedBonuses(eligible);
   }
 
-  Widget _faqInfoButton() {
-    return IconButton(
-      tooltip: 'Как работают скидки',
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: BoxConstraints.tightFor(width: 32.s, height: 32.s),
-      onPressed: () => openFaqPage(
-        context,
-        initialSection: FaqSection.bonuses,
-      ),
-      icon: Icon(
-        Icons.info_outline_rounded,
-        color: AppColors.textMute,
-        size: 18.s,
+  void _goCatalog() {
+    if (widget.onCatalog != null) {
+      widget.onCatalog!();
+    } else {
+      AppNavigator.goToHome();
+    }
+  }
+
+  void _back() {
+    if (_busy) return;
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    _openCart(replace: true);
+  }
+
+  void _openCart({bool replace = false}) {
+    final navigator = Navigator.of(context);
+    final route = MaterialPageRoute<void>(
+      builder: (cartContext) => feature_cart.CartPage(
+        businessId: _businessId,
+        address:
+            _address == null ? null : ApiService.formatAddressSummary(_address),
+        onCatalog: _goCatalog,
+        onCheckout: () =>
+            Navigator.of(cartContext).push(MaterialPageRoute<void>(
+          builder: (_) => CheckoutPage(
+            addressPicker: widget.addressPicker,
+            openCardForm: widget.openCardForm,
+            onPaymentCompleted: widget.onPaymentCompleted,
+            onCatalog: widget.onCatalog,
+          ),
+        )),
       ),
     );
-  }
-
-  Widget _appliedBenefitBanner() {
-    final hasPromo = _appliedPromoData != null;
-    final hasCertificate = _appliedCertificateData != null;
-    if (!hasPromo && !hasCertificate) {
-      return const SizedBox.shrink(key: ValueKey('benefit-status-empty'));
-    }
-
-    final appliedCertificate = _appliedCertificate();
-    final appliedCode = (hasPromo
-            ? (_appliedPromoData?['promo_code'] ?? _promoCodeController.text)
-            : appliedCertificate?['code'] ?? _promoCodeController.text)
-        .toString()
-        .trim();
-    final promoDiscount =
-        (_appliedPromoData?['promo_discount'] as num?)?.toDouble() ?? 0.0;
-    final certificateAmount = _getCertificateAmount();
-    final amount = hasPromo ? promoDiscount : certificateAmount;
-    final label = hasPromo ? 'Промокод' : 'Сертификат';
-
-    return Padding(
-      key: ValueKey('benefit-status-$label'),
-      padding: EdgeInsets.only(top: 8.s),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle_outline_rounded,
-              color: AppColors.orange, size: 16.s),
-          SizedBox(width: 8.s),
-          Expanded(
-            child: Text(
-              amount > 0
-                  ? '$label: $appliedCode  ·  −${_money(amount)}'
-                  : '$label: $appliedCode',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Убрать код',
-            onPressed: _clearBenefitCode,
-            icon: Icon(Icons.close_rounded,
-                color: AppColors.textMute, size: 18.s),
-            visualDensity: VisualDensity.compact,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _clearBenefitCode() {
-    setState(() {
-      _appliedPromoData = null;
-      _appliedCertificateData = null;
-      _promoCodeController.clear();
-    });
-  }
-
-  Future<bool> _validateAndApplyBenefitCode() async {
-    if (_useBonus) return false;
-
-    final code = _promoCodeController.text.trim();
-    if (code.isEmpty) {
-      await _showNotice('Промокод', 'Введите код.');
-      return false;
-    }
-
-    _dismissKeyboard();
-
-    final promoApplied = await _validateAndApplyPromoCode(
-      codeOverride: code,
-      silentOnFailure: true,
-    );
-    if (promoApplied) return true;
-
-    final certificateApplied = await _validateAndApplyCertificate(
-      codeOverride: code,
-      silentOnFailure: true,
-      ignoreBonusSelection: true,
-    );
-    if (certificateApplied) return true;
-
-    if (!mounted) return false;
-    await _showNotice('Код не применён', 'Проверьте код и условия.');
-    return false;
-  }
-
-  Future<bool> _validateAndApplyCertificate({
-    Map<String, dynamic>? certificate,
-    String? codeOverride,
-    bool silentOnFailure = false,
-    bool ignoreBonusSelection = false,
-  }) async {
-    final code = certificate?['code']?.toString().trim() ??
-        codeOverride?.trim() ??
-        _promoCodeController.text.trim();
-    final certificateId =
-        certificate == null ? null : _certificateIdOf(certificate);
-    if (certificateId == null && code.isEmpty) {
-      if (!silentOnFailure) {
-        await _showNotice('Сертификат', 'Введите код сертификата.');
-      }
-      return false;
-    }
-
-    final eligibleSubtotal = certificateEligibleAfterBonuses(
-      itemsTotal: _certificateOrderSubtotal(),
-      bonusAmount: ignoreBonusSelection ? 0.0 : _getUsedBonuses(),
-    );
-    if (eligibleSubtotal <= 0) {
-      if (!silentOnFailure) {
-        await _showNotice(
-          'Сертификат',
-          'Товарная часть заказа уже покрыта бонусами.',
-        );
-      }
-      return false;
-    }
-
-    setState(() => _isValidatingCertificate = true);
-    try {
-      final result = await ApiService.validateCertificate(
-        certificateId: certificateId,
-        code: certificateId == null ? code : null,
-        orderSubtotal: eligibleSubtotal,
-      );
-      if (!mounted) return false;
-
-      if (result['success'] == true) {
-        final data =
-            result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-        if (data['can_use'] == false) {
-          setState(() => _appliedCertificateData = null);
-          if (!silentOnFailure) {
-            await _showNotice(
-              'Сертификат не применён',
-              'Этот сертификат нельзя использовать для текущего заказа.',
-            );
-          }
-          return false;
-        }
-        final validatedCertificate =
-            ApiService.mapFromDynamic(data['certificate']);
-        setState(() {
-          _appliedCertificateData = data;
-          _useBonus = false;
-          _appliedPromoData = null;
-          if (validatedCertificate['code'] != null) {
-            _promoCodeController.text = validatedCertificate['code'].toString();
-          }
-        });
-        return true;
-      } else {
-        setState(() => _appliedCertificateData = null);
-        final error = result['error'];
-        final message =
-            error is Map ? error['message']?.toString() : error?.toString();
-        if (!silentOnFailure) {
-          await _showNotice(
-            'Сертификат не применён',
-            message?.isNotEmpty == true
-                ? message!
-                : 'Проверьте код и баланс сертификата.',
-          );
-        }
-        return false;
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isValidatingCertificate = false);
-      }
+    if (replace) {
+      navigator.pushReplacement(route);
+    } else {
+      navigator.push(route);
     }
   }
 
-  Future<bool> _validateAndApplyPromoCode({
-    String? codeOverride,
-    bool silentOnFailure = false,
-  }) async {
-    final code = codeOverride?.trim() ?? _promoCodeController.text.trim();
-    if (code.isEmpty) {
-      if (!silentOnFailure) {
-        await _showNotice('Промокод', 'Введите промокод.');
-      }
-      return false;
-    }
-
-    final businessProvider =
-        Provider.of<BusinessProvider>(context, listen: false);
-    final businessId = _asInt(_businessIdOf(businessProvider.selectedBusiness));
-    if (businessId == null) {
-      if (!silentOnFailure) {
-        await _showNotice('Магазин не выбран', 'Сначала выберите магазин.');
-      }
-      return false;
-    }
-
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final bagItemId = _bagItemIdForBusinessId(businessId);
-    final orderItems = _orderItemsWithBag(cartProvider, bagItemId: bagItemId);
-    final itemsForPromo = orderItems
-        .map((item) => <String, dynamic>{
-              'item_id': _asInt(item['item_id']) ?? 0,
-              'amount': item['amount'] is num
-                  ? item['amount']
-                  : num.tryParse(item['amount']?.toString() ?? '0') ?? 0,
-            })
-        .where((item) => item['item_id'] != 0 && (item['amount'] as num) > 0)
-        .toList(growable: false);
-
-    final deliveryCost =
-        (_deliveryData?['delivery_cost'] as num?)?.toDouble() ?? 0.0;
-    final subtotal = cartProvider.getTotalPrice() +
-        _checkoutBagCost(
-            cartProvider.displayGroups, businessProvider.selectedBusiness);
-
-    setState(() => _isValidatingPromo = true);
-    try {
-      final result = await ApiService.validatePromoCode({
-        'promo_code': code,
-        'business_id': businessId,
-        'order_subtotal': subtotal,
-        'delivery_price': _deliveryType == 'DELIVERY' ? deliveryCost : 0,
-        'items': itemsForPromo,
-      });
-      if (!mounted) return false;
-      if (result['success'] == true) {
-        final data =
-            result['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-        setState(() {
-          _appliedPromoData = data;
-          _useBonus = false;
-          _appliedCertificateData = null;
-          _promoCodeController.text = code;
-        });
-        return true;
-      } else {
-        setState(() => _appliedPromoData = null);
-        final error = result['error'];
-        final message =
-            error is Map ? error['message']?.toString() : error?.toString();
-        if (!silentOnFailure) {
-          await _showNotice(
-              'Промокод не применён',
-              message?.isNotEmpty == true
-                  ? message!
-                  : 'Проверьте условия промокода.');
-        }
-        return false;
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isValidatingPromo = false);
-      }
-    }
-  }
-
-  static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
-
-  int _calculateEarnedBonuses(Iterable<CartDisplayGroup> items) {
-    final eligibleSubtotal = items.fold<double>(0, (sum, item) {
-      final snapshot = item.itemSnapshot;
-      final excluded = BonusRules.isBonusExcludedText(
-        name: snapshot?.name ?? item.name,
-        description: snapshot?.description,
-        categoryName: snapshot?.category?.name,
-        code: snapshot?.code,
-      );
-      if (excluded) {
-        return sum;
-      }
-      return sum + item.totalPrice;
-    });
-    return BonusRules.calculateEarnedBonuses(eligibleSubtotal);
-  }
-}
-
-class _CheckoutShopCitySheet extends StatefulWidget {
-  final List<Map<String, dynamic>> allBusinesses;
-  final List<String> availableCities;
-  final String? selectedCity;
-  final Map<String, dynamic>? selectedBusiness;
-
-  const _CheckoutShopCitySheet({
-    required this.allBusinesses,
-    required this.availableCities,
-    required this.selectedCity,
-    required this.selectedBusiness,
-  });
-
-  @override
-  State<_CheckoutShopCitySheet> createState() => _CheckoutShopCitySheetState();
-}
-
-class _CheckoutShopCitySheetState extends State<_CheckoutShopCitySheet> {
-  final ScrollController _scrollController = ScrollController();
-  final GlobalKey _selectedShopKey = GlobalKey();
-
-  String _compactShopAddress(String rawAddress, String? cityName) {
-    final trimmed = rawAddress.trim();
-    if (trimmed.isEmpty || cityName == null || cityName.trim().isEmpty) {
-      return trimmed;
-    }
-
-    final parts = trimmed
-        .split(',')
-        .map((part) => part.trim())
-        .where((part) => part.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return trimmed;
-
-    final lastPart = parts.last.toLowerCase();
-    final normalizedCity = cityName.trim().toLowerCase();
-    if (lastPart == normalizedCity) {
-      parts.removeLast();
-    }
-
-    return parts.join(', ');
-  }
-
-  Map<String, List<Map<String, dynamic>>> _groupedByCity() {
-    final groups = <String, List<Map<String, dynamic>>>{};
-    for (final city in widget.availableCities) {
-      groups[city] = [];
-    }
-    groups['Другое'] = [];
-
-    for (final business in widget.allBusinesses) {
-      final city = business['_cityName']?.toString() ?? '';
-      if (city.isNotEmpty && groups.containsKey(city)) {
-        groups[city]!.add(business);
-      } else if (city.isNotEmpty) {
-        groups.putIfAbsent(city, () => []);
-        groups[city]!.add(business);
-      } else {
-        groups['Другое']!.add(business);
-      }
-    }
-
-    groups.removeWhere((_, shops) => shops.isEmpty);
-    return groups;
-  }
-
-  bool _isSelected(Map<String, dynamic> shop) {
-    if (widget.selectedBusiness == null) return false;
-    return widget.selectedBusiness!['id'] == shop['id'];
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final selectedContext = _selectedShopKey.currentContext;
-      if (selectedContext != null) {
-        Scrollable.ensureVisible(
-          selectedContext,
-          alignment: 0.35,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
+  Future<void> _signIn() async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const LoginPage(startWithPhoneForm: true)));
+    if (!mounted) return;
+    final loggedIn = await ApiService.isUserLoggedIn();
+    if (!mounted) return;
+    setState(() => _loggedIn = loggedIn);
+    if (loggedIn) _loadBonuses();
   }
 
   @override
   Widget build(BuildContext context) {
-    final maxH = MediaQuery.of(context).size.height * 0.8;
-    final grouped = _groupedByCity();
-    final items = <_CheckoutSheetItem>[];
-
-    for (final entry in grouped.entries) {
-      items.add(_CheckoutSheetItem.header(
-          entry.key, entry.value.length, entry.key == widget.selectedCity));
-      for (final shop in entry.value) {
-        items.add(_CheckoutSheetItem.shop(shop, _isSelected(shop)));
-      }
-    }
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxH),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 32.s,
-                height: 4.s,
-                margin: EdgeInsets.only(top: 10.s, bottom: 12.s),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2.s),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 2.s),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Выберите магазин',
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 12.s),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Смена магазина очистит корзину и вернёт вас к каталогу.',
-                  style: TextStyle(
-                      color: AppColors.textMute.withValues(alpha: 0.6),
-                      fontSize: 12.sp),
-                ),
-              ),
-            ),
-            Flexible(
-              child: widget.allBusinesses.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.store_mall_directory,
-                              color: AppColors.textMute, size: 32),
-                          SizedBox(height: 10),
-                          Text('в данный момент доставка не возможна',
-                              style: TextStyle(
-                                  color: AppColors.text, fontSize: 15)),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                      itemCount: items.length,
-                      itemBuilder: (listContext, index) {
-                        final item = items[index];
-                        if (item.isHeader) {
-                          return _cityHeader(item.cityName!, item.shopCount!,
-                              item.isCurrentCity!);
-                        }
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 7.s),
-                          child: _shopCard(listContext, item.business!,
-                              item.isSelectedShop!),
-                        );
-                      },
+    context.watch<CartProvider>();
+    context.watch<BusinessProvider>();
+    return PopScope(
+      canPop: !_busy && Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && !_busy) _back();
+      },
+      child: Scaffold(
+        key: const ValueKey('checkout-page'),
+        resizeToAvoidBottomInset: false,
+        bottomNavigationBar: !_hasItems ? null : _bottomBar(),
+        body: SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: MediaQuery.viewInsetsOf(context).bottom > 0
+                  ? _checkoutContent(includeHeader: true)
+                  : Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _header(),
+                        ),
+                        const SizedBox(height: 14),
+                        Expanded(child: _checkoutContent()),
+                      ],
                     ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _cityHeader(String city, int count, bool isCurrent) {
-    return Padding(
-      padding: EdgeInsets.only(top: 7.s, bottom: 9.s),
-      child: Row(
+  Widget _header() => AppTopBar(
+        title: 'Оформление',
+        onBack: _back,
+        backEnabled: !_busy,
+        trailing: IconButton(
+          key: const ValueKey('checkout-faq'),
+          tooltip: 'Помощь с оформлением',
+          onPressed: () =>
+              openFaqPage(context, initialSection: FaqSection.delivery),
+          icon: const Icon(Icons.help_outline),
+        ),
+      );
+
+  Widget _checkoutContent({bool includeHeader = false}) => ListView(
+        key: const ValueKey('checkout-scroll'),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Icon(
-            isCurrent ? Icons.my_location_rounded : Icons.location_city_rounded,
-            size: 14.s,
-            color: isCurrent
-                ? AppColors.orange
-                : AppColors.textMute.withValues(alpha: 0.5),
-          ),
-          SizedBox(width: 7.s),
-          Text(
-            city,
-            style: TextStyle(
-              color: isCurrent ? AppColors.orange : AppColors.text,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          SizedBox(width: 7.s),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 7.s, vertical: 2.s),
-            decoration: BoxDecoration(
-              color: isCurrent
-                  ? AppColors.orange.withValues(alpha: 0.12)
-                  : Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(9.s),
-            ),
-            child: Text(
-              '$count',
-              style: TextStyle(
-                color: isCurrent
-                    ? AppColors.orange
-                    : AppColors.textMute.withValues(alpha: 0.5),
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w700,
+          if (includeHeader) ...[_header(), const SizedBox(height: 14)],
+          if (!_hasItems)
+            AppEmptyState(
+              key: const ValueKey('checkout-empty'),
+              title: 'Корзина пуста',
+              subtitle: 'Добавьте товары, чтобы оформить заказ',
+              topOffset: 80,
+              action: FilledButton(
+                  onPressed: _goCatalog, child: const Text('В каталог')),
+            )
+          else ...[
+            if (_initializing) const LinearProgressIndicator(),
+            if (_loggedIn == false) ...[
+              _message(
+                'Войдите в аккаунт, чтобы оформить заказ',
+                action: TextButton(
+                  key: const ValueKey('checkout-sign-in'),
+                  onPressed: _signIn,
+                  child: const Text('Войти'),
+                ),
               ),
-            ),
-          ),
-          if (isCurrent) ...[
-            const Spacer(),
-            Text(
-              'текущий город',
-              style: TextStyle(
-                  color: AppColors.orange.withValues(alpha: 0.5),
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w600),
-            ),
+              const SizedBox(height: 16),
+            ],
+            _fulfillment(),
+            const SizedBox(height: 24),
+            _benefits(),
+            const SizedBox(height: 24),
+            Text('Ваш заказ',
+                style: AppTypography.title
+                    .copyWith(color: context.palette.textPrimary)),
+            const SizedBox(height: 12),
+            for (final group in _groups) ...[
+              _item(group),
+              const SizedBox(height: 6),
+            ],
+            if (_addBag) _summaryRow('Пакет · 1 шт.', _money(_bagPrice)),
+            const SizedBox(height: 24),
+            _summary(),
+            if (_submitError != null) ...[
+              const SizedBox(height: 16),
+              _message(
+                _submitError!,
+                key: const ValueKey('checkout-submit-error'),
+                action: _creationUncertain
+                    ? TextButton(
+                        key: const ValueKey('checkout-check-orders'),
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                                builder: (_) => OrdersPage(
+                                    businessId: _businessId,
+                                    onCart: _openCart))),
+                        child: const Text('Мои заказы'),
+                      )
+                    : null,
+              ),
+            ],
           ],
         ],
-      ),
-    );
+      );
+
+  Widget _fulfillment() {
+    final palette = context.palette;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      AppSurface(
+          radius: 100,
+          padding: const EdgeInsets.all(2),
+          child: Row(children: [
+            for (final entry in [
+              ('Доставка', 'DELIVERY'),
+              ('Самовывоз', 'PICKUP')
+            ])
+              Expanded(
+                  child: Semantics(
+                      selected: _mode == entry.$2,
+                      child: TextButton(
+                        key:
+                            ValueKey('checkout-mode-${entry.$2.toLowerCase()}'),
+                        onPressed: _busy ? null : () => _changeMode(entry.$2),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                          foregroundColor: _mode == entry.$2
+                              ? palette.textOnAccent
+                              : palette.textSecondary,
+                          backgroundColor: _mode == entry.$2
+                              ? palette.accent
+                              : Colors.transparent,
+                          shape: const StadiumBorder(),
+                          textStyle: AppTypography.titleRegular,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 10),
+                        ),
+                        child: Text(entry.$1, textAlign: TextAlign.center),
+                      ))),
+          ])),
+      const SizedBox(height: 16),
+      _selectionTile(
+          key: const ValueKey('checkout-store'),
+          icon: Icons.storefront_outlined,
+          title: _business?.selectedBusinessName ?? 'Выберите магазин',
+          subtitle: _business?.selectedBusiness?['address']?.toString() ??
+              'Магазин для заказа',
+          onTap: _busy ? null : _selectStore),
+      if (_switchingStore) const LinearProgressIndicator(),
+      if (_delivery) ...[
+        const SizedBox(height: 8),
+        _selectionTile(
+            key: const ValueKey('checkout-address'),
+            icon: Icons.location_on_outlined,
+            title: ApiService.formatAddressSummary(_address,
+                emptyText: 'Выберите адрес'),
+            subtitle: _address == null
+                ? 'Нужен перед подтверждением заказа'
+                : 'Изменить адрес или детали',
+            onTap: _busy ? null : _pickAddress),
+        if (_pickingAddress) const LinearProgressIndicator(),
+        const SizedBox(height: 12),
+        LayoutBuilder(builder: (context, constraints) {
+          final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
+          final fields = [
+            _addressField('Подъезд', _entrance, 'checkout-entrance'),
+            _addressField('Этаж', _floor, 'checkout-floor'),
+            _addressField('Квартира', _apartment, 'checkout-apartment'),
+          ];
+          return largeText
+              ? Column(children: [
+                  for (final field in fields)
+                    Padding(
+                        padding: const EdgeInsets.only(bottom: 8), child: field)
+                ])
+              : Row(children: [
+                  for (var i = 0; i < fields.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Expanded(child: fields[i]),
+                  ]
+                ]);
+        }),
+        if (_addressError != null) ...[
+          const SizedBox(height: 8),
+          _message(_addressError!,
+              key: const ValueKey('checkout-address-error'),
+              action: TextButton(
+                  key: const ValueKey('checkout-save-address'),
+                  onPressed: _busy
+                      ? null
+                      : (_normalizedAddress() == null
+                          ? _pickAddress
+                          : _saveAddress),
+                  child: Text(_normalizedAddress() == null
+                      ? 'Выбрать на карте'
+                      : 'Повторить сохранение'))),
+        ],
+        const SizedBox(height: 16),
+        _summaryRow(
+            'Стоимость доставки',
+            _quoting
+                ? 'Рассчитываем…'
+                : _quote == null
+                    ? 'Не рассчитана'
+                    : _money(_deliveryCost + _serviceFee)),
+        if (_quoting)
+          const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator()),
+        if (_quoteError != null)
+          _message(_quoteError!,
+              key: const ValueKey('checkout-quote-error'),
+              action: TextButton(
+                  key: const ValueKey('checkout-quote-retry'),
+                  onPressed: _busy ? null : _calculateDelivery,
+                  child: const Text('Рассчитать ещё раз'))),
+        if (_address != null &&
+            _normalizedAddress() == null &&
+            _addressError == null)
+          _message('У адреса нет точных координат. Выберите его на карте.',
+              action: TextButton(
+                  onPressed: _busy ? null : _pickAddress,
+                  child: const Text('Выбрать адрес'))),
+      ],
+      const SizedBox(height: 12),
+      _summaryRow(_delivery ? 'Когда доставить' : 'Когда забрать',
+          _delivery ? 'Сейчас' : 'Как можно скорее'),
+    ]);
   }
 
-  Widget _shopCard(
-      BuildContext context, Map<String, dynamic> shop, bool isSelected) {
-    final name = (shop['name'] ?? shop['title'] ?? 'Магазин').toString();
-    final city = shop['_cityName']?.toString();
-    final rawAddress = (shop['address'] ?? shop['subtitle'] ?? '').toString();
-    final addr = _compactShopAddress(rawAddress, city);
-    final primaryLabel = addr.isNotEmpty ? '$name, $addr' : name;
+  Widget _addressField(
+          String label, TextEditingController controller, String key) =>
+      TextField(
+        key: ValueKey(key),
+        controller: controller,
+        enabled: !_busy && _address != null,
+        keyboardType: TextInputType.text,
+        textInputAction: key == 'checkout-apartment'
+            ? TextInputAction.done
+            : TextInputAction.next,
+        onChanged: (_) => setState(() => _addressError = null),
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        style: AppTypography.body,
+        decoration: InputDecoration(
+            labelText: label,
+            helperText: 'Необязательно',
+            helperStyle: AppTypography.label
+                .copyWith(color: context.palette.textSecondary),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 14)),
+      );
 
-    return GestureDetector(
-      onTap: () => Navigator.pop(context, shop),
-      child: Container(
-        key: isSelected ? _selectedShopKey : null,
-        padding: EdgeInsets.all(12.s),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.orange.withValues(alpha: 0.10)
-              : AppColors.cardDark,
-          borderRadius: BorderRadius.circular(12.s),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.check_circle_rounded
-                  : Icons.storefront_rounded,
-              color: AppColors.orange,
-              size: 22.s,
-            ),
-            SizedBox(width: 10.s),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    primaryLabel,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isSelected ? AppColors.orange : AppColors.text,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w800,
-                      height: 1.15,
-                    ),
-                  ),
-                  if (city != null && city.isNotEmpty) ...[
-                    SizedBox(height: 3.s),
-                    Text(
-                      city,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: AppColors.textMute.withValues(alpha: 0.85),
-                          fontSize: 12.sp,
-                          height: 1.2),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (isSelected)
-              Padding(
-                padding: EdgeInsets.only(left: 7.s),
-                child: Icon(Icons.check_rounded,
-                    color: AppColors.orange, size: 18.s),
-              ),
-          ],
-        ),
+  Widget _benefits() {
+    final palette = context.palette;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(
+            child: Text('Списать бонусы',
+                style: AppTypography.titleMedium
+                    .copyWith(color: palette.textPrimary))),
+        Switch.adaptive(
+            key: const ValueKey('checkout-bonus-toggle'),
+            value: _useBonus,
+            onChanged:
+                !_busy && (_bonusBalance ?? 0) > 0 ? _toggleBonuses : null),
+      ]),
+      if (_loadingBonus)
+        const LinearProgressIndicator()
+      else if (_bonusBalance != null)
+        Text(
+            'На балансе: ${_money(_bonusBalance!)}\nМожно списать до ${_money(math.min(_bonusBalance!, _cart!.getTotalPrice() * 0.3))}',
+            style:
+                AppTypography.bodySmall.copyWith(color: palette.textSecondary)),
+      if (_bonusError != null)
+        _message(_bonusError!,
+            action: TextButton(
+                key: const ValueKey('checkout-bonus-retry'),
+                onPressed: _loadBonuses,
+                child: const Text('Обновить бонусы'))),
+      TextButton(
+          onPressed: () =>
+              openFaqPage(context, initialSection: FaqSection.bonuses),
+          child: const Text('Как работают бонусы')),
+      const SizedBox(height: 8),
+      _codeField('Промокод', _promo, false),
+      const SizedBox(height: 16),
+      _codeField('Сертификат', _certificate, true),
+      if (_validating)
+        const Padding(
+            padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
+      if (_useBonus)
+        Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+                'Бонусы, промокод и сертификат применяются по отдельности.',
+                style: AppTypography.bodySmall
+                    .copyWith(color: palette.textSecondary))),
+      if (_promoData != null || _certificateData != null)
+        Padding(
+            key: const ValueKey('checkout-benefit-applied'),
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(children: [
+              Expanded(
+                  child: Text(
+                      _promoData != null
+                          ? 'Промокод применён'
+                          : 'Сертификат применён',
+                      style: AppTypography.bodyMedium
+                          .copyWith(color: palette.accent))),
+              IconButton(
+                  key: const ValueKey('checkout-clear-benefit'),
+                  tooltip: 'Убрать скидку',
+                  onPressed: _busy
+                      ? null
+                      : () => setState(() {
+                            _promoData = null;
+                            _certificateData = null;
+                            _benefitRequest++;
+                          }),
+                  icon: const Icon(Icons.close)),
+            ])),
+      if (_benefitError != null)
+        _message(_benefitError!, key: const ValueKey('checkout-benefit-error')),
+    ]);
+  }
+
+  Widget _codeField(
+      String label, TextEditingController controller, bool certificate) {
+    final name = certificate ? 'certificate' : 'promo';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label,
+          style:
+              AppTypography.title.copyWith(color: context.palette.textPrimary)),
+      const SizedBox(height: 8),
+      TextField(
+        key: ValueKey('checkout-$name-code'),
+        controller: controller,
+        enabled: !_busy && !_useBonus,
+        textCapitalization: TextCapitalization.characters,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _validateCode(certificate: certificate),
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        style: AppTypography.body,
+        decoration: InputDecoration(
+            hintText: 'Введите ${certificate ? 'код сертификата' : 'промокод'}',
+            suffixIcon: IconButton(
+                key: ValueKey('checkout-apply-$name'),
+                tooltip: 'Применить $label',
+                onPressed: !_busy && !_validating && !_useBonus
+                    ? () => _validateCode(certificate: certificate)
+                    : null,
+                icon: const Icon(Icons.arrow_forward))),
       ),
-    );
+    ]);
+  }
+
+  Widget _item(CartDisplayGroup group) {
+    final snapshot = group.itemSnapshot;
+    final name = snapshot != null
+        ? presentItemName(
+            rawName: snapshot.name, categoryName: snapshot.category?.name)
+        : presentItemName(
+            rawName: group.name,
+            storedType: group.itemType,
+            storedPackagingType: group.packagingType);
+    final quantity = subtractPromotionBundleLabel(
+        group.totalQuantity, group.promotions,
+        formatQuantity: (value) => value == value.roundToDouble()
+            ? value.toStringAsFixed(0)
+            : value.toStringAsFixed(2));
+    return AppSurface(
+        key: ValueKey('checkout-item-${group.key}'),
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(name.name,
+              style: AppTypography.bodyBold
+                  .copyWith(color: context.palette.textPrimary)),
+          if (name.attributes.isNotEmpty)
+            Text(name.attributes.join(' · '),
+                style: AppTypography.bodySmall
+                    .copyWith(color: context.palette.textSecondary)),
+          if (group.bottleBreakdownLabel != null)
+            Text(group.bottleBreakdownLabel!,
+                style: AppTypography.bodySmall
+                    .copyWith(color: context.palette.textSecondary)),
+          const SizedBox(height: 6),
+          Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                Text('× $quantity', style: AppTypography.bodySmall),
+                if (group.totalPrice < group.subtotalBeforePromotions - 0.001)
+                  Text(_money(group.subtotalBeforePromotions),
+                      style: AppTypography.bodySmall.copyWith(
+                          color: context.palette.textSecondary,
+                          decoration: TextDecoration.lineThrough)),
+                Text(_money(group.totalPrice),
+                    style: AppTypography.bodyBold
+                        .copyWith(color: context.palette.accent)),
+              ]),
+        ]));
+  }
+
+  Widget _summary() =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Расчёт',
+            style: AppTypography.title
+                .copyWith(color: context.palette.textPrimary)),
+        const SizedBox(height: 12),
+        _summaryRow('Товары', _money(_cart!.getTotalPrice())),
+        if (_bagCost > 0) _summaryRow('Пакет', _money(_bagCost)),
+        if (_delivery)
+          _summaryRow('Доставка',
+              _quote == null ? 'Не рассчитана' : _money(_deliveryCost)),
+        if (_serviceFee > 0) _summaryRow('Сервисный сбор', _money(_serviceFee)),
+        if (_promoDiscount > 0)
+          _summaryRow('Промокод', '−${_money(_promoDiscount)}'),
+        if (_bonusUsed > 0) _summaryRow('Бонусы', '−${_money(_bonusUsed)}'),
+        if (_certificateUsed > 0)
+          _summaryRow('Сертификат', '−${_money(_certificateUsed)}'),
+        if (_earnedBonuses > 0)
+          _summaryRow(
+              'Начислится бонусов', '+${_money(_earnedBonuses.toDouble())}'),
+        const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+        _summaryRow(
+            _quoteReady ? 'К оплате' : 'Товары без доставки', _money(_total),
+            emphasized: true),
+      ]);
+
+  Widget _summaryRow(String label, String value, {bool emphasized = false}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+          final style = emphasized ? AppTypography.title : AppTypography.body;
+          final labelWidget = Text(label,
+              style: style.copyWith(color: context.palette.textSecondary));
+          final valueWidget = Text(value,
+              style: style.copyWith(
+                  color: emphasized
+                      ? context.palette.accent
+                      : context.palette.textPrimary));
+          return scale > 1.5 && constraints.maxWidth < 420
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [labelWidget, valueWidget])
+              : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(child: labelWidget),
+                  const SizedBox(width: 12),
+                  Flexible(child: valueWidget)
+                ]);
+        }),
+      );
+
+  Widget _selectionTile(
+          {required Key key,
+          required IconData icon,
+          required String title,
+          required String subtitle,
+          required VoidCallback? onTap}) =>
+      AppSurface(
+        key: key,
+        onTap: onTap,
+        padding: const EdgeInsets.all(14),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, color: context.palette.accent),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(title,
+                    style: AppTypography.titleMedium
+                        .copyWith(color: context.palette.textPrimary)),
+                const SizedBox(height: 4),
+                Text(subtitle,
+                    style: AppTypography.bodySmall
+                        .copyWith(color: context.palette.textSecondary)),
+              ])),
+          const SizedBox(width: 6),
+          const Icon(Icons.chevron_right),
+        ]),
+      );
+
+  Widget _message(String text, {Widget? action, Key? key}) => AppSurface(
+        key: key,
+        fill: context.palette.accentFaint,
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(text,
+              style: AppTypography.bodySmall
+                  .copyWith(color: context.palette.textPrimary)),
+          if (action != null) action,
+        ]),
+      );
+
+  Widget _bottomBar() => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+          top: false,
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                child: AppGlassPanel(
+                  radius: 20,
+                  padding: const EdgeInsets.all(12),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    final amount = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_quoteReady ? 'К оплате' : 'Без доставки',
+                              style: AppTypography.bodySmall.copyWith(
+                                  color: context.palette.textSecondary)),
+                          Text(_money(_total),
+                              key: const ValueKey('checkout-total'),
+                              style: AppTypography.displayBold.copyWith(
+                                  color: context.palette.textPrimary)),
+                        ]);
+                    final button = FilledButton(
+                        key: const ValueKey('checkout-submit'),
+                        onPressed: _canSubmit ? _submitOrder : null,
+                        style: FilledButton.styleFrom(
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14)),
+                        child: Text(_submitting ? 'Отправляем…' : 'Подтвердить',
+                            textAlign: TextAlign.center));
+                    final stacked = constraints.maxWidth < 290 ||
+                        MediaQuery.textScalerOf(context).scale(14) > 20;
+                    return stacked
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                                amount,
+                                const SizedBox(height: 8),
+                                button
+                              ])
+                        : Row(children: [
+                            Expanded(child: amount),
+                            const SizedBox(width: 12),
+                            Flexible(child: button)
+                          ]);
+                  }),
+                ),
+              ),
+            ),
+          )));
+
+  static int? _integer(dynamic value) {
+    final parsed = value is int ? value : int.tryParse('$value');
+    return parsed != null && parsed > 0 ? parsed : null;
+  }
+
+  static int? _id(Map<String, dynamic>? business) => _integer(
+      business?['id'] ?? business?['business_id'] ?? business?['businessId']);
+  static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
+  static String _errorMessage(dynamic error, String fallback) {
+    final text = (error is Map ? error['message'] : error)?.toString().trim();
+    return text == null || text.isEmpty ? fallback : text;
   }
 }
 
-class _CheckoutSheetItem {
-  final bool isHeader;
-  final String? cityName;
-  final int? shopCount;
-  final bool? isCurrentCity;
-  final Map<String, dynamic>? business;
-  final bool? isSelectedShop;
+class _CheckoutStoreSheet extends StatefulWidget {
+  const _CheckoutStoreSheet({required this.selectedId});
+  final int? selectedId;
+  @override
+  State<_CheckoutStoreSheet> createState() => _CheckoutStoreSheetState();
+}
 
-  _CheckoutSheetItem._({
-    required this.isHeader,
-    this.cityName,
-    this.shopCount,
-    this.isCurrentCity,
-    this.business,
-    this.isSelectedShop,
-  });
+class _CheckoutStoreSheetState extends State<_CheckoutStoreSheet> {
+  List<Map<String, dynamic>>? _stores;
+  List<String> _cities = [];
+  String? _error;
+  bool _loading = false;
 
-  factory _CheckoutSheetItem.header(String city, int count, bool isCurrent) {
-    return _CheckoutSheetItem._(
-        isHeader: true,
-        cityName: city,
-        shopCount: count,
-        isCurrentCity: isCurrent);
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
 
-  factory _CheckoutSheetItem.shop(
-      Map<String, dynamic> business, bool isSelected) {
-    return _CheckoutSheetItem._(
-        isHeader: false, business: business, isSelectedShop: isSelected);
+  Future<void> _load() async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final cities =
+          await OnboardingService.fetchAvailableCities(forceRefresh: true);
+      final response = await ApiService.getBusinesses(page: 1, limit: 1000);
+      final rawStores = response?['businesses'];
+      final stores = rawStores is List &&
+              rawStores.every((store) =>
+                  store is Map &&
+                  _CheckoutPageState._id(Map<String, dynamic>.from(store)) !=
+                      null)
+          ? ApiService.mapListFromDynamic(rawStores)
+          : null;
+      if (!mounted) return;
+      setState(() {
+        _cities = cities.map((city) => city.name).toList();
+        _stores = stores;
+        if (stores == null) _error = 'Не удалось загрузить магазины';
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Не удалось загрузить магазины');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String? _city(Map<String, dynamic> store) {
+    final sources = [
+      store['city'],
+      store['city_name'],
+      store['cityName'],
+      store['city_title'],
+      store['cityTitle'],
+      store['address'],
+      store['description']
+    ];
+    for (final source in sources) {
+      final text = '$source'.toLowerCase().replaceAll('ё', 'е');
+      for (final city in _cities) {
+        if (text.contains(city.toLowerCase().replaceAll('ё', 'е'))) return city;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <String, List<Map<String, dynamic>>>{};
+    for (final store in _stores ?? <Map<String, dynamic>>[]) {
+      groups.putIfAbsent(_city(store) ?? 'Магазины', () => []).add(store);
+    }
+    return SafeArea(
+        child: SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.75,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Выберите магазин',
+                style: AppTypography.headline
+                    .copyWith(color: context.palette.textPrimary))),
+        Expanded(
+            child: _loading
+                ? const AppLoading()
+                : _error != null
+                    ? AppErrorState(message: _error!, onRetry: _load)
+                    : groups.isEmpty
+                        ? const AppEmptyState(
+                            title: 'Магазинов нет',
+                            subtitle: 'Список доступных магазинов пуст')
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            children: [
+                                for (final entry in groups.entries) ...[
+                                  Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12),
+                                      child: Text(entry.key,
+                                          style: AppTypography.title.copyWith(
+                                              color: context
+                                                  .palette.textPrimary))),
+                                  for (final store in entry.value)
+                                    Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8),
+                                        child: AppSurface(
+                                            onTap: () => Navigator.pop(
+                                                    context, {
+                                                  ...store,
+                                                  '_checkoutCity': _city(store)
+                                                }),
+                                            key: ValueKey(
+                                                'checkout-store-option-${_CheckoutPageState._id(store)}'),
+                                            padding: const EdgeInsets.all(14),
+                                            child: Row(children: [
+                                              Icon(
+                                                  _CheckoutPageState._id(
+                                                              store) ==
+                                                          widget.selectedId
+                                                      ? Icons.check_circle
+                                                      : Icons
+                                                          .storefront_outlined,
+                                                  color:
+                                                      context.palette.accent),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                  child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                    Text(
+                                                        '${store['name'] ?? store['title'] ?? 'Магазин'}',
+                                                        style: AppTypography
+                                                            .titleMedium
+                                                            .copyWith(
+                                                                color: context
+                                                                    .palette
+                                                                    .textPrimary)),
+                                                    if (store['address'] !=
+                                                        null)
+                                                      Text(
+                                                          '${store['address']}',
+                                                          style: AppTypography
+                                                              .body
+                                                              .copyWith(
+                                                                  color: context
+                                                                      .palette
+                                                                      .textSecondary)),
+                                                  ])),
+                                            ]))),
+                                ],
+                              ])),
+      ]),
+    ));
   }
 }

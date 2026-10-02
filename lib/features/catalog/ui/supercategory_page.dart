@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-import '../../../ui/app_states.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/product_view.dart';
@@ -8,19 +6,20 @@ import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_card.dart';
 import '../../../utils/cart_provider.dart';
+import '../../product/product_navigation.dart';
 import '../catalog_data_source.dart';
 import '../catalog_view_data.dart';
 import 'category_products_page.dart';
-import '../../product/product_navigation.dart';
 
 /// A supercategory screen — the design's `Каталог` frame.
 ///
-/// Structure measured from the frame: top bar at y = 70, a 27 px chip strip at y = 151, a 245 px
-/// promo panel at y = 202, then one section per subcategory (header row plus a 3-up card grid),
-/// each 24 px apart. The first subcategory is presented as the promo panel; the rest are grids.
+/// Structure measured from the frame: top bar, category chips, a 245 px promo panel, then
+/// subcategory sections (header plus a 3-up card grid at 375 px), each 24 px apart.
+/// The first subcategory is presented as the promo panel; the rest are grids.
 ///
 /// Only visible sections load: the list is a `ListView.builder`, so a subcategory's items are
 /// fetched when its section is first built rather than on page open.
@@ -52,6 +51,7 @@ class SupercategoryPage extends StatefulWidget {
 class _SupercategoryPageState extends State<SupercategoryPage> {
   SupercategoryView? _data;
   bool _failed = false;
+  bool _loaded = false;
 
   @override
   void initState() {
@@ -63,25 +63,35 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     setState(() {
       _failed = false;
       _data = null;
+      _loaded = false;
     });
     try {
       final data = await CatalogDataSource(businessId: widget.businessId)
           .supercategory(widget.supercategoryId);
       if (!mounted) return;
-      setState(() => _data = data);
+      setState(() {
+        _data = data;
+        _loaded = true;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => _failed = true);
     }
   }
 
-  void _openSubcategory(CategoryRef ref) {
+  void _openSubcategory(
+    CategoryRef ref, {
+    List<ProductView>? initialItems,
+    bool? initialHasMore,
+  }) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CategoryProductsPage(
           categoryId: ref.id,
           title: ref.name,
           businessId: widget.businessId,
+          initialItems: initialItems,
+          initialHasMore: initialHasMore,
           onSearch: widget.onSearch,
           onCart: widget.onCart,
         ),
@@ -103,15 +113,22 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
               children: [
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
                   child: AppTopBar(
                     title: data?.name ?? widget.title ?? '',
                     onBack: () => Navigator.of(context).maybePop(),
                     onSearch: widget.onSearch,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.huge),
-                Expanded(child: _body(data)),
+                const SizedBox(height: AppSpacing.md),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 840),
+                      child: _body(data),
+                    ),
+                  ),
+                ),
               ],
             ),
             Positioned(
@@ -140,20 +157,23 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
       );
     }
     if (data == null) {
-      return const Center(child: CircularProgressIndicator());
+      return _loaded
+          ? const AppEmptyState(title: 'В этой категории пока нет товаров')
+          : const Center(child: CircularProgressIndicator());
     }
     if (data.subcategories.isEmpty) {
       return const AppEmptyState(title: 'В этой категории пока нет товаров');
     }
     return ListView.builder(
       padding: EdgeInsets.only(
-        bottom: AppCartButton.clearance + MediaQuery.paddingOf(context).bottom,
+        bottom: AppCartButton.clearanceFor(context) +
+            MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: data.subcategories.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 22),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
             child: _ChipStrip(
               categories: data.subcategories,
               onTap: _openSubcategory,
@@ -162,14 +182,19 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
         }
         final ref = data.subcategories[index - 1];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.only(bottom: AppSpacing.huge),
           child: _Section(
             key: ValueKey(ref.id),
             category: ref,
             businessId: widget.businessId,
             // The first subcategory is the featured panel, as in the frame.
             featured: index == 1,
-            onOpen: () => _openSubcategory(ref),
+            onOpen: (items, hasMore) => _openSubcategory(
+              ref,
+              initialItems: items,
+              initialHasMore: hasMore,
+            ),
+            onCart: widget.onCart,
           ),
         );
       },
@@ -177,7 +202,6 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
   }
 }
 
-/// Horizontally scrolling jump-to strip: 29 px pills, 20 px side padding, selected one filled.
 class _ChipStrip extends StatelessWidget {
   const _ChipStrip({required this.categories, this.onTap});
 
@@ -189,30 +213,28 @@ class _ChipStrip extends StatelessWidget {
     final palette = context.palette;
     return SizedBox(
       key: const ValueKey('catalog-chip-strip'),
-      height: 29,
+      height: AppSpacing.touchTarget +
+          (MediaQuery.textScalerOf(context).scale(14) - 14)
+                  .clamp(0, double.infinity) *
+              1.3,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
         itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
         itemBuilder: (context, index) {
           final ref = categories[index];
-          return GestureDetector(
-            onTap: onTap == null ? null : () => onTap!(ref),
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color:
-                    index == 0 ? palette.surface.withValues(alpha: 0.75) : null,
-                borderRadius: BorderRadius.circular(AppRadii.pill),
-              ),
-              child: Text(
-                ref.name.trim(),
-                style: AppTypography.titleRegular
-                    .copyWith(color: palette.textPrimary),
-              ),
+          return TextButton(
+            onPressed: onTap == null ? null : () => onTap!(ref),
+            style: TextButton.styleFrom(
+              foregroundColor: palette.textPrimary,
+              backgroundColor:
+                  index == 0 ? palette.surface : palette.surfaceMuted,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+              shape:
+                  const RoundedRectangleBorder(borderRadius: AppRadii.pillAll),
             ),
+            child: Text(ref.name.trim(), style: AppTypography.bodySmallMedium),
           );
         },
       ),
@@ -227,13 +249,15 @@ class _Section extends StatefulWidget {
     required this.businessId,
     required this.featured,
     this.onOpen,
+    this.onCart,
     super.key,
   });
 
   final CategoryRef category;
   final int businessId;
   final bool featured;
-  final VoidCallback? onOpen;
+  final void Function(List<ProductView>?, bool?)? onOpen;
+  final VoidCallback? onCart;
 
   @override
   State<_Section> createState() => _SectionState();
@@ -241,6 +265,8 @@ class _Section extends StatefulWidget {
 
 class _SectionState extends State<_Section> {
   List<ProductView>? _items;
+  bool? _hasMore;
+  bool _failed = false;
 
   @override
   void initState() {
@@ -249,35 +275,68 @@ class _SectionState extends State<_Section> {
   }
 
   Future<void> _load() async {
-    final items = await CatalogDataSource(businessId: widget.businessId)
-        .items(widget.category.id);
-    if (!mounted) return;
-    setState(() => _items = items);
+    setState(() {
+      _failed = false;
+      _items = null;
+    });
+    try {
+      final result = await CatalogDataSource(businessId: widget.businessId)
+          .itemsPage(widget.category.id);
+      if (!mounted) return;
+      setState(() {
+        _items = result.items;
+        _hasMore = result.hasMore;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _failed = true);
+    }
+  }
+
+  void _openProduct(ProductView item) {
+    openProduct(
+      context,
+      item,
+      businessId: widget.businessId,
+      onCart: widget.onCart,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final items = _items;
+    final open =
+        widget.onOpen == null ? null : () => widget.onOpen!(items, _hasMore);
+    if (_failed) {
+      return AppErrorState(
+        message: 'Не удалось загрузить товары',
+        onRetry: _load,
+      );
+    }
     if (widget.featured) {
       return _PromoPanel(
         title: widget.category.name.trim(),
-        items: items ?? const [],
+        items: items,
+        onOpen: open,
+        onProductTap: _openProduct,
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-          child: _SectionHeader(
-              title: widget.category.name.trim(), onOpen: widget.onOpen),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+          child:
+              _SectionHeader(title: widget.category.name.trim(), onOpen: open),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xl),
         if (items == null)
           const SizedBox(
               height: 240, child: Center(child: CircularProgressIndicator()))
+        else if (items.isEmpty)
+          const AppEmptyState(title: 'В этой категории пока нет товаров')
         else
-          _Grid(items: items),
+          _Grid(items: items, onProductTap: _openProduct),
       ],
     );
   }
@@ -290,196 +349,158 @@ class _SectionHeader extends StatelessWidget {
   final VoidCallback? onOpen;
 
   @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return SizedBox(
-      height: 28,
-      child: Row(
+  Widget build(BuildContext context) => Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  AppTypography.headline.copyWith(color: palette.textPrimary),
-            ),
-          ),
-          GestureDetector(
-            onTap: onOpen,
-            child: Container(
-              width: 46,
-              height: 28,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: palette.accentSoft,
-                borderRadius: BorderRadius.circular(AppRadii.pill),
-              ),
-              child: Text(
-                'Все',
-                style: AppTypography.bodySmallMedium.copyWith(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+              child: Text(title,
+                  style: AppTypography.headline
+                      .copyWith(color: context.palette.textPrimary))),
+          TextButton(onPressed: onOpen, child: const Text('Все')),
         ],
-      ),
-    );
-  }
+      );
 }
 
-/// The featured subcategory: a brand-red panel whose cards scroll horizontally.
-///
-/// The frame draws the panel wider than the screen (left gutter 16, running off the right edge),
-/// with the title, subtitle and artwork pinned at its left and 110 × 213 cards scrolling past
-/// them.
 class _PromoPanel extends StatelessWidget {
-  const _PromoPanel({required this.title, required this.items});
+  const _PromoPanel({
+    required this.title,
+    required this.items,
+    required this.onProductTap,
+    this.onOpen,
+  });
 
   final String title;
-  final List<ProductView> items;
+  final List<ProductView>? items;
+  final ValueChanged<ProductView> onProductTap;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final cart = context.watch<CartProvider>();
+    final products = items;
     return Padding(
-      padding: const EdgeInsets.only(left: AppSpacing.xxxl),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppRadii.lg),
-          bottomLeft: Radius.circular(AppRadii.lg),
-        ),
-        child: Container(
-          key: const ValueKey('catalog-featured-panel'),
-          height: 245,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+      child: Container(
+        key: const ValueKey('catalog-featured-panel'),
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
           color: palette.brandRed,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(right: AppSpacing.xxxl),
-            itemCount: items.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 6),
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return _PromoLead(title: title);
-              }
-              final item = items[index - 1];
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-                child: SizedBox(
-                  key: ValueKey('catalog-featured-product-${index - 1}'),
-                  width: 110,
-                  child: ProductCard.fromView(
-                    item,
-                    dense: true,
-                    quantity: cart.getCatalogQuantity(item.source),
-                    onTap: () => openProduct(context, item),
-                    onIncrement: () => context
-                        .read<CartProvider>()
-                        .incrementCatalogItem(item.source),
-                    onDecrement: () => context
-                        .read<CartProvider>()
-                        .decrementCatalogItem(item.source),
-                  ),
-                ),
-              );
-            },
-          ),
+          borderRadius: AppRadii.lgAll,
         ),
-      ),
-    );
-  }
-}
-
-/// Panel lead-in: 20/700 title, 10/400 subtitle and the category artwork behind them.
-class _PromoLead extends StatelessWidget {
-  const _PromoLead({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 154,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: -8,
-            top: 65,
-            child: Image.asset(
-              'assets/icons/design/catalog_aperitif_lead.png',
-              width: 134,
-              height: 172,
-              fit: BoxFit.fill,
-            ),
-          ),
-          Positioned(
-            left: 16,
-            top: 16,
-            width: 131,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.headline.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  'Начало идеального ужина',
-                  maxLines: 1,
-                  overflow: TextOverflow.visible,
-                  style: AppTypography.label.copyWith(
-                    color: Colors.white,
-                    height: 1,
+                Expanded(
+                  child: TextButton(
+                    onPressed: onOpen,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Text(title,
+                        style: AppTypography.headline
+                            .copyWith(color: Colors.white)),
                   ),
+                ),
+                TextButton(
+                  onPressed: onOpen,
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  child: const Text('Все'),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            if (products == null)
+              const SizedBox(
+                height: 96,
+                child: Center(
+                    child: CircularProgressIndicator(color: Colors.white)),
+              )
+            else if (products.isEmpty)
+              Text('В этой категории пока нет товаров',
+                  style: AppTypography.bodySmall.copyWith(color: Colors.white))
+            else
+              SizedBox(
+                height: ProductCard.heightFor(context,
+                    hasOldPrice: products.any((item) => item.oldPrice != null)),
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: AppSpacing.md),
+                  itemBuilder: (context, index) {
+                    final item = products[index];
+                    return ProductCard.fromView(
+                      item,
+                      key: ValueKey('catalog-featured-product-$index'),
+                      quantity: cart.getCatalogQuantity(item.source),
+                      onTap: () => onProductTap(item),
+                      onIncrement: () => context
+                          .read<CartProvider>()
+                          .incrementCatalogItem(item.source),
+                      onDecrement: () => context
+                          .read<CartProvider>()
+                          .decrementCatalogItem(item.source),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _Grid extends StatelessWidget {
-  const _Grid({required this.items});
+  const _Grid({required this.items, required this.onProductTap});
 
   final List<ProductView> items;
-
+  final ValueChanged<ProductView> onProductTap;
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     return Padding(
-      padding: const EdgeInsets.only(
-        left: AppSpacing.xxxl,
-        right: AppSpacing.xxxl + 1,
-      ),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 6,
-          crossAxisSpacing: 6,
-          childAspectRatio: 110 / ProductCard.height,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return ProductCard.fromView(
-            item,
-            onTap: () => openProduct(context, item),
-            quantity: cart.getCatalogQuantity(item.source),
-            onIncrement: () =>
-                context.read<CartProvider>().incrementCatalogItem(item.source),
-            onDecrement: () =>
-                context.read<CartProvider>().decrementCatalogItem(item.source),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = ProductCard.columnsFor(context, constraints.maxWidth);
+          final previewCount = items.length.clamp(0, columns * 2);
+          var hasOldPrice = false;
+          for (var index = 0; index < previewCount; index++) {
+            if (items[index].oldPrice != null) {
+              hasOldPrice = true;
+              break;
+            }
+          }
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: AppSpacing.xl,
+              crossAxisSpacing: AppSpacing.md,
+              mainAxisExtent:
+                  ProductCard.heightFor(context, hasOldPrice: hasOldPrice),
+            ),
+            itemCount: previewCount,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return ProductCard.fromView(
+                item,
+                onTap: () => onProductTap(item),
+                quantity: cart.getCatalogQuantity(item.source),
+                onIncrement: () => context
+                    .read<CartProvider>()
+                    .incrementCatalogItem(item.source),
+                onDecrement: () => context
+                    .read<CartProvider>()
+                    .decrementCatalogItem(item.source),
+              );
+            },
           );
         },
       ),

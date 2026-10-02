@@ -1,5 +1,15 @@
 import '../model/item.dart' as item_model;
 import '../utils/subtract_promotion_math.dart';
+import '../utils/smart_cart.dart';
+
+typedef CartPriceBreakdown = ({
+  double productSubtotal,
+  double optionsTotal,
+  double discount,
+  double freeQuantity,
+  double subtotalBeforePromotions,
+  double totalPrice,
+});
 
 class CartItem {
   final int itemId;
@@ -7,6 +17,10 @@ class CartItem {
   final double price;
   double quantity;
   final double stepQuantity;
+  // Derived gift capacity, never persisted as newly paid drink quantity.
+  final double bottledGiftQuantity;
+  double get physicalQuantity => quantity + bottledGiftQuantity;
+  final Map<int, int>? giftBottleCounts;
   final String? image;
   final String? itemType;
   final String? packagingType;
@@ -21,6 +35,8 @@ class CartItem {
     required this.price,
     required this.quantity,
     required this.stepQuantity,
+    this.bottledGiftQuantity = 0,
+    this.giftBottleCounts,
     this.image,
     this.itemType,
     this.packagingType,
@@ -37,6 +53,12 @@ class CartItem {
       price: (json['price'] as num).toDouble(),
       quantity: (json['quantity'] as num).toDouble(),
       stepQuantity: (json['stepQuantity'] as num).toDouble(),
+      giftBottleCounts: json['giftBottleCounts'] is Map
+          ? {
+              for (final entry in (json['giftBottleCounts'] as Map).entries)
+                int.parse(entry.key.toString()): (entry.value as num).toInt(),
+            }
+          : null,
       image: json['image'] as String?,
       itemType: json['itemType'] as String?,
       packagingType: json['packagingType'] as String?,
@@ -62,6 +84,11 @@ class CartItem {
       'price': price,
       'quantity': quantity,
       'stepQuantity': stepQuantity,
+      if (giftBottleCounts != null)
+        'giftBottleCounts': {
+          for (final entry in giftBottleCounts!.entries)
+            entry.key.toString(): entry.value,
+        },
       if (image != null) 'image': image,
       if (itemType != null) 'itemType': itemType,
       if (packagingType != null) 'packagingType': packagingType,
@@ -78,6 +105,9 @@ class CartItem {
     double? price,
     double? quantity,
     double? stepQuantity,
+    double? bottledGiftQuantity,
+    Map<int, int>? giftBottleCounts,
+    bool clearGiftBottleCounts = false,
     String? image,
     String? itemType,
     String? packagingType,
@@ -93,6 +123,10 @@ class CartItem {
       price: price ?? this.price,
       quantity: quantity ?? this.quantity,
       stepQuantity: stepQuantity ?? this.stepQuantity,
+      bottledGiftQuantity: bottledGiftQuantity ?? this.bottledGiftQuantity,
+      giftBottleCounts: clearGiftBottleCounts
+          ? null
+          : (giftBottleCounts ?? this.giftBottleCounts),
       image: image ?? this.image,
       itemType: itemType ?? this.itemType,
       packagingType: packagingType ?? this.packagingType,
@@ -115,11 +149,14 @@ class CartItem {
     }
   }
 
-  Map<String, dynamic> toJsonForOrder() {
-    final freeQuantity = subtractPromotionFreeQuantity(quantity, promotions);
+  Map<String, dynamic> toJsonForOrder({double? freeQuantity}) {
+    final snapshot = snapshotItem;
+    final pour = snapshot != null && SmartCartSelection(snapshot).usesPourFlow;
+    freeQuantity ??=
+        pour ? 0 : subtractPromotionFreeQuantity(quantity, promotions);
     return {
       'item_id': itemId,
-      'amount': quantity + freeQuantity,
+      'amount': physicalQuantity + freeQuantity,
       'options': selectedVariants.map((variant) {
         // API ожидает option_item_relation_id
         // Ищем ID варианта в разных возможных полях
@@ -135,63 +172,88 @@ class CartItem {
     };
   }
 
-  /// Обновляет количество с шагом и округлением вниз
   void updateQuantity(double newQuantity) {
-    double step = stepQuantity;
-    for (final variant in selectedVariants) {
-      // Поддержка вложенной структуры variant
-      if (variant.containsKey('parent_item_amount')) {
-        step = (variant['parent_item_amount'] as num).toDouble();
-        break;
+    final step = stepQuantity > 0 ? stepQuantity : 1.0;
+    final adjusted = ((newQuantity + 0.0000001) / step).floor() * step;
+    quantity = adjusted < 0 ? 0 : adjusted;
+  }
+
+  static Map<String, dynamic> _variantData(Map<String, dynamic> variant) =>
+      variant['variant'] is Map
+          ? Map<String, dynamic>.from(variant['variant'] as Map)
+          : variant;
+
+  double get paidUnitPrice {
+    double? replacement;
+    for (final selected in selectedVariants) {
+      final variant = _variantData(selected);
+      if (variant['price_type']?.toString().toUpperCase() != 'REPLACE') {
+        continue;
       }
-      if (variant.containsKey('variant') && variant['variant'] is Map) {
-        final v = variant['variant'] as Map;
-        if (v.containsKey('parent_item_amount')) {
-          step = (v['parent_item_amount'] as num).toDouble();
-          break;
-        }
+      final amount = (variant['parent_item_amount'] as num?)?.toDouble() ?? 0;
+      final value = (variant['price'] as num?)?.toDouble();
+      if (amount > 0 && value != null) {
+        replacement = (replacement ?? 0) + value / amount;
       }
     }
-    final adjusted = (newQuantity / step).floor() * step;
-    quantity = adjusted < 0 ? 0 : adjusted;
+    return replacement ?? price;
   }
 
   double get optionsTotal {
     var total = 0.0;
-
-    for (final variant in selectedVariants) {
-      double? parentAmt;
-      double? varPrice;
-      if (variant.containsKey('parent_item_amount') &&
-          variant.containsKey('price')) {
-        parentAmt = (variant['parent_item_amount'] as num?)?.toDouble();
-        varPrice = (variant['price'] as num?)?.toDouble();
-      } else if (variant.containsKey('variant') && variant['variant'] is Map) {
-        final v = variant['variant'] as Map;
-        parentAmt = (v['parent_item_amount'] as num?)?.toDouble();
-        varPrice = (v['price'] as num?)?.toDouble();
+    final snapshot = snapshotItem;
+    final selection = snapshot == null ? null : SmartCartSelection(snapshot);
+    for (final selected in selectedVariants) {
+      final variant = _variantData(selected);
+      if (variant['price_type']?.toString().toUpperCase() == 'REPLACE') {
+        continue;
       }
-      if (parentAmt != null && parentAmt > 0 && varPrice != null) {
-        final multiplier = quantity / parentAmt;
-        total += varPrice * multiplier;
+      final amount = (variant['parent_item_amount'] as num?)?.toDouble() ?? 0;
+      final value = (variant['price'] as num?)?.toDouble();
+      if (amount > 0 && value != null) {
+        final chargedQuantity = selection?.isBottleVariant(selected) == true
+            ? physicalQuantity
+            : quantity;
+        total += value * chargedQuantity / amount;
       }
     }
-
     return total;
   }
 
-  double get subtotalBeforePromotions =>
-      subtractPromotionDisplayBaseTotal(price, quantity, promotions) +
-      optionsTotal;
-
-  /// Вычисляет итоговую цену с учетом акций
-  double get totalPrice {
-    final optionsSubtotal = optionsTotal;
-    final baseTotal = applyPromotionsToPaidBaseTotal(
-      unitPrice: price,
-      quantity: quantity,
-      promotions: promotions,
+  // The same calculation is used for a preview, a display group and checkout.
+  // Paid drink selections are stable; gifts extend their physical container
+  // allocation, with ordinary container tariffs outside base-product discounts.
+  static CartPriceBreakdown calculatePrice(Iterable<CartItem> items) {
+    var quantity = 0.0;
+    var productSubtotal = 0.0;
+    var options = 0.0;
+    var paid = 0.0;
+    List<Map<String, dynamic>>? promotions;
+    for (final item in SmartCartSelection.withGiftContainers(items)) {
+      promotions ??= item.promotions;
+      if (item.physicalQuantity <= 0) continue;
+      quantity += item.quantity;
+      final rate = item.paidUnitPrice;
+      productSubtotal += rate * item.quantity;
+      paid += applyPromotionsToPaidBaseTotal(
+          unitPrice: rate, quantity: item.quantity, promotions: promotions);
+      options += item.optionsTotal;
+    }
+    final unitPrice = quantity > 0 ? productSubtotal / quantity : 0.0;
+    final free =
+        subtractPromotionFreeQuantity(quantity, promotions ?? const []);
+    return (
+      productSubtotal: productSubtotal,
+      optionsTotal: options,
+      discount: productSubtotal - paid,
+      freeQuantity: free,
+      subtotalBeforePromotions: productSubtotal + unitPrice * free + options,
+      totalPrice: paid + options,
     );
-    return baseTotal + optionsSubtotal;
   }
+
+  double get subtotalBeforePromotions =>
+      calculatePrice([this]).subtotalBeforePromotions;
+
+  double get totalPrice => calculatePrice([this]).totalPrice;
 }

@@ -1,1284 +1,1039 @@
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/pages/faq_page.dart';
-import 'package:naliv_delivery/pages/help_chat_page.dart';
-import 'package:naliv_delivery/pages/checkout_page.dart';
-import 'package:naliv_delivery/pages/payment_method_page.dart';
-import 'package:naliv_delivery/services/repeat_order_service.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/api.dart';
-import 'package:naliv_delivery/utils/business_provider.dart';
-import 'package:naliv_delivery/utils/cart_provider.dart';
-import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../utils/responsive.dart';
+
+import '../core/money.dart';
+import '../design/theme.dart';
+import '../design/tokens.dart';
+import '../design/typography.dart';
+import '../services/repeat_order_service.dart';
+import '../ui/app_states.dart';
+import '../ui/app_top_bar.dart';
+import '../utils/api.dart';
+import '../utils/business_provider.dart';
+import '../utils/cart_provider.dart';
+import '../utils/order_ui_helpers.dart' as order_ui;
+import '../utils/order_payment_guard.dart';
+import 'checkout_page.dart';
+import '../features/faq/models/faq.dart';
+import '../features/faq/faq_navigation.dart';
+import 'help_chat_page.dart';
+import 'payment_method_page.dart';
 
 class OrderDetailPage extends StatefulWidget {
-  final Map<String, dynamic> order;
+  const OrderDetailPage({super.key, required this.order, this.onSupport});
 
-  const OrderDetailPage({super.key, required this.order});
+  final Map<String, dynamic> order;
+  final ValueChanged<Map<String, dynamic>>? onSupport;
 
   @override
   State<OrderDetailPage> createState() => _OrderDetailPageState();
 }
 
 class _OrderDetailPageState extends State<OrderDetailPage> {
-  Map<String, dynamic>? _orderDetails;
-  Map<String, dynamic>? _courierLocation;
-  bool _isLoading = true;
-  bool _isLoadingCourier = false;
-  bool _isRepeating = false;
-  String? _error;
-  String? _courierError;
-
-  Map<String, dynamic>? _asMap(dynamic value) {
-    if (value is Map<String, dynamic>) return value;
-    if (value is Map) {
-      return value.map((key, entryValue) => MapEntry(key.toString(), entryValue));
-    }
-    return null;
-  }
-
-  List<Map<String, dynamic>> _asMapList(dynamic value) {
-    if (value is! List) return const <Map<String, dynamic>>[];
-    return value.map(_asMap).whereType<Map<String, dynamic>>().toList();
-  }
-
-  num? _asNum(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value;
-    return num.tryParse(value.toString());
-  }
-
-  String _resolveStatusLabel(Map<String, dynamic>? status, {String fallback = 'Неизвестно'}) {
-    return order_ui.resolveStatusLabel(status, fallback: fallback);
-  }
+  _OrderDetails? _details;
+  bool _loading = false;
+  bool _repeating = false;
+  bool _openingPayment = false;
+  String? _notice;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadOrderDetails();
-    _loadCourierLocation();
+    _loadOrder();
   }
 
-  Future<void> _loadOrderDetails() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final orderId = int.tryParse(widget.order['order_id']?.toString() ?? '');
-      final details = orderId != null ? await ApiService.getOrderDetails(orderId) : null;
-      if (!mounted) return;
-      setState(() {
-        _orderDetails = _mergeOrderDetails(widget.order, details);
-        final courierLocation = _asMap(_orderDetails?['courier_location']);
-        if (courierLocation != null) {
-          _courierLocation = courierLocation;
-        }
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Ошибка загрузки деталей заказа: $e';
-        _isLoading = false;
-      });
+  @override
+  void didUpdateWidget(covariant OrderDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order != widget.order) {
+      _details = null;
+      _loadOrder();
     }
   }
 
-  Future<void> _loadCourierLocation() async {
-    final orderId = int.tryParse(widget.order['order_id']?.toString() ?? '');
-    if (orderId == null || !order_ui.isDeliveryOrder(widget.order)) {
-      return;
-    }
-
+  Future<void> _loadOrder() async {
+    final generation = ++_loadGeneration;
+    final base = widget.order;
+    final orderId = int.tryParse(base['order_id']?.toString() ?? '');
     setState(() {
-      _isLoadingCourier = true;
-      _courierError = null;
+      _loading = true;
+      _notice = null;
     });
 
-    try {
-      final location = await ApiService.getCourierLocation(orderId);
-      if (!mounted) return;
-      setState(() {
-        _courierLocation = location;
-        _isLoadingCourier = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _courierError = 'Не удалось загрузить местоположение курьера';
-        _isLoadingCourier = false;
-      });
+    Map<String, dynamic>? loaded;
+    if (orderId != null) {
+      try {
+        loaded = await ApiService.getOrderDetails(orderId);
+      } catch (_) {
+        // The frozen API normally returns null on failure; injected transports can throw.
+      }
     }
+    final known = _details?.order ?? base;
+    final merged = _mergeOrder(known, loaded);
+    final paymentId = paymentOrderId(merged);
+    if (paymentId != null) {
+      merged[OrderPaymentGuard.localStateKey] =
+          (await OrderPaymentGuard.read(paymentId)).name;
+    }
+    if (!mounted || generation != _loadGeneration) return;
+    setState(() {
+      _details = _OrderDetails(merged);
+      _loading = false;
+      if (orderId == null) {
+        _notice = 'Подробности недоступны: номер заказа не передан.';
+      } else if (loaded == null || loaded.isEmpty) {
+        _notice =
+            'Не удалось обновить заказ. Показаны ранее полученные данные.';
+      }
+    });
   }
 
   Future<void> _repeatOrder() async {
-    if (_isRepeating) return;
-
-    final sourceOrder = _orderDetails ?? widget.order;
-    final shouldContinue = await _confirmReplaceCart(sourceOrder);
-    if (shouldContinue != true || !mounted) return;
-
-    setState(() {
-      _isRepeating = true;
-    });
-
+    if (_repeating ||
+        _openingPayment ||
+        _loading ||
+        _details == null ||
+        _paymentUnresolved(_details!.order)) {
+      return;
+    }
+    setState(() => _repeating = true);
     try {
-      final cartProvider = context.read<CartProvider>();
-      final businessProvider = context.read<BusinessProvider>();
+      final source = _details!.order;
+      if (!await _confirmReplaceCart(source) || !mounted) return;
       final result = await RepeatOrderService.repeatOrderIntoCart(
-        sourceOrder: sourceOrder,
-        cartProvider: cartProvider,
-        businessProvider: businessProvider,
+        sourceOrder: source,
+        cartProvider: context.read<CartProvider>(),
+        businessProvider: context.read<BusinessProvider>(),
       );
       if (!mounted) return;
-
       if (result.hasSkippedItems) {
-        await AppDialogs.showMessage(
-          context,
-          title: 'Часть позиций пропущена',
-          message: 'Не все позиции из прошлого заказа удалось восстановить. Проверьте состав перед подтверждением.',
+        await _showMessage(
+          'Часть позиций пропущена',
+          'Не удалось восстановить: ${result.skippedItems.join(', ')}. '
+              'Проверьте состав и актуальные цены перед оформлением.',
         );
       }
       if (!mounted) return;
-
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => CheckoutPage(
-            initialDeliveryType: result.deliveryType,
-            initialAddress: result.restoredAddress,
-          ),
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => CheckoutPage(
+          initialDeliveryType: result.deliveryType,
+          initialAddress: result.restoredAddress,
         ),
-      );
-    } on RepeatOrderException catch (e) {
-      if (!mounted) return;
-      await AppDialogs.showMessage(
-        context,
-        title: 'Не удалось повторить заказ',
-        message: e.message,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      await AppDialogs.showMessage(
-        context,
-        title: 'Не удалось повторить заказ',
-        message: 'Попробуйте ещё раз чуть позже.',
-      );
-    } finally {
+      ));
+    } on RepeatOrderException catch (error) {
       if (mounted) {
-        setState(() {
-          _isRepeating = false;
-        });
+        await _showMessage('Не удалось повторить заказ', error.message);
       }
+    } catch (_) {
+      if (mounted) {
+        await _showMessage(
+          'Не удалось повторить заказ',
+          'Попробуйте ещё раз чуть позже.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _repeating = false);
     }
+  }
+
+  Future<bool> _confirmReplaceCart(Map<String, dynamic> order) async {
+    if (!context.read<CartProvider>().hasActiveItems) return true;
+    final current = context.read<BusinessProvider>().selectedBusiness;
+    final target = RepeatOrderService.resolveBusiness(order);
+    final currentId =
+        current?['id'] ?? current?['business_id'] ?? current?['businessId'];
+    final targetId =
+        target?['id'] ?? target?['business_id'] ?? target?['businessId'];
+    final changesStore =
+        targetId != null && currentId?.toString() != targetId.toString();
+    final storeName = _text(target?['name']) ?? 'магазин этого заказа';
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Заменить корзину?'),
+            content: Text(changesStore
+                ? 'Товары в текущей корзине будут заменены, а магазин сменится на $storeName.'
+                : 'Товары в текущей корзине будут заменены товарами из этого заказа.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Отмена'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Заменить'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Future<void> _openPayment() async {
-    final order = _orderDetails ?? widget.order;
-    final amount = order_ui.resolveOrderTotalAmount(order)?.toDouble();
-    final paymentOrder = <String, dynamic>{
-      ...order,
-      if (amount != null) 'payable_amount': amount,
-    };
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
+    final details = _details;
+    if (details == null ||
+        _loading ||
+        _repeating ||
+        _openingPayment ||
+        !order_ui.canPayOrder(details.order)) {
+      return;
+    }
+    setState(() => _openingPayment = true);
+    try {
+      final amount =
+          order_ui.resolveOrderTotalAmount(details.order)?.toDouble();
+      await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => PaymentMethodPage(
-          orderData: paymentOrder,
+          orderData: {
+            ...details.order,
+            if (amount != null) 'payable_amount': amount,
+          },
           displayAmount: amount,
         ),
+      ));
+      if (mounted) await _loadOrder();
+    } catch (_) {
+      if (mounted) {
+        await _showMessage(
+            'Не удалось открыть оплату', 'Попробуйте ещё раз чуть позже.');
+      }
+    } finally {
+      if (mounted) setState(() => _openingPayment = false);
+    }
+  }
+
+  Future<void> _showMessage(String title, String message) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Понятно'),
+          ),
+        ],
       ),
     );
   }
 
-  Future<bool?> _confirmReplaceCart(Map<String, dynamic> order) {
-    final cartProvider = context.read<CartProvider>();
-    if (!cartProvider.hasActiveItems) {
-      return Future<bool?>.value(true);
+  void _openSupport(_OrderDetails details) {
+    if (widget.onSupport != null) {
+      widget.onSupport!(details.order);
+      return;
     }
-
-    final currentBusiness = context.read<BusinessProvider>().selectedBusiness;
-    final targetBusiness = RepeatOrderService.resolveBusiness(order);
-    final currentBusinessId = currentBusiness?['id'] ?? currentBusiness?['business_id'] ?? currentBusiness?['businessId'];
-    final targetBusinessId = targetBusiness?['id'] ?? targetBusiness?['business_id'] ?? targetBusiness?['businessId'];
-    final targetBusinessName = targetBusiness?['name']?.toString() ?? 'другой магазин';
-    final isDifferentBusiness = targetBusinessId != null && currentBusinessId != targetBusinessId;
-
-    return AppDialogs.show<bool>(
-      context,
-      title: 'Заменить корзину?',
-      content: Text(
-        isDifferentBusiness
-            ? 'Текущая корзина будет очищена, а магазин сменится на $targetBusinessName.'
-            : 'Текущая корзина будет очищена и заменена товарами из этого заказа.',
-        style: const TextStyle(color: AppColors.textMute),
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => HelpChatPage(
+        order: details.order,
+        entryPoint: 'order_detail',
+        initialTopic:
+            details.paymentIssue ? 'Ошибка оплаты' : 'Заказ №${details.id}',
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Отмена', style: TextStyle(color: AppColors.text)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Продолжить', style: TextStyle(color: AppColors.orange)),
-        ),
-      ],
-    );
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = '#${widget.order['order_id'] ?? '-'}';
+    final details = _details;
+    final id = details?.id ?? _text(widget.order['order_id']) ?? '—';
     return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        foregroundColor: AppColors.text,
-        title: Text('Заказ $title', style: const TextStyle(fontWeight: FontWeight.w800)),
-      ),
-      body: Stack(
-        children: [
-          const AppBackground(),
-          if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.orange)),
-            )
-          else if (_error != null)
-            _buildErrorState()
-          else if (_orderDetails != null)
-            _buildOrderDetails()
-          else
-            const SizedBox.shrink(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(18.s),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: AppColors.red, size: 42.s),
-            SizedBox(height: 10.s),
-            Text(_error!, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-            SizedBox(height: 10.s),
-            ElevatedButton(
-              onPressed: _loadOrderDetails,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: Colors.black),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrderDetails() {
-    final order = _orderDetails!;
-    final business = _asMap(order['business']);
-    final deliveryAddress = _asMap(order['delivery_address']);
-    final itemsSummary = _resolveItemsSummary(order);
-    final costSummary = _resolveCostSummary(order);
-    final statuses = _resolveStatuses(order);
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 18.s),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _statusCard(order),
-            SizedBox(height: 12.s),
-            _section(child: _supportCard(order)),
-            SizedBox(height: 12.s),
-            _faqShortcutForOrder(order),
-            SizedBox(height: 12.s),
-            if (business != null) ...[
-              _section(child: _businessCard(business)),
-              SizedBox(height: 12.s),
-            ],
-            if (deliveryAddress != null && !order_ui.isPickupAddress(deliveryAddress)) ...[
-              _section(child: _addressCard(deliveryAddress)),
-              SizedBox(height: 12.s),
-            ],
-            if (_shouldShowCourierCard(order)) ...[
-              _section(child: _courierCard()),
-              SizedBox(height: 12.s),
-            ],
-            if (itemsSummary != null) ...[
-              _section(child: _itemsCard(itemsSummary)),
-              SizedBox(height: 12.s),
-            ],
-            if (costSummary != null) ...[
-              _section(child: _costCard(costSummary)),
-              SizedBox(height: 12.s),
-            ],
-            _section(child: _metaCard(order)),
-            if (statuses.isNotEmpty) ...[
-              SizedBox(height: 12.s),
-              _section(child: _historyCard(statuses)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _supportCard(Map<String, dynamic> order) {
-    final statusCode = _resolveCurrentStatus(order)?['status']?.toString();
-    final hasPaymentIssue = _isPaymentIssueStatus(statusCode);
-    final orderId = order['order_id']?.toString() ?? order['order_uuid']?.toString();
-    final topic = hasPaymentIssue ? 'Ошибка оплаты' : 'Заказ #${orderId ?? '-'}';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.support_agent_rounded, color: AppColors.orange, size: 22.s),
-            SizedBox(width: 8.s),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasPaymentIssue ? 'Проблема с оплатой?' : 'Нужна помощь с заказом?',
-                    style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w800),
-                  ),
-                  SizedBox(height: 5.s),
-                  Text(
-                    hasPaymentIssue
-                        ? 'Похоже, возникла проблема с оплатой. Напишите нам, и мы поможем разобраться.'
-                        : 'Можете написать в поддержку по этому заказу.',
-                    style: TextStyle(color: AppColors.textMute, fontSize: 12.sp, height: 1.35),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.s),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => HelpChatPage(
-                    order: order,
-                    entryPoint: 'order_detail',
-                    initialTopic: topic,
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                  child: AppTopBar(
+                    title: 'Заказ №$id',
+                    onBack: () => Navigator.of(context).maybePop(),
                   ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-            label: const Text('Открыть чат поддержки'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.orange,
-              foregroundColor: Colors.black,
-              padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
+                Expanded(
+                  child: details == null
+                      ? const AppLoading()
+                      : _orderBody(details),
+                ),
+              ],
             ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: details == null || details.order.isEmpty
+          ? null
+          : _actionPanel(details),
+    );
+  }
+
+  Widget _orderBody(_OrderDetails details) {
+    if (details.order.isEmpty) {
+      return AppErrorState(
+        message: 'Не удалось загрузить заказ',
+        onRetry: _loading ? null : _loadOrder,
+      );
+    }
+    return CustomScrollView(
+      slivers: [
+        if (_loading)
+          const SliverToBoxAdapter(child: LinearProgressIndicator()),
+        if (_notice != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: _noticeCard(),
+            ),
+          ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+            child: _identityFields(details),
+          ),
+        ),
+        if (details.items.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _muted('Состав заказа не передан'),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: _OrderItemRow(item: details.items[index]),
+                ),
+                childCount: details.items.length,
+              ),
+            ),
+          ),
+        if (details.isPreview)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _muted(
+                  'Полный состав не передан. Показаны доступные товары.'),
+            ),
+          ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _costSection(details),
+                const SizedBox(height: 24),
+                _informationSection(details),
+                const SizedBox(height: 24),
+                _sectionTitle('История статусов'),
+                if (details.history.isEmpty)
+                  _muted('История статусов не передана'),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _historyRow(details.history[index]),
+              childCount: details.history.length,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+            child: _supportSection(details),
           ),
         ),
       ],
     );
   }
 
-  Widget _faqShortcutForOrder(Map<String, dynamic> order) {
-    final statusCode = _resolveCurrentStatus(order)?['status']?.toString();
-    final hasPaymentIssue = _isPaymentIssueStatus(statusCode);
-
-    return FaqShortcutCard(
-      title: hasPaymentIssue ? 'Проверить оплату в FAQ' : 'Ответы по заказу',
-      subtitle: hasPaymentIssue
-          ? 'Короткие подсказки по ошибкам оплаты, ожиданию списания и повторной оплате.'
-          : 'Задержки, отмены, возвраты и вопросы по доставленному заказу собраны здесь.',
-      initialSection: hasPaymentIssue ? FaqSection.payment : FaqSection.orderProblems,
-      icon: hasPaymentIssue ? Icons.payments_outlined : Icons.help_outline_rounded,
-      actionLabel: hasPaymentIssue ? 'Открыть оплату' : 'Открыть ответы',
-      compact: true,
-    );
-  }
-
-  Widget _section({required Widget child}) {
+  Widget _noticeCard() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(14.s),
-      decoration: AppDecorations.card(radius: 16.s),
-      child: child,
-    );
-  }
-
-  Widget _statusChip(String label, {Color? color, Color? textColor}) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9.s, vertical: 5.s),
-      decoration: AppDecorations.pill(color: (color ?? AppColors.blue).withValues(alpha: 0.9)),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: textColor ?? AppColors.text, fontWeight: FontWeight.w700, fontSize: 11.sp),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: AppRadii.lgAll,
       ),
-    );
-  }
-
-  Widget _statusCard(Map<String, dynamic> order) {
-    final currentStatus = _resolveCurrentStatus(order);
-    final statusDescription = order_ui.resolveOrderStatusText(order, status: currentStatus, fallback: 'Неизвестно');
-    final lastKnownStatus = _resolveStatusLabel(currentStatus, fallback: '');
-    final isCanceled = order_ui.isOrderCanceled(order);
-    final canPayOrder = order_ui.canPayOrder(order);
-    final statusColor = isCanceled ? AppColors.red : AppColors.orange;
-    final createdAt = order['log_timestamp']?.toString() ?? order['created_at']?.toString();
-    final deliveryType = order_ui.resolveDeliveryTypeText(order);
-    final total = order_ui.resolveOrderTotalAmount(order);
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(15.s),
-      decoration: AppDecorations.card(radius: 16.s, color: AppColors.cardDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(isCanceled ? Icons.cancel_outlined : Icons.local_shipping, color: statusColor, size: 20.s),
-              SizedBox(width: 7.s),
-              Text('Статус заказа', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 14.sp)),
-              const Spacer(),
-              Flexible(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _statusChip(statusDescription, color: statusColor, textColor: isCanceled ? Colors.white : Colors.black),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 9.s),
-          Text(statusDescription, style: TextStyle(color: AppColors.text, fontSize: 16.sp, fontWeight: FontWeight.w900)),
-          if (isCanceled && lastKnownStatus.isNotEmpty && lastKnownStatus != statusDescription) ...[
-            SizedBox(height: 4.s),
-            Text('Последний статус: $lastKnownStatus', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-          ],
-          SizedBox(height: 12.s),
-          Row(
-            children: [
-              Expanded(
-                child: _summaryTile(
-                  Icons.receipt_long_outlined,
-                  'Заказ',
-                  '#${order['order_id'] ?? '-'}',
-                ),
-              ),
-              SizedBox(width: 8.s),
-              Expanded(
-                child: _summaryTile(
-                  Icons.place_outlined,
-                  'Тип',
-                  deliveryType,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.s),
-          Row(
-            children: [
-              if (createdAt != null)
-                Expanded(
-                  child: _summaryTile(
-                    Icons.schedule_rounded,
-                    'Создан',
-                    _formatDateTime(createdAt),
-                  ),
-                ),
-              if (createdAt != null) SizedBox(width: 8.s),
-              Expanded(
-                child: _summaryTile(
-                  Icons.payments_outlined,
-                  'Сумма',
-                  total == null ? 'Уточняется' : _formatMoney(total),
-                  accent: total != null,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.s),
-          if (canPayOrder) ...[
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _openPayment,
-                icon: const Icon(Icons.lock_outline_rounded, size: 18),
-                label: const Text('Оплатить заказ'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-                ),
-              ),
+          Text(_notice!,
+              style: AppTypography.body
+                  .copyWith(color: context.palette.textPrimary)),
+          if (int.tryParse(widget.order['order_id']?.toString() ?? '') != null)
+            TextButton.icon(
+              onPressed: _loading ? null : _loadOrder,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Обновить заказ'),
             ),
-            SizedBox(height: 8.s),
-          ],
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _isRepeating ? null : _repeatOrder,
-              icon: _isRepeating
-                  ? SizedBox(
-                      width: 18.s,
-                      height: 18.s,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(AppColors.orange),
-                      ),
-                    )
-                  : const Icon(Icons.replay_rounded, size: 18),
-              label: Text(_isRepeating ? 'Собираем заказ...' : 'Повторить заказ'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.orange,
-                side: const BorderSide(color: AppColors.orange, width: 1.2),
-                padding: EdgeInsets.symmetric(vertical: 12.s, horizontal: 12.s),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.s)),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _summaryTile(
-    IconData icon,
-    String label,
-    String value, {
-    bool accent = false,
-  }) {
-    return Container(
-      constraints: BoxConstraints(minHeight: 58.s),
-      padding: EdgeInsets.symmetric(horizontal: 10.s, vertical: 9.s),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(12.s),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+  Widget _identityFields(_OrderDetails details) {
+    final status = Text(
+      order_ui.resolveOrderStatusText(details.order),
+      style: AppTypography.bodySmall.copyWith(
+        color: order_ui.isOrderCanceled(details.order)
+            ? context.palette.error
+            : details.statusCode == '4'
+                ? context.palette.success
+                : context.palette.textSecondary,
       ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: accent ? AppColors.orange : AppColors.textMute,
-            size: 16.s,
-          ),
-          SizedBox(width: 7.s),
-          Expanded(
-            child: Column(
+    );
+    final phone =
+        _OrderField(label: 'Телефон', value: details.phone ?? 'Не передан');
+    final address = details.address;
+    final extras = [
+      if (_text(address?['entrance']) case final value?) 'Подъезд $value',
+      if (_text(address?['floor']) case final value?) 'Этаж $value',
+      if (_text(address?['apartment']) case final value?) 'Кв. $value',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(builder: (context, constraints) {
+          if (constraints.maxWidth < 320 ||
+              MediaQuery.textScalerOf(context).scale(16) > 21) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.textMute,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 2.s),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: accent ? AppColors.orange : AppColors.text,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardHeader(IconData icon, String title, {Widget? trailing}) {
-    return Row(
-      children: [
-        Container(
-          width: 30.s,
-          height: 30.s,
-          decoration: AppDecorations.pill(
-            color: AppColors.orange.withValues(alpha: 0.12),
-          ),
-          child: Icon(icon, color: AppColors.orange, size: 16.s),
-        ),
-        SizedBox(width: 9.s),
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        if (trailing != null) trailing,
-      ],
-    );
-  }
-
-  Widget _businessCard(Map<String, dynamic> business) {
-    final name = business['name']?.toString() ?? 'Магазин';
-    final address = business['address']?.toString();
-    final phone = business['phone']?.toString();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _cardHeader(Icons.store_mall_directory_outlined, 'Магазин'),
-        SizedBox(height: 9.s),
-        Text(name, style: TextStyle(color: AppColors.text, fontSize: 14.sp, fontWeight: FontWeight.w700)),
-        if (address != null) ...[
-          SizedBox(height: 4.s),
-          Text(address, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-        ],
-        if (phone != null) ...[
-          SizedBox(height: 7.s),
-          Row(
-            children: [
-              Icon(Icons.phone, color: AppColors.textMute, size: 14.s),
-              SizedBox(width: 5.s),
-              Text(phone, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _addressCard(Map<String, dynamic> address) {
-    final entrance = address['entrance']?.toString();
-    final floor = address['floor']?.toString();
-    final apt = address['apartment']?.toString();
-    final comment = address['comment']?.toString() ?? address['other']?.toString();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _cardHeader(Icons.location_on_outlined, 'Адрес доставки'),
-        SizedBox(height: 9.s),
-        Text(address['address']?.toString() ?? 'Адрес не указан',
-            style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700)),
-        SizedBox(height: 5.s),
-        Wrap(
-          spacing: 9.s,
-          runSpacing: 5.s,
-          children: [
-            if (entrance != null) _statusChip('Подъезд $entrance'),
-            if (floor != null) _statusChip('Этаж $floor'),
-            if (apt != null) _statusChip('Кв. $apt'),
-          ],
-        ),
-        if (comment != null && comment.isNotEmpty) ...[
-          SizedBox(height: 9.s),
-          Container(
-            padding: EdgeInsets.all(10.s),
-            decoration: AppDecorations.card(radius: 10.s, color: AppColors.cardDark, shadow: false),
-            child: Row(
-              children: [
-                Icon(Icons.comment, color: AppColors.textMute, size: 14.s),
-                SizedBox(width: 7.s),
-                Expanded(child: Text(comment, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _itemsCard(Map<String, dynamic> summary) {
-    final items = _asMapList(summary['items_preview'] ?? summary['items']);
-    final itemsCount = summary['items_count'] ?? items.length;
-    final totalAmount = summary['total_amount'] ?? 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _cardHeader(
-          Icons.shopping_bag_outlined,
-          'Товары ($itemsCount)',
-          trailing: Text(
-            'Всего: $totalAmount',
-            style: TextStyle(
-              color: AppColors.textMute,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        SizedBox(height: 10.s),
-        for (int i = 0; i < items.length; i++) ...[
-          _itemRow(items[i]),
-          if (i < items.length - 1) const Divider(color: Color(0x229FB0C8), height: 16),
-        ],
-      ],
-    );
-  }
-
-  Widget _courierCard() {
-    final coords = _extractCourierCoordinates(_courierLocation);
-    final updatedAt = _extractCourierTimestamp(_courierLocation);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _cardHeader(
-          Icons.near_me_outlined,
-          'Курьер',
-          trailing: IconButton(
-            onPressed: _isLoadingCourier ? null : _loadCourierLocation,
-            icon: _isLoadingCourier
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(AppColors.orange),
-                    )
-                  )
-                : const Icon(Icons.refresh, color: AppColors.textMute),
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (_courierLocation == null && _courierError == null)
-          const Text(
-            'Местоположение курьера пока недоступно.',
-            style: TextStyle(color: AppColors.textMute),
-          )
-        else if (_courierError != null)
-          Text(_courierError!, style: const TextStyle(color: AppColors.textMute))
-        else ...[
-          if (coords != null)
-            Container(
-              padding: EdgeInsets.all(10.s),
-              decoration: AppDecorations.card(radius: 10.s, color: AppColors.cardDark, shadow: false),
-              child: Row(
-                children: [
-                  Icon(Icons.my_location, color: AppColors.orange, size: 16.s),
-                  SizedBox(width: 7.s),
-                  Expanded(
-                    child: Text(
-                      '${coords['lat']!.toStringAsFixed(6)}, ${coords['lon']!.toStringAsFixed(6)}',
-                      style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (updatedAt != null) ...[
-            SizedBox(height: 7.s),
-            Text('Обновлено: ${_formatDateTime(updatedAt)}', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-          ],
-          if (_courierLocation != null) ...[
-            SizedBox(height: 7.s),
-            Text(
-              _buildCourierSummary(_courierLocation!),
-              style: TextStyle(color: AppColors.textMute, fontSize: 12.sp),
-            ),
-          ],
-        ],
-      ],
-    );
-  }
-
-  Widget _itemRow(Map<String, dynamic> item) {
-    final image = item['img']?.toString() ?? item['item_img']?.toString();
-    final name = item['name']?.toString() ?? item['item_name']?.toString() ?? 'Товар';
-    final qty = _asNum(item['amount']) ?? 0;
-    final unitPrice = _asNum(item['price']) ?? 0;
-    final lineTotal = _asNum(item['total_cost']) ?? _asNum(item['total']) ?? _asNum(item['sum']) ?? (qty > 0 ? qty * unitPrice : unitPrice);
-
-    return Row(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: AppDecorations.card(radius: 14, color: AppColors.cardDark, shadow: false),
-          child: image != null && image.isNotEmpty
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.inventory_2_outlined, color: AppColors.textMute),
-                  ),
-                )
-              : const Icon(Icons.inventory_2_outlined, color: AppColors.textMute),
-        ),
-        SizedBox(width: 10.s),
-        Expanded(
-          child: Column(
+              children: [status, const SizedBox(height: 8), phone],
+            );
+          }
+          return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name,
-                  style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-              SizedBox(height: 4.s),
-              Text(
-                'Количество: ${qty % 1 == 0 ? qty.toInt() : qty}',
-                style: TextStyle(color: AppColors.textMute, fontSize: 11.sp),
-              ),
+              Expanded(flex: 3, child: phone),
+              const SizedBox(width: 12),
+              Flexible(flex: 2, child: status),
             ],
-          ),
+          );
+        }),
+        const SizedBox(height: 16),
+        _OrderField(
+            label: 'Способ оплаты',
+            value: details.paymentMethod ?? 'Не передан'),
+        const SizedBox(height: 16),
+        _OrderField(
+          label: details.pickup ? 'Самовывоз' : 'Адрес доставки',
+          value: details.pickup
+              ? _text(details.business?['address']) ??
+                  'Адрес магазина не передан'
+              : _text(address?['address']) ?? 'Адрес не передан',
         ),
-        const SizedBox(width: 8),
-        Text(_formatMoney(lineTotal), style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800)),
-      ],
-    );
-  }
-
-  Widget _costCard(Map<String, dynamic> cost) {
-    final itemsTotal = _asNum(cost['items_total']);
-    final deliveryFee = _asNum(cost['delivery_fee']) ?? _asNum(cost['delivery_price']);
-    final serviceFee = _asNum(cost['service_fee']);
-    final discount = _asNum(cost['discount']);
-    final bonusUsed = _asNum(cost['bonus_used']);
-    final totalSum = _asNum(cost['total_sum']) ?? _asNum(cost['total']) ?? _asNum(cost['order_total']);
-    final hasKnownCost = itemsTotal != null || deliveryFee != null || serviceFee != null || discount != null || bonusUsed != null || totalSum != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _cardHeader(Icons.receipt_long_outlined, 'Стоимость'),
-        const SizedBox(height: 12),
-        if (!hasKnownCost)
-          Text('Стоимость будет уточнена.', style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))
-        else ...[
-          _costRow('Товары', itemsTotal),
-          if (deliveryFee != null) _costRow('Доставка', deliveryFee),
-          if ((serviceFee ?? 0) > 0) _costRow('Сервисный сбор', serviceFee),
-          if ((discount ?? 0) > 0) _costRow('Скидка', -(discount ?? 0), accent: Colors.greenAccent),
-          if ((bonusUsed ?? 0) > 0) _costRow('Бонусы', -(bonusUsed ?? 0), accent: Colors.greenAccent),
-          const Divider(color: Color(0x229FB0C8), height: 18),
-          _costRow('Итого', totalSum, isTotal: true),
+        if (extras.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          _muted(extras.join(' · ')),
+        ],
+        if (_text(address?['comment'] ?? address?['other'])
+            case final comment?) ...[
+          const SizedBox(height: 8),
+          _muted(comment),
         ],
       ],
     );
   }
 
-  Widget _costRow(String label, num? amount, {Color? accent, bool isTotal = false}) {
-    if (amount == null) return const SizedBox.shrink();
-    final color = isTotal ? AppColors.orange : accent ?? AppColors.text;
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 5.s),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: TextStyle(color: AppColors.text, fontSize: isTotal ? 13.sp : 12.sp, fontWeight: isTotal ? FontWeight.w800 : FontWeight.w600)),
-          Text(_formatMoney(amount),
-              style: TextStyle(color: color, fontSize: isTotal ? 14.sp : 12.sp, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-
-  Widget _metaCard(Map<String, dynamic> order) {
-    final user = _asMap(order['user']);
+  Widget _costSection(_OrderDetails details) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _cardHeader(Icons.info_outline_rounded, 'Информация'),
-        const SizedBox(height: 10),
-        _infoRow('Способ оплаты', order['payment_method']),
-        _infoRow('Создан', _formatDateTime(order['created_at']?.toString() ?? order['log_timestamp']?.toString())),
-        _infoRow('Номер заказа', '#${order['order_id'] ?? '-'}'),
-        _infoRow('Клиент', user?['name']?.toString()),
-        _infoRow('Телефон', user?['phone']?.toString()),
-        if (order['delivery_time'] != null) _infoRow('Доставка', order['delivery_time'].toString()),
+        _sectionTitle('Стоимость заказа'),
+        if (details.itemsTotal != null)
+          _CostRow(label: 'Товары', amount: details.itemsTotal!),
+        if (details.deliveryFee != null)
+          _CostRow(label: 'Доставка', amount: details.deliveryFee!),
+        if (details.serviceFee != null)
+          _CostRow(label: 'Сервисный сбор', amount: details.serviceFee!),
+        if (details.discount != null)
+          _CostRow(
+              label: 'Скидка', amount: -details.discount!, deduction: true),
+        if (details.bonusUsed != null)
+          _CostRow(
+              label: 'Оплачено бонусами',
+              amount: -details.bonusUsed!,
+              deduction: true),
+        const Divider(height: 16),
+        if (details.total != null)
+          _CostRow(label: 'Итого', amount: details.total!, total: true)
+        else
+          _muted('Итоговая сумма не передана'),
       ],
     );
   }
 
-  Map<String, dynamic>? _resolveItemsSummary(Map<String, dynamic> order) {
-    final explicitSummary = order['items_summary'];
-    final mappedSummary = _asMap(explicitSummary);
-    if (mappedSummary != null) {
-      return mappedSummary;
-    }
-
-    final items = _asMapList(order['items']);
-    if (items.isEmpty) return null;
-
-    final totalAmount = items.fold<int>(
-      0,
-      (sum, item) => sum + ((_asNum(item['amount']))?.toInt() ?? 0),
+  Widget _informationSection(_OrderDetails details) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Информация о заказе'),
+        _OrderField(
+            label: 'Получение',
+            value: order_ui.resolveDeliveryTypeText(details.order)),
+        if (details.business != null) ...[
+          const SizedBox(height: 12),
+          _OrderField(
+              label: 'Магазин',
+              value:
+                  _text(details.business?['name']) ?? 'Название не передано'),
+          if (!details.pickup) ...[
+            if (_text(details.business?['address']) case final address?)
+              _muted(address),
+          ],
+          if (_text(details.business?['phone']) case final phone?)
+            _muted(phone),
+        ],
+        if (details.createdAt != null) ...[
+          const SizedBox(height: 12),
+          _OrderField(
+              label: 'Создан', value: _formatTimestamp(details.createdAt!)),
+        ],
+        if (_text(details.order['delivery_time']) case final time?) ...[
+          const SizedBox(height: 12),
+          _OrderField(label: 'Время доставки', value: time),
+        ],
+        if (_text(order_ui.asOrderMap(details.order['user'])?['name'])
+            case final name?) ...[
+          const SizedBox(height: 12),
+          _OrderField(label: 'Получатель', value: name),
+        ],
+        TextButton.icon(
+          onPressed: _loading ? null : _loadOrder,
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: Text(_loading ? 'Обновляем заказ…' : 'Обновить заказ'),
+        ),
+      ],
     );
-
-    return {
-      'items_count': items.length,
-      'total_amount': totalAmount,
-      'items_preview': items,
-      'items': items,
-    };
   }
 
-  Map<String, dynamic>? _resolveCostSummary(Map<String, dynamic> order) {
-    final resolved = <String, dynamic>{};
-
-    final directCost = _asMap(order['cost']);
-    if (directCost != null) {
-      resolved.addAll(directCost);
-    }
-
-    final explicitSummary = order['cost_summary'];
-    final mappedSummary = _asMap(explicitSummary);
-    if (mappedSummary != null) {
-      resolved.addAll(mappedSummary);
-    }
-
-    final items = _asMapList(order['items']);
-    if (resolved.isEmpty &&
-        items.isEmpty &&
-        order['delivery_price'] == null &&
-        order['bonus_used'] == null &&
-        order['bonus'] == null &&
-        order['total_sum'] == null &&
-        order['total'] == null) {
-      return null;
-    }
-
-    resolved['items_total'] ??= items.fold<num>(0, (sum, item) {
-      final amount = _asNum(item['amount']) ?? 0;
-      final price = _asNum(item['price']) ?? _asNum(item['total_cost']) ?? _asNum(item['total']) ?? _asNum(item['sum']) ?? 0;
-      return sum + (amount > 0 && item['price'] != null ? amount * price : price);
-    });
-    resolved['delivery_price'] ??= _asNum(order['delivery_price']) ?? 0;
-    resolved['bonus_used'] ??= _asNum(order['bonus_used']) ?? _asNum(order['bonus']) ?? 0;
-    resolved['total_sum'] ??= _asNum(order['total_sum']) ??
-        _asNum(order['total']) ??
-        ((_asNum(resolved['items_total']) ?? 0) + (_asNum(resolved['delivery_price']) ?? 0) - (_asNum(resolved['bonus_used']) ?? 0));
-
-    return resolved;
-  }
-
-  List<Map<String, dynamic>> _resolveStatuses(Map<String, dynamic> order) {
-    final statuses = <Map<String, dynamic>>[];
-
-    void addStatus(dynamic value) {
-      final mapped = _asMap(value);
-      if (mapped == null) return;
-      statuses.add(_normalizeStatusEntry(mapped, fallbackTimestamp: order['log_timestamp']?.toString() ?? order['created_at']?.toString()));
-    }
-
-    final explicitStatuses = order['order_statuses'];
-    if (explicitStatuses is List<dynamic> && explicitStatuses.isNotEmpty) {
-      for (final status in explicitStatuses) {
-        addStatus(status);
-      }
-    }
-
-    final statusHistory = order['status_history'];
-    if (statusHistory is List<dynamic> && statusHistory.isNotEmpty) {
-      for (final status in statusHistory) {
-        addStatus(status);
-      }
-    }
-
-    final mappedCurrentStatus = _resolveCurrentStatus(order);
-    if (mappedCurrentStatus != null) {
-      addStatus(mappedCurrentStatus);
-    }
-
-    if (order_ui.isOrderCanceled(order)) {
-      statuses.add({
-        'status': '5',
-        'status_description': 'Отменен',
-        'description': 'Заказ отменен',
-        'timestamp': mappedCurrentStatus?['log_timestamp'] ?? order['log_timestamp'] ?? order['created_at'],
-      });
-    }
-
-    return _dedupeAndSortStatuses(statuses);
-  }
-
-  Map<String, dynamic> _normalizeStatusEntry(Map<String, dynamic> status, {String? fallbackTimestamp}) {
-    final statusValue = status['status'] ?? status['status_id'] ?? status['code'];
-    final isTextStatus = statusValue is String && int.tryParse(statusValue) == null;
-    final label = status['status_description'] ?? status['status_name'] ?? status['description'] ?? (isTextStatus ? statusValue : null);
-
-    return {
-      ...status,
-      'status': statusValue ?? label,
-      if (label != null) 'status_description': label,
-      if (label != null) 'description': status['description'] ?? label,
-      'timestamp': status['timestamp'] ?? status['log_timestamp'] ?? status['created_at'] ?? fallbackTimestamp,
-    };
-  }
-
-  List<Map<String, dynamic>> _dedupeAndSortStatuses(List<Map<String, dynamic>> statuses) {
-    final result = <Map<String, dynamic>>[];
-    final seen = <String>{};
-
-    statuses.sort((a, b) {
-      final left = _statusTimestamp(a);
-      final right = _statusTimestamp(b);
-      if (left != null && right != null) {
-        final dateComparison = right.compareTo(left);
-        if (dateComparison != 0) return dateComparison;
-      }
-      if (left != null) return -1;
-      if (right != null) return 1;
-      return _statusRank(b).compareTo(_statusRank(a));
-    });
-
-    for (final status in statuses) {
-      final label = _resolveStatusLabel(status, fallback: '').trim();
-      final key = '${status['status'] ?? label}|$label';
-      if (key.trim().isEmpty || seen.contains(key)) continue;
-      seen.add(key);
-      result.add(status);
-    }
-
-    return result;
-  }
-
-  DateTime? _statusTimestamp(Map<String, dynamic> status) {
-    final raw = status['timestamp']?.toString() ?? status['log_timestamp']?.toString();
-    if (raw == null || raw.isEmpty) return null;
-    return DateTime.tryParse(raw)?.toLocal();
-  }
-
-  int _statusRank(Map<String, dynamic> status) {
-    final raw = status['status']?.toString();
-    if (raw == null) return -1;
-    const ranks = <String, int>{
-      '0': 0,
-      '1': 1,
-      '11': 2,
-      '12': 3,
-      '2': 4,
-      '21': 5,
-      '3': 6,
-      '31': 7,
-      '4': 8,
-      '5': 9,
-      '50': 9,
-      '51': 9,
-      '52': 9,
-      '6': 9,
-      '60': 1,
-      '61': 2,
-      '66': 1,
-    };
-    return ranks[raw] ?? -1;
-  }
-
-  Map<String, dynamic>? _resolveCurrentStatus(Map<String, dynamic> order) {
-    final currentStatus = _asMap(order['current_status']);
-    if (currentStatus != null) {
-      return currentStatus;
-    }
-
-    final status = _asMap(order['status']);
-    if (status != null) {
-      return {
-        ...status,
-        'status_description': status['status_name'] ?? status['status_description'],
-      };
-    }
-
-    return null;
-  }
-
-  bool _shouldShowCourierCard(Map<String, dynamic> order) {
-    return order_ui.isDeliveryOrder(order);
-  }
-
-  bool _isPaymentIssueStatus(String? statusCode) {
-    return const {'6', '60', '61', '66'}.contains(statusCode);
-  }
-
-  Map<String, double>? _extractCourierCoordinates(Map<String, dynamic>? data) {
-    if (data == null) return null;
-
-    final candidates = <Map<String, dynamic>>[
-      data,
-      if (_asMap(data['courier']) != null) _asMap(data['courier'])!,
-      if (_asMap(data['location']) != null) _asMap(data['location'])!,
-      if (_asMap(data['courier_location']) != null) _asMap(data['courier_location'])!,
-    ];
-
-    for (final candidate in candidates) {
-      final lat = _parseDouble(candidate['lat'] ?? candidate['latitude']);
-      final lon = _parseDouble(candidate['lon'] ?? candidate['lng'] ?? candidate['longitude']);
-      if (lat != null && lon != null) {
-        return {'lat': lat, 'lon': lon};
-      }
-    }
-
-    return null;
-  }
-
-  String? _extractCourierTimestamp(Map<String, dynamic>? data) {
-    if (data == null) return null;
-    return data['updated_at']?.toString() ?? data['timestamp']?.toString() ?? _asMap(data['courier'])?['updated_at']?.toString();
-  }
-
-  String _buildCourierSummary(Map<String, dynamic> data) {
-    final parts = <String>[];
-    final courier = _asMap(data['courier']);
-    if (courier != null) {
-      final name = courier['name']?.toString();
-      final phone = courier['phone']?.toString();
-      if (name != null && name.isNotEmpty) parts.add('Курьер: $name');
-      if (phone != null && phone.isNotEmpty) parts.add('Телефон: $phone');
-    }
-    final eta = data['eta']?.toString() ?? data['estimated_arrival']?.toString();
-    if (eta != null && eta.isNotEmpty) {
-      parts.add('ETA: $eta');
-    }
-    return parts.isEmpty ? 'Данные о курьере получены.' : parts.join(' • ');
-  }
-
-  double? _parseDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    return double.tryParse(value.toString());
-  }
-
-  Map<String, dynamic> _mergeOrderDetails(Map<String, dynamic> base, Map<String, dynamic>? details) {
-    final merged = <String, dynamic>{...base};
-    if (details == null) return merged;
-
-    for (final entry in details.entries) {
-      final value = entry.value;
-      if (_isEmptyDetailValue(value) && !_isEmptyDetailValue(merged[entry.key])) continue;
-
-      final existingMap = _asMap(merged[entry.key]);
-      final incomingMap = _asMap(value);
-      if (existingMap != null && incomingMap != null) {
-        merged[entry.key] = {...existingMap, ...incomingMap};
-      } else {
-        merged[entry.key] = value;
-      }
-    }
-
-    return merged;
-  }
-
-  bool _isEmptyDetailValue(dynamic value) {
-    if (value == null) return true;
-    if (value is String) return value.trim().isEmpty;
-    if (value is List) return value.isEmpty;
-    if (value is Map) return value.isEmpty;
-    return false;
-  }
-
-  Widget _infoRow(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
+  Widget _historyRow(Map<String, dynamic> status) {
+    final label = order_ui.resolveStatusLabel(status);
+    final description = _text(status['description']);
+    final timestamp = _text(status['timestamp']);
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 5.s),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 126.s, child: Text(label, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp))),
-          Expanded(child: Text(value, style: TextStyle(color: AppColors.text, fontSize: 13.sp, fontWeight: FontWeight.w700))),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Icon(Icons.circle, size: 8, color: context.palette.accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: AppTypography.bodyBold
+                        .copyWith(color: context.palette.textPrimary)),
+                if (description != null &&
+                    description.toLowerCase() != label.toLowerCase() &&
+                    !description.toLowerCase().contains('unknown') &&
+                    description.toLowerCase() != 'неизвестный статус')
+                  _muted(description),
+                _muted(timestamp == null
+                    ? 'Время не передано'
+                    : _formatTimestamp(timestamp)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _historyCard(List<dynamic> statuses) {
+  Widget _supportSection(_OrderDetails details) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _cardHeader(Icons.history_rounded, 'История статусов'),
+        _sectionTitle(details.paymentIssue
+            ? 'Проблема с оплатой?'
+            : 'Нужна помощь с заказом?'),
+        _muted('Обратитесь в поддержку или найдите ответ в частых вопросах.'),
         const SizedBox(height: 12),
-        for (int i = 0; i < statuses.length; i++) ...[
-          _historyItem(_asMap(statuses[i]) ?? const <String, dynamic>{}, isLatest: i == 0),
-          if (i < statuses.length - 1) const Divider(color: Color(0x229FB0C8), height: 14),
-        ],
+        OutlinedButton.icon(
+          onPressed: () => _openSupport(details),
+          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+          label:
+              const Text('Открыть чат поддержки', textAlign: TextAlign.center),
+        ),
+        TextButton(
+          onPressed: () => openFaqPage(
+            context,
+            initialSection: details.paymentIssue
+                ? FaqSection.payment
+                : FaqSection.orderProblems,
+          ),
+          child: const Text('Ответы по заказу', textAlign: TextAlign.center),
+        ),
       ],
     );
   }
 
-  Widget _historyItem(Map<String, dynamic> status, {required bool isLatest}) {
-    final label = _resolveStatusLabel(status, fallback: 'Неизвестный статус');
-    final desc = status['description']?.toString();
-    final ts = status['timestamp']?.toString();
-    return Row(
+  bool _paymentUnresolved(Map<String, dynamic> order) {
+    final local = order[OrderPaymentGuard.localStateKey];
+    if (local == OrderPaymentState.completed.name) return false;
+    return local == OrderPaymentState.unconfirmed.name ||
+        local == OrderPaymentState.storageUnavailable.name ||
+        orderPaymentOutcome(order) == OrderPaymentOutcome.pending;
+  }
+
+  Widget _actionPanel(_OrderDetails details) {
+    final pending = _loading || _repeating || _openingPayment;
+    late final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 10.s,
-          height: 10.s,
-          margin: EdgeInsets.only(top: 4.s),
-          decoration: BoxDecoration(color: isLatest ? AppColors.orange : AppColors.textMute.withValues(alpha: 0.7), shape: BoxShape.circle),
+        if (!details.pickup) ...[
+          _muted('Доставка'),
+          Text(
+            details.deliveryFee == null
+                ? 'Не указана'
+                : formatTenge(details.deliveryFee!.round()),
+            style: AppTypography.titleRegular
+                .copyWith(color: context.palette.textPrimary),
+          ),
+          const SizedBox(height: 8),
+        ],
+        _muted('Итого'),
+        Text(
+          details.total == null
+              ? 'Не передано'
+              : formatTenge(details.total!.round()),
+          style: AppTypography.displayBold
+              .copyWith(color: context.palette.textPrimary),
         ),
-        SizedBox(width: 9.s),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(color: isLatest ? AppColors.orange : AppColors.text, fontWeight: FontWeight.w800)),
-              if (desc != null && _shouldShowStatusDescription(desc, label)) ...[
-                SizedBox(height: 2.s),
-                Text(desc, style: TextStyle(color: AppColors.textMute, fontSize: 12.sp)),
-              ],
-              if (ts != null) ...[
-                SizedBox(height: 4.s),
-                Text(_formatDateTime(ts), style: TextStyle(color: AppColors.textMute, fontSize: 11.sp)),
-              ],
-            ],
+      ],
+    );
+    late final repeat = FilledButton.icon(
+      key: const ValueKey('order-detail-repeat-button'),
+      onPressed: pending ? null : _repeatOrder,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 70),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      icon: _repeating
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: context.palette.textOnAccent),
+            )
+          : const Icon(Icons.repeat_rounded, size: 26),
+      label: Text(_repeating ? 'Собираем корзину…' : 'Повторить заказ',
+          textAlign: TextAlign.center),
+    );
+    return Container(
+      decoration: BoxDecoration(
+        color: context.palette.background,
+        border: Border(top: BorderSide(color: context.palette.divider)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_paymentUnresolved(details.order)) ...[
+                    _muted('Не удалось подтвердить состояние оплаты. '
+                        'Обновите заказ прежде чем оплачивать или повторять его.'),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      key: const ValueKey('order-detail-check-payment'),
+                      onPressed: pending ? null : _loadOrder,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Проверить состояние оплаты'),
+                    ),
+                  ] else ...[
+                    if (order_ui.canPayOrder(details.order)) ...[
+                      FilledButton.icon(
+                        key: const ValueKey('order-detail-pay-button'),
+                        onPressed: pending ? null : _openPayment,
+                        icon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        label: Text(
+                            _openingPayment
+                                ? 'Открываем оплату…'
+                                : 'Оплатить заказ',
+                            textAlign: TextAlign.center),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    LayoutBuilder(builder: (context, constraints) {
+                      if (constraints.maxWidth < 310 ||
+                          MediaQuery.textScalerOf(context).scale(16) > 21) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            summary,
+                            const SizedBox(height: 12),
+                            repeat
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(child: summary),
+                          const SizedBox(width: 16),
+                          SizedBox(width: 177, child: repeat),
+                        ],
+                      );
+                    }),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 
-  bool _shouldShowStatusDescription(String description, String label) {
-    final normalized = description.trim().toLowerCase();
-    if (normalized.isEmpty) return false;
-    if (normalized == label.trim().toLowerCase()) return false;
-    if (normalized == 'неизвестно' || normalized == 'неизвестный статус' || normalized.contains('unknown')) return false;
-    return true;
+  Widget _sectionTitle(String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(title,
+            style: AppTypography.title
+                .copyWith(color: context.palette.textPrimary)),
+      );
+
+  Widget _muted(String text) => Text(
+        text,
+        style: AppTypography.bodySmall
+            .copyWith(color: context.palette.textSecondary),
+      );
+}
+
+class _OrderField extends StatelessWidget {
+  const _OrderField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: AppTypography.label
+                  .copyWith(color: context.palette.textSecondary)),
+          Text(value,
+              style: AppTypography.title
+                  .copyWith(color: context.palette.textPrimary)),
+        ],
+      );
+}
+
+class _OrderItemRow extends StatelessWidget {
+  const _OrderItemRow({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _text(item['img'] ?? item['item_img']);
+    final quantity = _number(item['amount']);
+    final total = _lineTotal(item);
+    final name =
+        _text(item['name'] ?? item['item_name']) ?? 'Название не передано';
+    return Container(
+      constraints: const BoxConstraints(minHeight: 60),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+          color: context.palette.surface, borderRadius: AppRadii.lgAll),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: AppRadii.smAll,
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: image == null
+                  ? _imageFallback(context)
+                  : Image.network(
+                      image,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => _imageFallback(context),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: AppTypography.titleMedium
+                        .copyWith(color: context.palette.textPrimary)),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Цена',
+                              style: AppTypography.label.copyWith(
+                                  color: context.palette.textSecondary)),
+                          Text(
+                              total == null
+                                  ? 'Не передана'
+                                  : formatTenge(total.round()),
+                              style: AppTypography.title.copyWith(
+                                  color: context.palette.textPrimary)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Кол-во',
+                            style: AppTypography.label.copyWith(
+                                color: context.palette.textSecondary)),
+                        Text(quantity == null ? '—' : _quantityText(quantity),
+                            style: AppTypography.titleMedium
+                                .copyWith(color: context.palette.textPrimary)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
   }
 
-  String _formatMoney(num? value) {
-    if (value == null) return '—';
-    return '${value >= 0 ? '' : '−'}${value.abs().toStringAsFixed(0)} ₸';
+  Widget _imageFallback(BuildContext context) => ColoredBox(
+        color: context.palette.surfaceMuted,
+        child: Icon(Icons.inventory_2_outlined,
+            color: context.palette.textSecondary, size: 24),
+      );
+}
+
+class _CostRow extends StatelessWidget {
+  const _CostRow(
+      {required this.label,
+      required this.amount,
+      this.deduction = false,
+      this.total = false});
+
+  final String label;
+  final num amount;
+  final bool deduction;
+  final bool total;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+                child: Text(label,
+                    style: total ? AppTypography.title : AppTypography.body)),
+            const SizedBox(width: 16),
+            Flexible(
+              child: Text(
+                formatTenge(amount.round()),
+                textAlign: TextAlign.right,
+                style:
+                    (total ? AppTypography.title : AppTypography.body).copyWith(
+                  color: deduction
+                      ? context.palette.gold
+                      : context.palette.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _OrderDetails {
+  _OrderDetails(this.order) {
+    final summary = order_ui.asOrderMap(order['items_summary']);
+    var fullItems = order['items'];
+    if (fullItems is! List || fullItems.isEmpty) fullItems = summary?['items'];
+    final preview = summary?['items_preview'];
+    isPreview = (fullItems is! List || fullItems.isEmpty) &&
+        preview is List &&
+        preview.isNotEmpty;
+    items = _maps(isPreview ? preview : fullItems);
+    final cost = {
+      ...?order_ui.asOrderMap(order['cost']),
+      ...?order_ui.asOrderMap(order['cost_summary']),
+    };
+    var subtotal = _number(cost['items_total']);
+    if (subtotal == null && !isPreview && items.isNotEmpty) {
+      num sum = 0;
+      var complete = true;
+      for (final item in items) {
+        final amount = _lineTotal(item);
+        if (amount == null) {
+          complete = false;
+          break;
+        }
+        sum += amount;
+      }
+      if (complete) subtotal = sum;
+    }
+    itemsTotal = subtotal;
+    deliveryFee = _number(cost['delivery_fee'] ??
+        cost['delivery_price'] ??
+        order['delivery_price']);
+    serviceFee = _positive(cost['service_fee']);
+    discount = _positive(cost['discount']);
+    bonusUsed =
+        _positive(cost['bonus_used'] ?? order['bonus_used'] ?? order['bonus']);
+    total = order_ui.resolveOrderTotalAmount(order) ?? _number(order['total']);
+    history = _statusHistory(order);
   }
 
-  String _formatDateTime(String? dateTimeString) {
-    if (dateTimeString == null || dateTimeString.isEmpty) return 'Неизвестно';
-    try {
-      final dateTime = DateTime.parse(dateTimeString);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-      if (difference.inDays > 0) return '${difference.inDays} дн. назад';
-      if (difference.inHours > 0) return '${difference.inHours} ч. назад';
-      if (difference.inMinutes > 0) return '${difference.inMinutes} мин. назад';
-      return 'Только что';
-    } catch (_) {
-      return 'Неизвестно';
+  final Map<String, dynamic> order;
+  late final List<Map<String, dynamic>> items;
+  late final bool isPreview;
+  late final List<Map<String, dynamic>> history;
+  late final num? itemsTotal;
+  late final num? deliveryFee;
+  late final num? serviceFee;
+  late final num? discount;
+  late final num? bonusUsed;
+  late final num? total;
+
+  String get id =>
+      _text(order['order_id'] ?? order['order_uuid'] ?? order['id']) ?? '—';
+  Map<String, dynamic>? get address =>
+      order_ui.asOrderMap(order['delivery_address']);
+  Map<String, dynamic>? get business => order_ui.asOrderMap(order['business']);
+  String? get phone => _text(order_ui.asOrderMap(order['user'])?['phone']);
+  String? get paymentMethod => _text(order['payment_method']);
+  String? get createdAt => _text(order['created_at'] ?? order['log_timestamp']);
+  bool get pickup => order_ui.isPickupOrder(order);
+  String? get statusCode =>
+      _text((order_ui.asOrderMap(order['current_status']) ??
+          order_ui.asOrderMap(order['status']))?['status']);
+  bool get paymentIssue =>
+      const {'6', '60', '61', '66'}.contains(statusCode) ||
+      order_ui.canPayOrder(order);
+}
+
+String? _text(dynamic value) {
+  if (value == null) return null;
+  final text = value.toString().trim();
+  return text.isEmpty || text.toLowerCase() == 'null' ? null : text;
+}
+
+num? _number(dynamic value) {
+  final number = value is num ? value : num.tryParse(value?.toString() ?? '');
+  return number != null && number.isFinite ? number : null;
+}
+
+num? _positive(dynamic value) {
+  final number = _number(value);
+  return number != null && number > 0 ? number : null;
+}
+
+List<Map<String, dynamic>> _maps(dynamic value) => value is List
+    ? value.map(order_ui.asOrderMap).whereType<Map<String, dynamic>>().toList()
+    : const [];
+
+num? _lineTotal(Map<String, dynamic> item) {
+  final explicit = _number(item['total_cost'] ?? item['total'] ?? item['sum']);
+  if (explicit != null) return explicit;
+  final quantity = _number(item['amount']);
+  final price = _number(item['price']);
+  return quantity != null && price != null ? quantity * price : null;
+}
+
+String _quantityText(num quantity) =>
+    quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toString();
+
+String _formatTimestamp(String raw) {
+  final timestamp = DateTime.tryParse(raw);
+  return timestamp == null
+      ? raw
+      : DateFormat('dd.MM.yyyy, HH:mm').format(timestamp.toLocal());
+}
+
+Map<String, dynamic> _mergeOrder(
+    Map<String, dynamic> base, Map<String, dynamic>? loaded) {
+  if (loaded == null) return base;
+  final merged = <String, dynamic>{...base};
+  for (final entry in loaded.entries) {
+    final oldMap = order_ui.asOrderMap(merged[entry.key]);
+    final newMap = order_ui.asOrderMap(entry.value);
+    merged[entry.key] =
+        oldMap != null && newMap != null ? {...oldMap, ...newMap} : entry.value;
+  }
+  return merged;
+}
+
+List<Map<String, dynamic>> _statusHistory(Map<String, dynamic> order) {
+  final entries =
+      <({Map<String, dynamic> status, DateTime? time, int index})>[];
+  final seen = <String>{};
+  for (final source in [order['order_statuses'], order['status_history']]) {
+    if (source is! List) continue;
+    for (final value in source) {
+      final status = order_ui.asOrderMap(value);
+      if (status == null) continue;
+      final code = status['status'] ?? status['status_id'] ?? status['code'];
+      final timestamp = _text(status['timestamp'] ??
+          status['log_timestamp'] ??
+          status['created_at']);
+      final normalized = <String, dynamic>{
+        ...status,
+        'status': code,
+        'timestamp': timestamp
+      };
+      final label = order_ui.resolveStatusLabel(normalized);
+      final key = '$code|$label|$timestamp|${status['description']}';
+      if (!seen.add(key)) continue;
+      entries.add((
+        status: normalized,
+        time: DateTime.tryParse(timestamp ?? ''),
+        index: entries.length,
+      ));
     }
   }
+  entries.sort((left, right) {
+    final leftTime = left.time;
+    final rightTime = right.time;
+    if (leftTime != null && rightTime != null) {
+      final comparison = rightTime.compareTo(leftTime);
+      if (comparison != 0) return comparison;
+    } else if (leftTime != null) {
+      return -1;
+    } else if (rightTime != null) {
+      return 1;
+    }
+    return left.index.compareTo(right.index);
+  });
+  return entries.map((entry) => entry.status).toList();
 }

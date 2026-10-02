@@ -60,7 +60,11 @@ class _IntroSlidesPageState extends State<IntroSlidesPage> {
   Future<void> _continue() async {
     if (_busy) return;
     setState(() => _busy = true);
-    await widget.onContinue();
+    try {
+      await widget.onContinue();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -104,26 +108,20 @@ class _IntroSlidesPageState extends State<IntroSlidesPage> {
                     Text(
                       'Войдите, чтобы не упустить выгоду',
                       textAlign: TextAlign.center,
-                      style: AppTypography.base(size: 12, weight: 400)
+                      style: AppTypography.bodySmall
                           .copyWith(color: palette.textSecondary),
                     ),
                     const SizedBox(height: AppSpacing.xl),
-                    GestureDetector(
-                      onTap: _busy ? null : _continue,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        height: 49,
-                        width: double.infinity,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: palette.accentSoft,
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _busy ? null : _continue,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(49),
+                          padding: const EdgeInsets.all(AppSpacing.xxxl),
                         ),
-                        child: Text(
-                          'Войти или зарегистрироваться',
-                          style:
-                              AppTypography.title.copyWith(color: Colors.white),
-                        ),
+                        child: const Text('Войти или зарегистрироваться',
+                            textAlign: TextAlign.center),
                       ),
                     ),
                   ],

@@ -1,15 +1,19 @@
-import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:naliv_delivery/shared/app_theme.dart';
-import 'package:naliv_delivery/utils/responsive.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class AddCardWebViewPage extends StatefulWidget {
-  final String initialUrl;
+import '../design/theme.dart';
+import '../design/typography.dart';
+import '../ui/app_states.dart';
+import '../ui/app_top_bar.dart';
+import '../ui/surfaces.dart';
+import 'card_flow.dart';
 
+class AddCardWebViewPage extends StatefulWidget {
   const AddCardWebViewPage({super.key, required this.initialUrl});
+
+  final String initialUrl;
 
   @override
   State<AddCardWebViewPage> createState() => _AddCardWebViewPageState();
@@ -17,323 +21,222 @@ class AddCardWebViewPage extends StatefulWidget {
 
 class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
   WebViewController? _controller;
-  bool _isLoading = true;
-  String? _currentUrl;
+  late final Uri? _uri;
+  bool _loading = false;
+  bool _launching = false;
+  String? _error;
 
-  bool get _isWeb => kIsWeb;
-  Uri? get _initialUri => Uri.tryParse(widget.initialUrl);
+  bool get _supportsWebView =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.macOS);
 
   @override
   void initState() {
     super.initState();
-    _currentUrl = widget.initialUrl;
-
-    if (_isWeb) {
-      _isLoading = false;
-      return;
+    _uri = hostedCardUri(widget.initialUrl);
+    if (_uri == null) {
+      _error =
+          'Некорректная ссылка формы банка. Вернитесь и получите новую ссылку.';
+    } else if (_supportsWebView) {
+      _initializeWebView();
     }
-
-    final uri = _initialUri;
-    if (uri == null) {
-      _isLoading = false;
-      return;
-    }
-
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.transparent)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (url) {
-            if (!mounted) return;
-            setState(() {
-              _isLoading = true;
-              _currentUrl = url;
-            });
-          },
-          onPageFinished: (url) {
-            if (!mounted) return;
-            setState(() {
-              _isLoading = false;
-              _currentUrl = url;
-            });
-          },
-          onWebResourceError: (_) {
-            if (!mounted) return;
-            setState(() {
-              _isLoading = false;
-            });
-          },
-        ),
-      )
-      ..loadRequest(uri);
   }
 
-  Future<void> _closeAndRefresh() async {
-    if (!mounted) return;
-    Navigator.of(context).pop(true);
+  Future<void> _initializeWebView() async {
+    try {
+      final controller = WebViewController();
+      _controller = controller;
+      _loading = true;
+      await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      await controller.setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) => hostedCardUri(request.url) == null
+            ? NavigationDecision.prevent
+            : NavigationDecision.navigate,
+        onPageStarted: (_) {
+          if (mounted) {
+            setState(() {
+              _loading = true;
+              _error = null;
+            });
+          }
+        },
+        onPageFinished: (_) {
+          if (mounted) setState(() => _loading = false);
+        },
+        onWebResourceError: (error) {
+          if (error.isForMainFrame == false) return;
+          if (mounted) {
+            setState(() {
+              _loading = false;
+              _error =
+                  'Не удалось загрузить форму банка. Обновите страницу или откройте её в браузере.';
+            });
+          }
+        },
+      ));
+      await controller.loadRequest(_uri!);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error =
+              'Не удалось открыть форму банка. Попробуйте открыть её в браузере.';
+        });
+      }
+    }
+  }
+
+  Future<void> _reload() async {
+    if (_uri == null || _loading) return;
+    if (_controller == null) {
+      await _initializeWebView();
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await _controller!.loadRequest(_uri!);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Не удалось загрузить форму банка. Попробуйте снова.';
+        });
+      }
+    }
   }
 
   Future<void> _openInBrowser() async {
-    final uri = _initialUri;
-    if (uri == null) return;
-
-    final launched = await launchUrl(
-      uri,
-      mode: _isWeb
-          ? LaunchMode.platformDefault
-          : defaultTargetPlatform == TargetPlatform.iOS
-              ? LaunchMode.inAppWebView
-              : LaunchMode.externalApplication,
-    );
-
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Не удалось открыть ссылку. Попробуйте еще раз.'),
-        ),
+    if (_uri == null || _launching) return;
+    setState(() => _launching = true);
+    try {
+      final opened = await launchUrl(
+        _uri!,
+        mode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
       );
+      if (mounted) {
+        setState(() {
+          _error =
+              opened ? null : 'Не удалось открыть браузер. Попробуйте снова.';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+            () => _error = 'Не удалось открыть браузер. Попробуйте снова.');
+      }
+    } finally {
+      if (mounted) setState(() => _launching = false);
     }
-  }
-
-  String _hostLabel() {
-    final currentUrl = _currentUrl;
-    if (currentUrl == null || currentUrl.isEmpty) {
-      return 'Защищенная страница банка';
-    }
-
-    final uri = Uri.tryParse(currentUrl);
-    final host = uri?.host ?? '';
-    if (host.isEmpty) {
-      return 'Защищенная страница банка';
-    }
-
-    return host;
   }
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.bgDeep,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.text,
-        title: const Text('Добавление карты',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        actions: [
-          if (!_isWeb)
-            IconButton(
-              tooltip: 'Обновить',
-              onPressed: () => _controller?.reload(),
-              icon: const Icon(Icons.refresh_rounded),
-            ),
-          if (_isWeb)
-            IconButton(
-              tooltip: 'Открыть в браузере',
-              onPressed: _openInBrowser,
-              icon: const Icon(Icons.open_in_browser_rounded),
-            ),
-          IconButton(
-            tooltip: 'Закрыть',
-            onPressed: _closeAndRefresh,
-            icon: const Icon(Icons.close_rounded),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          const AppBackground(),
-          SafeArea(
-            top: false,
+      backgroundColor: palette.background,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
             child: Column(
               children: [
                 Padding(
-                  padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 10.s),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(12.s),
-                    decoration: AppDecorations.card(
-                        radius: 16.s,
-                        color: AppColors.cardDark.withValues(alpha: 0.96)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Откроется защищенная форма банка для привязки карты.',
-                          style: TextStyle(
-                              color: AppColors.text,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700),
-                        ),
-                        SizedBox(height: 4.s),
-                        Text(
-                          _hostLabel(),
-                          style: TextStyle(
-                              color: AppColors.textMute,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: AppTopBar(
+                    title: 'Добавление карты',
+                    onBack: () => Navigator.of(context).pop(false),
                   ),
                 ),
                 Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 14.s),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18.s),
-                      child: ColoredBox(
-                        color: Colors.white,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: _isWeb
-                                  ? Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 24.s),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.warning_amber_rounded,
-                                              size: 52,
-                                              color: AppColors.orange,
-                                            ),
-                                            SizedBox(height: 12.s),
-                                            Text(
-                                              'Веб-просмотр недоступен в браузере. Откройте форму банка во внешней вкладке.',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: AppColors.text,
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            SizedBox(height: 16.s),
-                                            ElevatedButton(
-                                              onPressed: _openInBrowser,
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    AppColors.orange,
-                                                foregroundColor: Colors.black,
-                                                padding: EdgeInsets.symmetric(
-                                                    vertical: 14.s,
-                                                    horizontal: 24.s),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          18.s),
-                                                ),
-                                              ),
-                                              child: const Text(
-                                                  'Открыть в браузере',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w800)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                  : _controller != null
-                                      ? WebViewWidget(controller: _controller!)
-                                      : Center(
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 24.s),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(
-                                                  Icons.error_outline,
-                                                  size: 52,
-                                                  color: AppColors.orange,
-                                                ),
-                                                SizedBox(height: 12.s),
-                                                Text(
-                                                  'Не удалось загрузить страницу. Попробуйте еще раз или откройте ссылку во внешнем браузере.',
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: AppColors.text,
-                                                    fontSize: 14.sp,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 16.s),
-                                                ElevatedButton(
-                                                  onPressed: _openInBrowser,
-                                                  style:
-                                                      ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        AppColors.orange,
-                                                    foregroundColor:
-                                                        Colors.black,
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 14.s,
-                                                            horizontal: 24.s),
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              18.s),
-                                                    ),
-                                                  ),
-                                                  child: const Text(
-                                                      'Открыть в браузере',
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w800)),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                            ),
-                            if (_isLoading)
-                              Positioned.fill(
-                                child: ColoredBox(
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                        color: AppColors.orange),
-                                  ),
-                                ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                      children: [
+                        AppSurface(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Форма банка', style: AppTypography.title),
+                              if (_uri != null) ...[
+                                const SizedBox(height: 8),
+                                Text(_uri!.host,
+                                    style: AppTypography.body.copyWith(
+                                        color: palette.textSecondary)),
+                              ],
+                              const SizedBox(height: 8),
+                              Text(
+                                'Данные карты вводятся только в форме банка. После завершения вернитесь: привязку подтвердит обновлённый список карт.',
+                                style: AppTypography.body
+                                    .copyWith(color: palette.textSecondary),
                               ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(14.s, 0, 14.s, 18.s),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isWeb ? _openInBrowser : _closeAndRefresh,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.orange,
-                        foregroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(vertical: 14.s),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.s)),
-                      ),
-                      child: Text(
-                        _isWeb
-                            ? 'Открыть в браузере'
-                            : 'Готово, обновить карты',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 16),
+                          AppErrorState(
+                            message: _error!,
+                            onRetry: _uri != null && _supportsWebView
+                                ? _reload
+                                : null,
+                            retryLabel: 'Обновить форму',
+                          ),
+                        ],
+                        if (_controller != null) ...[
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: (constraints.maxHeight * .65)
+                                .clamp(240.0, 700.0)
+                                .toDouble(),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                      child: WebViewWidget(
+                                          controller: _controller!)),
+                                  if (_loading)
+                                    const Positioned.fill(child: AppLoading()),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_uri != null) ...[
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: _launching ? null : _openInBrowser,
+                            icon: const Icon(Icons.open_in_new),
+                            label: Text(_launching
+                                ? 'Открываем браузер…'
+                                : 'Открыть в браузере'),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Проверить привязку'),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Отменить и вернуться'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -54,6 +54,27 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
+  test('city payload failure is not a valid zero-city response', () async {
+    for (final payload in [
+      null,
+      <String, Object>{},
+      [null]
+    ]) {
+      final stub = _intercept({
+        'success': true,
+        'data': {'cities': payload},
+      });
+      expect(await _withClient(stub.client, ApiService.getAvailableCities),
+          isNull);
+    }
+    final empty = _intercept({
+      'success': true,
+      'data': {'cities': <Object>[]},
+    });
+    expect(await _withClient(empty.client, ApiService.getAvailableCities),
+        isEmpty);
+  });
+
   group('home endpoints · businesses', () {
     test('GETs the paged businesses path and unwraps data', () async {
       final stub = _intercept({

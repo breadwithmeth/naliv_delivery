@@ -92,13 +92,6 @@ class Item {
     // Сначала пробуем взять stepQuantity из CategoryItem
     double? stepQuantity = categoryItem.stepQuantity;
 
-    // Если stepQuantity нет, пробуем извлечь из опций
-    if (stepQuantity == null && categoryItem.options != null && categoryItem.options!.isNotEmpty) {
-      final firstOption = categoryItem.options!.first;
-      if (firstOption.variants != null && firstOption.variants!.isNotEmpty) {
-        stepQuantity = _parseDouble(firstOption.variants!.first.parentItemAmount);
-      }
-    }
 
     return Item(
       itemId: categoryItem.itemId ?? 0,
@@ -175,6 +168,7 @@ class Item {
       businessId: businessId ?? this.businessId,
       visible: visible ?? this.visible,
       amount: amount ?? this.amount,
+      stepQuantity: stepQuantity,
       options: options ?? this.options,
       promotions: promotions ?? this.promotions,
     );
@@ -192,24 +186,11 @@ class Item {
   /// Проверяет, есть ли опции
   bool get hasOptions => options != null && options!.isNotEmpty;
 
-  /// Получает эффективный stepQuantity
-  /// Если у товара нет опций и задан stepQuantity, используем его
-  /// Если есть опции, используем parent_item_amount из первой опции
-  /// По умолчанию возвращает 1.0
+  /// The quantity step in the product's base unit, independent of option order.
   double get effectiveStepQuantity {
-    if (quantity != null && quantity! > 0) {
-      return quantity!;
-    }
-    // Если у товара есть опции, используем parent_item_amount из первой опции
-    if (hasOptions) {
-      final firstOption = options!.first;
-      if (firstOption.optionItems.isNotEmpty) {
-        return firstOption.optionItems.first.parentItemAmount.toDouble();
-      }
-    }
-
-    // Если нет опций, используем stepQuantity из товара или 1.0 по умолчанию
-    return stepQuantity ?? 1.0;
+    if (stepQuantity != null && stepQuantity! > 0) return stepQuantity!;
+    if (quantity != null && quantity! > 0) return quantity!;
+    return 1.0;
   }
 
   @override
@@ -456,6 +437,7 @@ class ItemOptionItem {
     return {
       'relation_id': relationId,
       'item_id': itemId,
+      'item_name': itemName,
       'price_type': priceType,
       'price': price,
       'parent_item_amount': parentItemAmount,
@@ -595,44 +577,3 @@ class ItemPromotion {
   }
 }
 
-/// Модель для варианта товара (для будущего использования)
-class ItemVariant {
-  final int variantId;
-  final String name;
-  final double? priceModifier;
-  final String? image;
-  final Map<String, dynamic>? attributes;
-
-  ItemVariant({
-    required this.variantId,
-    required this.name,
-    this.priceModifier,
-    this.image,
-    this.attributes,
-  });
-
-  factory ItemVariant.fromJson(Map<String, dynamic> json) {
-    return ItemVariant(
-      variantId: Item._parseInt(json['variant_id']),
-      name: Item._parseString(json['name']) ?? '',
-      priceModifier: Item._parseDouble(json['price_modifier']),
-      image: Item._parseString(json['image']),
-      attributes: Item._asMap(json['attributes']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'variant_id': variantId,
-      'name': name,
-      if (priceModifier != null) 'price_modifier': priceModifier,
-      if (image != null) 'image': image,
-      if (attributes != null) 'attributes': attributes,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'ItemVariant(id: $variantId, name: $name)';
-  }
-}

@@ -1,10 +1,12 @@
 const double subtractPromotionEpsilon = 0.001;
 
 String? promotionType(Map<String, dynamic> promotion) {
-  return (promotion['type'] as String?) ?? (promotion['discount_type'] as String?);
+  return (promotion['type'] as String?) ??
+      (promotion['discount_type'] as String?);
 }
 
-int _promotionInt(Map<String, dynamic> promotion, String camelKey, String snakeKey) {
+int _promotionInt(
+    Map<String, dynamic> promotion, String camelKey, String snakeKey) {
   final raw = promotion[camelKey] ?? promotion[snakeKey];
   if (raw is num) {
     return raw.toInt();
@@ -15,7 +17,8 @@ int _promotionInt(Map<String, dynamic> promotion, String camelKey, String snakeK
   return 0;
 }
 
-Map<String, dynamic>? firstSubtractPromotion(List<Map<String, dynamic>> promotions) {
+Map<String, dynamic>? firstSubtractPromotion(
+    List<Map<String, dynamic>> promotions) {
   for (final promotion in promotions) {
     if (promotionType(promotion) != 'SUBTRACT') {
       continue;
@@ -50,12 +53,34 @@ double subtractPromotionFreeQuantityForConfig(
   required int baseAmount,
   required int addAmount,
 }) {
-  if (baseAmount <= 0 || addAmount <= 0 || quantity + subtractPromotionEpsilon < baseAmount) {
+  if (baseAmount <= 0 ||
+      addAmount <= 0 ||
+      quantity + subtractPromotionEpsilon < baseAmount) {
     return 0;
   }
 
-  final claimCount = quantity ~/ baseAmount;
+  final claimCount = ((quantity + 0.0000001) / baseAmount).floor();
   return (claimCount * addAmount).toDouble();
+}
+
+double? subtractPromotionPaidQuantityForPhysicalQuantity(
+    double physicalQuantity, List<Map<String, dynamic>> promotions) {
+  if (!physicalQuantity.isFinite || physicalQuantity < 0) return null;
+  final promotion = firstSubtractPromotion(promotions);
+  if (promotion == null) return physicalQuantity;
+  final base = _promotionInt(promotion, 'baseAmount', 'base_amount');
+  final add = _promotionInt(promotion, 'addAmount', 'add_amount');
+  final claims = ((physicalQuantity + 0.0000001) / (base + add)).floor();
+  final paid = physicalQuantity - claims * add;
+  if (paid < 0 ||
+      (paid +
+                  subtractPromotionFreeQuantity(paid, promotions) -
+                  physicalQuantity)
+              .abs() >
+          0.0000001) {
+    return null;
+  }
+  return paid;
 }
 
 double subtractPromotionDisplayBaseTotal(
@@ -79,16 +104,24 @@ double applyPromotionsToPaidBaseTotal({
     if (promotionType(promotion) != 'FIXED') {
       continue;
     }
-    final discount = ((promotion['discount'] as num?) ?? (promotion['discount_value'] as num?) ?? 0).toDouble();
+    final discount = ((promotion['discount'] as num?) ??
+            (promotion['discount_value'] as num?) ??
+            0)
+        .toDouble();
     if (discount > 0) {
-      result = (result - (discount * payableQuantity)).clamp(0, double.infinity).toDouble();
+      result = (result - (discount * payableQuantity))
+          .clamp(0, double.infinity)
+          .toDouble();
     }
   }
 
   for (final promotion in promotions) {
     final type = promotionType(promotion);
     if (type == 'DISCOUNT' || type == 'PERCENT') {
-      final discount = ((promotion['discount'] as num?) ?? (promotion['discount_value'] as num?) ?? 0).toDouble();
+      final discount = ((promotion['discount'] as num?) ??
+              (promotion['discount_value'] as num?) ??
+              0)
+          .toDouble();
       result = result * (1 - discount / 100);
     }
   }
@@ -121,7 +154,8 @@ double subtractPromotionAmountToNextGift(
   }
 
   final remainder = quantity % baseAmount;
-  if (quantity > subtractPromotionEpsilon && remainder.abs() <= subtractPromotionEpsilon) {
+  if (quantity > subtractPromotionEpsilon &&
+      remainder.abs() <= subtractPromotionEpsilon) {
     return 0;
   }
   if (remainder.abs() <= subtractPromotionEpsilon) {
@@ -146,13 +180,17 @@ double? subtractPromotionBundleTargetQuantity(
     return null;
   }
 
-  final normalizedCurrent = currentQuantity <= subtractPromotionEpsilon ? 0.0 : _normalizePromotionQuantity(currentQuantity);
+  final normalizedCurrent = currentQuantity <= subtractPromotionEpsilon
+      ? 0.0
+      : _normalizePromotionQuantity(currentQuantity);
   if (direction > 0) {
     final distanceToNextGift = subtractPromotionAmountToNextGift(
       normalizedCurrent,
       baseAmount: baseAmount,
     );
-    final step = distanceToNextGift <= subtractPromotionEpsilon ? baseAmount.toDouble() : distanceToNextGift;
+    final step = distanceToNextGift <= subtractPromotionEpsilon
+        ? baseAmount.toDouble()
+        : distanceToNextGift;
     return _normalizePromotionQuantity(normalizedCurrent + step);
   }
 
@@ -161,7 +199,9 @@ double? subtractPromotionBundleTargetQuantity(
   }
 
   final remainder = normalizedCurrent % baseAmount;
-  final stepDown = remainder.abs() <= subtractPromotionEpsilon ? baseAmount.toDouble() : remainder;
+  final stepDown = remainder.abs() <= subtractPromotionEpsilon
+      ? baseAmount.toDouble()
+      : remainder;
   final nextQuantity = normalizedCurrent - stepDown;
   if (nextQuantity <= subtractPromotionEpsilon) {
     return 0;
