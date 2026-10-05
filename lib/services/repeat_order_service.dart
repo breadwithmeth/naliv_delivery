@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:naliv_delivery/models/cart_item.dart';
+import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:naliv_delivery/core/theme_controller.dart';
 import 'package:naliv_delivery/design/theme.dart';
-import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/browser_history.dart';
@@ -40,8 +39,11 @@ Future<void> main() async {
           const [DeviceOrientation.portraitUp],
         );
       }
-      await TelemetryConsentService.loadConsent();
-      final packageInfo = await PackageInfo.fromPlatform();
+      final bootstrap = await Future.wait<Object?>([
+        PackageInfo.fromPlatform(),
+        TelemetryConsentService.loadConsent(),
+      ]);
+      final packageInfo = bootstrap[0] as PackageInfo;
 
       await SentryFlutter.init(
         (options) {
@@ -92,9 +94,7 @@ class Main extends StatefulWidget {
   State<Main> createState() => _MainState();
 }
 
-class _MainState extends State<Main> with LocationMixin {
-  // Данные загруженные из API
-
+class _MainState extends State<Main> {
   @override
   void initState() {
     super.initState();

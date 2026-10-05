@@ -10,7 +10,7 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../model/item.dart';
-import '../models/cart_item.dart';
+import '../model/cart_item.dart';
 import '../utils/bonus_rules.dart';
 import '../utils/item_name_presentation.dart';
 
@@ -106,7 +106,8 @@ class ProductView {
     final points = outOfStock ? 0 : _bonusPoints(item, discounted);
     final savingAmount = hasDiscount ? basePrice - discounted : 0.0;
     final percent = hasDiscount && basePrice > 0
-        ? ((basePrice - discounted) / basePrice * 100).round() : 0;
+        ? ((basePrice - discounted) / basePrice * 100).round()
+        : 0;
 
     return ProductView(
       itemId: item.itemId,
@@ -127,7 +128,6 @@ class ProductView {
       lowStock: amount != null && amount > 0 && amount <= 5,
     );
   }
-
 
   /// 3 % of the discounted price, zero for tobacco (`BonusRules`).
   static int _bonusPoints(Item item, double discountedPrice) {

@@ -52,7 +52,7 @@ import 'package:naliv_delivery/utils/api.dart' show ApiService;
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/model/item.dart';
-import 'package:naliv_delivery/models/cart_item.dart';
+import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';

@@ -9,18 +9,26 @@
       "problemMatcher": []
     },
     {
-      "label": "Design: run Flutter tests",
+      "label": "Verify: integration and important regressions",
       "type": "shell",
-      "command": "flutter test",
+      "command": "flutter test --concurrency=1",
       "options": { "cwd": "${workspaceFolder}" },
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "Design: analyze app, tests, and tools",
+      "label": "Verify: analyze app, tests, and tools",
       "type": "shell",
-      "command": "dart analyze lib test tool",
+      "command": "dart analyze lib test integration_test tool",
       "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Verify: native shopping end-to-end",
+      "type": "shell",
+      "command": "flutter test integration_test/shopping_e2e_test.dart -d windows",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
       "problemMatcher": []
     }
   ]

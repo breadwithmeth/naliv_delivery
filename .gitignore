@@ -18,10 +18,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Keep the shared VS Code launch configuration and verification tasks tracked.
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -52,15 +49,6 @@ key.properties
 /android/app/debug
 /android/app/profile
 /android/app/release
-.flutter-plugins-dependencies
-.flutter-plugins
-.flutter-plugins-dependencies
-.flutter-plugins-dependencies
-.flutter-plugins-dependencies
-.flutter-plugins
-.flutter-plugins-dependencies
-.flutter-plugins
-.flutter-plugins-dependencies
 
 # Figma handoff (local secrets + design cache)
 .figma-token

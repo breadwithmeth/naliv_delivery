@@ -4,6 +4,8 @@
 
 The readability remediation, clarified gift/Kaspi follow-up and catalog/card balance correction are implemented and reviewed in strict fixtures. This is **not pixel-parity or authenticated-production acceptance**. Compact readable browsing supersedes the former catalog/card visual conclusions; gift packing and official Kaspi artwork remain unchanged. See `PLAN.md` and the current gate in `STATUS.md`.
 
+The 2026-10-04 cleanup re-exercised light active home/search/cart, dark cart with 1.6× inherited text and real wheel scrolling, a native paid-order fixture journey, and tracked intro/city onboarding. It did **not** rerun the full Figma sweep: numbers below remain dated 2026-10-02. Current **226 host cases / one native e2e**, release footprint and limitations are recorded in `../CLEANUP_PLAN.md` and `STATUS.md`; run commands/test categories are in the root README.
+
 ### Method and scope
 
 - The final `dart run tool/verify_surface.dart all --theme both` completed **82 captures** for **41 surfaces**, at **375 × 812 logical / DPR 2 = 750 × 1624 pixels**, and **50 applicable frame comparisons**. Sixteen surfaces per theme have no exact app frame and are capture-only.

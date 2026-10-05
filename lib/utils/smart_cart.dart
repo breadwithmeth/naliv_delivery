@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import '../model/item.dart' as item_model;
-import '../models/cart_item.dart';
+import '../model/cart_item.dart';
 import 'subtract_promotion_math.dart';
 
 class SmartCartSelection {

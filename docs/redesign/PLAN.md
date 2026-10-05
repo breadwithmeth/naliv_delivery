@@ -158,7 +158,7 @@ The user rejected the oversized, unbalanced item cards after the readability rem
 ## G9 — integration and release
 
 **Dedicated verification plan.**
-1. After edits settle, format only owned changes and run focused affected-path regressions. Run full `flutter test --coverage`, then `dart analyze lib test tool`. Regenerate ignored LCOV; do not reuse previous counts as evidence.
+1. After edits settle, format only owned changes and run focused affected-path regressions. Run full `flutter test --coverage --concurrency=1`, native `flutter test integration_test/shopping_e2e_test.dart -d windows`, then `dart analyze lib test integration_test tool`. Regenerate ignored LCOV; do not reuse previous counts as evidence. Test categories and cleanup measurements are in `docs/CLEANUP_PLAN.md`.
 2. Launch the actual strict fixture gallery. Exercise home/profile/navigation, card timeout/retry/binding, exact bottling/price/edit/checkout, entry/account/address/help/loyalty/order families. Reject unknown requests and prohibit production mutations.
 3. Capture/review changed and newly covered surfaces in dark/light at 375 × 812/48/34/DPR2; compare only exact matching frames. Review 320/800, 1.6×/2×, resizing and keyboard. Record intentional readable-size/unsupported-contract departures separately from image-diff noise.
 4. Update `STATUS.md` and `FIDELITY.md` with measured current evidence, actual defects/fixes and unresolved prerequisites. Remove temporary probes after smoke proof.

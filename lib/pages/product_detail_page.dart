@@ -8,7 +8,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../core/quantity.dart';
 import '../model/item.dart' as item_model;
-import '../models/cart_item.dart';
+import '../model/cart_item.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/surfaces.dart';

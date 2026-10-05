@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
-import 'package:naliv_delivery/models/cart_item.dart';
+import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
 
 import 'smart_cart.dart';
@@ -15,6 +15,11 @@ class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
   final Map<String, int> _displayOrderByKey = <String, int>{};
   int _nextDisplayOrder = 0;
+
+  int _revision = 0;
+  int _displayGroupsRevision = -1;
+  List<CartDisplayGroup> _displayGroups = const [];
+  List<CartDisplayGroup> _activeDisplayGroups = const [];
 
   /// Неподmodifiable список товаров в корзине
   UnmodifiableListView<CartItem> get items => UnmodifiableListView(_items);
@@ -36,7 +41,21 @@ class CartProvider extends ChangeNotifier {
   }
 
   List<CartDisplayGroup> get displayGroups {
-    final groups = CartDisplayGroup.groupItems(_items);
+    _ensureDisplayGroups();
+    return _displayGroups;
+  }
+
+  List<CartDisplayGroup> get activeDisplayGroups {
+    _ensureDisplayGroups();
+    return _activeDisplayGroups;
+  }
+
+  void _ensureDisplayGroups() {
+    if (_displayGroupsRevision == _revision) return;
+    _cacheDisplayGroups(CartDisplayGroup.groupItems(_items));
+  }
+
+  void _cacheDisplayGroups(List<CartDisplayGroup> groups) {
     final activeKeys = groups.map((group) => group.key).toSet();
 
     _displayOrderByKey.removeWhere((key, _) => !activeKeys.contains(key));
@@ -51,12 +70,13 @@ class CartProvider extends ChangeNotifier {
       return leftOrder.compareTo(rightOrder);
     });
 
-    return groups;
+    // Membership/order are stable until the next provider mutation. Prices and
+    // physical gift allocations remain live calculations on the current rows.
+    _displayGroups = List<CartDisplayGroup>.unmodifiable(groups);
+    _activeDisplayGroups = List<CartDisplayGroup>.unmodifiable(
+        groups.where((group) => group.totalQuantity > _quantityEpsilon));
+    _displayGroupsRevision = _revision;
   }
-
-  List<CartDisplayGroup> get activeDisplayGroups => displayGroups
-      .where((group) => group.totalQuantity > _quantityEpsilon)
-      .toList(growable: false);
 
   bool get hasActiveItems => activeDisplayGroups.isNotEmpty;
 
@@ -231,6 +251,7 @@ class CartProvider extends ChangeNotifier {
   Future<void> loadCart() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString('cart_items');
+    _revision++;
     if (jsonString != null) {
       final decoded = jsonDecode(jsonString) as List<dynamic>;
       _displayOrderByKey.clear();
@@ -251,8 +272,8 @@ class CartProvider extends ChangeNotifier {
 
   /// Общее количество товара в корзине по ID (учитывает все варианты)
   double getTotalQuantityForItem(int itemId) {
-    return getItemVariants(itemId)
-        .fold(0.0, (sum, item) => sum + item.quantity);
+    return _items.fold(
+        0.0, (sum, item) => item.itemId == itemId ? sum + item.quantity : sum);
   }
 
   /// Обновление количества с учетом выбранных вариантов
@@ -784,20 +805,24 @@ class CartProvider extends ChangeNotifier {
   }
 
   void _persistAndNotify() {
+    _revision++;
+    final groups = CartDisplayGroup.groupItems(_items);
+    var repairedGiftAllocation = false;
     // A paid-volume mutation can change the gift threshold. Retained repeat-
     // order capacity is valid only for the unchanged gift volume.
-    for (final group in CartDisplayGroup.groupItems(_items)) {
+    for (final group in groups) {
       if (group.retainedGiftBottleCounts == null ||
           group.allocationIssue == null) {
         continue;
       }
-      for (var index = 0; index < _items.length; index++) {
-        if (CartDisplayGroup.displayKeyForCartItem(_items[index]) ==
-            group.key) {
-          _items[index] = _items[index].copyWith(clearGiftBottleCounts: true);
-        }
+      for (final item in group.items) {
+        final index = _items.indexOf(item);
+        _items[index] = item.copyWith(clearGiftBottleCounts: true);
       }
+      repairedGiftAllocation = true;
     }
+    _cacheDisplayGroups(
+        repairedGiftAllocation ? CartDisplayGroup.groupItems(_items) : groups);
     _saveCart();
     notifyListeners();
   }

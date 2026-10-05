@@ -1,6 +1,6 @@
 import '../../core/product_view.dart';
 import '../../model/item.dart';
-import '../../utils/api.dart' hide Item;
+import '../../utils/api.dart';
 import 'catalog_view_data.dart';
 
 /// Reads the catalogue from the frozen API.

@@ -25,89 +25,106 @@ class HomeDataSource {
   final int? businessId;
 
   Future<HomeViewData> load() async {
-    final responses = await Future.wait<Object?>([
-      ApiService.getBusinesses(page: 1, limit: 1000),
-      ApiService.getSuperCategories(),
-      ApiService.getUserBonuses(),
-      ApiService.getAvailableCities(),
-    ]);
+    final businessesFuture = ApiService.getBusinesses(page: 1, limit: 1000);
+    final categoriesFuture = ApiService.getSuperCategories();
+    final bonusesFuture = ApiService.getUserBonuses();
+    final citiesFuture = ApiService.getAvailableCities();
+    final signedInFuture = ApiService.isUserLoggedIn();
 
-    final businesses = _listOf(responses[0], 'businesses');
-    final supercategories = _listOf(responses[1], 'supercategories');
-    final bonuses = _mapOf(responses[2]);
-    final cities = {
-      for (final city in _asList(responses[3]))
-        _int(city['city_id']): _string(city['name']),
-    };
-    if (businesses.isEmpty) {
-      throw StateError('Не удалось загрузить магазины');
-    }
+    final viewFuture = () async {
+      final core = await Future.wait<Object?>([
+        businessesFuture,
+        categoriesFuture,
+      ]);
+      final businesses = _listOf(core[0], 'businesses');
+      if (businesses.isEmpty) {
+        throw StateError('Не удалось загрузить магазины');
+      }
 
-    final business = _pickBusiness(businesses);
-    final storeId = business == null ? null : _int(business['id']);
-    final promotions = _listOf(
-      await ApiService.getActivePromotions(businessId: storeId),
-      'promotions',
-    );
-    final ordered = [...supercategories]
-      ..sort((a, b) => _int(b['priority']).compareTo(_int(a['priority'])));
+      final business = _pickBusiness(businesses);
+      final storeId = business == null ? null : _int(business['id']);
+      final supercategories = _listOf(core[1], 'supercategories');
+      final ordered = [...supercategories]
+        ..sort((a, b) => _int(b['priority']).compareTo(_int(a['priority'])));
 
-    final promoSuper = ordered.isNotEmpty ? ordered.first : null;
-    final tiles = ordered.skip(1).take(6).toList();
-    final stores = [
-      for (final raw in businesses)
-        if (_int(raw['id']) > 0)
-          HomeStore(
-            id: _int(raw['id']),
-            name: _string(raw['name']) ?? 'Градусы24',
-            address: _string(raw['address']) ?? '',
-            city: _string(raw['_cityName'] ?? raw['city_name']) ??
-                cities[_int(raw['city_id'])],
+      final promoSuper = ordered.isNotEmpty ? ordered.first : null;
+      final tiles = ordered.skip(1).take(6).toList();
+      final homeCategories = [
+        for (final category in tiles)
+          HomeCategory(
+            id: _int(category['supercategory_id']),
+            title: _string(category['name']) ?? '',
+            imageUrl: _firstCategoryImage(category),
           ),
-    ];
-    final homeCategories = [
-      for (final category in tiles)
-        HomeCategory(
-          id: _int(category['supercategory_id']),
-          title: _string(category['name']) ?? '',
-          imageUrl: _firstCategoryImage(category),
+      ];
+      final scoped = await Future.wait<Object?>([
+        ApiService.getActivePromotions(businessId: storeId),
+        storeId == null
+            ? Future.value(const <HomeProductSection>[])
+            : _productSections(
+                storeId: storeId,
+                rawCategories: tiles,
+                categories: homeCategories,
+              ),
+        signedInFuture.then(
+          (signedIn) => signedIn ? _activeOrder(storeId) : null,
         ),
-    ];
-    final signedIn = await ApiService.isUserLoggedIn();
-    final productSectionsFuture = storeId == null
-        ? Future.value(const <HomeProductSection>[])
-        : _productSections(
-            storeId: storeId,
-            rawCategories: tiles,
-            categories: homeCategories,
-          );
-    final activeOrder = signedIn ? await _activeOrder(storeId) : null;
-    final productSections = await productSectionsFuture;
-
-    return HomeViewData(
-      storeName: _string(business?['name']) ?? 'Градусы24',
-      storeAddress: _string(business?['address']) ?? '',
-      storeId: storeId,
-      stores: stores,
-      activeOrder: activeOrder,
-      signedIn: signedIn,
-      bonusBalance: bonuses?['totalBonuses'] is num
-          ? (bonuses!['totalBonuses'] as num).toInt()
-          : int.tryParse('${bonuses?['totalBonuses'] ?? ''}'),
-      bonusCardCode: _string(bonuses?['bonusCard']?['cardUuid']),
-      banners: _banners(promotions),
-      promoCard: promoSuper == null
-          ? null
-          : HomePromoCard(
-              id: _int(promoSuper['supercategory_id']),
-              title: _string(promoSuper['name']) ?? '',
-              // No marketing copy in the API; the design's subtitle is not invented here.
-              subtitle: _string(promoSuper['description']) ?? '',
-              imageUrl: _firstCategoryImage(promoSuper),
+      ]);
+      final bonuses = _mapOf(await bonusesFuture);
+      final cities = {
+        for (final city in _asList(await citiesFuture))
+          _int(city['city_id']): _string(city['name']),
+      };
+      final promotions = _listOf(scoped[0], 'promotions');
+      final signedIn = await signedInFuture;
+      final productSections = scoped[1] as List<HomeProductSection>;
+      final activeOrder = scoped[2] as HomeActiveOrder?;
+      final stores = [
+        for (final raw in businesses)
+          if (_int(raw['id']) > 0)
+            HomeStore(
+              id: _int(raw['id']),
+              name: _string(raw['name']) ?? 'Градусы24',
+              address: _string(raw['address']) ?? '',
+              city: _string(raw['_cityName'] ?? raw['city_name']) ??
+                  cities[_int(raw['city_id'])],
             ),
-      categories: homeCategories,
-      productSections: productSections,
-    );
+      ];
+
+      return HomeViewData(
+        storeName: _string(business?['name']) ?? 'Градусы24',
+        storeAddress: _string(business?['address']) ?? '',
+        storeId: storeId,
+        stores: stores,
+        activeOrder: activeOrder,
+        signedIn: signedIn,
+        bonusBalance: bonuses?['totalBonuses'] is num
+            ? (bonuses!['totalBonuses'] as num).toInt()
+            : int.tryParse('${bonuses?['totalBonuses'] ?? ''}'),
+        bonusCardCode: _string(bonuses?['bonusCard']?['cardUuid']),
+        banners: _banners(promotions),
+        promoCard: promoSuper == null
+            ? null
+            : HomePromoCard(
+                id: _int(promoSuper['supercategory_id']),
+                title: _string(promoSuper['name']) ?? '',
+                // No marketing copy in the API; the design's subtitle is not invented here.
+                subtitle: _string(promoSuper['description']) ?? '',
+                imageUrl: _firstCategoryImage(promoSuper),
+              ),
+        categories: homeCategories,
+        productSections: productSections,
+      );
+    }();
+
+    // Observe every independent read immediately, including early failures.
+    final results = await Future.wait<Object?>([
+      viewFuture,
+      bonusesFuture,
+      citiesFuture,
+      signedInFuture,
+    ]);
+    return results[0] as HomeViewData;
   }
 
   Future<HomeActiveOrder?> _activeOrder(int? storeId) async {
