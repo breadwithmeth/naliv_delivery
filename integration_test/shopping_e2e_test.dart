@@ -7,6 +7,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/checkout/ui/payment_success_page.dart';
 import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
+import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
 import 'package:naliv_delivery/ui/app_cart_button.dart';
@@ -19,7 +20,15 @@ import '../test/support/design_surfaces.dart';
 import '../test/support/remaining_milestone_fixture.dart';
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
+  if (finder.evaluate().isEmpty) {
+    final scrollable = find.byWidgetPredicate((widget) =>
+        widget is Scrollable && widget.axisDirection == AxisDirection.down).first;
+    tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+    await tester.pump();
+    await tester.scrollUntilVisible(finder, 200, scrollable: scrollable);
+  }
+  await Scrollable.ensureVisible(tester.element(finder), alignment: .3);
+  await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }
@@ -40,7 +49,12 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('catalog purchase reaches paid order history', (tester) async {
-    SharedPreferences.setMockInitialValues(surfaceFixturePreferences);
+    SharedPreferences.setMockInitialValues({
+      ...surfaceFixturePreferences,
+    }..removeWhere((key, _) =>
+        key == 'selected_business' ||
+        key == 'selected_business_id' ||
+        key == 'auth_token'));
     SurfaceFixtureClient.resetUnexpectedRequests();
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -77,6 +91,22 @@ void main() {
       await _tap(tester, find.byType(AppCartButton));
       await _tap(tester, find.text('Оформить'));
       await _tap(tester, find.byKey(const ValueKey('checkout-mode-pickup')));
+      await _tap(tester, find.byKey(const ValueKey('checkout-sign-in')));
+      await tester.enterText(
+          find.byKey(const ValueKey('auth-phone-input')), '0000000000');
+      await _tap(tester, find.byKey(const ValueKey('request-code-button')));
+      await tester.enterText(
+          find.byKey(const ValueKey('auth-code-input')), '123456');
+      await tester.pumpAndSettle();
+      expect(find.byType(CheckoutPage), findsOneWidget);
+      expect(
+          Provider.of<CartProvider>(
+                  tester.element(find.byType(CheckoutPage)), listen: false)
+              .activeDisplayGroups.single.totalQuantity,
+          2);
+      // The shared send-code toast must expire before tapping the checkout footer.
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
       await _tap(tester, find.byKey(const ValueKey('checkout-submit')));
 
       expect(find.byType(PaymentMethodPage), findsOneWidget);

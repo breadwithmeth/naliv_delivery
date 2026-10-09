@@ -40,7 +40,8 @@ class TelemetryConsentService {
   }
 
   /// Convenience to populate user context when consent is granted.
-  static Future<void> applyUserContext({String? id, String? username, String? email}) async {
+  static Future<void> applyUserContext(
+      {String? id, String? username, String? email}) async {
     if (!_cachedConsent) {
       return;
     }

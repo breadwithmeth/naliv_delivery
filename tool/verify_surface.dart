@@ -202,7 +202,7 @@ Future<int> _flutterTest(String path, List<String> defines) async {
   stdout.writeln('Running flutter test $path (${defines.join(' ')})');
   final process = await Process.start(
     'flutter',
-    ['test', path, ...defines],
+    ['test', path, '--concurrency=1', ...defines],
     runInShell: Platform.isWindows,
     mode: ProcessStartMode.inheritStdio,
   );

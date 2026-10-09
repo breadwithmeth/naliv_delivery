@@ -4,7 +4,18 @@
 
 The user's reported defects supersede the previous `DONE` quality conclusions. Historical tests, synthetic captures and releases remain recorded in `STATUS.md`; they do not establish readable typography, correct real card loading, correct bottling prices or Kaspi presentation compliance. This plan covers every active route, not just the redesigned landing page.
 
+**Current cutover — 2026-10-09:** [Issues first, whole-screen design second](ISSUES_THEN_DESIGN_PLAN.md)
+governs F1–F11 and D1–D5. The reachable client corrections and full-frame screen-family changes
+are implemented; current integration/runtime evidence is in `STATUS.md`, diagnostics in `FIDELITY.md`.
+Real bank/card-account, loyalty policy, 1C reversal and push-provider/device acceptance remain
+explicit external prerequisites. Prior G1–G9 deliberate departures, artwork caps and forced
+two-column rules below are historical, not the current design target. Completed cleanup and
+the user-confirmed rule charging every physical container remain intact.
+
+
 The dedicated plans below were defined before implementation. Dependencies ordered the work; independent card/domain repairs ran alongside shared presentation work. Integration owned builds, formatters, analysis and tests after shared edits settled. Problem/evidence paragraphs describe the original audit, not the current implemented tree. Current commands, route observations and limits are recorded in `STATUS.md`; diagnostic measurements are in `FIDELITY.md`.
+
+`PROMO_BOTTLING_PLAN.md` records the original promotion/configuration audit and M1–M5 contracts. M1 money/stock boundaries are retained; M2 active campaign terms, M3 coherent item composition and M4 the first-screen live bottling summary/picker are integrated in the current cutover. M5's production bank/accounting acceptance remains separate from client verification.
 
 | Goal | Status | Depends on |
 |---|---|---|
@@ -16,7 +27,7 @@ The dedicated plans below were defined before implementation. Dependencies order
 | G6 Coherent remaining active surfaces | Rebuilt; 41-surface dark/light and adaptive review | G1/G3/G4; native/backend limits recorded separately |
 | G7 Proven dead code/resources cleanup | Removed; tests/analysis/release packaging passed | G5; live legacy styling/FAQ migrations |
 | G8 Kaspi.kz presentation | Official Figma assets/rules applied; link-flow states reviewed in strict fixtures | `docs/kaspi.txt` supplies authoritative design; real-bank lifecycle remains a verification limit |
-| G9 End-to-end integration and truthful release evidence | 297 tests, 882 render cases, 82 captures, analysis/builds and release entry smoke passed; no app-wide production acceptance | G4/G8 prerequisites resolved; native/authenticated production limits remain explicit |
+| G9 End-to-end integration and truthful release evidence | Historical G1–G9 evidence below; current F1–F11/D1–D5 commands and limits are in `STATUS.md` | No app-wide production acceptance inferred from fixtures |
 
 ## Catalog/card balance correction
 

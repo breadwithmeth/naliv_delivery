@@ -3,14 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
+import '../../../features/faq/faq_navigation.dart';
+import '../../../features/faq/models/faq.dart';
+import '../../../ui/app_icon.dart';
+import '../../../ui/surfaces.dart';
 import '../../../ui/app_top_bar.dart';
 
-/// «Как работают бонусы» — the design's explainer frames.
-///
-/// Readable account guidance with the same benefit exclusivity as checkout.
-///
-/// Section headers and block titles retain the reference hierarchy; body text is
-/// deliberately readable at 14 px instead of the reference's 10 px.
+/// Explains estimates, server-confirmed bonus operations, and checkout benefits.
 class BonusHowItWorksPage extends StatelessWidget {
   const BonusHowItWorksPage({this.onOpenFaq, super.key});
 
@@ -23,7 +22,10 @@ class BonusHowItWorksPage extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: ListView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: ListView(
           padding: EdgeInsets.fromLTRB(
             AppSpacing.xxxl,
             0,
@@ -36,12 +38,7 @@ class BonusHowItWorksPage extends StatelessWidget {
               onBack: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(height: AppSpacing.huge),
-            const _Card(
-              title: 'Бонусы за каждый заказ',
-              body:
-                  'Получайте бонусы за покупки и используйте их при следующем заказе.',
-              highlight: 'Главное правило: 1 бонус = 1₸',
-            ),
+            const _BonusHero(),
             const SizedBox(height: AppSpacing.huge),
             Text(
               'Как это работает',
@@ -52,8 +49,8 @@ class BonusHowItWorksPage extends StatelessWidget {
             const _Card(
               title: 'Начисление',
               lines: [
-                'После каждого выполненного заказа начисляются Бонусы Продавца.',
-                'Размер начисления зависит от товара и процента, указанного в его карточке.',
+                'До завершения заказа показывается только предварительная оценка.',
+                'Фактический баланс и начисления подтверждаются серверной историей бонусов.',
                 '1 бонус = 1₸',
               ],
             ),
@@ -66,12 +63,12 @@ class BonusHowItWorksPage extends StatelessWidget {
             const _Step(
               number: '2',
               title: 'Оформите покупку',
-              body: 'Итог начисления уже виден в корзине и при оформлении.',
+              body: 'Проверьте предварительную оценку и итог при оформлении.',
             ),
             const _Step(
               number: '3',
               title: 'Получите бонусы',
-              body: 'После завершения заказа бонусы появятся на балансе.',
+              body: 'Проверьте начисление в истории бонусов после обработки заказа.',
             ),
             const SizedBox(height: AppSpacing.huge),
             Text(
@@ -92,46 +89,118 @@ class BonusHowItWorksPage extends StatelessWidget {
             const _Card(
               title: 'Ограничения',
               lines: [
-                'Доставка и табачная продукция не оплачиваются бонусами.',
-                'Начисление не происходит мгновенно: бонусы появляются после завершения заказа.',
-                'Если нужен полный разбор по кешбэку, акциям и промокодам, откройте FAQ ниже.',
+                'Доступная сумма зависит от актуального баланса и подходящих товаров.',
+                'Возврат и отмена не подтверждают автоматическое изменение бонусов: проверьте серверную историю.',
+                'Если операция отсутствует или баланс не обновился, обратитесь в поддержку.',
               ],
             ),
-            const SizedBox(height: AppSpacing.huge),
-            Text(
-              'FAQ по бонусам и акциям',
-              style:
-                  AppTypography.bodyBold.copyWith(color: palette.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Откройте ответы о кешбэке, промокодах и механике акций\u00a01+1 / 2+1 / 3+1.',
-              style: AppTypography.bodySmall
-                  .copyWith(color: palette.textSecondary),
-            ),
             const SizedBox(height: AppSpacing.xl),
-            GestureDetector(
-              onTap: onOpenFaq,
-              behavior: HitTestBehavior.opaque,
-              child: Text(
-                'Открыть FAQ',
-                style: AppTypography.body.copyWith(color: palette.accent),
+            AppSurface(
+              fill: palette.accentFaint,
+              border: Border.all(
+                  color: palette.accent.withValues(alpha: .25)),
+              padding: const EdgeInsets.all(16),
+              onTap: onOpenFaq ??
+                  () => openFaqPage(context,
+                      initialSection: FaqSection.bonuses),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppIcon(AppIcons.faq, size: 28, color: palette.accent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('FAQ по бонусам и акциям',
+                            style: AppTypography.bodyBold
+                                .copyWith(color: palette.textPrimary)),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Ответы о списании, начислении и возвратах.',
+                          style: AppTypography.label
+                              .copyWith(color: palette.textSecondary),
+                        ),
+                        const SizedBox(height: 12),
+                        Text('Открыть FAQ',
+                            style: AppTypography.body
+                                .copyWith(color: palette.accent)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
     );
   }
 }
 
+class _BonusHero extends StatelessWidget {
+  const _BonusHero();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Бонусы за покупки',
+            style: AppTypography.titleMedium
+                .copyWith(color: palette.textPrimary)),
+        const SizedBox(height: 6),
+        Text('Используйте доступные бонусы при следующем заказе.',
+            style: AppTypography.label
+                .copyWith(color: palette.textSecondary)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+              color: palette.accentSoft, borderRadius: AppRadii.lgAll),
+          child: Text('1 бонус = 1 ₸',
+              style: AppTypography.bodySmallSemibold
+                  .copyWith(color: palette.textPrimary)),
+        ),
+      ],
+    );
+    final artwork = Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+          shape: BoxShape.circle, color: palette.accentFaint),
+      child: AppIcon(AppIcons.bonusStar, size: 44, color: palette.accent),
+    );
+    return AppSurface(
+      padding: const EdgeInsets.all(12),
+      child: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth < 280 ||
+            MediaQuery.textScalerOf(context).scale(14) > 20) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [artwork, const SizedBox(height: 12), text],
+          );
+        }
+        return Row(
+          children: [
+            artwork,
+            const SizedBox(width: 16),
+            Expanded(child: text),
+          ],
+        );
+      }),
+    );
+  }
+}
+
 class _Card extends StatelessWidget {
-  const _Card({required this.title, this.body, this.lines, this.highlight});
+  const _Card({required this.title, required this.lines});
 
   final String title;
-  final String? body;
-  final List<String>? lines;
-  final String? highlight;
+  final List<String> lines;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +208,7 @@ class _Card extends StatelessWidget {
     final bodyStyle =
         AppTypography.bodySmall.copyWith(color: palette.textSecondary);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xxxl),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -153,20 +222,21 @@ class _Card extends StatelessWidget {
                 AppTypography.titleMedium.copyWith(color: palette.textPrimary),
           ),
           const SizedBox(height: AppSpacing.md),
-          if (body != null) Text(body!, style: bodyStyle),
-          for (final line in lines ?? const <String>[])
+          for (final line in lines)
             Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Text(line, style: bodyStyle),
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Icon(Icons.circle, size: 4, color: palette.accent),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(line, style: bodyStyle)),
+                ],
+              ),
             ),
-          if (highlight != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              highlight!,
-              style: AppTypography.bodySmallSemibold
-                  .copyWith(color: palette.textPrimary),
-            ),
-          ],
         ],
       ),
     );
@@ -185,16 +255,24 @@ class _Step extends StatelessWidget {
     final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Row(
+      child: AppSurface(
+        padding: const EdgeInsets.all(12),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          Container(
             width: 24,
-            child: Text(
-              number,
-              style: AppTypography.bodyBold.copyWith(color: palette.accent),
+            height: 24,
+            decoration: BoxDecoration(
+              color: palette.accent,
+              shape: BoxShape.circle,
             ),
+            alignment: Alignment.center,
+            child: Text(number,
+                style: AppTypography.bodyBold
+                    .copyWith(color: palette.textOnAccent)),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,6 +291,7 @@ class _Step extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

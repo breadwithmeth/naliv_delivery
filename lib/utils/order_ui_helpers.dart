@@ -49,8 +49,19 @@ bool isOrderCanceled(Map<String, dynamic> order) {
       const {'5', '50', '51', '52'}.contains(statusCode);
 }
 
+/// Whether the order is completed, cancelled, or in the return lifecycle.
+bool isOrderClosed(Map<String, dynamic> order) {
+  final currentStatus = asOrderMap(order['current_status']);
+  final statusCode = currentStatus?['status']?.toString() ??
+      asOrderMap(order['status'])?['status']?.toString() ??
+      (order['status'] is Map ? null : order['status']?.toString());
+  return isOrderCanceled(order) ||
+      const {'4', '7', '71'}.contains(statusCode?.trim());
+}
+
+
 bool canPayOrder(Map<String, dynamic> order) {
-  if (isOrderCanceled(order)) return false;
+  if (isOrderClosed(order)) return false;
   if (paymentOrderId(order) == null) return false;
   final localState = order[OrderPaymentGuard.localStateKey];
   if (localState != null && localState != OrderPaymentState.ready.name) {
@@ -97,6 +108,25 @@ num? resolveOrderTotalAmount(Map<String, dynamic> order) {
       _asNum(asOrderMap(order['cost'])?['total_sum']) ??
       _asNum(asOrderMap(order['cost'])?['total']) ??
       _asNum(asOrderMap(order['cost'])?['order_total']);
+}
+
+/// The amount the server itself computed for an order.
+///
+/// Unlike [resolveOrderTotalAmount], this reads the server's own summary before the request keys:
+/// `total_amount` is exactly what this client sends, so an acknowledgment that merely echoes it
+/// must not be mistaken for a recomputation. Used to reconcile a placed order with the cart.
+num? resolveServerChargedAmount(Map<String, dynamic> order) {
+  return _asNum(order['payable_amount']) ??
+      _asNum(order['final_amount']) ??
+      _asNum(asOrderMap(order['cost_summary'])?['total_sum']) ??
+      _asNum(asOrderMap(order['cost_summary'])?['total']) ??
+      _asNum(asOrderMap(order['cost_summary'])?['order_total']) ??
+      _asNum(asOrderMap(order['cost'])?['total_sum']) ??
+      _asNum(asOrderMap(order['cost'])?['total']) ??
+      _asNum(asOrderMap(order['cost'])?['order_total']) ??
+      _asNum(order['total_sum']) ??
+      _asNum(order['total_amount']) ??
+      _asNum(order['amount']);
 }
 
 String resolveOrderStatusText(

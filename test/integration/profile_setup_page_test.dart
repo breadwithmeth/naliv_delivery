@@ -193,8 +193,9 @@ void main() {
         await tester.tap(find.byKey(_save));
         await tester.pump();
         await tester.pump();
-        expect(
-            tester.widget<FilledButton>(find.byKey(_save)).onPressed, isNull);
+        await tester.tap(find.byKey(_save));
+        await tester.pump();
+        expect(writes, 1);
         refused.complete(_json({'success': false, 'message': 'fixture-refused'},
             status: 409));
         await tester.pumpAndSettle();

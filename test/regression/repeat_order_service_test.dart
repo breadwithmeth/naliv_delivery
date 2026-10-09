@@ -93,7 +93,7 @@ void main() {
     test('repeat preserves mixed whole paid and gift container capacities', () {
       final item = syntheticThreePlusOneSurfaceItem();
       final source = CartProvider();
-      expect(source.syncItemBottleCounts(item, [], {93103: 1}), isTrue);
+      expect(source.syncItemBottleCounts(item, [], {93103: 2}), isTrue);
       final result = RepeatOrderService.buildCartItemsFromOrder({
         'business_id': 7,
         'items': [
@@ -106,8 +106,8 @@ void main() {
       expect(repeated.addDisplayGroupItems(result.items), isTrue);
       expect(repeated.activeDisplayGroups.single.totalQuantity, 3);
       expect(repeated.activeDisplayGroups.single.bottleCounts,
-          {93101: 1, 93103: 1});
-      expect(repeated.getTotalPrice(), 3250);
+          {93101: 1, 93103: 2});
+      expect(repeated.getTotalPrice(), 3340);
       expect(repeated.toJsonForOrder(), source.toJsonForOrder());
     });
 
@@ -166,6 +166,99 @@ void main() {
         expect(result.items, isEmpty);
         expect(result.skippedItems, [contains(item.name)]);
       }
+    });
+
+    test('repeat never restores an extra gift from a noncanonical invoice',
+        () {
+      for (final pour in [false, true]) {
+        final snapshot = pour
+            ? syntheticThreePlusOneSurfaceItem(onlyOneLitre: true).toJson()
+            : <String, dynamic>{
+                'item_id': 9401,
+                'name': 'Товар',
+                'price': 1000,
+                'unit': 'шт',
+                'step_quantity': 1,
+                'amount': 20,
+              };
+        snapshot['promotions'] = [
+          {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
+          {'type': 'SUBTRACT', 'base_amount': 3, 'add_amount': 1},
+        ];
+        final original = <String, dynamic>{
+          'business_id': 7,
+          'items': [
+            {
+              'item_id': snapshot['item_id'],
+              'name': snapshot['name'],
+              'amount': 5,
+              'item_data': snapshot,
+              if (pour)
+                'options': [
+                  {'option_item_relation_id': 93101, 'amount': 1},
+                ],
+            },
+          ],
+        };
+        final result = RepeatOrderService.buildCartItemsFromOrder(original);
+        expect(result.items, isEmpty);
+        expect(result.skippedItems, hasLength(1));
+        expect((original['items'] as List).single['amount'], 5);
+      }
+    });
+
+    test('repeat packaged promotions preserves exact fulfilled physical count',
+        () {
+      final snapshot = {
+        'item_id': 9402,
+        'name': 'Товар',
+        'price': 1000,
+        'unit': 'шт',
+        'step_quantity': 1,
+        'amount': 20,
+        'promotions': [
+          {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
+          {'type': 'SUBTRACT', 'base_amount': 3, 'add_amount': 1},
+        ],
+      };
+      final result = RepeatOrderService.buildCartItemsFromOrder({
+        'business_id': 7,
+        'items': [
+          {
+            'item_id': 9402,
+            'name': 'Товар',
+            'amount': 6,
+            'item_data': snapshot,
+          },
+        ],
+      });
+      expect(result.skippedItems, isEmpty);
+      final cart = CartProvider();
+      expect(cart.addDisplayGroupItems(result.items), isTrue);
+      expect(cart.activeDisplayGroups.single.totalQuantity, 4);
+      expect(cart.toJsonForOrder().single['amount'], 6);
+      expect(cart.getTotalPrice(), 4000);
+    });
+
+    test('repeat refuses withdrawn three-litre relations without repricing rows',
+        () {
+      final item = capturedPourSurfaceItem();
+      final result = RepeatOrderService.buildCartItemsFromOrder({
+        'business_id': 7,
+        'items': [
+          {
+            'item_id': item.itemId,
+            'name': item.name,
+            'amount': 3,
+            'item_data': item.toJson(),
+            'options': [
+              {'option_item_relation_id': 2713, 'amount': 1},
+            ],
+          },
+        ],
+      });
+      expect(result.items, isEmpty);
+      expect(result.skippedItems, [contains(item.name)]);
     });
   });
 }

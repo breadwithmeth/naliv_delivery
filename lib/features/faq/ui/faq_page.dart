@@ -7,7 +7,6 @@ import 'package:naliv_delivery/features/faq/models/faq.dart';
 import 'package:naliv_delivery/ui/app_search_field.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
-import 'package:naliv_delivery/ui/surfaces.dart';
 
 class FaqPage extends StatefulWidget {
   const FaqPage({this.initialSection, super.key});
@@ -90,10 +89,16 @@ class _FaqPageState extends State<FaqPage> {
       backgroundColor: palette.background,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const AppTopBar(title: 'FAQ'),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: AppTopBar(title: 'FAQ'),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xxxl,
@@ -142,6 +147,8 @@ class _FaqPageState extends State<FaqPage> {
             ),
           ],
         ),
+          ),
+        ),
       ),
     );
   }
@@ -169,7 +176,7 @@ class _Section extends StatelessWidget {
       children: [
         Padding(
           key: headerKey,
-          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+          padding: const EdgeInsets.only(top: 20, bottom: 8),
           child: Text(
             section.title,
             style: AppTypography.bodySmallSemibold
@@ -177,13 +184,15 @@ class _Section extends StatelessWidget {
           ),
         ),
         for (final entry in section.entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: _EntryCard(
+          Column(
+            children: [
+              _EntryCard(
               entry: entry,
               isOpen: openKey == _FaqPageState._keyOf(section, entry),
               onTap: () => onToggle(entry),
             ),
+              Divider(height: 1, color: palette.divider),
+            ],
           ),
       ],
     );
@@ -209,9 +218,10 @@ class _EntryCard extends StatelessWidget {
       button: true,
       expanded: isOpen,
       label: entry.question,
-      child: AppSurface(
+      child: InkWell(
         onTap: onTap,
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -219,14 +229,18 @@ class _EntryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(entry.question, style: AppTypography.titleMedium),
+                  child: Text(entry.question,
+                      style: AppTypography.body
+                          .copyWith(color: palette.textPrimary)),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 AnimatedRotation(
-                  turns: isOpen ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 150),
+                  turns: isOpen ? 0.25 : 0,
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 150),
                   child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
+                    Icons.chevron_right_rounded,
                     size: 20,
                     color: palette.textSecondary,
                   ),
@@ -244,6 +258,7 @@ class _EntryCard extends StatelessWidget {
           ],
         ),
       ),
+        ),
     );
   }
 }

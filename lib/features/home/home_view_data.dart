@@ -52,7 +52,7 @@ class HomeViewData {
   final bool signedIn;
 
   /// Loaded balance; null shows an explicit unavailable state, not a fake zero.
-  final int? bonusBalance;
+  final num? bonusBalance;
   final String bonusCaption;
   final String qrCaption;
 

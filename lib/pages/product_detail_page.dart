@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../core/money.dart';
+import '../core/product_view.dart';
 import '../core/quantity.dart';
 import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
@@ -15,11 +17,10 @@ import '../ui/surfaces.dart';
 import '../utils/api.dart';
 import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
-import '../utils/item_name_presentation.dart';
 import '../utils/liked_items_provider.dart';
 import '../utils/liked_storage_service.dart';
 import '../utils/smart_cart.dart';
-import '../utils/subtract_promotion_math.dart';
+import '../utils/promotion_engine.dart';
 
 // The hero, title and price use the Описание товара geometry. Configuration
 // controls have no matching Figma frame; they expose the supported cart model.
@@ -45,7 +46,7 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   late final SmartCartSelection _selection;
-  late final ItemTitlePresentation _title;
+  late final ProductView _view;
   late final List<item_model.ItemOption> _options;
   late List<Map<String, dynamic>> _openedVariants;
   final Map<int, List<item_model.ItemOptionItem>> _selected = {};
@@ -68,15 +69,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String get _unit => widget.item.unit?.trim().isNotEmpty == true
       ? widget.item.unit!.trim()
-      : 'ед.';
+      : 'шт';
   double get _amount => _pour ? _bottleAmount(_bottleCounts) : _quantity;
 
   @override
   void initState() {
     super.initState();
     _selection = SmartCartSelection(widget.item);
-    _title = presentItemName(
-        rawName: widget.item.name, categoryName: widget.item.category?.name);
+    _view = ProductView.fromItem(widget.item);
     _options = _pour
         ? _selection.visibleOptions
         : widget.item.options ?? const <item_model.ItemOption>[];
@@ -254,7 +254,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   List<CartItem> get _previewItems => !_pour
       ? [_previewItem(_quantity)]
       : [
-          for (final bottle in _selection.filteredBottles)
+          for (final bottle in _visibleBottles)
             if ((_bottleCounts[bottle.relationId] ?? 0) > 0)
               _previewItem(
                   _selection.volumeForBottle(bottle) *
@@ -263,19 +263,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ];
 
   CartPriceBreakdown? _price;
+  CartDisplayGroup? _previewGroup;
   String? _allocationIssue;
   double get _total => _price?.totalPrice ?? 0;
   double get _subtotal => _price?.subtotalBeforePromotions ?? 0;
   double get _free => subtractPromotionFreeQuantity(_amount, _promotions);
+
+  /// Containers this screen lists: the ones the shop offers plus any withdrawn container the
+  /// opened cart already holds, so a legacy three-litre row can be reviewed and removed instead of
+  /// silently stranded.
+  List<item_model.ItemOptionItem> get _visibleBottles => [
+        ..._selection.filteredBottles,
+        for (final bottle in _selection.bottleVariants)
+          if (!_selection.bottleRelationIds.contains(bottle.relationId) &&
+              ((_bottleCounts[bottle.relationId] ?? 0) > 0 ||
+                  (_retainedGiftCounts?[bottle.relationId] ?? 0) > 0))
+            bottle,
+      ];
+
+  bool _isOfferedBottle(item_model.ItemOptionItem bottle) =>
+      _selection.bottleRelationIds.contains(bottle.relationId);
+
   double _bottleAmount(Map<int, int> counts) =>
-      _selection.filteredBottles.fold<double>(
-          0,
-          (sum, bottle) =>
-              sum +
-              _selection.volumeForBottle(bottle) *
-                  (counts[bottle.relationId] ?? 0));
-  String _money(double value) =>
-      '${value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toStringAsFixed(2)} ₸';
+      _selection.litersForCounts(counts);
   String _amountLabel(double amount) =>
       _pour ? _selection.volumeLabel(amount) : formatQuantity(amount, _unit);
 
@@ -301,8 +311,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     });
   }
 
+  bool _isRemoval(CartProvider cart) =>
+      _openedGroupExists &&
+      _amount <= 0 &&
+      _findGroup(cart, _openedVariants) != null;
+
+  bool _isReduction(CartProvider cart) {
+    final opened = _findGroup(cart, _openedVariants);
+    if (!_openedGroupExists || opened == null) return false;
+    if (_selection.displayKeyForVariants(_baseVariants()) != opened.key ||
+        _amount >= opened.totalQuantity - 0.0000001) {
+      return false;
+    }
+    return !_pour ||
+        _bottleCounts.entries.every(
+            (entry) => entry.value <= (opened.paidBottleCounts[entry.key] ?? 0));
+  }
+
+  bool _canIncreaseDraft(CartProvider cart) =>
+      !cart.hasUnresolvedBusiness &&
+      _selection.quantityIssue == null &&
+      _selection.containerIssue == null &&
+      _findGroup(cart, _openedVariants)?.hasWithdrawnBottles != true;
+
   String? _invalidReason(CartProvider cart) {
+    if (_isRemoval(cart) || _isReduction(cart)) return null;
+    if (cart.hasUnresolvedBusiness) {
+      return 'Магазин сохранённой корзины не определён. Можно уменьшить или удалить её товары.';
+    }
     if (_selection.containerIssue != null) return _selection.containerIssue;
+    if (_selection.quantityIssue != null) return _selection.quantityIssue;
     if (!_inStock) return 'Нет в наличии';
     final missing = _options.where((option) =>
         option.required == 1 && (_selected[option.optionId]?.isEmpty ?? true));
@@ -314,7 +352,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
     if (_pour) {
       try {
-        _selection.giftBottleBreakdown(_amount);
+        _selection.giftBottleBreakdown(_amount,
+            retainedCounts: _retainedGiftQuantity > 0
+                ? SmartCartSelection.scaledBottleCounts(
+                    _retainedGiftCounts, _free / _retainedGiftQuantity)
+                : null);
       } on StateError catch (error) {
         return error.message.toString();
       }
@@ -347,6 +389,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return;
     }
     final variants = _baseVariants();
+    if (_isRemoval(cart)) {
+      cart.removeDisplayGroup(_findGroup(cart, _openedVariants)!);
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(true);
+      } else {
+        setState(() {
+          _openedGroupExists = false;
+          _saved = true;
+          _feedback = null;
+        });
+      }
+      return;
+    }
     final saved = _pour
         ? cart.syncItemBottleCounts(
             widget.item, variants, Map<int, int>.of(_bottleCounts),
@@ -383,15 +438,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final available = _availableAmount(cart);
     final invalid = _invalidReason(cart);
     _allocationIssue = null;
+    _previewGroup = null;
+    final previewItems = _previewItems;
     try {
-      _price = CartItem.calculatePrice(_previewItems);
+      _price = CartItem.calculatePrice(previewItems);
+      if (previewItems.isNotEmpty) {
+        final previewGroups = CartDisplayGroup.groupItems(previewItems);
+        if (previewGroups.isNotEmpty) _previewGroup = previewGroups.single;
+      }
     } on StateError catch (error) {
       _price = null;
       _allocationIssue = error.message.toString();
     }
     final description = widget.item.description?.trim() ?? '';
+    final removal = _isRemoval(cart);
     return Scaffold(
-      bottomNavigationBar: _footer(),
+      backgroundColor: Theme.of(context).brightness == Brightness.light
+          ? palette.surface
+          : palette.background,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -399,49 +463,60 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               SingleChildScrollView(
                 key: const ValueKey('configuration-scroll'),
-                padding: const EdgeInsets.only(bottom: AppSpacing.huge),
+                padding: EdgeInsets.only(
+                  bottom: 180 +
+                      MediaQuery.paddingOf(context).bottom +
+                      (MediaQuery.textScalerOf(context).scale(16) > 20 ? 120 : 0),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(
-                      height: math.min(
-                          MediaQuery.sizeOf(context).width * 0.85, 320),
-                      child: ColoredBox(
-                        color: palette.surface,
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(16)),
+                      child: Container(
+                        height: _pour ? 144 : 320,
+                        color: Colors.white,
+                        padding: EdgeInsets.fromLTRB(
+                            48, _pour ? 64 : 88, 48, 16),
                         child: widget.item.hasImage
                             ? Image.network(widget.item.image!,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Center(
-                                    child: Icon(Icons.inventory_2_outlined,
-                                        color: palette.textSecondary,
-                                        size: 56)))
-                            : Center(
-                                child: Icon(Icons.inventory_2_outlined,
-                                    color: palette.textSecondary, size: 56)),
+                                errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.black38, size: 56))
+                            : const Icon(Icons.inventory_2_outlined,
+                                color: Colors.black38, size: 56),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xxxl),
+                      padding: _pour
+                          ? const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xxxl,
+                              vertical: AppSpacing.md)
+                          : const EdgeInsets.all(AppSpacing.xxxl),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                              [
-                                widget.item.category?.name,
-                                _title.countryName,
-                              ]
-                                  .whereType<String>()
-                                  .where((part) => part.isNotEmpty)
-                                  .join(' · '),
-                              style: AppTypography.bodySmall
-                                  .copyWith(color: palette.textSecondary)),
+                          if (_view.category != null)
+                            Text(_view.category!,
+                                style: AppTypography.bodySmall
+                                    .copyWith(color: palette.textSecondary)),
                           const SizedBox(height: AppSpacing.xs),
-                          Text(_title.name,
+                          Text(_view.title,
                               style: AppTypography.displayBold
                                   .copyWith(color: palette.textPrimary)),
-                          const SizedBox(height: AppSpacing.huge),
+                          if (_view.metadata.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                                _view.metadata.where((part) =>
+                                    part.toLowerCase() != _view.category?.toLowerCase()).join(' · '),
+                                style: AppTypography.bodySmall
+                                    .copyWith(color: palette.textSecondary)),
+                          ],
+                          SizedBox(height: _pour ? AppSpacing.xs : AppSpacing.xl),
                           _unitPrice(),
-                          const SizedBox(height: AppSpacing.md),
+                          SizedBox(height: _pour ? AppSpacing.xs : AppSpacing.md),
                           Text(
                             key: const ValueKey('configuration-stock'),
                             !_inStock
@@ -454,7 +529,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                     ? palette.textSecondary
                                     : palette.error),
                           ),
-                          const SizedBox(height: AppSpacing.huge),
+                          SizedBox(height: _pour ? AppSpacing.md : AppSpacing.xxxl),
                           if (_pour)
                             ..._bottles(available)
                           else ...[
@@ -463,13 +538,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             _ConfigurationStepper(
                               label: _amountLabel(_quantity),
                               valueKey: 'configuration-quantity',
-                              onMinus: _inStock && _quantity > _step + 0.001
+                              onMinus: _quantity > (_openedGroupExists ? 0 : _step)
                                   ? () => setState(() {
-                                        _quantity -= _step;
+                                        _quantity = math.max(0, _quantity - _step);
                                         _saved = false;
+                                        _feedback = null;
                                       })
                                   : null,
                               onPlus: _inStock &&
+                                      _canIncreaseDraft(cart) &&
                                       _fitsAvailable(
                                           _quantity + _step, available)
                                   ? () => setState(() {
@@ -484,33 +561,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             _option(option),
                             const SizedBox(height: AppSpacing.huge),
                           ],
-                          if (_promotions.isNotEmpty) ...[
+                          if (!_pour && _promotions.isNotEmpty) ...[
                             _promotionInfo(),
                             const SizedBox(height: AppSpacing.huge),
                           ],
-                          _priceBreakdown(),
+                          if (!_pour && _options.isNotEmpty) _priceBreakdown(),
                           if (description.isNotEmpty) ...[
                             const SizedBox(height: AppSpacing.huge),
                             _heading('Описание'),
                             const SizedBox(height: AppSpacing.md),
-                            Text(description,
-                                maxLines: _expanded ? null : 6,
-                                overflow:
-                                    _expanded ? null : TextOverflow.ellipsis,
-                                style: AppTypography.bodyMedium
-                                    .copyWith(color: palette.textSecondary)),
-                            if (description.length > 190)
-                              Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: TextButton(
-                                    key: const ValueKey(
-                                        'configuration-description-toggle'),
-                                    onPressed: () =>
-                                        setState(() => _expanded = !_expanded),
-                                    child: Text(_expanded
-                                        ? 'Свернуть'
-                                        : 'Читать далее'),
-                                  )),
+                            LayoutBuilder(builder: (context, constraints) {
+                              final style = AppTypography.bodyMedium
+                                  .copyWith(color: palette.textSecondary);
+                              final painter = TextPainter(
+                                text: TextSpan(text: description, style: style),
+                                maxLines: 6,
+                                textDirection: Directionality.of(context),
+                                textScaler: MediaQuery.textScalerOf(context),
+                              )..layout(maxWidth: constraints.maxWidth);
+                              final overflows = painter.didExceedMaxLines;
+                              painter.dispose();
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(description,
+                                      maxLines: _expanded ? null : 6,
+                                      overflow: _expanded
+                                          ? null
+                                          : TextOverflow.ellipsis,
+                                      style: style),
+                                  if (overflows)
+                                    TextButton(
+                                      key: const ValueKey(
+                                          'configuration-description-toggle'),
+                                      onPressed: () =>
+                                          setState(() => _expanded = !_expanded),
+                                      child: Text(_expanded
+                                          ? 'Свернуть'
+                                          : 'Читать далее'),
+                                    ),
+                                ],
+                              );
+                            }),
                           ],
                           if (invalid != null || _feedback != null) ...[
                             const SizedBox(height: AppSpacing.xxxl),
@@ -553,6 +645,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ],
                 ),
               ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _footer(
+                  enabled: removal ||
+                      (_allocationIssue == null &&
+                          (_isReduction(cart) ||
+                              (_inStock &&
+                                  !cart.hasUnresolvedBusiness &&
+                                  _selection.containerIssue == null &&
+                                  _selection.quantityIssue == null))),
+                  removal: removal,
+                ),
+              ),
             ],
           ),
         ),
@@ -565,94 +672,188 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           AppTypography.headline.copyWith(color: context.palette.textPrimary));
 
   Widget _unitPrice() {
-    final unit = _unit.toLowerCase();
-    final weight = !_pour && (unit.contains('кг') || unit.contains('kg'));
-    final amount = weight ? 0.1 : 1.0;
-    final row = _previewItem(amount);
-    final productSubtotal = row.paidUnitPrice * amount;
+    final row = _previewItem(1);
+    final base = _pour && _amount > 0 && _price != null
+        ? _price!.productSubtotal / _amount
+        : row.paidUnitPrice;
     final price = applyPromotionsToPaidBaseTotal(
-        unitPrice: row.paidUnitPrice,
-        quantity: amount,
-        promotions: _promotions);
+        unitPrice: base, quantity: 1, promotions: _promotions);
+    final unit = _view.unitPriceUnit;
+    final suffix = unit == null ? '' : '/$unit';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (price < productSubtotal)
-        Text(_money(productSubtotal),
+      if (price < base)
+        Text('${formatTenge(base)}$suffix',
             style: AppTypography.titleRegular.copyWith(
                 color: context.palette.textSecondary,
                 decoration: TextDecoration.lineThrough)),
-      Text(_money(price),
-          style: AppTypography.displayLargeRegular
+      Text('${formatTenge(price)}$suffix',
+          style: AppTypography.base(size: 32, weight: 700)
               .copyWith(color: context.palette.accent)),
-      Text(
-          _pour
-              ? 'Базовая цена · за ${_amountLabel(1)}'
-              : (weight ? 'за 100 г' : 'за ${_amountLabel(1)}'),
-          style: AppTypography.body
-              .copyWith(color: context.palette.textSecondary)),
     ]);
   }
 
-  List<Widget> _bottles(double available) => [
-        _heading('Объём и тара'),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-            'Выберите тару для оплаченного напитка. Тара для подарка добавляется отдельно и оплачивается по обычному тарифу.',
+  List<Widget> _bottles(double available) {
+    final bottles = _visibleBottles;
+    final physicalCounts = _allocationIssue == null
+        ? (_previewGroup?.bottleCounts ?? _bottleCounts)
+        : _bottleCounts;
+    final mixParts = <String>[];
+    var replacementTariff = false;
+    for (final bottle in bottles) {
+      final count = physicalCounts[bottle.relationId] ?? 0;
+      if (count <= 0) continue;
+      mixParts.add(
+          '$count× ${_selection.volumeLabel(_selection.volumeForBottle(bottle))}');
+      replacementTariff |= bottle.priceType.toUpperCase() == 'REPLACE';
+    }
+    final mix = mixParts.join(' • ');
+    final promotion = evaluatePromotion(
+        paidQuantity: _amount, promotions: _promotions);
+    return [
+      _heading('Объём и тара'),
+      const SizedBox(height: AppSpacing.md),
+      AppSurface(
+        key: const ValueKey('configuration-price-breakdown'),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: AppSpacing.md,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(_selection.volumeLabel(_amount + _free),
+                    key: const ValueKey('configuration-volume'),
+                    style: AppTypography.title),
+                Text(
+                    'Оплачено: ${_selection.volumeLabel(_amount)} · подарок: ${_selection.volumeLabel(_free)}',
+                    key: const ValueKey('configuration-paid-gift'),
+                    style: AppTypography.bodySmall
+                        .copyWith(color: context.palette.textSecondary)),
+              ],
+            ),
+            if (mix.isNotEmpty)
+              Text(mix,
+                  key: const ValueKey('configuration-physical-bottles'),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+            if (_allocationIssue != null)
+              Text(_allocationIssue!,
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.error))
+            else if (_price != null)
+              Text(
+                  '${replacementTariff ? 'Напиток и тара по тарифам' : 'Напиток'} ${formatTenge(_price!.productSubtotal - _price!.discount)} · '
+                  '${replacementTariff ? 'доплаты' : 'вся тара и дополнения'} ${formatTenge(_price!.optionsTotal)}',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+            if (promotion.award != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              ClipRRect(
+                borderRadius: AppRadii.pillAll,
+                child: LinearProgressIndicator(
+                  key: const ValueKey('configuration-promotion-progress'),
+                  value: promotion.progress,
+                  minHeight: 4,
+                  color: context.palette.accent,
+                  backgroundColor: context.palette.surfaceMuted,
+                ),
+              ),
+              Text(
+                  _free > 0
+                      ? 'Напиток в подарок — 0 ₸; тара включена в расчёт'
+                      : 'До подарка: ${_amountLabel(promotion.nextGiftIn)} оплаченного напитка',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      if (_selection.containerIssue != null)
+        Text(_selection.containerIssue!,
             style: AppTypography.body
-                .copyWith(color: context.palette.textSecondary)),
-        const SizedBox(height: AppSpacing.xl),
-        for (final bottle in _selection.filteredBottles) ...[
-          AppSurface(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
+                .copyWith(color: context.palette.error)),
+      for (final bottle in bottles) ...[
+        AppSurface(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final identity = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bottle.itemName.trim().isEmpty
+                      ? _selection.volumeLabel(_selection.volumeForBottle(bottle))
+                      : bottle.itemName,
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: context.palette.textPrimary),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '${_selection.volumeLabel(_selection.volumeForBottle(bottle))} · '
+                  '${bottle.priceType.toUpperCase() == 'REPLACE' ? 'напиток по тарифу' : 'тара +'} '
+                  '${formatTenge(bottle.price)}'
+                  '${_isOfferedBottle(bottle) ? '' : ' · снята с продажи'}',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary),
+                ),
+                if ((physicalCounts[bottle.relationId] ?? 0) >
+                    (_bottleCounts[bottle.relationId] ?? 0))
+                  Text(
+                    'Напиток: ${_bottleCounts[bottle.relationId] ?? 0} оплачено · ${(physicalCounts[bottle.relationId] ?? 0) - (_bottleCounts[bottle.relationId] ?? 0)} подарок',
+                    key: ValueKey(
+                        'configuration-bottle-allocation-${bottle.relationId}'),
+                    style: AppTypography.bodySmall
+                        .copyWith(color: context.palette.textSecondary),
+                  ),
+              ],
+            );
+            final stepper = _ConfigurationStepper(
+              valueKey: 'configuration-bottle-${bottle.relationId}',
+              label: '${_bottleCounts[bottle.relationId] ?? 0}',
+              onMinus: (_bottleCounts[bottle.relationId] ?? 0) > 0
+                  ? () => setState(() {
+                        _bottleCounts[bottle.relationId] =
+                            (_bottleCounts[bottle.relationId] ?? 0) - 1;
+                        _saved = false;
+                        _feedback = null;
+                      })
+                  : null,
+              onPlus: _inStock &&
+                      _canIncreaseDraft(context.read<CartProvider>()) &&
+                      _isOfferedBottle(bottle) &&
+                      _fitsAvailable(
+                          _amount + _selection.volumeForBottle(bottle), available)
+                  ? () => setState(() {
+                        _bottleCounts[bottle.relationId] =
+                            (_bottleCounts[bottle.relationId] ?? 0) + 1;
+                        _saved = false;
+                        _feedback = null;
+                      })
+                  : null,
+            );
+            if (constraints.maxWidth < 280 ||
+                MediaQuery.textScalerOf(context).scale(14) > 18) {
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                      bottle.itemName.trim().isEmpty
-                          ? _selection
-                              .volumeLabel(_selection.volumeForBottle(bottle))
-                          : bottle.itemName,
-                      style: AppTypography.titleMedium
-                          .copyWith(color: context.palette.textPrimary)),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                      '${_selection.volumeLabel(_selection.volumeForBottle(bottle))} · ${bottle.priceType.toUpperCase() == 'REPLACE' ? 'вместо базовой цены' : 'тара +'} ${_money(bottle.price)}',
-                      style: AppTypography.body
-                          .copyWith(color: context.palette.textSecondary)),
+                  identity,
                   const SizedBox(height: AppSpacing.md),
-                  _ConfigurationStepper(
-                    valueKey: 'configuration-bottle-${bottle.relationId}',
-                    label: '${_bottleCounts[bottle.relationId] ?? 0}',
-                    onMinus: _inStock &&
-                            (_bottleCounts[bottle.relationId] ?? 0) > 0
-                        ? () => setState(() {
-                              _bottleCounts[bottle.relationId] =
-                                  (_bottleCounts[bottle.relationId] ?? 0) - 1;
-                              _saved = false;
-                              _feedback = null;
-                            })
-                        : null,
-                    onPlus: _inStock &&
-                            _fitsAvailable(
-                                _amount + _selection.volumeForBottle(bottle),
-                                available)
-                        ? () => setState(() {
-                              _bottleCounts[bottle.relationId] =
-                                  (_bottleCounts[bottle.relationId] ?? 0) + 1;
-                              _saved = false;
-                              _feedback = null;
-                            })
-                        : null,
-                  ),
-                ]),
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
-        Text(_amountLabel(_amount + _free),
-            key: const ValueKey('configuration-volume'),
-            style: AppTypography.headlineMedium
-                .copyWith(color: context.palette.textPrimary)),
-        const SizedBox(height: AppSpacing.huge),
-      ];
+                  stepper,
+                ],
+              );
+            }
+            return Row(children: [
+              Expanded(child: identity),
+              const SizedBox(width: AppSpacing.md),
+              SizedBox(width: 132, child: stepper),
+            ]);
+          }),
+        ),
+        const SizedBox(height: AppSpacing.md),
+      ],
+    ];
+  }
 
   Widget _option(item_model.ItemOption option) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -691,7 +892,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       style: AppTypography.titleMedium
                           .copyWith(color: context.palette.textPrimary)),
                   subtitle: Text(
-                      '${value.priceType.toUpperCase() == 'REPLACE' ? 'Вместо базовой цены: ' : '+ '}${_money(value.price)} за ${_amountLabel(value.parentItemAmount > 0 ? value.parentItemAmount : _step)}',
+                      '${value.priceType.toUpperCase() == 'REPLACE' ? 'Вместо базовой цены: ' : '+ '}${formatTenge(value.price)} за ${_amountLabel(value.parentItemAmount > 0 ? value.parentItemAmount : _step)}',
                       style: AppTypography.body
                           .copyWith(color: context.palette.textSecondary)),
                 ),
@@ -700,33 +901,54 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ],
       );
 
-  Widget _promotionInfo() => AppSurface(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          for (final promotion
-              in widget.item.promotions ?? const <item_model.ItemPromotion>[])
-            if (promotion.isActive) ...[
-              Text(promotion.name,
-                  style: AppTypography.title
-                      .copyWith(color: context.palette.gold)),
-              if (promotion.discountType == 'SUBTRACT' &&
-                  promotion.baseAmount > 0 &&
-                  promotion.addAmount > 0)
-                Text(
-                    'За каждые ${_amountLabel(promotion.baseAmount.toDouble())} +${_amountLabel(promotion.addAmount.toDouble())} в подарок',
-                    style: AppTypography.body
-                        .copyWith(color: context.palette.textSecondary)),
-              if (promotion.description?.trim().isNotEmpty == true)
-                Text(promotion.description!,
-                    style: AppTypography.body
-                        .copyWith(color: context.palette.textSecondary)),
-            ],
-          if (_free > 0)
-            Text('+${_amountLabel(_free)} в подарок',
-                style: AppTypography.bodyBold
+  Widget _promotionInfo() {
+    final evaluation = evaluatePromotion(
+        paidQuantity: _amount, promotions: _promotions);
+    return AppSurface(
+      key: const ValueKey('configuration-promotion'),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (final promotion
+            in widget.item.promotions ?? const <item_model.ItemPromotion>[])
+          if (promotion.isActive) ...[
+            Text(promotion.name,
+                style: AppTypography.title
                     .copyWith(color: context.palette.gold)),
-        ]),
-      );
+            if (promotion.discountType == 'SUBTRACT' &&
+                promotion.baseAmount > 0 &&
+                promotion.addAmount > 0)
+              Text(
+                  'За каждые ${_amountLabel(promotion.baseAmount.toDouble())} — ${_amountLabel(promotion.addAmount.toDouble())} этого напитка в подарок',
+                  style: AppTypography.body
+                      .copyWith(color: context.palette.textSecondary)),
+            if (promotion.description?.trim().isNotEmpty == true)
+              Text(promotion.description!,
+                  style: AppTypography.body
+                      .copyWith(color: context.palette.textSecondary)),
+          ],
+        if (evaluation.award != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          ClipRRect(
+            borderRadius: AppRadii.pillAll,
+            child: LinearProgressIndicator(
+              key: const ValueKey('configuration-promotion-progress'),
+              value: evaluation.progress,
+              minHeight: 6,
+              color: context.palette.accent,
+              backgroundColor: context.palette.surfaceMuted,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+              _free > 0
+                  ? 'Подарок: ${_amountLabel(_free)} · напиток 0 ₸'
+                  : 'До подарка: ${_amountLabel(evaluation.nextGiftIn)} оплаченного напитка',
+              style: AppTypography.bodySmall
+                  .copyWith(color: context.palette.textSecondary)),
+        ],
+      ]),
+    );
+  }
 
   Widget _priceBreakdown() => AppSurface(
         key: const ValueKey('configuration-price-breakdown'),
@@ -743,32 +965,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             _priceLine(
                 'Товар · ${_amountLabel(_amount)}', _price!.productSubtotal),
             if (_price!.optionsTotal != 0)
-              _priceLine(_pour ? 'Тара и дополнения' : 'Дополнения',
+              _priceLine('Дополнения',
                   _price!.optionsTotal),
             if (_price!.discount > 0) _priceLine('Скидка', -_price!.discount),
-            if (_free > 0) ...[
-              Text('Подарок: ${_amountLabel(_free)}',
-                  style: AppTypography.bodyBold
-                      .copyWith(color: context.palette.gold)),
-              if (_pour) ...[
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                    'Всего напитка: ${_amountLabel(_amount + _free)}. '
-                    'Вся тара, включая тару для подарка, оплачивается по обычному тарифу.',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: context.palette.textSecondary)),
-                Text(
-                    CartDisplayGroup.groupItems(_previewItems)
-                            .single
-                            .bottleBreakdownLabel ??
-                        '',
-                    key: const ValueKey('configuration-physical-bottles'),
-                    style: AppTypography.bodySmall
-                        .copyWith(color: context.palette.textSecondary)),
-              ],
-            ],
-            const Divider(),
-            _priceLine('Итого', _total),
+            if (_free > 0)
+              _priceLine('Напиток в подарок · ${_amountLabel(_free)}', 0),
           ],
         ]),
       );
@@ -783,78 +984,83 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               Text(label,
                   style: AppTypography.body
                       .copyWith(color: context.palette.textSecondary)),
-              Text(_money(value),
+              Text(formatTenge(value),
                   style: AppTypography.bodyMedium
                       .copyWith(color: context.palette.textPrimary)),
             ]),
       );
 
-  Widget _footer() => AppGlassPanel(
-        radius: 0,
+  Widget _footer({required bool enabled, required bool removal}) =>
+      AppGlassPanel(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
         child: SafeArea(
           top: false,
-          child: Center(
-            heightFactor: 1,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
-                    AppSpacing.xxxl, AppSpacing.xxxl, AppSpacing.xxxl),
-                child: LayoutBuilder(builder: (context, constraints) {
-                  final adaptive = constraints.maxWidth < 343 ||
-                      MediaQuery.textScalerOf(context).scale(16) > 20;
-                  final summary = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_saved ? 'Сохранено в корзине' : 'Итого',
-                            style: AppTypography.body.copyWith(
-                                color: context.palette.textSecondary)),
-                        if (_subtotal > _total)
-                          Text(_money(_subtotal),
-                              style: AppTypography.body.copyWith(
-                                  color: context.palette.textSecondary,
-                                  decoration: TextDecoration.lineThrough)),
-                        Text(
-                            _allocationIssue == null
-                                ? _money(_total)
-                                : 'Расчёт недоступен',
-                            key: const ValueKey('configuration-total'),
-                            style: AppTypography.displayBold
-                                .copyWith(color: context.palette.textPrimary)),
-                      ]);
-                  final action = FilledButton(
-                    key: const ValueKey('configuration-save'),
-                    onPressed:
-                        !_inStock || _allocationIssue != null ? null : _save,
-                    child: Text(!_inStock
-                        ? 'Нет в наличии'
-                        : (_openedGroupExists ? 'Сохранить' : 'В корзину')),
-                  );
-                  return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (adaptive) ...[
-                          summary,
-                          const SizedBox(height: AppSpacing.md),
-                          action,
-                        ] else
-                          Row(children: [
-                            Expanded(child: summary),
-                            const SizedBox(width: AppSpacing.xl),
-                            Flexible(child: action)
-                          ]),
-                        if (widget.onCart != null)
-                          TextButton(
-                              key: const ValueKey('configuration-cart'),
-                              onPressed: widget.onCart,
-                              child: const Text('Открыть корзину')),
-                      ]);
-                }),
-              ),
-            ),
-          ),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final adaptive = constraints.maxWidth < 320 ||
+                MediaQuery.textScalerOf(context).scale(16) > 20;
+            final summary = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_subtotal > _total)
+                    Text(formatTenge(_subtotal),
+                        style: AppTypography.bodySmall.copyWith(
+                            color: context.palette.textSecondary,
+                            decoration: TextDecoration.lineThrough)),
+                  Text(
+                      removal
+                          ? formatTenge(0)
+                          : (_allocationIssue == null
+                              ? formatTenge(_total)
+                              : 'Расчёт недоступен'),
+                      key: const ValueKey('configuration-total'),
+                      style: AppTypography.displayBold
+                          .copyWith(color: context.palette.textPrimary)),
+                ]);
+            final action = FilledButton(
+              key: const ValueKey('configuration-save'),
+              onPressed: enabled ? _save : null,
+              style: FilledButton.styleFrom(
+                  minimumSize: const Size(154, 49),
+                  shape: const StadiumBorder()),
+              child: Text(removal
+                  ? 'Удалить'
+                  : (!_inStock && !enabled
+                      ? 'Нет в наличии'
+                      : (_openedGroupExists ? 'Сохранить' : 'В корзину'))),
+            );
+            return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_saved)
+                    AppGlassPanel(
+                      radius: AppRadii.pill,
+                      tint: context.palette.success.withValues(alpha: 0.75),
+                      padding: const EdgeInsets.all(14),
+                      child: Text('Сохранено в корзине',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.title
+                              .copyWith(color: Colors.white)),
+                    )
+                  else if (adaptive) ...[
+                    summary,
+                    const SizedBox(height: AppSpacing.md),
+                    action,
+                  ] else
+                    Row(children: [
+                      Expanded(child: summary),
+                      const SizedBox(width: AppSpacing.md),
+                      action,
+                    ]),
+                  if (widget.onCart != null)
+                    TextButton(
+                        key: const ValueKey('configuration-cart'),
+                        onPressed: widget.onCart,
+                        child: const Text('Открыть корзину')),
+                ]);
+          }),
         ),
       );
 }
@@ -868,25 +1074,38 @@ class _ConfigurationStepper extends StatelessWidget {
   final VoidCallback? onPlus;
 
   @override
-  Widget build(BuildContext context) => AppSurface(
-        radius: AppRadii.xl,
-        child: Row(children: [
-          IconButton(
-              key: ValueKey('$valueKey-minus'),
-              tooltip: 'Уменьшить',
-              onPressed: onMinus,
-              icon: const Icon(Icons.remove_rounded)),
-          Expanded(
-              child: Text(label,
-                  key: ValueKey(valueKey),
-                  textAlign: TextAlign.center,
-                  style: AppTypography.headlineMedium
-                      .copyWith(color: context.palette.textPrimary))),
-          IconButton(
-              key: ValueKey('$valueKey-plus'),
-              tooltip: 'Увеличить',
-              onPressed: onPlus,
-              icon: const Icon(Icons.add_rounded)),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    ButtonStyle style(VoidCallback? callback) => IconButton.styleFrom(
+      minimumSize: const Size.square(AppSpacing.touchTarget),
+      backgroundColor: callback == null ? palette.accentFaint : palette.accentSoft,
+      foregroundColor: palette.textOnAccent,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg)),
+    );
+    return AppSurface(
+      radius: 18,
+      padding: const EdgeInsets.all(AppSpacing.xs),
+      child: Row(children: [
+        IconButton(
+            key: ValueKey('$valueKey-minus'),
+            tooltip: 'Уменьшить',
+            onPressed: onMinus,
+            style: style(onMinus),
+            icon: const Icon(Icons.remove_rounded)),
+        Expanded(
+            child: Text(label,
+                key: ValueKey(valueKey),
+                textAlign: TextAlign.center,
+                style: AppTypography.headlineMedium
+                    .copyWith(color: palette.textPrimary))),
+        IconButton(
+            key: ValueKey('$valueKey-plus'),
+            tooltip: 'Увеличить',
+            onPressed: onPlus,
+            style: style(onPlus),
+            icon: const Icon(Icons.add_rounded)),
+      ]),
+    );
+  }
 }

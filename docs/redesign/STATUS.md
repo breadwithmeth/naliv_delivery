@@ -5,10 +5,207 @@ its original author in the loop: **every question that needs a human answer is l
 the default I am proceeding on**, so nothing blocks unnecessarily, and nothing gets decided
 silently either.
 
-Last updated: 2026-10-04 (repository cleanup integrated and verified after catalog/card correction). The user's defects supersede the previous completion conclusions. Sections 3 onward and the dated catalog evidence below are historical records, not new acceptance; their sidebar, tiny-type, legacy-resource and queued-route statements are superseded by the current gates. `PLAN.md` contains G1–G9; `../CLEANUP_PLAN.md` contains the completed cleanup plan and measurements. Gift-container policy and `docs/kaspi.txt` remain unchanged.
+Last updated: 2026-10-09. [ISSUES_THEN_DESIGN_PLAN.md](ISSUES_THEN_DESIGN_PLAN.md) governs the completed client corrections F1–F11 and full-screen design work D1–D5. Bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites, not claims established by fixtures. Earlier dated G1–G9 evidence below is historical. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
 
 ---
 ## Current remediation gate
+
+### Client corrections and full-frame cutover — 2026-10-09
+
+| Issue | Implemented client behavior | Acceptance boundary |
+|---|---|---|
+| F1 Checkout login | OTP continuation returns to the existing checkout draft; delivery, store, quantities and benefits are retained | Synthetic guest-to-paid native/browser journey; no real SMS |
+| F2 Store consistency | Persisted cart business identity; same-store selection and cancellation preserve rows; a different store requires explicit discard confirmation | Legacy nonempty carts with unknown origin cannot silently adopt a store |
+| F3 Branded bag | Resolve master code `KR-00002264` through typed catalogue search for the selected business; charge one mandatory bag and require current stock/price before submission | Anonymous production reads confirmed `Майка фирменная`, observed store 1 price 40 ₸ and other observed stores 30 ₸; fixture SKU 48044 / 30 ₸ is synthetic |
+| F4 Bonuses | Shared eligible base and monetary precision, current balance loading and refresh; unavailable balance is not zero; removed the contradictory 25% FAQ promise | Existing 30% client cap retained, not declared authoritative loyalty policy |
+| F5 Returns | Display actual signed bonus ledger entries and server return states without manufacturing reversals | 1C sale/return integration and redeemed-bonus reversal require backend sandbox artifacts |
+| F6 Saved cards | Canonical supported Halyk rows and separate full-info account summaries; stable display identity separate from verified charge identity; masked-only collection rows remain visible but cannot pay | A real affected-account Halyk/full-info snapshot is still required; no speculative fallback endpoint or charge ID |
+| F7 Payment launch | Accepted links remain reopenable without another create/pay request; unknown-result locks persist; only server status confirms success | Fixture refusal, uncertainty, cancellation and recovery are not real bank/OS acceptance |
+| F8 Kilograms | Fractional quantities and stock, server-provided sales step and price unit; no step inferred from package weight | Missing authoritative kilogram step explicitly blocks fresh increases |
+| F9 Identity | Structured type, packaging/material, country, volume/weight and ABV survive list/detail/cart/order projection | No invented glass, ABV or ambiguous comma-name parser |
+| F10 Categories | Complete category destinations, selected semantics, clear leaf/“Все” continuation and accessible targets | Existing store-scoped catalogue API; no alternate router |
+| F11 Support | Identity-owned chat session; allowlisted support events; cold-click login continuation; foreground message deduplication and background-read pause | Publisher payload/recipient mapping, HTTPS worker and signed mobile delivery remain unaccepted |
+
+Full-frame review retained all **212 original Figma frames**, including ordinary/modal home
+variants. Ordinary aliases now reference dark `2093:14635` / light `2098:32279`; modal originals
+`2093:14858` / `2098:32504` remain separately preserved. Sources:
+`.figma_cache/issue_plan_figma_manifest.json` and `.figma_cache/shots/`.
+
+Shared liquid glass now uses one lower cart layer and the SVG's original 75% alpha, without a
+redundant circular backing or multiplied color-filter opacity. Guest profile is inside the store
+card, with independent ≥44 px store/profile targets; dark home uses the canonical white brand
+asset. Catalogue density follows the full frames rather than the obsolete forced two-column
+rule. Configurable pour products expose live paid/gift litres, physical mix, truthful ADD/REPLACE
+tariffs and per-container gift allocation before the picker; large text/narrow rows remain
+scrollable. The campaign header advertises only active terms present on its individual items.
+
+#### Settled-source verification
+
+All Flutter processes ran serially; every test command used `--concurrency=1`.
+
+| Command / check | Observed result |
+|---|---|
+| Focused `product_detail_bottling_test.dart` and `promotion_items_page_test.dart` | Existing behavior regressions passed; the new first-screen-clearance regression failed before the compact layout and passed afterward |
+| Owned adaptive render/strict-transport probe | 434 passed; 41 surfaces, both themes, 320/375/800 px, 1.6×/2× text, relevant 300 px keyboard cases |
+| `flutter test --coverage --concurrency=1 --timeout=90s` | **304 passed** |
+| Application LCOV, `coverage/lcov.info`, `SF:lib/` records | **76.08%** — 12,532 / 16,472 lines, 96 files |
+| `dart analyze lib test integration_test tool` | **No issues found** |
+| `flutter test integration_test/shopping_e2e_test.dart -d windows --concurrency=1` | **1 passed**; expected “OneSignal push is not supported on this platform” |
+| `dart run tool/verify_surface.dart all --theme both` | **82** full 750 × 1624 captures; **50** comparisons, **32** capture-only combinations with no exact Figma counterpart |
+| `flutter build web --release --no-wasm-dry-run` | Tracked `build/web` built successfully |
+| `flutter build web --release --no-wasm-dry-run -t tool/dev_surface.dart -o .figma_cache/issue_implementation_web` | Strict fixture release built successfully |
+
+Current command output is `artifact://1018`; final per-surface diagnostic values are in
+`FIDELITY.md`. All full frames were reviewed in the final 22 contact sheets, including the
+compact live bottling summary. A successful comparison command is not pixel-parity acceptance.
+The 434-case probe was disposable, not a new permanent suite. The retained regression tests
+consumer-visible obscuring of the first bottle control, not a pinned arbitrary dimension.
+
+#### Actual runtime controls and state
+
+- Native active-wrapper journey starts with an empty cart and no selected store/token: home →
+  category → product 100 → quantity 2 → pickup checkout → synthetic phone/OTP → same draft →
+  order with mandatory bag 48044 × 1 → saved-card payment → server-confirmed paid history.
+  Expected payable amount is **26,370 ₸**. No production mutation transport is permitted.
+- Release-fixture browser shopping separately exercised guest category/leaf/“Все” navigation,
+  quantity 2 (**26,340 ₸** cart), delivery (**27,170 ₸**), pickup (**26,370 ₸** including
+  the synthetic 30 ₸ bag), cross-store discard cancellation, same-store retention, OTP continuation,
+  fixture balance 3,951 and confirmed order 901/history/detail. Final header store/profile targets
+  were also operated independently in both themes: store opens the store sheet; the nested
+  profile glyph opens guest profile, not store selection.
+- Final compact pour runtime used cache/service-worker bypass to avoid an older fixture bundle.
+  Kronenbourg 1 L × 2 produced paid 2 L, physical 2 × 1 L, drink **5,200 ₸**, containers
+  **220 ₸**, total **5,420 ₸**; saving and opening cart retained those values. The 3+1 runtime
+  showed paid 3 L, gift 1 L, physical 4 × 1 L, drink **3,000 ₸**, all containers **400 ₸**
+  and total **3,400 ₸**, with the actual split on its bottle row; saving and opening the gift
+  cart retained the 4 L / 4 × 1 L mix, 0 ₸ gift drink and ordinary container charges.
+- Account runtime exercised loaded, genuinely empty, mixed verified/masked-only and mask-only
+  card collections; a stalled read exposed a retryable timeout, and retry restored the verified
+  row. Synthetic card binding cancellation remained pending until its explicit cancel action,
+  not successful. Certificate filters, purchase-sheet amount selection and dismissal were
+  operated without a real purchase.
+- Pending fixture Kaspi payment opened its waiting dialog, retained an unconfirmed server state
+  after dismissal and exposed “Открыть оплату” instead of another charge action. Reopening showed
+  the same accepted link and no new payment request; duplicate-request counts and unknown-result
+  persistence are independently asserted by the retained payment-recovery regressions.
+- Address controls continued from the synthetic map to detail fields and device-only save;
+  the address book showed the local entry and selected delivery origin. Bonus history displayed
+  actual fixture signs (+250 / −100) and opened its explainer. Support opened searchable FAQ,
+  returned to its composer and sent only an explicitly synthetic message.
+  Notification settings' support action opened that chat; no real push permission was requested.
+- The existing gallery's actual text dropdown was operated at 2× on its 375 px dark home.
+  Store/search text reflowed, campaign action stayed visible and the shared cart glass remained
+  operable; the lower content scrolls rather than being shrunk. This interactive sample is
+  separate from the 434-case rendering probe and from exact-frame pixel acceptance.
+- Final tracked release was actually launched at **375 × 812 / DPR 2**. Intro CTA continued
+  to the city screen. The guarded city's preflight was blocked, so the observed final state was
+  a recoverable city-read error with retry and disabled continuation. This is safe release-entry/
+  failure-state evidence, **not a successful final production city GET or authenticated smoke**.
+  Its request log contains only GET/OPTIONS; no SMS/order/card/address/chat/payment mutations.
+
+Owned disposable UI probe and one-off dark-brand export map were removed after recording
+their results. Required brand assets, all original Figma frames, reference manifest and evidence
+images remain. Only this work's browser tabs and two static verification services were stopped.
+
+Evidence PNGs remain ignored under `.figma_cache/`: the earlier store-cancel/resumed-checkout/
+confirmed-payment/history journey frames, `issue_runtime_pour_final_light.png`,
+`issue_runtime_tracked_intro_final.png` and `issue_runtime_tracked_city_guarded_final.png`.
+The user-owned Android `FlutterNativeSplashPlugin` registration was restored after the final
+generation; unrelated registrations were retained.
+
+#### External acceptance not supplied
+
+| Prerequisite | Required evidence |
+|---|---|
+| Affected personal card account | Same-account authenticated Halyk collection and full-info snapshots; verified bank charge identity and supported envelope |
+| Actual bank launch/payment | Platform sandbox, actual gateway URL/scheme, cancellation/return/reopen lifecycle and server-confirmed status |
+| Loyalty policy | Authoritative rate, eligible base, cap, precision/rounding and event semantics; current 30% client cap is retained pending policy |
+| 1C return reversal | Original order, redeemed bonuses, returned item, backend return artifact and matching signed ledger; no client-manufactured refund |
+| Support push | Deployed publisher payload/recipient schema, HTTPS worker and signed Android/iOS devices; development APS/app group is not delivery proof |
+
+No real SMS, order, payment, account-address/card mutation, return or production support message
+was executed. Historical gates below remain history; they do not override these acceptance limits.
+
+### Three-litre bottles withdrawn, promotion review fixes — 2026-10-07
+
+Requested: remove three-litre bottles, and a review of the promotion work.
+
+- **Range change:** `SmartCartSelection.filteredBottles` drops exactly three-litre containers (other
+  capacities, including larger kegs, stay), so the picker never offers one and no new selection or
+  gift allocation can use one. `knownBottleRelationIds`, `litersForCounts`, `isBottleVariant` and
+  `_bottleVolumeForCartItem` keep every container the store identifies, so a cart that already holds
+  a three-litre bottle keeps its litres, its tariff, its gift allocation and its order rows; the
+  configurator lists such a row as `… больше не продаётся` with the add button disabled and remove
+  live. `_syncPourFlowBottleCounts` builds rows for every counted container, and `withGiftContainers`
+  attaches retained gifts for withdrawn containers too.
+- **Valid review findings fixed:** the `+100` bonus chip no longer disappears from discounted cards
+  (chips are the first two of `[-10%, 2+1, +100]`, so the frames' `-10%` + `+100` pair survives);
+  reconciliation now reads the server's own figure (`resolveServerChargedAmount` prefers
+  `cost_summary`/`payable_amount`/`final_amount` over the `total_amount` the client sent — proved by
+  a payload carrying both); promotion refresh is scoped to catalogue merges, so a repeated order can
+  no longer overwrite live promotions with historical or empty ones; the inverse gift rule walks the
+  candidate awards, so a basket only the runner-up promotion explains (five units of `2+1` + `3+1`)
+  is still restorable.
+- **Second expiry path:** the catalogue list builds items through `CategoryItemPromotion`, which
+  forced the window to null. The DTO now parses and re-emits the nested window and
+  `ItemPromotion.fromCategoryItemPromotion` carries it, so catalogue entries expire client-side too.
+- **Evidence:** `flutter test --coverage --concurrency=1`: **258 passed**, **10,610 / 14,361 lines =
+  73.88 %**; `dart analyze lib test integration_test tool` clean. New regressions: withdrawal
+  (offered set, legacy cart litres/tariff, re-save), inverse candidate walk, repeat-order freshness
+  guard, bonus chip on discounted cards, echoed-total reconciliation, catalogue entry window.
+- **Docs:** `PROMO_BOTTLING_PLAN.md` records the withdrawal under M4, the corrected chip priority, the
+  no-snapping decision for stepping, discount stacking (selection applies to the gift award only) and
+  the scoped refresh.
+
+### Promotions, item page and bottling — 2026-10-07
+
+The reported defects (no promotion item cards, an untrustworthy promotion calculation, weak bottling,
+a chaotic item page) were researched against the re-dumped light frames, the API payloads and the
+running app; the plans and the evidence live in `PROMO_BOTTLING_PLAN.md` (M1–M5).
+
+- **M1 promotion kernel — implemented.** `lib/utils/promotion_engine.dart` is now the only promotion
+  evaluator: `selectSubtractPromotion` picks the customer-best `N+M` award deterministically,
+  `isPromotionActive` reads both flat and nested validity windows, `evaluatePromotion` exposes
+  paid/free/physical units, `nextGiftIn`, `progress`, `unlocked`, the `2+1` label and the campaign
+  name, and the forward/inverse gift pair plus price application live in one file.
+  `subtract_promotion_math.dart` is deleted; seven lib callers and two test files import the engine.
+- **Defect fixed:** validity was never parsed. `ItemPromotion.fromJson` only read flat
+  `start_date`/`end_date`, while the server nests the window under
+  `promotion.{start,end}_promotion_date`; both stayed null, `isActive` was always true and an expired
+  promotion kept gifting. The model now reads and re-emits the nested window and campaign name, and
+  the engine filters by it — restored rows expire too.
+- **Money safety:** `checkoutAmountNotice` compares the client total with the server's `cost_summary`
+  after order creation and `PaymentMethodPage` shows the divergence under the amount
+  (`payment-amount-notice`) instead of letting the two figures differ silently.
+- **Freshness:** touching a row from the catalogue replaces its stored promotions with the live ones.
+- **M2 promotion presentation — slices 1–3 implemented.** Cards advertise an active `N+M` through the
+  shared `AppPromoChip` (priority `-10%` → `2+1` → `+100`, gift in accent, at most two chips); the
+  item page renders a promo card with the campaign name, the rule, a progress bar and
+  `Добавьте ещё N, чтобы получить подарок` / `Подарок в корзине`; the cart renders the free units as
+  their own `0 ₸` line (`Подарок · 1 л`, the frame's `При заказе N и более этот товар в подарок`
+  caption, `cart-gift-*` keys). Reviewed on the strict fixture cart at 375 × 812 / DPR 2 in both
+  themes: the seeded `2+1` row shows the gift line at `0 ₸` while the paid line keeps 26 340 ₸ for
+  two units and the basket total counts paid units only (131 700 ₸).
+- **Verification:** full `flutter test --coverage --concurrency=1`: **251 passed**, **10,587 / 14,335
+  lines = 73.85 %** at that point (superseded by the counts in the entry above); `dart analyze lib
+  test integration_test tool` clean; new
+  `test/regression/promotion_engine_test.dart` (13 cases incl. round trips `0…12` for `2+1`/`3+1`/`2+2`,
+  unattainable physical values, expiry, nested window, two freshness cases),
+  `test/regression/checkout_contract_test.dart` (3 reconciliation cases) and
+  `test/integration/promotion_presentation_test.dart` (9 cases across card, item page and cart).
+  The fixture cart now seeds one live `2+1` row so the shell exercises the gift line.
+- **Remaining:** M2 slices 4–5 (checkout summary gift line, promotion-page header), M3 item-page
+  shell, M4 bottling picker, M5 states/a11y/rollout; cross-item gifts wait on a backend gift-item
+  reference (`PROMO_BOTTLING_PLAN.md` §5 Q1). No promotion change was exercised against
+  authenticated production; the reconciliation is the guard for that.
+
+### Cart chrome, glass and category bounds — 2026-10-04
+
+- **Design source:** the branch merge had dropped `.figma-token`/`.figma-design`, so the light page was re-dumped (`dart run tool/figma_spec.dart spec --page "Design System (Light)"`, 105 frames) plus four reference PNGs. Measured recipes: the floating cart control is a 78 px starburst with the cart glyph and — once the cart has items — a 125 × 34 r=100 pill whose left edge sits **47 px into the badge**, with the 32 px `#880514` count badge on the badge's upper-left corner; the shapes are GLASS (`#F16800 @ 75 %`) with the single drop shadow. Section `Все` is a 46 × 28 r=100 accent@75 % glass chip; the store-card chip is 32 × 32 r=8 glass; the signed-out home CTA is a 279 × 49 r=100 glass pill; the product confirmation is a 343 × 54 stadium inside the 129 px glass bar; the `Menu` discs are 40 × 40 glass.
+- **Reported defects, measured before the fix:** with items in the cart the control rendered **375 × 66** at 1× — full width, count and total on two wrapped rows — and **375 × 86 / 101** at 1.6× / 2×. Cause: the count badge was a `Container(alignment: Alignment.center)` inside a `Wrap`, and a non-null alignment makes a container expand to its constraint maximum. The product-page confirmation clipped its row at 2× (the label ran off the right edge).
+- **Implemented:** the control matches the frames — glass starburst + pill, count badge over the corner, one row at every scale, price scaled down instead of wrapped or clipped, bounded by the screen gutters. The control is now **78 px tall at 1×/1.6×/2×** (pill 34.8 → 55.6 px, capped at 296 px wide) instead of 375 × 66–101. `AppGlassChip` renders the section `Все` action on home and catalog headers; the store chip, signed-out CTA and confirmation pill are glass; `AppIconButton` blurs its disc (repeated favourite rows pass `blur: 0` rather than paying for a save layer per item). Category tiles use the frames' 98 px columns with 24 px gaps — **three across the 343 px content at 375**, artwork as wide as its column — and drop to two columns at 1.6×/2× instead of the previous two columns at every scale.
+- **Verification:** focused **18 passed** (home, catalog, cart and product-detail regressions plus the new bounds test); full `flutter test --coverage --concurrency=1`: **227 passed**, **10,389 / 14,122 lines = 73.57 %**; `dart analyze lib test integration_test tool` clean. Fixture release reviewed at 375 × 812 / DPR 2 with no browser runtime errors: light home (three category columns, glass store chip), filled control at 1× and 2×, dark catalog (glass discs and `Все`), dark home at 1.6× (two columns), product confirmation at 2×.
+- **Limits:** the frames draw a pill-only cart control on the search page; the app keeps its single shared starburst control there. Product-card steppers stay opaque instead of carrying a `BackdropFilter` per card — only the floating chrome blurs. No pixel diff was re-run, so this is design-fact and geometry evidence, not parity acceptance.
 
 ### Repository cleanup — 2026-10-04
 
@@ -46,9 +243,9 @@ Last updated: 2026-10-04 (repository cleanup integrated and verified after catal
 - **Cleanup:** removed the proven-unreachable legacy shell/screens and private card/cart/search/dialog helpers, drawer, `ProductCardWide`, duplicate FAQ/theme stack, refractive widget/shader, orphan implementation assets/fonts/tests and unused `ItemVariant`. Removed `carousel_slider` and `scrollable_positioned_list`; live quantity formatting moved from deleted globals to `lib/core/quantity.dart`. Legal material, splash/platform entries and dynamic assets remain. Declared `path` and the required Cupertino icon font dependency; packaging reports no missing icon-font warning.
 - **Verification cleanup:** removed the temporary matrix probe and closed both verification browser tabs and isolated fixture/release HTTP servers after final smoke. Useful Figma reference/capture caches remain ignored.
 
-### Exercised integration
+### Historical integration — superseded by the current remediation gate
 
-| Check | Current observed result |
+| Check | Previously observed result |
 |---|---|
 | Focused cart/bottling/configuration/checkout/repeat/payment regression run | 78 passed |
 | `flutter test --coverage --concurrency=1` | 297 passed; LCOV: 10,549 / 14,471 executable lines, 72.90%, across 94 recorded files |
@@ -62,7 +259,7 @@ Coverage describes recorded executable lines, not complete app/backend acceptanc
 The default-concurrency coverage attempt failed with Dart out-of-memory errors and was not accepted. The full suite was then completed with `--concurrency=1`, not reduced or skipped. A Kaspi refusal regression initially checked the durable state while its failure notice still owned the busy reservation; the assertion now checks the consumer-visible retry state after dismissal, without weakening production payment protection.
 
 
-### Actual fixture/browser observations
+### Historical fixture/browser observations
 
 - Home logo left the active route unchanged; profile opened normally. Store cancellation preserved scope; confirmation changed the header/data source. Submitted search produced a genuine empty state. Home resize 375 → 320 → 800 → 375 with 2× light text was reviewed.
 - Synthetic bank cancellation did not confirm binding. Baseline refresh/re-add and explicit bank confirmation followed by canonical-list refresh proved a new ID; the light success text is black. A stalled card read exited at 12 seconds and recovered on retry. Synthetic phone `+70000000000` / code `123456` reauthentication returned to cards through the real writable OTP control.

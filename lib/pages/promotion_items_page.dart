@@ -5,6 +5,7 @@ import '../core/like_action.dart';
 import '../core/product_view.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
+import '../design/typography.dart';
 import '../features/cart/ui/cart_page.dart';
 import '../features/product/product_navigation.dart';
 import '../model/item.dart' as item_model;
@@ -42,6 +43,7 @@ class PromotionItemsPage extends StatefulWidget {
 
 class _PromotionItemsPageState extends State<PromotionItemsPage> {
   List<ProductView>? _items;
+  String? _terms;
   bool _isLoading = false;
   bool _failed = false;
   int _loadGeneration = 0;
@@ -68,6 +70,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
       _failed = false;
       _isLoading = false;
       _items = null;
+      _terms = null;
       _useInitialItemsOrLoad();
     }
   }
@@ -77,10 +80,20 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     if (initial != null) {
       // A supplied list is complete. Keep its models, order and missing fields intact.
       _items = initial.map(ProductView.fromItem).toList(growable: false);
+      _terms = _itemTerms(_items!);
     } else {
       _loadItems();
     }
   }
+  String? _itemTerms(List<ProductView> items) {
+    final terms = <String>{};
+    for (final item in items) {
+      if (item.promo != null) terms.add(item.promo!);
+      if (item.discount != null) terms.add(item.discount!);
+    }
+    return terms.isEmpty ? null : 'Условия отдельных товаров: ${terms.join(' · ')}';
+  }
+
 
   Future<void> _loadItems() async {
     final generation = ++_loadGeneration;
@@ -132,6 +145,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
       } while (page <= totalPages);
       setState(() {
         _items = items;
+        _terms = _itemTerms(items);
         _isLoading = false;
       });
     } catch (_) {
@@ -228,7 +242,29 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                   ),
                   child: _header(),
                 ),
-                const SizedBox(height: AppSpacing.huge),
+                const SizedBox(height: AppSpacing.xl),
+                if (!_isLoading && !_failed && _items != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Товары акции · ${_items!.length}',
+                            style: AppTypography.bodySmall
+                                .copyWith(color: context.palette.textSecondary),
+                          ),
+                          if (_terms != null)
+                            Text(_terms!,
+                                style: AppTypography.bodySmall
+                                    .copyWith(color: context.palette.gold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: AppSpacing.xl),
                 Expanded(child: _body()),
               ],
             ),
@@ -239,7 +275,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
               child: Center(
                 child: AppCartButton(
                   itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice().round(),
+                  total: count == 0 ? null : cart.getTotalPrice(),
                   onTap: _openCart,
                 ),
               ),
@@ -269,25 +305,28 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     final liked = context.watch<LikedItemsProvider>();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final usableWidth = constraints.maxWidth - AppSpacing.xxxl * 2;
-        final columns = ProductCard.columnsFor(context, usableWidth,
-            spacing: AppSpacing.xl);
+        final usableWidth = constraints.maxWidth - AppSpacing.gutter * 2;
+        final columns = ProductCard.columnsFor(context, usableWidth);
+        final cardWidth =
+            (usableWidth - AppSpacing.md * (columns - 1)) / columns;
         return GridView.builder(
           key: const ValueKey('promotion-products-grid'),
           padding: EdgeInsets.fromLTRB(
-            AppSpacing.xxxl,
+            AppSpacing.gutter,
             0,
-            AppSpacing.xxxl,
-            AppCartButton.roundSize +
-                AppSpacing.huge +
+            AppSpacing.gutter,
+            AppCartButton.clearanceFor(context) +
                 MediaQuery.paddingOf(context).bottom,
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             mainAxisSpacing: AppSpacing.xl,
-            crossAxisSpacing: AppSpacing.xl,
-            mainAxisExtent: ProductCard.heightFor(context,
-                hasOldPrice: items.any((item) => item.oldPrice != null)),
+            crossAxisSpacing: AppSpacing.md,
+            mainAxisExtent: ProductCard.heightFor(
+              context,
+              width: cardWidth,
+              products: items,
+            ),
           ),
           itemCount: items.length,
           itemBuilder: (context, index) {
@@ -326,6 +365,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                         asset: AppIcons.heart,
                         size: AppSpacing.touchTarget,
                         glyphSize: 20,
+                        blur: 0,
                         fill: isLiked
                             ? context.palette.brandRed.withValues(alpha: 0.75)
                             : context.palette.surface.withValues(alpha: 0.75),

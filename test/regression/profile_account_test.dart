@@ -12,12 +12,17 @@ void main() {
     expect(account.cardsSummary, isNull);
   });
 
-  test('malformed account collection is rejected rather than undercounted', () {
-    expect(
-        () => ProfileAccount.fromJson({
-              'user': {},
-              'cards': [null],
-            }),
-        throwsFormatException);
+  test('a malformed summary row does not erase another saved card', () {
+    final account = ProfileAccount.fromJson({
+      'user': {'name': 'Айжан'},
+      'cards': [
+        null,
+        {'mask': '4400••••1234'},
+        {'mask': '4400123456781234'},
+      ],
+    });
+    expect(account.name, 'Айжан');
+    expect(account.cardsSummary, contains('4400••••1234'));
+    expect(account.cardsSummary, isNot(contains('4400123456781234')));
   });
 }

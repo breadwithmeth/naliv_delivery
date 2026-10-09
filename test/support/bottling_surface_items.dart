@@ -191,12 +191,14 @@ Item syntheticThreePlusOneSurfaceItem(
             },
             if (!onlyOneLitre)
               {
+                // 1.5 l keeps the mixed-container boundary the tests need without relying on the
+                // withdrawn three-litre bottles.
                 'relation_id': 93103,
                 'item_id': 1154,
-                'item_name': 'Бутылка 3 л',
-                'parent_item_amount': 3,
+                'item_name': 'Бутылка 1,5 л',
+                'parent_item_amount': 1.5,
                 'price_type': 'ADD',
-                'price': 150,
+                'price': 120,
               },
           ],
         },

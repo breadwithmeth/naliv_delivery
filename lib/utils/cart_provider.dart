@@ -6,11 +6,24 @@ import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
 
 import 'smart_cart.dart';
-import 'subtract_promotion_math.dart';
+import 'promotion_engine.dart';
 
 /// Провайдер управления корзиной
 class CartProvider extends ChangeNotifier {
-  static const double _quantityEpsilon = 0.001;
+  static const double _quantityEpsilon = 0.0000001;
+  static const _storageKey = 'cart_items';
+  int? _businessId;
+  bool _loaded = false;
+  bool _disposed = false;
+  Future<void>? _loading;
+  Future<void> _pendingPersistence = Future<void>.value();
+
+  int? get businessId => _businessId;
+  bool get hasUnresolvedBusiness => hasActiveItems && _businessId == null;
+
+  Future<void> ensureLoaded() => _loaded
+      ? Future<void>.value()
+      : (_loading ??= loadCart().whenComplete(() => _loading = null));
 
   final List<CartItem> _items = [];
   final Map<String, int> _displayOrderByKey = <String, int>{};
@@ -86,12 +99,27 @@ class CartProvider extends ChangeNotifier {
   bool addItem(CartItem newItem) {
     final normalizedItem = _normalizeItem(newItem);
     final snapshot = normalizedItem.snapshotItem;
-    if (!normalizedItem.quantity.isFinite || normalizedItem.quantity < 0) {
+    if (!normalizedItem.quantity.isFinite ||
+        normalizedItem.quantity < 0 ||
+        !normalizedItem.stepQuantity.isFinite ||
+        normalizedItem.stepQuantity <= 0 ||
+        (snapshot == null &&
+            normalizedItem.selectedVariants
+                .any(SmartCartSelection.isExplicitWithdrawnBottleVariant))) {
       return false;
     }
     if (snapshot != null) {
       final selection = SmartCartSelection(snapshot);
-      if (selection.containerIssue != null) return false;
+      if (selection.containerIssue != null ||
+          selection.quantityIssue != null ||
+          normalizedItem.selectedVariants
+              .any(selection.isWithdrawnBottleVariant) ||
+          normalizedItem.giftBottleCounts?.entries.any((entry) =>
+                  entry.value > 0 &&
+                  selection.isWithdrawnBottleRelation(entry.key)) ==
+              true) {
+        return false;
+      }
       final ratio = normalizedItem.quantity / normalizedItem.stepQuantity;
       if ((ratio - ratio.round()).abs() > 0.0000001) return false;
       final key = CartDisplayGroup.displayKeyForCartItem(normalizedItem);
@@ -102,7 +130,7 @@ class CartProvider extends ChangeNotifier {
         return false;
       }
     }
-    final added = _addItemInternal(normalizedItem);
+    final added = _addItemInternal(normalizedItem, refreshPromotions: true);
     if (!added) {
       return false;
     }
@@ -121,6 +149,8 @@ class CartProvider extends ChangeNotifier {
     if (rows.any((row) =>
         !row.quantity.isFinite ||
         row.quantity <= 0 ||
+        !row.stepQuantity.isFinite ||
+        row.stepQuantity <= 0 ||
         (row.quantity / row.stepQuantity -
                     (row.quantity / row.stepQuantity).round())
                 .abs() >
@@ -128,12 +158,18 @@ class CartProvider extends ChangeNotifier {
         !_requiredVariantsSelected(row.selectedVariants))) {
       return false;
     }
-    if (group.allocationIssue != null) return false;
+    if (group.allocationIssue != null ||
+        group.hasWithdrawnBottles ||
+        selection?.containerIssue != null ||
+        selection?.quantityIssue != null) {
+      return false;
+    }
     final current =
         displayGroups.firstWhereOrNull((entry) => entry.key == group.key);
     if (selection != null &&
         !_fitsStock(selection, group.key,
-            (current?.totalQuantity ?? 0) + group.totalQuantity)) {
+            (current?.totalQuantity ?? 0) + group.totalQuantity,
+            retainedGiftCounts: group.retainedGiftBottleCounts)) {
       return false;
     }
     if (current != null && group.retainedGiftBottleCounts != null) return false;
@@ -142,6 +178,49 @@ class CartProvider extends ChangeNotifier {
     }
     _mergeExactDuplicates();
     _persistAndNotify();
+    return true;
+  }
+
+  bool canReplaceItems(List<CartItem> rows) {
+    if (rows.isEmpty) return false;
+    final normalized = rows.map(_normalizeItem).toList(growable: false);
+    for (final row in normalized) {
+      if (!row.quantity.isFinite ||
+          row.quantity <= 0 ||
+          !row.stepQuantity.isFinite ||
+          row.stepQuantity <= 0 ||
+          (row.quantity / row.stepQuantity -
+                      (row.quantity / row.stepQuantity).round())
+                  .abs() >
+              0.0000001 ||
+          !_requiredVariantsSelected(row.selectedVariants)) {
+        return false;
+      }
+    }
+    final reserved = <int, double>{};
+    final stock = <int, double>{};
+    for (final group in CartDisplayGroup.groupItems(normalized)) {
+      final selection = group.selection;
+      if (group.hasWithdrawnBottles ||
+          group.allocationIssue != null ||
+          selection?.containerIssue != null ||
+          selection?.quantityIssue != null) {
+        return false;
+      }
+      reserved.update(group.itemId, (amount) => amount + group.totalOrderQuantity,
+          ifAbsent: () => group.totalOrderQuantity);
+      final limit = group.maxAmount;
+      if (limit != null) {
+        final previous = stock[group.itemId];
+        if (previous == null || limit < previous) stock[group.itemId] = limit;
+      }
+    }
+    for (final entry in reserved.entries) {
+      final available = stock[entry.key];
+      if (available != null && entry.value > available + 0.0000001) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -154,7 +233,7 @@ class CartProvider extends ChangeNotifier {
     return true;
   }
 
-  bool _addItemInternal(CartItem newItem) {
+  bool _addItemInternal(CartItem newItem, {bool refreshPromotions = false}) {
     if (!_requiredVariantsSelected(newItem.selectedVariants)) return false;
 
     final index = _items.indexWhere(
@@ -165,6 +244,16 @@ class CartProvider extends ChangeNotifier {
     );
     if (index >= 0) {
       _items[index].quantity += newItem.quantity;
+      // Catalogue-sourced merges carry live promotions, so they replace the ones stored when the
+      // row was created: a promotion that ended stops gifting and a new one applies as soon as the
+      // item is touched again. Repeat-order rows keep the historical promotions they were built
+      // with, because overwriting a live promotion with an order's snapshot could resurrect an
+      // expired gift or, with no catalogue snapshot, silently drop a discount.
+      if (refreshPromotions &&
+          !const DeepCollectionEquality()
+              .equals(_items[index].promotions, newItem.promotions)) {
+        _items[index] = _items[index].copyWith(promotions: newItem.promotions);
+      }
     } else {
       _items.add(newItem);
     }
@@ -208,13 +297,23 @@ class CartProvider extends ChangeNotifier {
     if (existing == null || !newQuantity.isFinite || newQuantity < 0) return;
     final ratio = newQuantity / existing.stepQuantity;
     if ((ratio - ratio.round()).abs() > 0.0000001) return;
+    final key = CartDisplayGroup.displayKeyForCartItem(existing);
+    final group = displayGroups.firstWhereOrNull((group) => group.key == key);
+    final increasing = newQuantity > existing.quantity + 0.0000001;
+    if (increasing && group?.hasWithdrawnBottles == true) return;
     final snapshot = existing.snapshotItem;
-    if (snapshot != null) {
-      final key = CartDisplayGroup.displayKeyForCartItem(existing);
-      final group = displayGroups.firstWhereOrNull((group) => group.key == key);
+    if (snapshot != null && increasing) {
+      final selection = SmartCartSelection(snapshot);
+      if (selection.containerIssue != null || selection.quantityIssue != null) {
+        return;
+      }
       final paid =
           (group?.totalQuantity ?? 0) - existing.quantity + newQuantity;
-      if (!_fitsStock(SmartCartSelection(snapshot), key, paid)) return;
+      if (!_fitsStock(selection, key, paid)) return;
+    } else if (increasing &&
+        existing.maxAmount != null &&
+        newQuantity > existing.maxAmount! + 0.0000001) {
+      return;
     }
     final updated = _updateQuantityInternal(itemId, newQuantity, variants);
     if (!updated) return;
@@ -238,31 +337,158 @@ class CartProvider extends ChangeNotifier {
         for (final group in activeDisplayGroups) ...group.toJsonForOrder(),
       ];
 
-  /// Сохранить корзину
-  Future<void> _saveCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'cart_items',
-      jsonEncode(_items.map((e) => e.toJson()).toList()),
-    );
+  String _serializedState({int? businessId, bool empty = false}) => jsonEncode({
+        'business_id': businessId ?? _businessId,
+        'items': empty
+            ? const <Object>[]
+            : _items.map((item) => item.toJson()).toList(growable: false),
+      });
+
+  Future<bool> _writeState(String value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (await prefs.setString(_storageKey, value)) return true;
+      await prefs.reload();
+    } catch (error) {
+      try {
+        await (await SharedPreferences.getInstance()).reload();
+      } catch (_) {
+        // A rejected write must not be treated as a committed cart.
+      }
+      debugPrint('Не удалось сохранить корзину: $error');
+    }
+    return false;
   }
 
-  /// Загрузить корзину
+  Future<T> _enqueuePersistence<T>(Future<T> Function() operation) {
+    final result = _pendingPersistence.then((_) => operation());
+    _pendingPersistence =
+        result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
+
+  Future<void> _saveCart() {
+    _loaded = true;
+    final state = _serializedState();
+    return _enqueuePersistence(() async {
+      await _writeState(state);
+    });
+  }
+
   Future<void> loadCart() async {
+    await _pendingPersistence;
+    final revision = _revision;
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('cart_items');
-    _revision++;
+    final jsonString = prefs.getString(_storageKey);
+    if (_revision != revision || _disposed) return;
     if (jsonString != null) {
-      final decoded = jsonDecode(jsonString) as List<dynamic>;
+      final decoded = jsonDecode(jsonString);
+      final rawRows = decoded is Map ? decoded['items'] : decoded;
+      if (rawRows is! List) {
+        throw const FormatException('Неверный формат сохранённой корзины');
+      }
+      final rows = [
+        for (final raw in rawRows)
+          _normalizeItem(CartItem.fromJson(Map<String, dynamic>.from(raw as Map))),
+      ];
+      int? storedBusinessId;
+      if (decoded is Map) {
+        storedBusinessId = _storeId(decoded['business_id']);
+      } else if (rows.isNotEmpty) {
+        // Legacy snapshots may prove the store. A bare list without that
+        // evidence remains readable/removable but is never assigned a default.
+        final ids = rows.map((row) => row.snapshotItem?.businessId).toSet();
+        if (ids.length == 1) storedBusinessId = _storeId(ids.single);
+      }
+      _businessId = storedBusinessId;
       _displayOrderByKey.clear();
       _nextDisplayOrder = 0;
       _items
         ..clear()
-        ..addAll(decoded.map((e) =>
-            _normalizeItem(CartItem.fromJson(e as Map<String, dynamic>))));
+        ..addAll(rows);
+      _revision++;
       _mergeExactDuplicates();
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
+    _loaded = true;
+  }
+
+  Future<bool> bindBusiness(int businessId) async {
+    if (businessId <= 0) return false;
+    await ensureLoaded();
+    return _enqueuePersistence(() async {
+      if (_businessId == businessId) return true;
+      if (hasActiveItems) return false;
+      final revision = _revision;
+      if (!await _writeState(_serializedState(businessId: businessId))) {
+        return false;
+      }
+      if (_revision != revision) {
+        await _writeState(_serializedState());
+        return false;
+      }
+      _businessId = businessId;
+      if (!_disposed) notifyListeners();
+      return true;
+    });
+  }
+
+  Future<bool> discardForBusiness(int businessId) async {
+    if (businessId <= 0) return false;
+    await ensureLoaded();
+    return _enqueuePersistence(() async {
+      final revision = _revision;
+      if (!await _writeState(
+          _serializedState(businessId: businessId, empty: true))) {
+        return false;
+      }
+      if (_revision != revision) {
+        await _writeState(_serializedState());
+        return false;
+      }
+      _businessId = businessId;
+      _items.clear();
+      _displayOrderByKey.clear();
+      _nextDisplayOrder = 0;
+      _revision++;
+      if (!_disposed) notifyListeners();
+      return true;
+    });
+  }
+
+  Future<bool> replaceForBusiness(
+      int businessId, Iterable<CartItem> replacement) async {
+    if (businessId <= 0) return false;
+    await ensureLoaded();
+    final rows = replacement.map(_normalizeItem).toList(growable: false);
+    if (!canReplaceItems(rows)) return false;
+    return _enqueuePersistence(() async {
+      final revision = _revision;
+      final state = jsonEncode({
+        'business_id': businessId,
+        'items': rows.map((row) => row.toJson()).toList(growable: false),
+      });
+      if (!await _writeState(state)) return false;
+      if (_revision != revision) {
+        await _writeState(_serializedState());
+        return false;
+      }
+      _businessId = businessId;
+      _items
+        ..clear()
+        ..addAll(rows);
+      _displayOrderByKey.clear();
+      _nextDisplayOrder = 0;
+      _revision++;
+      _mergeExactDuplicates();
+      if (!_disposed) notifyListeners();
+      return true;
+    });
+  }
+
+  static int? _storeId(Object? value) {
+    final id = int.tryParse(value?.toString().trim() ?? '');
+    return id != null && id > 0 ? id : null;
   }
 
   /// Получить все варианты товара в корзине по ID
@@ -390,6 +616,7 @@ class CartProvider extends ChangeNotifier {
     CartDisplayGroup group, {
     required int direction,
   }) {
+    if (direction > 0 && !group.canIncrease) return;
     final snapshot = group.itemSnapshot;
     if (snapshot == null) {
       _adjustLegacyExistingGroup(group, direction: direction);
@@ -509,10 +736,20 @@ class CartProvider extends ChangeNotifier {
       ]);
 
   bool _fitsStock(SmartCartSelection selection, String key, double paid,
-      {String? previousKey}) {
+      {String? previousKey, Map<int, int>? retainedGiftCounts}) {
+    final opened = displayGroups
+        .firstWhereOrNull((group) => group.key == (previousKey ?? key));
+    // Availability constrains fresh demand, never the customer's ability to
+    // reduce or remove quantities that were actually restored from persistence.
+    if (opened != null &&
+        paid <= opened.totalQuantity + 0.0000001 &&
+        _orderQuantity(selection, paid) <=
+            opened.totalOrderQuantity + 0.0000001) {
+      return true;
+    }
     if (selection.usesPourFlow) {
       try {
-        selection.giftBottleBreakdown(paid);
+        selection.giftBottleBreakdown(paid, retainedCounts: retainedGiftCounts);
       } on StateError {
         return false;
       }
@@ -539,13 +776,22 @@ class CartProvider extends ChangeNotifier {
     double targetQuantity, {
     List<Map<String, dynamic>>? previousBaseVariants,
   }) {
-    if (selection.containerIssue != null) return false;
     final variants = SmartCartSelection.normalizeVariantMaps(baseVariants);
     if (!_requiredVariantsSelected(variants)) return false;
     final key = selection.displayKeyForVariants(variants);
     final previousKey = previousBaseVariants == null
         ? null
         : selection.displayKeyForVariants(previousBaseVariants);
+    final opened = displayGroups
+        .firstWhereOrNull((group) => group.key == (previousKey ?? key));
+    final reduction = opened != null &&
+        targetQuantity >= 0 &&
+        targetQuantity <= opened.totalQuantity + 0.0000001;
+    if (!reduction &&
+        (selection.containerIssue != null || selection.quantityIssue != null)) {
+      return false;
+    }
+    if (variants.any(selection.isWithdrawnBottleVariant)) return false;
     if (previousKey != null &&
         previousKey != key &&
         displayGroups.any((group) => group.key == key)) {
@@ -557,6 +803,14 @@ class CartProvider extends ChangeNotifier {
       return false;
     }
     if (selection.usesPourFlow) {
+      if (reduction && opened.totalQuantity > 0) {
+        final counts = SmartCartSelection.scaledBottleCounts(
+            opened.paidBottleCounts, targetQuantity / opened.totalQuantity);
+        if (counts != null) {
+          return _syncPourFlowBottleCounts(selection, variants, counts,
+              previousBaseVariants: previousBaseVariants);
+        }
+      }
       try {
         return _syncPourFlowBottleCounts(
             selection, variants, selection.autoBottleBreakdown(targetQuantity),
@@ -565,7 +819,9 @@ class CartProvider extends ChangeNotifier {
         return false;
       }
     }
-    final step = selection.defaultStepQuantity;
+    final step = reduction && selection.quantityIssue != null
+        ? opened.items.first.stepQuantity
+        : selection.defaultStepQuantity;
     if ((targetQuantity / step - (targetQuantity / step).round()).abs() >
         0.0000001) {
       return false;
@@ -599,7 +855,8 @@ class CartProvider extends ChangeNotifier {
     List<Map<String, dynamic>>? previousBaseVariants,
   }) {
     if (bottleCounts.entries.any((entry) =>
-        entry.value < 0 || !selection.bottleRelationIds.contains(entry.key))) {
+        entry.value < 0 ||
+        !selection.knownBottleRelationIds.contains(entry.key))) {
       return false;
     }
     final variants = SmartCartSelection.normalizeVariantMaps(baseVariants);
@@ -613,17 +870,17 @@ class CartProvider extends ChangeNotifier {
         displayGroups.any((group) => group.key == key)) {
       return false;
     }
-    final totalLiters = selection.filteredBottles.fold<double>(
-        0,
-        (sum, bottle) =>
-            sum +
-            selection.volumeForBottle(bottle) *
-                (bottleCounts[bottle.relationId] ?? 0));
-    if (!_fitsStock(selection, key, totalLiters, previousKey: previousKey)) {
-      return false;
-    }
     final opened = displayGroups
         .firstWhereOrNull((group) => group.key == (previousKey ?? key));
+    final existingCounts = opened?.paidBottleCounts ?? const <int, int>{};
+    for (final entry in bottleCounts.entries) {
+      if (selection.isWithdrawnBottleRelation(entry.key) &&
+          entry.value > (existingCounts[entry.key] ?? 0)) {
+        return false;
+      }
+    }
+    final totalLiters = selection.litersForCounts(bottleCounts);
+    if (opened == null && selection.containerIssue != null) return false;
     Map<int, int>? retainedGifts;
     if (opened != null &&
         opened.freeQuantity > 0 &&
@@ -643,25 +900,66 @@ class CartProvider extends ChangeNotifier {
         }
       }
     }
-    final snapshot = selection.item.toJson();
+    if (retainedGifts?.entries.any((entry) =>
+            selection.isWithdrawnBottleRelation(entry.key) &&
+            entry.value >
+                (opened?.retainedGiftBottleCounts?[entry.key] ?? 0)) ==
+        true) {
+      return false;
+    }
+    if (!_fitsStock(selection, key, totalLiters,
+        previousKey: previousKey, retainedGiftCounts: retainedGifts)) {
+      return false;
+    }
+    var persistedSelection = selection;
+    final oldSelection = opened?.selection;
+    if (opened?.hasWithdrawnBottles == true && oldSelection != null) {
+      // A withdrawn row cannot be bought again. Its surviving containers keep
+      // the historical tariff while catalogue-sourced promotions remain live.
+      final oldBottles = oldSelection.bottleVariants.where((bottle) =>
+          oldSelection.isWithdrawnBottleRelation(bottle.relationId));
+      persistedSelection = SmartCartSelection(selection.item.copyWith(
+        price: opened!.price,
+        options: [
+          for (final option
+              in selection.item.options ?? const <item_model.ItemOption>[])
+            item_model.ItemOption(
+              optionId: option.optionId,
+              name: option.name,
+              required: option.required,
+              selection: option.selection,
+              optionItems: [
+                for (final variant in option.optionItems)
+                  oldBottles.firstWhereOrNull((old) =>
+                          old.relationId == variant.relationId) ??
+                      variant,
+              ],
+            ),
+        ],
+      ));
+    }
+    final snapshot = persistedSelection.item.toJson();
     final promotions = [
       for (final promotion
           in selection.item.promotions ?? const <item_model.ItemPromotion>[])
         if (promotion.isActive) promotion.toJson(),
     ];
     final rows = <CartItem>[
-      for (final bottle in selection.filteredBottles)
+      // Every container the store recognises, not only the ones this client still offers: a cart
+      // that already holds a withdrawn three-litre bottle keeps its litres until the customer
+      // removes it.
+      for (final bottle in persistedSelection.bottleVariants)
         if ((bottleCounts[bottle.relationId] ?? 0) > 0)
           CartItem(
-            itemId: selection.item.itemId,
-            name: selection.item.name,
-            price: selection.item.price,
-            quantity: selection.volumeForBottle(bottle) *
+            itemId: persistedSelection.item.itemId,
+            name: persistedSelection.item.name,
+            price: persistedSelection.item.price,
+            quantity: persistedSelection.volumeForBottle(bottle) *
                 bottleCounts[bottle.relationId]!,
-            stepQuantity: selection.volumeForBottle(bottle),
+            stepQuantity: persistedSelection.volumeForBottle(bottle),
             giftBottleCounts: retainedGifts,
             image: selection.item.image,
-            selectedVariants: selection.buildVariantMaps(
+            selectedVariants: persistedSelection.buildVariantMaps(
                 bottle: bottle, baseVariants: variants),
             promotions: promotions,
             itemData: snapshot,
@@ -675,6 +973,11 @@ class CartProvider extends ChangeNotifier {
       List<CartItem> rows, String key, String? previousKey) {
     // Validate the complete replacement before touching the opened configuration.
     if (rows.any((row) => !_requiredVariantsSelected(row.selectedVariants))) {
+      return false;
+    }
+    if (rows.isNotEmpty &&
+        CartDisplayGroup.groupItems(rows)
+            .any((group) => group.allocationIssue != null)) {
       return false;
     }
     if (rows.isEmpty) {
@@ -757,12 +1060,14 @@ class CartProvider extends ChangeNotifier {
     final selection = snapshot == null ? null : SmartCartSelection(snapshot);
     final variants =
         SmartCartSelection.normalizeVariantMaps(item.selectedVariants);
-    final bottle = selection?.filteredBottles.firstWhereOrNull((bottle) =>
+    final bottle = selection?.bottleVariants.firstWhereOrNull((bottle) =>
         variants.any((variant) =>
             SmartCartSelection.variantRelationId(variant) ==
             bottle.relationId));
     final step = bottle == null
-        ? snapshot?.effectiveStepQuantity
+        ? (selection?.quantityIssue == null
+            ? snapshot?.effectiveStepQuantity
+            : item.stepQuantity)
         : selection!.volumeForBottle(bottle);
     if (bottle != null) {
       for (final variant in variants) {
@@ -825,5 +1130,11 @@ class CartProvider extends ChangeNotifier {
         repairedGiftAllocation ? CartDisplayGroup.groupItems(_items) : groups);
     _saveCart();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

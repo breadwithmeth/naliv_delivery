@@ -1,3 +1,6 @@
+import '../core/quantity.dart';
+import '../model/item.dart';
+
 import 'item_name_country_rules.dart';
 import 'item_name_packaging_rules.dart';
 import 'item_name_prefix_rules.dart';
@@ -10,6 +13,8 @@ class ItemTitlePresentation {
   final String? countryFlag;
   final double? volumeLiters;
   final double? alcoholPercent;
+  final String? material;
+  final double? weightKilograms;
 
   const ItemTitlePresentation({
     required this.name,
@@ -19,19 +24,30 @@ class ItemTitlePresentation {
     this.countryFlag,
     this.volumeLiters,
     this.alcoholPercent,
+    this.material,
+    this.weightKilograms,
   });
 
-  String? get volumeLabel => volumeLiters == null ? null : '${_formatMetricValue(volumeLiters!)} л';
+  String? get volumeLabel =>
+      volumeLiters == null ? null : '${_formatMetricValue(volumeLiters!)} л';
 
-  String? get alcoholLabel => alcoholPercent == null ? null : '${_formatMetricValue(alcoholPercent!)}%';
+  String? get weightLabel =>
+      weightKilograms == null ? null : '${_formatMetricValue(weightKilograms!)} кг';
+
+  String? get alcoholLabel =>
+      alcoholPercent == null ? null : '${_formatMetricValue(alcoholPercent!)}%';
 
   List<String> get pricingAttributes {
     final result = <String>[];
     final volume = volumeLabel;
+    final weight = weightLabel;
     final alcohol = alcoholLabel;
 
     if (volume != null) {
       result.add(volume);
+    }
+    if (weight != null) {
+      result.add(weight);
     }
     if (alcohol != null) {
       result.add(alcohol);
@@ -44,19 +60,30 @@ class ItemTitlePresentation {
     final result = <String>[];
     final normalizedType = _cleanType(type);
     final normalizedPackaging = _cleanType(packagingType);
+    final normalizedMaterial = _cleanType(material);
 
     if (normalizedType != null) {
       result.add(normalizedType);
     }
-    if (normalizedPackaging != null && !result.any((item) => item.toLowerCase() == normalizedPackaging.toLowerCase())) {
+    if (normalizedPackaging != null &&
+        !result.any((item) =>
+            item.toLowerCase() == normalizedPackaging.toLowerCase())) {
       result.add(normalizedPackaging);
     }
+    if (normalizedMaterial != null &&
+        !result.any((item) =>
+            item.toLowerCase() == normalizedMaterial.toLowerCase())) {
+      result.add(normalizedMaterial);
+    }
     final normalizedCountry = _cleanType(countryName);
-    if (normalizedCountry != null && !result.any((item) => item.toLowerCase() == normalizedCountry.toLowerCase())) {
+    if (normalizedCountry != null &&
+        !result.any(
+            (item) => item.toLowerCase() == normalizedCountry.toLowerCase())) {
       result.add(normalizedCountry);
     }
     for (final attribute in pricingAttributes) {
-      if (!result.any((item) => item.toLowerCase() == attribute.toLowerCase())) {
+      if (!result
+          .any((item) => item.toLowerCase() == attribute.toLowerCase())) {
         result.add(attribute);
       }
     }
@@ -65,23 +92,86 @@ class ItemTitlePresentation {
   }
 }
 
+ItemTitlePresentation presentItem(
+  Item item, {
+  String? storedType,
+  String? storedPackagingType,
+}) =>
+    presentItemName(
+      rawName: item.name,
+      categoryName: item.category?.name,
+      storedType: item.itemType ?? storedType,
+      storedPackagingType: item.packagingType ?? storedPackagingType,
+      storedMaterial: item.material,
+      storedCountryName: item.countryName,
+      storedVolumeLiters: item.volumeLiters,
+      storedWeightKilograms: item.weightKilograms,
+      storedAlcoholPercent: item.alcoholPercent,
+      allowImplicitVolume: quantityUnitLabel(item.unit) != 'кг',
+    );
+
+ItemTitlePresentation presentOrderItem(Map<String, dynamic> orderItem) {
+  Map<String, dynamic> snapshot = const {};
+  for (final key in const ['item_data', 'item', 'catalog_item', 'product']) {
+    final candidate = orderItem[key];
+    if (candidate is Map) {
+      snapshot = Map<String, dynamic>.from(candidate);
+      break;
+    }
+  }
+  final historical = <String, dynamic>{
+    ...snapshot,
+    for (final key in const [
+      'item_type',
+      'packaging_type',
+      'material',
+      'country_name',
+      'volume_liters',
+      'weight_kilograms',
+      'alcohol_percent',
+      'unit',
+      'category',
+    ])
+      if (orderItem[key] != null) key: orderItem[key],
+    'item_id': orderItem['item_id'] ?? snapshot['item_id'],
+    'name': orderItem['name'] ??
+        orderItem['item_name'] ??
+        snapshot['name'] ??
+        'Товар',
+  };
+  return presentItem(Item.fromJson(historical));
+}
+
 ItemTitlePresentation presentItemName({
   required String rawName,
   String? categoryName,
   String? storedType,
   String? storedPackagingType,
+  String? storedMaterial,
+  String? storedCountryName,
+  double? storedVolumeLiters,
+  double? storedWeightKilograms,
+  double? storedAlcoholPercent,
+  bool allowImplicitVolume = true,
 }) {
   final original = _normalizeSpaces(rawName);
   final fallbackType = _cleanType(storedType) ?? _cleanType(categoryName);
   String? packagingType = _cleanType(storedPackagingType);
-  String? countryName;
-  String? countryFlag;
+  String? countryName = _cleanType(storedCountryName);
+  String? countryFlag =
+      countryName == null ? null : _resolveCountry(countryName)?.flag;
 
   if (original.isEmpty) {
     return ItemTitlePresentation(
       name: rawName.trim(),
       type: fallbackType,
       packagingType: packagingType,
+      material: _cleanType(storedMaterial),
+      countryName: countryName,
+      countryFlag: countryFlag,
+      volumeLiters: storedVolumeLiters,
+      weightKilograms: storedWeightKilograms,
+      alcoholPercent: storedAlcoholPercent,
     );
   }
 
@@ -130,11 +220,15 @@ ItemTitlePresentation presentItemName({
   cleaned = _trimSeparators(_normalizeSpaces(cleaned));
   final extractedCountry = _extractCountry(cleaned);
   if (extractedCountry != null) {
-    countryName = extractedCountry.label;
-    countryFlag = extractedCountry.flag;
+    countryName ??= extractedCountry.label;
+    if (countryName == extractedCountry.label) {
+      countryFlag ??= extractedCountry.flag;
+    }
     cleaned = extractedCountry.cleaned;
   }
-  final extractedSpecs = _extractInlineSpecs(cleaned);
+  final extractedSpecs = _extractInlineSpecs(cleaned,
+      allowImplicitVolume:
+          allowImplicitVolume && storedWeightKilograms == null);
   cleaned = extractedSpecs.cleaned;
   if (cleaned.isEmpty) {
     cleaned = original;
@@ -147,8 +241,10 @@ ItemTitlePresentation presentItemName({
     packagingType: packagingType,
     countryName: countryName,
     countryFlag: countryFlag,
-    volumeLiters: extractedSpecs.volumeLiters,
-    alcoholPercent: extractedSpecs.alcoholPercent,
+    material: _cleanType(storedMaterial),
+    volumeLiters: storedVolumeLiters ?? extractedSpecs.volumeLiters,
+    weightKilograms: storedWeightKilograms ?? extractedSpecs.weightKilograms,
+    alcoholPercent: storedAlcoholPercent ?? extractedSpecs.alcoholPercent,
   );
 }
 
@@ -218,7 +314,8 @@ _CountryExtraction? _extractCountry(String text) {
       continue;
     }
 
-    final cleaned = _trimSeparators(_normalizeSpaces(_removeMatch(text, match)));
+    final cleaned =
+        _trimSeparators(_normalizeSpaces(_removeMatch(text, match)));
     if (!_looksLikeValidRemainder(cleaned)) {
       continue;
     }
@@ -245,10 +342,12 @@ _ResolvedCountry? _resolveCountry(String rawCountry) {
   return null;
 }
 
-_ExtractedSpecs _extractInlineSpecs(String text) {
+_ExtractedSpecs _extractInlineSpecs(String text,
+    {required bool allowImplicitVolume}) {
   var cleaned = text;
   double? volumeLiters;
   double? alcoholPercent;
+  double? weightKilograms;
 
   while (true) {
     final before = cleaned;
@@ -261,6 +360,14 @@ _ExtractedSpecs _extractInlineSpecs(String text) {
       }
     }
 
+    if (weightKilograms == null) {
+      final weight = _extractWeight(cleaned);
+      if (weight != null) {
+        weightKilograms = weight.value;
+        cleaned = weight.cleaned;
+      }
+    }
+
     if (volumeLiters == null) {
       final explicitVolume = _extractExplicitVolume(cleaned);
       if (explicitVolume != null) {
@@ -269,7 +376,9 @@ _ExtractedSpecs _extractInlineSpecs(String text) {
       }
     }
 
-    if (volumeLiters == null) {
+    if (volumeLiters == null &&
+        weightKilograms == null &&
+        allowImplicitVolume) {
       final implicitVolume = _extractImplicitVolume(cleaned);
       if (implicitVolume != null) {
         volumeLiters = implicitVolume.value;
@@ -287,7 +396,26 @@ _ExtractedSpecs _extractInlineSpecs(String text) {
     cleaned: cleaned,
     volumeLiters: volumeLiters,
     alcoholPercent: alcoholPercent,
+    weightKilograms: weightKilograms,
   );
+}
+
+_MetricExtraction? _extractWeight(String text) {
+  final pattern = RegExp(
+    r'(^|[\s\-\.,:|/()]+)(\d+(?:[\.,]\d+)?)\s*(кг|kg|г|g)(?=$|[\s\-\.,:|/()]+)',
+    caseSensitive: false,
+  );
+  for (final match in pattern.allMatches(text)) {
+    final value = _parseMetric(match.group(2));
+    if (value == null || !value.isFinite || value <= 0) continue;
+    final cleaned = _removeMatch(text, match);
+    if (!_looksLikeValidRemainder(cleaned)) continue;
+    final unit = match.group(3)!.toLowerCase();
+    return _MetricExtraction(
+        cleaned: cleaned,
+        value: const ['г', 'g'].contains(unit) ? value / 1000 : value);
+  }
+  return null;
 }
 
 _MetricExtraction? _extractAlcoholPercent(String text) {
@@ -357,7 +485,8 @@ _MetricExtraction? _extractImplicitVolume(String text) {
 
     final liters = _normalizeImplicitVolume(
       value,
-      allowShiftedFraction: rawValue != null && (rawValue.contains('.') || rawValue.contains(',')),
+      allowShiftedFraction: rawValue != null &&
+          (rawValue.contains('.') || rawValue.contains(',')),
     );
     if (liters == null) {
       continue;
@@ -398,7 +527,8 @@ double? _normalizeExplicitVolume(double value, String unit) {
   return _normalizeMetric(liters);
 }
 
-double? _normalizeImplicitVolume(double value, {required bool allowShiftedFraction}) {
+double? _normalizeImplicitVolume(double value,
+    {required bool allowShiftedFraction}) {
   if (value >= 0.05 && value <= 2.5) {
     return _normalizeMetric(value);
   }
@@ -428,7 +558,8 @@ double _normalizeMetric(double value) {
 String _removeMatch(String text, RegExpMatch match) {
   final leading = text.substring(0, match.start).trimRight();
   final trailing = text.substring(match.end).trimLeft();
-  return _normalizeSpaces([leading, trailing].where((part) => part.isNotEmpty).join(' '));
+  return _normalizeSpaces(
+      [leading, trailing].where((part) => part.isNotEmpty).join(' '));
 }
 
 List<String> _buildRules(String? categoryName) {
@@ -480,7 +611,8 @@ bool _looksLikeValidRemainder(String value) {
     return false;
   }
 
-  final tokenCount = value.split(RegExp(r'\s+')).where((token) => token.isNotEmpty).length;
+  final tokenCount =
+      value.split(RegExp(r'\s+')).where((token) => token.isNotEmpty).length;
   if (tokenCount == 0) {
     return false;
   }
@@ -501,19 +633,8 @@ String _trimSeparators(String value) {
   return value.replaceAll(RegExp(r'^[\s\-\.,:|/]+|[\s\-\.,:|/]+$'), '').trim();
 }
 
-String _formatMetricValue(double value) {
-  final normalized = _normalizeMetric(value);
-  if ((normalized - normalized.roundToDouble()).abs() < 0.001) {
-    return normalized.toStringAsFixed(0);
-  }
-  if ((normalized * 10 - (normalized * 10).roundToDouble()).abs() < 0.001) {
-    return normalized.toStringAsFixed(1).replaceAll('.', ',');
-  }
-  if ((normalized * 100 - (normalized * 100).roundToDouble()).abs() < 0.001) {
-    return normalized.toStringAsFixed(2).replaceAll('.', ',');
-  }
-  return normalized.toStringAsFixed(3).replaceAll('.', ',');
-}
+String _formatMetricValue(double value) =>
+    formatQuantity(value, '').replaceAll('.', ',');
 
 String? _cleanType(String? value) {
   final trimmed = value?.trim();
@@ -537,11 +658,13 @@ class _ExtractedSpecs {
   final String cleaned;
   final double? volumeLiters;
   final double? alcoholPercent;
+  final double? weightKilograms;
 
   const _ExtractedSpecs({
     required this.cleaned,
     required this.volumeLiters,
     required this.alcoholPercent,
+    required this.weightKilograms,
   });
 }
 

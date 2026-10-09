@@ -6,6 +6,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
+import '../ui/surfaces.dart';
 import '../utils/api.dart';
 import '../utils/web_window.dart';
 import 'card_flow.dart';
@@ -47,7 +48,7 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _flow.awaiting) _flow.refresh();
+    if (state == AppLifecycleState.resumed) _flow.refresh();
   }
 
   @override
@@ -63,7 +64,64 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
     final palette = context.palette;
     return Scaffold(
       backgroundColor: palette.background,
+      extendBody: true,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: EdgeInsets.fromLTRB(
+            32, 12, 32, MediaQuery.paddingOf(context).bottom + 24),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 576),
+            child: AppGlassPanel(
+              radius: AppRadii.pill,
+              tint: _flow.canAdd ? palette.accentSoft : palette.surfaceMuted,
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: const ValueKey('add-card-button'),
+                  onPressed: _flow.canAdd ? _flow.addCard : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    minimumSize: const Size(44, 52),
+                    textStyle: AppTypography.title,
+                    shape: const StadiumBorder(),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_flow.preparing)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        const Icon(Icons.add, size: 24),
+                      const SizedBox(width: AppSpacing.lg),
+                      Flexible(
+                        child: Text(
+                          _flow.preparing
+                              ? 'Открываем банк…'
+                              : _flow.addState == CardAddState.launchFailed
+                                  ? 'Открыть форму снова'
+                                  : 'Добавить новую карту',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
+        bottom: false,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
@@ -72,117 +130,100 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: AppTopBar(
-                      title: 'Мои карты',
-                      onBack: () => Navigator.of(context).maybePop()),
+                    title: 'Мои карты',
+                    onBack: () => Navigator.of(context).maybePop(),
+                  ),
                 ),
                 Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _flow.refresh,
-                    child: CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        if (_flow.message != null)
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            sliver: SliverToBoxAdapter(
-                                child: CardFlowFeedback(flow: _flow)),
-                          ),
-                        if (_flow.loading)
+                  child: Builder(builder: (context) {
+                    final footerSpace = MediaQuery.paddingOf(context).bottom;
+                    final empty = !_flow.loading &&
+                        _flow.error == null &&
+                        _flow.partialWarning == null &&
+                        _flow.cards.isEmpty;
+                    return RefreshIndicator(
+                      onRefresh: _flow.refresh,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
                           const SliverToBoxAdapter(
-                              child: SizedBox(height: 120, child: AppLoading()))
-                        else ...[
+                              child: SizedBox(height: 24)),
+                          if (_flow.message != null)
+                            SliverPadding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              sliver: SliverToBoxAdapter(
+                                  child: CardFlowFeedback(flow: _flow)),
+                            ),
+                          if (!empty)
+                            const SliverPadding(
+                              padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              sliver:
+                                  SliverToBoxAdapter(child: CardFaqPanel()),
+                            ),
+                          if (_flow.loading)
+                            const SliverToBoxAdapter(
+                              child:
+                                  SizedBox(height: 120, child: AppLoading()),
+                            ),
                           if (_flow.error != null ||
                               _flow.partialWarning != null)
                             SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 24),
                               sliver: SliverToBoxAdapter(
                                   child: CardReadFeedback(flow: _flow)),
-                            )
-                          else if (_flow.cards.isEmpty)
-                            const SliverToBoxAdapter(
-                              child: AppEmptyState(
-                                title: 'Добавленных карт нет',
-                                subtitle:
-                                    'Добавьте карту в защищённой форме банка, и она появится здесь после обновления списка',
-                              ),
                             ),
-                          if (_flow.error == null && _flow.cards.isNotEmpty)
+                          if (_flow.cards.isNotEmpty)
                             SliverPadding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 16),
                               sliver: SliverList.builder(
                                 itemCount: _flow.cards.length,
-                                itemBuilder: (_, index) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: SavedCardRow(
-                                      card: _flow.cards[index],
+                                itemBuilder: (_, index) {
+                                  final card = _flow.cards[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: SavedCardRow(
+                                      card: card,
                                       key: ValueKey(
-                                          'saved-card-${_flow.cards[index].id}')),
-                                ),
+                                          'saved-card-${card.rowKey}'),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                          const SliverPadding(
-                            padding: EdgeInsets.fromLTRB(16, 24, 16, 24),
-                            sliver: SliverToBoxAdapter(child: CardFaqPanel()),
-                          ),
-                          if (!_flow.awaiting)
+                          if (empty)
+                            SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                    16, 24, 16, footerSpace + 16),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const AppEmptyState(
+                                      title: 'Добавленных карт нет',
+                                      subtitle:
+                                          'Добавьте карту в защищённой форме банка, и она появится здесь после обновления списка',
+                                    ),
+                                    const SizedBox(height: 24),
+                                    const CardFaqPanel(),
+                                    _refreshAction(),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else ...[
+                            if (!_flow.awaiting)
+                              SliverToBoxAdapter(child: _refreshAction()),
                             SliverToBoxAdapter(
-                              child: Center(
-                                child: TextButton(
-                                  key: const ValueKey('refresh-card-list'),
-                                  onPressed:
-                                      _flow.preparing ? null : _flow.refresh,
-                                  child: const Text('Обновить список'),
-                                ),
-                              ),
-                            ),
-                        ],
-                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      key: const ValueKey('add-card-button'),
-                      onPressed: _flow.canAdd ? _flow.addCard : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: palette.accentSoft,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        minimumSize: const Size(44, 49),
-                        textStyle: AppTypography.title,
-                        shape: const StadiumBorder(),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_flow.preparing)
-                            const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                          else
-                            const Icon(Icons.add, size: 24),
-                          const SizedBox(width: AppSpacing.lg),
-                          Flexible(
-                              child: Text(
-                            _flow.preparing
-                                ? 'Открываем банк…'
-                                : _flow.addState == CardAddState.launchFailed
-                                    ? 'Открыть форму снова'
-                                    : 'Добавить новую карту',
-                            textAlign: TextAlign.center,
-                          )),
+                                child: SizedBox(height: footerSpace + 16)),
+                          ],
                         ],
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 ),
               ],
             ),
@@ -191,4 +232,12 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
       ),
     );
   }
+
+  Widget _refreshAction() => Center(
+        child: TextButton(
+          key: const ValueKey('refresh-card-list'),
+          onPressed: _flow.preparing || _flow.loading ? null : _flow.refresh,
+          child: const Text('Обновить список'),
+        ),
+      );
 }

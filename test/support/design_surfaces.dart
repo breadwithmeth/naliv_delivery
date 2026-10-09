@@ -27,7 +27,7 @@ import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/notification_settings_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
 import 'package:naliv_delivery/utils/smart_cart.dart';
-import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
+import 'package:naliv_delivery/utils/promotion_engine.dart';
 import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:naliv_delivery/features/home/home_view_data.dart';
@@ -122,7 +122,8 @@ enum CardFixtureScenario {
 const surfaceFixturePreferences = <String, Object>{
   'telemetry_consent_enabled': false,
   'auth_token': 'fixture-only',
-  'chat_widget_session': '{"id":"fixture-session","token":"fixture-chat"}',
+  'chat_widget_session':
+      '{"id":"fixture-session","token":"fixture-chat","identity":"999"}',
   'onboarding_selected_city': 'Караганда',
   'selected_business':
       '{"id":1,"name":"Тестовый магазин","address":"Тестовый адрес, 16","city":"Караганда","city_id":2}',
@@ -197,7 +198,7 @@ const _fixtureOrder = <String, dynamic>{
 };
 
 const _sampleAddress = 'Тестовый адрес, 16';
-const _sampleName = 'Aperol, Аперитив, Италия, 0,5 л';
+const _sampleName = 'Aperol';
 
 const _homeData = HomeViewData(
   storeName: 'Тестовый магазин',
@@ -221,26 +222,24 @@ const _homeData = HomeViewData(
   ],
 );
 
-Item _sampleItem(int id, {String category = 'Аперитив'}) => Item(
-      itemId: id,
-      name: _sampleName,
-      price: 13170,
-      image: '',
-      amount: 20,
-      unit: 'шт.',
-      category: ItemCategory(categoryId: 10, name: category),
-    );
+Item _sampleItem(int id, {String category = 'Аперитив'}) => Item.fromJson({
+      'item_id': id,
+      'name': _sampleName,
+      'price': 13170,
+      'image': '',
+      'amount': 20,
+      'unit': 'шт.',
+      'item_type': 'Аперитив',
+      'country_name': 'Италия',
+      'volume_liters': .5,
+      'category': {'category_id': 10, 'name': category},
+    });
 
 final List<ProductView> _products = [
   for (var id = 100; id < 109; id++)
     ProductView.fromItem(_sampleItem(id, category: 'Белое')),
 ];
 
-CartProvider _cartFor(String surface) {
-  final cart = CartProvider();
-  if (surface == 'cart' || surface.startsWith('checkout_')) _seedCart(cart);
-  return cart;
-}
 
 void _seedCart(CartProvider cart) {
   for (final (id, quantity) in [(100, 1.0), (101, 6.0), (102, 1.0)]) {
@@ -257,6 +256,33 @@ void _seedCart(CartProvider cart) {
       itemData: item.toJson(),
     ));
   }
+  // One row carries a live `2+1` promotion so the shell exercises the gift line: two paid units
+  // gift one, and the row must show the free unit at 0 ₸ with the rule that produced it.
+  final gifted = _sampleItem(109);
+  cart.addItem(CartItem(
+    itemId: gifted.itemId,
+    name: gifted.name,
+    price: gifted.price,
+    quantity: 2,
+    stepQuantity: 1,
+    image: gifted.image,
+    selectedVariants: const [],
+    promotions: const [
+      {
+        'detail_id': 8692,
+        'type': 'SUBTRACT',
+        'base_amount': 2,
+        'add_amount': 1,
+        'name': '2+1',
+        'promotion': {
+          'marketing_promotion_id': 355,
+          'name': 'Выгодный розлив',
+          'end_promotion_date': '2999-01-01T00:00:00.000Z',
+        },
+      },
+    ],
+    itemData: gifted.toJson(),
+  ));
 }
 
 // Only explicitly recognized synthetic operations are accepted; unknown calls
@@ -480,14 +506,25 @@ class SurfaceFixtureClient extends MockClient {
         url.path == '/api/items/search' &&
         const {'1', '2'}.contains(url.queryParameters['business_id']) &&
         url.queryParameters['page'] == '1' &&
-        url.queryParameters['limit'] == '40' &&
+        const {'40', '100'}.contains(url.queryParameters['limit']) &&
         (url.queryParameters['name']?.trim().isNotEmpty ?? false) &&
         url.queryParameters.length == 4) {
       return _json({
         'success': true,
         'data': {
           'items': [
-            if (url.queryParameters['name'] != 'нет')
+            if (url.queryParameters['name'] == 'майка')
+              {
+                'item_id': 48044,
+                'name': 'Майка фирменная',
+                'code': 'KR-00002264',
+                'price': 30,
+                'amount': 100,
+                'quantity_step': 1,
+                'unit': 'шт',
+                'visible': 1,
+              }
+            else if (url.queryParameters['name'] != 'нет')
               for (var id = 100; id < 103; id++) _sampleItem(id).toJson(),
           ],
           'pagination': {'page': 1, 'total_pages': 1},
@@ -985,10 +1022,10 @@ class DesignSurfaceApp extends StatefulWidget {
 }
 
 class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
-  late final CartProvider _cart = _cartFor(widget.surface);
+  final CartProvider _cart = CartProvider();
   final ThemeController _theme = ThemeController();
   final BusinessProvider _business = BusinessProvider();
-  late final Future<void> _businessReady = _business.loadSavedBusiness();
+  late final Future<void> _businessReady = _prepareSurface();
   var _navigatorKey = GlobalKey<NavigatorState>();
   late String _surface = widget.surface;
   ChatApiService? _chatService;
@@ -1004,6 +1041,17 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         ? CardFixtureScenario.empty
         : widget.cardScenario);
     SurfaceFixtureClient.useCartForOrders(_cart);
+  }
+
+  Future<void> _prepareSurface() async {
+    await _cart.ensureLoaded();
+    if (!await _cart.bindBusiness(1)) {
+      throw StateError('Fixture cart could not bind to synthetic business 1');
+    }
+    await _business.loadSavedBusiness();
+    if (_surface == 'cart' || _surface.startsWith('checkout_')) {
+      _seedCart(_cart);
+    }
   }
 
   Future<AddressLocateResult> _locateFixtureAddress() async =>
@@ -1303,7 +1351,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           cartItemCount: _cart.displayItemCount,
           cartTotal: _cart.displayItemCount == 0
               ? null
-              : _cart.getTotalPrice().round(),
+              : _cart.getTotalPrice(),
           onProfile: () => _select('profile_guest'),
           onCallCenter: () => _openFixtureSupport(context),
           onLiked: () => _select('favorites'),

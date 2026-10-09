@@ -1,4 +1,5 @@
 import '../../utils/api.dart';
+import '../../pages/card_flow.dart';
 
 class ProfileAccount {
   const ProfileAccount({
@@ -19,9 +20,16 @@ class ProfileAccount {
       throw const FormatException('Account identity is missing');
     }
     final addresses = _records(info['addresses']);
-    final cards = _records(info['cards']);
-    final mask =
-        cards == null || cards.isEmpty ? null : _text(cards.first['mask']);
+    final rawCards = info['cards'];
+    if (rawCards != null && rawCards is! List) {
+      throw const FormatException('Invalid account card list');
+    }
+    final cards = rawCards is List ? rawCards.whereType<Map>().toList() : null;
+    final partialCards = rawCards is List && cards!.length != rawCards.length;
+    String? mask;
+    for (final card in cards ?? const <Map>[]) {
+      mask ??= SavedCard.safeMask(card['card_mask'] ?? card['mask']);
+    }
     return ProfileAccount(
       name: _text(user['name']),
       phone: _text(user['login']),
@@ -34,9 +42,12 @@ class ProfileAccount {
       cardsSummary: cards == null
           ? null
           : cards.isEmpty
-              ? 'Добавленных карт нет'
+              ? partialCards
+                  ? 'Не удалось прочитать данные карт'
+                  : 'Добавленных карт нет'
               : '${_count(cards.length, 'карта', 'карты', 'карт')}'
-                  '${mask == null ? '' : ' · $mask'}',
+                  '${mask == null ? '' : ' · $mask'}'
+                  '${partialCards ? ' · Список неполный' : ''}',
     );
   }
 

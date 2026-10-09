@@ -149,7 +149,7 @@ class _SearchPageState extends State<SearchPage> {
               child: Center(
                 child: AppCartButton(
                   itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice().round(),
+                  total: count == 0 ? null : cart.getTotalPrice(),
                   onTap: widget.onCart,
                 ),
               ),
@@ -178,7 +178,8 @@ class _SearchPageState extends State<SearchPage> {
         AppSpacing.xxxl,
         0,
         AppSpacing.xxxl,
-        AppCartButton.clearanceFor(context) + MediaQuery.paddingOf(context).bottom,
+        AppCartButton.clearanceFor(context) +
+            MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: results.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum OrderPaymentOutcome { completed, refused, pending, unknown }
@@ -125,6 +127,33 @@ class OrderPaymentGuard {
         : state;
   }
 
+  static Future<String?> readKaspiLink(String orderId) async {
+    if (await read(orderId) != OrderPaymentState.unconfirmed) return null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final raw = prefs.get(preferenceKey(orderId));
+      if (raw is! String || !raw.startsWith('{')) return null;
+      final stored = jsonDecode(raw);
+      if (stored is! Map || stored['state'] != 'unconfirmed') return null;
+      final link = stored['kaspiLink'];
+      return link is String && link.isNotEmpty ? link : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> retainKaspiLink(String orderId, String link) async {
+    if (!_busy.contains(orderId.trim()) ||
+        await _readStored(orderId) != OrderPaymentState.unconfirmed) {
+      return false;
+    }
+    return _store(orderId, jsonEncode({
+      'state': 'unconfirmed',
+      'kaspiLink': link,
+    }));
+  }
+
   static Future<bool> _store(String orderId, String? value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -171,6 +200,9 @@ class OrderPaymentGuard {
       if (await _store(orderId, 'completed')) {
         _unpersistedCompletions.remove(orderId.trim());
       }
+      return OrderPaymentState.completed;
+    }
+    if (await _readStored(orderId) == OrderPaymentState.completed) {
       return OrderPaymentState.completed;
     }
     if (outcome == OrderPaymentOutcome.refused) {

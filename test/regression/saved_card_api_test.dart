@@ -44,9 +44,12 @@ void main() {
     await http.runWithClient(() async {
       final result =
           SavedCard.parse(await ApiService.getUserCards(source: 'halyk'));
-      expect(result.cards.single.id, 'chargeable-bank-id');
-      expect(result.cards.single.mask, '****4444');
-      expect(result.rejectedCount, 3);
+      expect(result.cards.where((card) => card.canCharge).single.chargeId,
+          'chargeable-bank-id');
+      expect(result.cards.map((card) => card.mask), ['****4444', '****1234']);
+      expect(result.cards.last.chargeId, isNull);
+      expect(result.rejectedCount, 2);
+      expect(result.complete, isFalse);
     }, () => client);
   });
 

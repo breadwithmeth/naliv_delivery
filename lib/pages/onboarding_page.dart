@@ -8,6 +8,7 @@ import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/services/telemetry_consent_service.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
+import 'package:naliv_delivery/ui/app_icon.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
 import 'package:naliv_delivery/ui/surfaces.dart';
 import 'package:naliv_delivery/utils/api.dart';
@@ -473,7 +474,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Выберите город', style: AppTypography.displayBold),
+        Text('Выберите город', style: AppTypography.headline),
         const SizedBox(height: AppSpacing.xl),
         _message('Покажем магазины в выбранном городе. '
             'Точный адрес можно добавить позже.'),
@@ -523,12 +524,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
           child: Column(
             children: [
               for (final city in _cities) ...[
-                Material(
-                  color: city.name == _selectedCity
+                AppGlassPanel(
+                  tint: city.name == _selectedCity
                       ? palette.accentFaint
-                      : palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                  clipBehavior: Clip.antiAlias,
+                      : palette.surface.withValues(alpha: .75),
+                  radius: AppRadii.lg,
                   child: RadioListTile<String>(
                     key: ValueKey('onboarding-city-${city.id}'),
                     value: city.name,
@@ -557,12 +557,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _message(_saveError!, error: true),
           const SizedBox(height: AppSpacing.xl),
         ],
-        FilledButton(
-          key: const ValueKey('onboarding-continue'),
-          onPressed: _saving || _loadingCities || !_validSelection
-              ? null
-              : _continueCity,
-          child: Text(_saving ? 'Сохраняем…' : 'Продолжить'),
+        AppGlassPanel(
+          radius: AppRadii.pill,
+          tint: palette.accentSoft,
+          child: TextButton(
+            key: const ValueKey('onboarding-continue'),
+            onPressed: _saving || _loadingCities || !_validSelection
+                ? null
+                : _continueCity,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              foregroundColor: Colors.black,
+            ),
+            child: Text(_saving ? 'Сохраняем…' : 'Продолжить',
+                style: AppTypography.titleMedium),
+          ),
         ),
       ],
     );
@@ -572,7 +582,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Настройте приложение', style: AppTypography.displayBold),
+        Text('Настройте приложение', style: AppTypography.headline),
         const SizedBox(height: AppSpacing.xl),
         _message('Город: $_selectedCity. Все разрешения необязательны.'),
         const SizedBox(height: AppSpacing.huge),
@@ -646,10 +656,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _message(_saveError!, error: true),
         ],
         const SizedBox(height: AppSpacing.huge),
-        FilledButton(
-          key: const ValueKey('onboarding-complete'),
-          onPressed: _saving || _loadingConsent ? null : _complete,
-          child: Text(_saving ? 'Сохраняем…' : 'Начать пользоваться'),
+        AppGlassPanel(
+          radius: AppRadii.pill,
+          tint: context.palette.accentSoft,
+          child: TextButton(
+            key: const ValueKey('onboarding-complete'),
+            onPressed: _saving || _loadingConsent ? null : _complete,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              foregroundColor: Colors.black,
+            ),
+            child: Text(_saving ? 'Сохраняем…' : 'Начать пользоваться',
+                style: AppTypography.titleMedium),
+          ),
         ),
         TextButton(
           key: const ValueKey('onboarding-back'),
@@ -690,6 +710,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       onBack: _saving ? null : _back,
                     ),
                     const SizedBox(height: AppSpacing.xxxl),
+                    Center(
+                      child: AppIcon(
+                        AppIcons.wordmark,
+                        width: 164,
+                        height: 36,
+                        color: context.palette.accent,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.huge),
                     Semantics(
                       label: 'Шаг ${_step + 1} из 2',
                       child: Text(

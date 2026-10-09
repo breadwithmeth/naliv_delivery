@@ -49,3 +49,23 @@ Map<String, dynamic>? checkoutCreatedOrder(Map<String, dynamic> response) {
   if (numericId != null && (!numericId.isFinite || numericId <= 0)) return null;
   return order;
 }
+
+/// Explains a divergence between the amount the cart calculated and the amount the server charged.
+///
+/// The client sends its own `total_amount`; the server recomputes promotions, delivery and fees from
+/// the submitted basket. A difference above [tolerance] tenge is real, so the customer is told which
+/// two figures disagree instead of discovering it on a receipt. Returns null when the two agree, when
+/// either figure is missing, or when they differ only by rounding.
+String? checkoutAmountNotice({
+  required double? clientAmount,
+  required num? serverAmount,
+  double tolerance = 1,
+}) {
+  if (clientAmount == null || serverAmount == null) return null;
+  final client = clientAmount;
+  final server = serverAmount.toDouble();
+  if (!client.isFinite || !server.isFinite) return null;
+  if ((server - client).abs() <= tolerance) return null;
+  return 'Магазин пересчитал сумму: ${server.round()} ₸ вместо ${client.round()} ₸. '
+      'Проверьте состав заказа перед оплатой.';
+}

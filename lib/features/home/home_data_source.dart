@@ -19,10 +19,16 @@ import 'home_view_data.dart';
 ///   is the raw `cardUuid`, which is what the existing main page already sends to the till.
 /// * **Notifications** — no unread-count endpoint exists; the header opens preferences.
 class HomeDataSource {
-  const HomeDataSource({this.businessId});
+  const HomeDataSource({
+    this.businessId,
+    this.allowDefaultBusiness = true,
+    this.onBusinessSelected,
+  });
 
-  /// Store to show in the address card; falls back to the first business returned.
+  // An explicit persisted cart store must never fall back to another store.
   final int? businessId;
+  final bool allowDefaultBusiness;
+  final Future<bool> Function(Map<String, dynamic> business)? onBusinessSelected;
 
   Future<HomeViewData> load() async {
     final businessesFuture = ApiService.getBusinesses(page: 1, limit: 1000);
@@ -43,6 +49,11 @@ class HomeDataSource {
 
       final business = _pickBusiness(businesses);
       final storeId = business == null ? null : _int(business['id']);
+      if (business != null &&
+          onBusinessSelected != null &&
+          !await onBusinessSelected!(business)) {
+        throw StateError('Не удалось сохранить выбранный магазин');
+      }
       final supercategories = _listOf(core[1], 'supercategories');
       final ordered = [...supercategories]
         ..sort((a, b) => _int(b['priority']).compareTo(_int(a['priority'])));
@@ -92,15 +103,16 @@ class HomeDataSource {
       ];
 
       return HomeViewData(
-        storeName: _string(business?['name']) ?? 'Градусы24',
-        storeAddress: _string(business?['address']) ?? '',
+        storeName: _string(business?['name']) ?? 'Выберите магазин',
+        storeAddress: _string(business?['address']) ??
+            'Магазин сохранённой корзины не определён',
         storeId: storeId,
         stores: stores,
         activeOrder: activeOrder,
         signedIn: signedIn,
         bonusBalance: bonuses?['totalBonuses'] is num
-            ? (bonuses!['totalBonuses'] as num).toInt()
-            : int.tryParse('${bonuses?['totalBonuses'] ?? ''}'),
+            ? bonuses!['totalBonuses'] as num
+            : num.tryParse('${bonuses?['totalBonuses'] ?? ''}'),
         bonusCardCode: _string(bonuses?['bonusCard']?['cardUuid']),
         banners: _banners(promotions),
         promoCard: promoSuper == null
@@ -207,8 +219,9 @@ class HomeDataSource {
       for (final b in businesses) {
         if (_int(b['id']) == businessId) return b;
       }
+      throw StateError('Магазин сохранённой корзины недоступен');
     }
-    return businesses.first;
+    return allowDefaultBusiness ? businesses.first : null;
   }
 
   List<HomeBanner> _banners(List<Map<String, dynamic>> promotions) {

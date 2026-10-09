@@ -27,6 +27,12 @@ void main() {
   testWidgets('partial preview does not become a fabricated order total',
       (tester) async {
     final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/bonuses') {
+        return http.Response(jsonEncode({
+          'success': true,
+          'data': {'totalBonuses': 0, 'bonusHistory': <Object>[]},
+        }), 200);
+      }
       if (request.method != 'GET' || request.url.path != '/api/orders/45') {
         throw StateError('Unexpected request: ${request.url}');
       }

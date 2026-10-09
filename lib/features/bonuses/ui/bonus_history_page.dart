@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../ui/app_states.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../design/theme.dart';
@@ -12,71 +13,84 @@ import '../../../ui/app_top_bar.dart';
 import '../../../utils/api.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../pages/order_detail_page.dart';
+import '../../../ui/surfaces.dart';
+import '../bonus_account.dart';
+import 'bonus_how_it_works_page.dart';
+import 'bonus_ledger_row.dart';
 
-/// Bonus balance and history — the design's `История бонусов` frames.
-///
-/// Geometry: the standard top bar, a «Баланс» header at y = 151, a 343 × 56 balance card at
-/// y = 193 holding the total (32/900, accent) with a «Как работают бонусы?» link on the right,
-/// then «История» at y = 281 and 343 × 63 rows at a 71 px pitch. The empty state is a single
-/// centred «История пуста» in muted 20/700 at y = 393.
-///
-/// **The design's row title has no data source.** Every history entry from `/bonuses` is
-/// `{bonusId, organizationId, amount, timestamp}` — there is no order reference and no entry
-/// type, so «Заказ №45» from the frame cannot be rendered. The row shows the signed amount and
-/// its date instead; recorded in `docs/redesign/STATUS.md`.
+/// Displays the latest server balance and signed ledger operations.
 class BonusHistoryPage extends StatefulWidget {
   const BonusHistoryPage({this.onHowItWorks, this.onCart, super.key});
 
   /// Opens the «Как работают бонусы» explainer.
-  final VoidCallback? onHowItWorks;
+  final FutureOr<void> Function()? onHowItWorks;
   final VoidCallback? onCart;
 
   @override
   State<BonusHistoryPage> createState() => _BonusHistoryPageState();
 }
 
-class _BonusHistoryPageState extends State<BonusHistoryPage> {
-  int? _balance;
-  List<Map<String, dynamic>>? _history;
+class _BonusHistoryPageState extends State<BonusHistoryPage>
+    with WidgetsBindingObserver {
+  BonusAccount? _account;
+  bool _loading = false;
   bool _failed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
   Future<void> _load() async {
+    if (_loading) return;
     setState(() {
+      _loading = true;
       _failed = false;
-      _balance = null;
-      _history = null;
     });
     try {
-      final response = await ApiService.getUserBonuses();
-      final data = response?['data'];
-      if (response?['success'] != true || data is! Map) {
-        throw StateError('Bonus data is unavailable');
-      }
-      final rawBalance = data['totalBonuses'];
-      final balance =
-          rawBalance is num ? rawBalance.toInt() : int.tryParse('$rawBalance');
-      final history = data['bonusHistory'];
-      if (balance == null || history is! List) {
-        throw StateError('Bonus balance or history is unavailable');
-      }
-      if (!mounted) return;
-      setState(() {
-        _balance = balance;
-        _history = [
-          for (final entry in history)
-            if (entry is Map) entry.cast<String, dynamic>(),
-        ];
-      });
+      final account =
+          BonusAccount.fromResponse(await ApiService.getUserBonuses());
+      if (mounted) setState(() => _account = account);
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _failed = true);
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _openHowItWorks() async {
+    final open = widget.onHowItWorks;
+    if (open != null) {
+      await open();
+    } else {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const BonusHowItWorksPage(),
+      ));
+    }
+    if (mounted) await _load();
+  }
+
+  Future<void> _openOrder(BonusLedgerEntry entry) async {
+    final id = int.tryParse(entry.orderId ?? '');
+    if (id == null) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OrderDetailPage(order: {'order_id': id}),
+    ));
+    if (mounted) await _load();
   }
 
   @override
@@ -84,215 +98,196 @@ class _BonusHistoryPageState extends State<BonusHistoryPage> {
     final palette = context.palette;
     final cart = context.watch<CartProvider>();
     final count = cart.displayItemCount;
-
+    final account = _account;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Stack(
               children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(
-                    title: 'Баланс бонусов по времени',
-                    onBack: () => Navigator.of(context).maybePop(),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.huge),
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.only(
-                      bottom: AppCartButton.clearanceFor(context) +
-                          MediaQuery.paddingOf(context).bottom,
+                Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: AppTopBar(
+                        title: 'Баланс бонусов по времени',
+                        onBack: () => Navigator.of(context).maybePop(),
+                      ),
                     ),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xxxl),
-                        child: Row(
-                          children: [
-                            const AppIcon(AppIcons.bonusStar, size: 24),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              'Баланс',
-                              style: AppTypography.headline
-                                  .copyWith(color: palette.textPrimary),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _load,
+                        child: CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                              sliver: SliverToBoxAdapter(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        AppIcon(AppIcons.bonusStar,
+                                            size: 22, color: palette.accent),
+                                        const SizedBox(width: 6),
+                                        Text('Баланс',
+                                            style: AppTypography.headline
+                                                .copyWith(
+                                                    color: palette.textPrimary)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _BalanceCard(
+                                      balance: account?.balance,
+                                      onHowItWorks: _openHowItWorks,
+                                    ),
+                                    if (_loading)
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 8),
+                                        child: LinearProgressIndicator(),
+                                      ),
+                                    if (_failed)
+                                      AppErrorState(
+                                        message: account == null
+                                            ? 'Не удалось загрузить баланс и историю'
+                                            : 'Не удалось обновить бонусы. Показаны ранее полученные данные.',
+                                        onRetry: _load,
+                                        topOffset: 16,
+                                      ),
+                                    if (account?.history.isNotEmpty == true) ...[
+                                      const SizedBox(height: 28),
+                                      Text('История',
+                                          style: AppTypography.headline
+                                              .copyWith(
+                                                  color: palette.textPrimary)),
+                                      const SizedBox(height: 16),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (account != null && account.history.isEmpty)
+                              const SliverToBoxAdapter(
+                                child: AppEmptyState(
+                                  title: 'История пуста',
+                                  muted: true,
+                                  topOffset: 136,
+                                ),
+                              ),
+                            if (account != null)
+                              SliverPadding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                sliver: SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final entry = account.history[index];
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8),
+                                        child: BonusLedgerRow(
+                                          entry: entry,
+                                          onTap: int.tryParse(
+                                                      entry.orderId ?? '') ==
+                                                  null
+                                              ? null
+                                              : () => _openOrder(entry),
+                                        ),
+                                      );
+                                    },
+                                    childCount: account.history.length,
+                                  ),
+                                ),
+                              ),
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: AppCartButton.clearanceFor(context) +
+                                    MediaQuery.paddingOf(context).bottom,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xxxl),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xxxl),
-                        child: _BalanceCard(
-                          balance: _balance,
-                          onHowItWorks: widget.onHowItWorks,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.huge),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xxxl),
-                        child: Text(
-                          'История',
-                          style: AppTypography.headline
-                              .copyWith(color: palette.textPrimary),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      ..._rows(palette),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                if (widget.onCart != null)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom:
+                        MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
+                    child: Center(
+                      child: AppCartButton(
+                        itemCount: count,
+                        total: count == 0 ? null : cart.getTotalPrice().round(),
+                        onTap: widget.onCart,
+                      ),
+                    ),
+                  ),
               ],
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice().round(),
-                  onTap: widget.onCart,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
-
-  List<Widget> _rows(AppPalette palette) {
-    if (_failed) {
-      return [
-        AppErrorState(
-          message: 'Не удалось загрузить историю',
-          onRetry: _load,
-          topOffset: 180,
-        ),
-      ];
-    }
-    final history = _history;
-    if (history == null) {
-      return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.huge),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ];
-    }
-    if (history.isEmpty) {
-      return const [
-        AppEmptyState(title: 'История пуста', muted: true, topOffset: 80)
-      ];
-    }
-    return [
-      for (final entry in history)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xxxl,
-            0,
-            AppSpacing.xxxl,
-            AppSpacing.md,
-          ),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 63),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xl,
-              vertical: AppSpacing.md,
-            ),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(AppRadii.lg),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _amountLabel(entry['amount']),
-                  style: AppTypography.titleMedium.copyWith(
-                    color: _isCredit(entry['amount'])
-                        ? palette.gold
-                        : palette.textSecondary,
-                  ),
-                ),
-                Text(
-                  _dateLabel(entry['timestamp']),
-                  style: AppTypography.base(size: 12, weight: 400)
-                      .copyWith(color: palette.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ),
-    ];
-  }
-
-  bool _isCredit(Object? amount) => amount is num && amount > 0;
-
-  String _amountLabel(Object? amount) {
-    if (amount is! num) return '—';
-    final value = amount.abs().toInt();
-    final sign = amount < 0 ? '−' : '+';
-    return '$sign$value бонусов';
-  }
-
-  String _dateLabel(Object? timestamp) {
-    final raw = timestamp?.toString();
-    if (raw == null) return '';
-    final date = DateTime.tryParse(raw)?.toLocal();
-    if (date == null) return '';
-    return '${DateFormat('d MMMM', 'ru').format(date)} в '
-        '${DateFormat('HH:mm').format(date)}';
-  }
 }
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.balance, this.onHowItWorks});
+  const _BalanceCard({required this.balance, required this.onHowItWorks});
 
-  final int? balance;
-  final VoidCallback? onHowItWorks;
+  final num? balance;
+  final VoidCallback onHowItWorks;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
+    final amount = Text.rich(
+      TextSpan(children: [
+        TextSpan(
+          text: balance == null ? '—' : bonusNumberLabel(balance!),
+          style: AppTypography.displayLarge.copyWith(color: palette.accent),
+        ),
+        TextSpan(
+          text: ' бонусов',
+          style: AppTypography.bodySmallSemibold
+              .copyWith(color: palette.textSecondary),
+        ),
+      ]),
+      key: const ValueKey('bonus-balance'),
+    );
+    final help = TextButton.icon(
+      key: const ValueKey('bonus-how-it-works'),
+      onPressed: onHowItWorks,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(44, 44),
       ),
-      child: Wrap(
-        spacing: AppSpacing.lg,
-        runSpacing: AppSpacing.md,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Text.rich(TextSpan(
-            children: [
-              TextSpan(
-                text: '${balance ?? '—'}',
-                style:
-                    AppTypography.displayLarge.copyWith(color: palette.accent),
-              ),
-              TextSpan(
-                text: ' бонусов',
-                style: AppTypography.bodySmallSemibold
-                    .copyWith(color: palette.textSecondary),
-              ),
-            ],
-          )),
-          TextButton(
-            onPressed: onHowItWorks,
-            child: const Text('Как работают бонусы?'),
-          ),
-        ],
-      ),
+      icon: const Icon(Icons.open_in_new_rounded, size: 16),
+      label: const Text('Как работают\nбонусы?'),
+    );
+    return AppSurface(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth < 300 ||
+            MediaQuery.textScalerOf(context).scale(16) > 21) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [amount, help],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: amount),
+            const SizedBox(width: 8),
+            help,
+          ],
+        );
+      }),
     );
   }
 }

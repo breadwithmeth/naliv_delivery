@@ -18,12 +18,12 @@ Production verification stays read-only. Preserve the existing API contracts, pa
 
 | Step | Outcome | Gate/status |
 |---|---|---|
-| S1 Test portfolio | Fewer independent, high-signal tests; retain critical journeys and unique failure boundaries | Implemented: 76 low-signal cases removed, five safety regressions added; 226 host cases and one native shopping journey pass |
+| S1 Test portfolio | Fewer independent, high-signal tests; retain critical journeys and unique failure boundaries | Implemented: 76 low-signal cases removed, five safety regressions added; 227 host cases and one native shopping journey pass |
 | S2 Runtime work | Remove proven avoidable requests, blocking work, copying or broad rebuilds | Implemented and measured: warm cart projection reuse; store/category work overlaps bonus/city reads; bootstrap reads coordinated |
 | S3 Internal structure | Remove dead APIs/models and consolidate ownership where it eliminates real duplication | Completed: 16 dead API methods, ten obsolete DTOs and unreachable legal UI removed; one cart model and shared persistence fixture |
 | S4 Dependencies/resources | Remove unused direct packages and orphan bundled resources; simplify configuration | Completed: Markdown and orphan bundled resources removed; Cupertino/legal sources preserved; v21 splash linked to the base bitmap; release bytes down 9.3% |
 | S5 Developer workflow | Useful README, one small verification path, clear test categories and optional expensive visual checks | Completed: README, serial test/analysis/native tasks and duplicate ignore rules; reuse the existing fixture gallery |
-| S6 Integration | Retained suite, actual fixture journeys, analysis, release build/smoke and truthful before/after evidence | Completed: focused 94, full 226 with coverage, one native e2e, clean analysis, both releases built and exercised; measured results below |
+| S6 Integration | Retained suite, actual fixture journeys, analysis, release build/smoke and truthful before/after evidence | Completed: focused 94, full 226 with coverage, one native e2e, clean analysis, both releases built and exercised; measured results below. The later glass/bounds work added one focused regression and re-ran the suite at **227** |
 
 Each step gets its concrete implementation plan below before changes start. Update this document when research changes the scope; complete all reachable steps in this pass rather than parking unspecified follow-ups.
 
@@ -119,5 +119,6 @@ The JavaScript payload is effectively unchanged, not smaller. Dead declarations 
 - Async integration revision: reproduced unhandled bonus/sign-in failures while the store read was pending. Coordinated independent/core/scoped waits preserve failure propagation and overlap; one corrupt-storage regression now catches this boundary. Consent/package reads use the same coordinated-await rule before Sentry.
 - Test move revision: the shared onboarding preference store was still outside the new categories, and one relative import broke. Moved it to `test/support` with LSP and repaired the unresolved caller; the full retained suite and analyzer then passed.
 - Native fixture revision: integration-runner engine callbacks used their registration zone rather than the later HTTP test zone. The first attempt received an unauthenticated production 401; no production mutation occurred. The native test now re-registers the existing frame callbacks in the strict fixture zone and rejects any native HTTP-client escape. The passing journey asserted zero escapes and zero unexpected fixture requests. Plain catalog items correctly open `ProductPage`, not the option editor; the native journey follows that real route, while retained bottling tests cover options.
+- Post-cleanup revision: the user then asked for the design's glass material, a bounded cart control, a smaller add-to-cart confirmation and gutter-bounded category tiles. That work added one focused home bounds regression (**227 host cases**; `dart analyze lib test integration_test tool` clean; coverage **10,389 / 14,122 = 73.57 %**) and left the measured cleanup footprint unchanged. Details and the measured before/after geometry are in `docs/redesign/STATUS.md`.
 
 

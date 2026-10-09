@@ -23,10 +23,12 @@ class ProfileAddressesPage extends StatefulWidget {
   State<ProfileAddressesPage> createState() => _ProfileAddressesPageState();
 }
 
-class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
+class _ProfileAddressesPageState extends State<ProfileAddressesPage>
+    with WidgetsBindingObserver {
   bool _loading = true;
   bool _busy = false;
   String? _error;
+  bool _reading = false;
   List<Map<String, dynamic>> _server = [];
   AddressBookSnapshot _book = const AddressBookSnapshot(
     localAddresses: [],
@@ -37,11 +39,24 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
   Future<void> _load() async {
-    if (_busy) return;
+    if (_busy || _reading) return;
+    _reading = true;
     setState(() {
       _loading = true;
       _error = null;
@@ -68,6 +83,7 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
             'Не удалось обновить адреса. Сохранённые на устройстве адреса остаются доступны.');
       }
     } finally {
+      _reading = false;
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -266,79 +282,103 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage> {
     final palette = context.palette;
     return Scaffold(
       backgroundColor: palette.background,
+      extendBody: true,
       body: SafeArea(
-          child: Center(
-              child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(children: [
-            AppTopBar(
-                title: 'Мои адреса', onBack: () => Navigator.pop(context)),
-            const SizedBox(height: 24),
-            Expanded(
-                child: _loading && entries.isEmpty
-                    ? const AppLoading()
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        child: LayoutBuilder(
-                            builder: (context, constraints) => ListView(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.only(bottom: 24),
-                                  children: [
-                                    if (_loading)
-                                      const LinearProgressIndicator(),
-                                    if (_error != null) ...[
-                                      AppErrorState(
-                                          message: _error!,
-                                          onRetry: _busy ? null : _load),
-                                      const SizedBox(height: 24),
-                                    ],
-                                    if (entries.isEmpty && _error == null)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                            top: constraints.maxHeight > 400
-                                                ? 147
-                                                : 24),
-                                        child: const AppEmptyState(
-                                          title: 'Адресов пока нет',
-                                          subtitle:
-                                              'Добавьте адрес, чтобы мы могли подобрать ближайший магазин и ускорить доставку',
-                                        ),
-                                      ),
-                                    if (entries.isEmpty && _error == null)
-                                      const SizedBox(height: 24),
-                                    _faqCard(empty: entries.isEmpty),
-                                    if (entries.isNotEmpty)
-                                      const SizedBox(height: 24),
-                                    for (final entry in entries) ...[
-                                      _addressCard(entry.address, entry.local),
-                                      const SizedBox(height: 12),
-                                    ],
-                                  ],
-                                )),
-                      )),
-            Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 24),
-                child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(minWidth: 252, maxWidth: 400),
-                  child: FilledButton.icon(
-                    key: const Key('address_book_add'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 49),
-                      shape: const StadiumBorder(),
-                    ),
-                    onPressed: _busy || _loading ? null : () => _addOrEdit(),
-                    icon: const Icon(Icons.add, size: 20),
-                    label: const Text('Добавить адрес',
-                        textAlign: TextAlign.center),
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: AppTopBar(
+                    title: 'Мои адреса',
+                    onBack: () => Navigator.pop(context),
                   ),
-                )),
-          ]),
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: _loading && entries.isEmpty
+                      ? const AppLoading()
+                      : Builder(builder: (bodyContext) {
+                          final clearance =
+                              MediaQuery.paddingOf(bodyContext).bottom;
+                          return RefreshIndicator(
+                            onRefresh: _load,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) => ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.fromLTRB(
+                                    16, 0, 16, clearance + 16),
+                                children: [
+                                  if (_loading)
+                                    const LinearProgressIndicator(),
+                                  if (_error != null) ...[
+                                    AppErrorState(
+                                      message: _error!,
+                                      onRetry: _busy ? null : _load,
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+                                  if (entries.isEmpty && _error == null) ...[
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        top: constraints.maxHeight > 400
+                                            ? 147
+                                            : 24,
+                                      ),
+                                      child: const AppEmptyState(
+                                        title: 'Адресов пока нет',
+                                        subtitle:
+                                            'Добавьте адрес, чтобы мы могли подобрать ближайший магазин и ускорить доставку',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+                                  _faqCard(empty: entries.isEmpty),
+                                  if (entries.isNotEmpty)
+                                    const SizedBox(height: 24),
+                                  for (final entry in entries) ...[
+                                    _addressCard(entry.address, entry.local),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                ),
+              ],
+            ),
+          ),
         ),
-      ))),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: AppGlassPanel(
+              radius: 32,
+              padding: const EdgeInsets.all(8),
+              child: FilledButton.icon(
+                key: const Key('address_book_add'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(252, 49),
+                  shape: const StadiumBorder(),
+                ),
+                onPressed: _busy || _loading ? null : () => _addOrEdit(),
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('Добавить адрес',
+                    textAlign: TextAlign.center),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

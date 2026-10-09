@@ -9,7 +9,6 @@ import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_row.dart';
 import '../../../utils/cart_provider.dart';
-import '../../../utils/liked_items_provider.dart';
 import '../../catalog/catalog_data_source.dart';
 import '../../product/product_navigation.dart';
 
@@ -43,6 +42,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
   bool _hasMore = false;
   bool _loadingMore = false;
   bool _failed = false;
+  bool _moreFailed = false;
   int _page = 1;
 
   @override
@@ -59,10 +59,17 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   void _onScroll() {
-    if (!_hasMore || _loadingMore) return;
+    if (!_hasMore || _loadingMore || _moreFailed) return;
     if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 240) {
       _load();
     }
+  }
+
+  void _checkForMore() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      _onScroll();
+    });
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -70,11 +77,17 @@ class _FavoritesPageState extends State<FavoritesPage> {
       setState(() {
         _page = 1;
         _items = null;
+        _hasMore = false;
         _failed = false;
+        _moreFailed = false;
         _removed.clear();
       });
     } else {
-      setState(() => _loadingMore = true);
+      if (_loadingMore || !_hasMore) return;
+      setState(() {
+        _loadingMore = true;
+        _moreFailed = false;
+      });
     }
     try {
       final result = await CatalogDataSource(businessId: widget.businessId)
@@ -84,12 +97,17 @@ class _FavoritesPageState extends State<FavoritesPage> {
         _items = [...?_items, ...result.items];
         _hasMore = result.hasMore;
         _loadingMore = false;
-        if (result.hasMore) _page++;
+        _page++;
       });
+      _checkForMore();
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _failed = true;
+        if (_items == null) {
+          _failed = true;
+        } else {
+          _moreFailed = true;
+        }
         _loadingMore = false;
       });
     }
@@ -102,16 +120,17 @@ class _FavoritesPageState extends State<FavoritesPage> {
       businessId: widget.businessId,
       itemId: item.itemId,
     );
-    // The row comes back if the server refused the change.
-    if (changed == false && mounted) {
+    // The toggle returns the confirmed new state: false means removal succeeded.
+    if (changed != false && mounted) {
       setState(() => _removed.remove(item.itemId));
+    } else {
+      _checkForMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final liked = context.watch<LikedItemsProvider>();
     final count = cart.displayItemCount;
     final visible = (_items ?? const <ProductView>[])
         .where((item) => !_removed.contains(item.itemId))
@@ -134,7 +153,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 ),
                 const SizedBox(height: AppSpacing.huge),
                 Expanded(
-                  child: _body(visible, liked),
+                  child: _body(visible),
                 ),
               ],
             ),
@@ -145,7 +164,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               child: Center(
                 child: AppCartButton(
                   itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice().round(),
+                  total: count == 0 ? null : cart.getTotalPrice(),
                   onTap: widget.onCart,
                 ),
               ),
@@ -156,7 +175,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     );
   }
 
-  Widget _body(List<ProductView> visible, LikedItemsProvider liked) {
+  Widget _body(List<ProductView> visible) {
     if (_failed) {
       return AppErrorState(
         message: 'Не удалось загрузить избранное',
@@ -166,7 +185,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     if (_items == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (visible.isEmpty) {
+    if (visible.isEmpty && !_hasMore) {
       return const AppEmptyState(
         title: 'Список пуст',
         subtitle:
@@ -179,27 +198,40 @@ class _FavoritesPageState extends State<FavoritesPage> {
         AppSpacing.xxxl,
         0,
         AppSpacing.xxxl,
-        AppCartButton.clearanceFor(context) + MediaQuery.paddingOf(context).bottom,
+        AppCartButton.clearanceFor(context) +
+            MediaQuery.paddingOf(context).bottom,
       ),
-      itemCount: visible.length + (_loadingMore ? 1 : 0),
+      itemCount: visible.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) {
         if (index >= visible.length) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.huge),
-            child: Center(child: CircularProgressIndicator()),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.huge),
+            child: Center(
+              child: _loadingMore
+                  ? const CircularProgressIndicator()
+                  : TextButton(
+                      onPressed: _load,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, AppSpacing.touchTarget),
+                      ),
+                      child: Text(_moreFailed
+                          ? 'Повторить загрузку'
+                          : 'Показать ещё'),
+                    ),
+            ),
           );
         }
         final item = visible[index];
         final row = ProductRow.fromView(
           item,
-          liked: liked.isLiked(widget.businessId, item.itemId),
+          liked: true,
           quantity:
               context.watch<CartProvider>().getCatalogQuantity(item.source),
           onTap: () => openProduct(
             context,
             item,
-            liked: liked.isLiked(widget.businessId, item.itemId),
+            liked: true,
             onLike: () => _unlike(item),
             onCart: widget.onCart,
             businessId: widget.businessId,
@@ -210,8 +242,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
           onDecrement: () =>
               context.read<CartProvider>().decrementCatalogItem(item.source),
         );
-        // Unavailable favourites stay in the list, drawn at half opacity like the frame.
-        return item.available ? row : Opacity(opacity: 0.5, child: row);
+        // Availability disables only adding; identity and the unlike action stay readable.
+        return row;
       },
     );
   }

@@ -40,62 +40,94 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
     final palette = context.palette;
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-          child: Center(
-              child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: Column(children: [
-          Expanded(
-              child: LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                      child: ConstrainedBox(
-                          constraints:
-                              BoxConstraints(minHeight: constraints.maxHeight),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 128, 16, 32),
-                            child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                      width: 80,
-                                      height: 80,
-                                      decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: palette.accent),
-                                      child: Icon(Icons.check_rounded,
-                                          color: palette.textOnAccent,
-                                          size: 56)),
-                                  const SizedBox(height: 28),
-                                  Text('Оплата прошла успешно!',
-                                      textAlign: TextAlign.center,
-                                      style: AppTypography.displayBold),
-                                  const SizedBox(height: 24),
-                                  AppSurface(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(children: [
-                                        Text('Заказ #${widget.orderId}',
-                                            textAlign: TextAlign.center,
-                                            style: AppTypography.title),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                            'Статус заказа доступен в разделе «Мои заказы».',
-                                            textAlign: TextAlign.center,
-                                            style: AppTypography.body.copyWith(
-                                                color: palette.textSecondary)),
-                                      ])),
-                                ]),
-                          ))))),
-          Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      extendBody: true,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: EdgeInsets.fromLTRB(
+            16, 12, 16, MediaQuery.paddingOf(context).bottom + 24),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 608),
+            child: AppGlassPanel(
+              radius: 32,
+              tint: palette.accentSoft,
               child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: const ValueKey('payment-success-orders'),
-                    onPressed: _opening ? null : _orders,
-                    child: Text(_opening ? 'Открываем заказы…' : 'Мои заказы'),
-                  ))),
-        ]),
-      ))),
+                width: double.infinity,
+                child: FilledButton(
+                  key: const ValueKey('payment-success-orders'),
+                  onPressed: _opening ? null : _orders,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    minimumSize: const Size(44, 52),
+                  ),
+                  child: Text(_opening ? 'Открываем заказы…' : 'Мои заказы'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Builder(builder: (context) => CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(16, 24, 16,
+                        MediaQuery.paddingOf(context).bottom + 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: palette.accent,
+                          ),
+                          child: Icon(Icons.check_rounded,
+                              color: palette.textOnAccent, size: 56),
+                        ),
+                        const SizedBox(height: 28),
+                        Text('Оплата прошла успешно!',
+                            textAlign: TextAlign.center,
+                            style: AppTypography.displayBold),
+                        const SizedBox(height: 24),
+                        AppSurface(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              Text('Заказ #${widget.orderId}',
+                                  textAlign: TextAlign.center,
+                                  style: AppTypography.title),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Статус заказа доступен в разделе «Мои заказы».',
+                                textAlign: TextAlign.center,
+                                style: AppTypography.body.copyWith(
+                                    color: palette.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )),
+          ),
+        ),
+      ),
     );
   }
 }

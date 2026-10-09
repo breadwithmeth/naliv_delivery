@@ -85,13 +85,8 @@ void main() {
       await _pumpPage(tester, onCompleted: () => fail('No city was selected'));
       expect(find.byKey(const ValueKey('onboarding-cities-error')),
           findsOneWidget);
-      expect(
-        tester
-            .widget<FilledButton>(
-                find.byKey(const ValueKey('onboarding-continue')))
-            .onPressed,
-        isNull,
-      );
+      await _tap(tester, 'onboarding-continue');
+      expect((await OnboardingService.getState()).isCompleted, isFalse);
 
       response = _cityResponse([]);
       await _tap(tester, 'onboarding-retry-cities');
@@ -99,13 +94,7 @@ void main() {
           find.byKey(const ValueKey('onboarding-cities-error')), findsNothing);
       expect(find.byKey(const ValueKey('onboarding-cities-empty')),
           findsOneWidget);
-      expect(
-        tester
-            .widget<FilledButton>(
-                find.byKey(const ValueKey('onboarding-continue')))
-            .onPressed,
-        isNull,
-      );
+      await _tap(tester, 'onboarding-continue');
       expect((await OnboardingService.getState()).isCompleted, isFalse);
     }, () => _client(() => response));
   });

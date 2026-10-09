@@ -355,6 +355,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final fixture = _ReauthenticationFixture();
     final cart = CartProvider();
+    await cart.bindBusiness(1);
     cart.addItem(CartItem(
       itemId: 83,
       name: 'Другой товар',
@@ -470,12 +471,6 @@ void main() {
               .controller!
               .text,
           'Тестовый Получатель');
-      expect(
-          tester
-              .widget<FilledButton>(
-                  find.byKey(const ValueKey('profile-setup-save')))
-              .onPressed,
-          isNotNull);
       await _tap(tester, 'profile-setup-save');
       _expectRetained(tester, _Consumer.certificate, opened);
       _expectCertificateDraft(tester, session);

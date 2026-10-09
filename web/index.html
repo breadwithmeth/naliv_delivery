@@ -48,12 +48,24 @@
       var oneSignalAppId = "f9a3bf44-4a96-4859-99a9-37aa2b579577";
       var initPromise = null;
       var changeHandler = null;
+      var notificationHandler = null;
+      var pendingClicks = [];
       var listenersRegistered = false;
       var errorLogged = false;
 
       function notifyChange() {
         if (typeof changeHandler === "function") {
           changeHandler();
+        }
+      }
+
+      function notifyNotification(event, clicked) {
+        var data = event && event.notification && event.notification.additionalData;
+        if (!data || typeof data !== "object") return;
+        if (typeof notificationHandler === "function") {
+          notificationHandler(data, clicked);
+        } else if (clicked) {
+          pendingClicks.push(data);
         }
       }
 
@@ -64,6 +76,12 @@
         listenersRegistered = true;
         OneSignal.User.PushSubscription.addEventListener("change", notifyChange);
         OneSignal.Notifications.addEventListener("permissionChange", notifyChange);
+        OneSignal.Notifications.addEventListener("click", function (event) {
+          notifyNotification(event, true);
+        });
+        OneSignal.Notifications.addEventListener("foregroundWillDisplay", function (event) {
+          notifyNotification(event, false);
+        });
       }
 
       function withOneSignal(callback, fallback) {
@@ -156,6 +174,15 @@
           return withOneSignal(async function () {
             return true;
           }, false);
+        },
+        setNotificationHandler: function (callback) {
+          notificationHandler = callback;
+          if (typeof callback === "function") {
+            var clicks = pendingClicks;
+            pendingClicks = [];
+            clicks.forEach(function (data) { callback(data, true); });
+          }
+          return withOneSignal(async function () { return true; }, false);
         },
         login: function (externalId) {
           return withOneSignal(async function (OneSignal) {

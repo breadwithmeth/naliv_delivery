@@ -3,7 +3,8 @@ import 'package:web/web.dart' as web;
 
 typedef BrowserHistoryListener = void Function();
 
-final Map<BrowserHistoryListener, StreamSubscription<web.PopStateEvent>> _listeners =
+final Map<BrowserHistoryListener, StreamSubscription<web.PopStateEvent>>
+    _listeners =
     <BrowserHistoryListener, StreamSubscription<web.PopStateEvent>>{};
 StreamSubscription<web.BeforeUnloadEvent>? _beforeUnloadSubscription;
 
@@ -16,7 +17,8 @@ void browserHistoryPushFragment(String fragment) {
 }
 
 void browserHistoryReplaceFragment(String fragment) {
-  web.window.history.replaceState(null, web.document.title, _withFragment(fragment));
+  web.window.history
+      .replaceState(null, web.document.title, _withFragment(fragment));
 }
 
 String browserHistoryCurrentFragment() => _normalizedHash();
@@ -43,7 +45,9 @@ void browserHistoryBack() {
 }
 
 void browserHistoryEnableExitWarning() {
-  _beforeUnloadSubscription ??= web.EventStreamProviders.beforeUnloadEvent.forTarget(web.window).listen((event) {
+  _beforeUnloadSubscription ??= web.EventStreamProviders.beforeUnloadEvent
+      .forTarget(web.window)
+      .listen((event) {
     event.preventDefault();
     event.returnValue = '';
   });
@@ -86,11 +90,15 @@ String _buildFragment(Map<String, String> queryParameters) {
   }
 
   final filtered = Map<String, String>.fromEntries(
-    queryParameters.entries.where((entry) => entry.key.isNotEmpty && entry.value.isNotEmpty),
+    queryParameters.entries
+        .where((entry) => entry.key.isNotEmpty && entry.value.isNotEmpty),
   );
   if (filtered.isEmpty) {
     return '';
   }
 
-  return filtered.entries.map((entry) => '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}').join('&');
+  return filtered.entries
+      .map((entry) =>
+          '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}')
+      .join('&');
 }

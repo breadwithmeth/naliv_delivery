@@ -441,4 +441,38 @@ void main() {
       expect(await store.getAll(), before);
     });
   }
+  test('accepted Kaspi link survives reload and terminal completion discards it',
+      () async {
+    const id = 'kaspi-link-reload';
+    const link = 'https://fixture-bank.example/pay/kept-attempt';
+    expect(await OrderPaymentGuard.reserve(id), OrderPaymentState.ready);
+    try {
+      expect(await OrderPaymentGuard.retainKaspiLink(id, link), isTrue);
+      expect(await OrderPaymentGuard.settle(id, OrderPaymentOutcome.pending),
+          OrderPaymentState.unconfirmed);
+    } finally {
+      OrderPaymentGuard.release(id);
+    }
+    SharedPreferences.resetStatic();
+    expect(await OrderPaymentGuard.read(id), OrderPaymentState.unconfirmed);
+    expect(await OrderPaymentGuard.readKaspiLink(id), link);
+    expect(await OrderPaymentGuard.reserve(id), OrderPaymentState.unconfirmed);
+    final client = _client((request) async {
+      throw StateError('Retained attempt must not charge again: $request');
+    });
+    await http.runWithClient(() async {
+      expect((await ApiService.payOrder(id, 'bank-card'))['requestSent'], isFalse);
+    }, () => client);
+    await OrderPaymentGuard.reconcileOrder({
+      'order_id': id,
+      'payment_status': 'completed',
+    }, readRevision: OrderPaymentGuard.beginOrderRead());
+    SharedPreferences.resetStatic();
+    expect(await OrderPaymentGuard.read(id), OrderPaymentState.completed);
+    expect(await OrderPaymentGuard.readKaspiLink(id), isNull);
+    expect(await OrderPaymentGuard.settle(id, OrderPaymentOutcome.refused),
+        OrderPaymentState.completed);
+    expect(await OrderPaymentGuard.reserve(id), OrderPaymentState.completed);
+  });
+
 }

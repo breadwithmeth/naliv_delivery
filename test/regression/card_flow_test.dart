@@ -22,8 +22,12 @@ void main() {
       _card('duplicate', mask: '****4949'),
       {'id': 'missing-mask', 'mask': null},
     ]);
-    expect(collection.cards.map((card) => card.id), ['safe']);
-    expect(collection.rejectedCount, 4);
+    expect(collection.cards.map((card) => card.chargeId),
+        ['safe', null, null, null]);
+    expect(collection.cards.map((card) => card.mask),
+        ['**** **** **** 4444', '****1111', '**** **** **** 4444', '****4949']);
+    expect(collection.cards.map((card) => card.rowKey).toSet(), hasLength(4));
+    expect(collection.rejectedCount, 1);
     expect(collection.complete, isFalse);
   });
 
@@ -31,8 +35,21 @@ void main() {
     final collection = SavedCard.parse([
       {'id': 'row-a', 'card_id': 'card-a', 'mask': '****1234'},
     ]);
-    expect(collection.cards.single.id, 'card-a');
+    expect(collection.cards.single.chargeId, 'card-a');
     expect(collection.complete, isTrue);
+  });
+
+  test('a malformed duplicate cannot hide a verified card', () {
+    final collection = SavedCard.parse([
+      {'halyk_id': 'bank-existing', 'card_mask': '****4444'},
+      {'halyk_id': 'bank-existing', 'card_mask': null},
+      {'mask': '****1234'},
+      {'id': 'local', 'halyk_id': '4111111111111111', 'mask': '****1111'},
+    ]);
+    expect(collection.cards.map((card) => card.chargeId),
+        ['bank-existing', null, null]);
+    expect(collection.rejectedCount, 1);
+    expect(collection.complete, isFalse);
   });
 
   test(
@@ -85,7 +102,7 @@ void main() {
     await flow.addCard();
     response = [_card('original'), _card('late-cancelled-binding')];
     await flow.refresh();
-    expect(flow.cards.map((card) => card.id),
+    expect(flow.cards.map((card) => card.chargeId),
         ['original', 'late-cancelled-binding']);
     expect(flow.addState, isNot(CardAddState.confirmed));
     expect(flow.newCardId, isNull);
@@ -137,7 +154,7 @@ void main() {
     response = null;
     await flow.refresh();
     expect(flow.error, isNotNull);
-    expect(flow.cards.single.id, 'old');
+    expect(flow.cards.single.chargeId, 'old');
     expect(flow.addState, CardAddState.awaiting);
     expect(flow.newCardId, isNull);
     response = [_card('old'), _card('new')];
@@ -411,7 +428,7 @@ void main() {
     flow.cancel();
     returningCards.complete([_card('old'), _card('new')]);
     await refreshing;
-    expect(flow.cards.map((card) => card.id), ['old', 'new']);
+    expect(flow.cards.map((card) => card.chargeId), ['old', 'new']);
     expect(flow.addState, CardAddState.cancelled);
     expect(flow.newCardId, isNull);
     expect(flow.canAdd, isTrue);

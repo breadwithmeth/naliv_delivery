@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
         // The two numbers the design puts in the cart button (`Поиск - Удачный поиск`):
         // the badge counts distinct cart rows, the pill shows the payable total.
         final count = cart.displayItemCount;
-        final total = count == 0 ? null : cart.getTotalPrice().round();
+        final total = count == 0 ? null : cart.getTotalPrice();
         return HomePage(
           data: data,
           cartItemCount: count,

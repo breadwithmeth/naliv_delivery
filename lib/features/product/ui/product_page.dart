@@ -3,29 +3,21 @@ import 'package:provider/provider.dart';
 
 import '../../../core/money.dart';
 import '../../../core/product_view.dart';
+import '../../../core/quantity.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
+import '../../../model/cart_item.dart';
+import '../../../model/item.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/liked_items_provider.dart';
+import '../../../utils/bonus_rules.dart';
+import '../../../utils/promotion_engine.dart';
 
 /// Product detail — the design's `Описание товара` frames.
-///
-/// Measured from the frame (375 × 812, content 985 tall):
-///
-/// * full-bleed hero image 375 × 320, starting at y = 0 so it runs under the status bar;
-/// * a **fixed** header at y = 70 that does not scroll with the content;
-/// * category + origin at y = 336, title 24/700 beneath it, badges (62 × 23.4, r5, 14/500)
-///   right-aligned on the same line;
-/// * price stack at y = 411 — struck 16/400, price **32/700 in the accent** (not white as on
-///   the cards), «Выгода» 16/500 gold;
-/// * «Количество» at y = 519 with a 343 × 54 r18 control (38 px accent squares, «1 шт» 20/500);
-/// * «Описание» at y = 626 with a 14/500 body and a 14/700 accent «Читать далее» toggle;
-/// * a 129 px glass action bar: total 24/700 plus a 175 × 49 accent «В корзину» pill, which
-///   becomes a full-width 343 × 54 success-coloured «Добавлено в корзину» pill after adding.
 ///
 /// This is the simple-product surface. Products with options or pour containers
 /// open the complete configuration editor through `openProduct`.
@@ -56,20 +48,110 @@ class ProductPage extends StatefulWidget {
 class _ProductPageState extends State<ProductPage> {
   bool _added = false;
   bool _expanded = false;
+  bool _canIncrement(CartProvider cart, double quantity) {
+    if (!widget.view.available || cart.hasUnresolvedBusiness) return false;
+    final next = quantity + widget.view.source.effectiveStepQuantity;
+    final reserved = cart.activeDisplayGroups
+        .where((group) => group.itemId == widget.view.itemId)
+        .fold<double>(0, (sum, group) => sum + group.totalOrderQuantity);
+    final current = quantity +
+        subtractPromotionFreeQuantity(quantity, _activePromotions);
+    final required = next + subtractPromotionFreeQuantity(next, _activePromotions);
+    final stock = widget.view.source.amount;
+    return stock == null || reserved - current + required <= stock + 0.0000001;
+  }
 
   static const double _heroHeight = 320;
   static const double _actionBarHeight = 129;
 
   Future<void> _addToCart() async {
-    if (!widget.view.available) return;
     final cart = context.read<CartProvider>();
-    if (cart.getCatalogQuantity(widget.view.source) <= 0) {
+    final quantity = cart.getCatalogQuantity(widget.view.source);
+    if (quantity <= 0) {
+      if (!_canIncrement(cart, quantity)) return;
       cart.incrementCatalogItem(widget.view.source);
     }
+    if (cart.getCatalogQuantity(widget.view.source) <= 0) return;
     setState(() => _added = true);
     await Future<void>.delayed(const Duration(seconds: 2));
     if (mounted) setState(() => _added = false);
   }
+
+  /// The active `N+M` promotion, its rule and how far the customer is from the next gift.
+  ///
+  /// Returns null when the item carries no usable gift promotion, so the page keeps the frames'
+  /// geometry for ordinary products.
+  Widget? _promotionCard(num quantity) {
+    final evaluation = evaluatePromotion(
+      paidQuantity: quantity.toDouble(),
+      promotions: _activePromotions,
+    );
+    final award = evaluation.award;
+    if (award == null) return null;
+    final palette = context.palette;
+    final unit = widget.view.unit?.trim().isNotEmpty == true
+        ? widget.view.unit!.trim()
+        : 'шт';
+    final unlocked = evaluation.unlocked && evaluation.freeQuantity > 0;
+    return AppSurface(
+      key: const ValueKey('product-promotion'),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(evaluation.name ?? 'Акция',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.title.copyWith(color: palette.gold)),
+              ),
+              AppPromoChip(
+                icon: AppIcons.fire,
+                label: evaluation.label!,
+                fill: palette.accent,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'За каждые ${formatQuantity(award.baseAmount.toDouble(), unit)} — '
+            '${formatQuantity(award.addAmount.toDouble(), unit)} в подарок',
+            style: AppTypography.body.copyWith(color: palette.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ClipRRect(
+            borderRadius: AppRadii.pillAll,
+            child: LinearProgressIndicator(
+              key: const ValueKey('product-promotion-progress'),
+              value: unlocked ? 1 : evaluation.progress,
+              minHeight: 6,
+              backgroundColor: palette.surfaceMuted,
+              color: palette.accent,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            unlocked
+                ? 'Подарок в корзине: '
+                    '${formatQuantity(evaluation.freeQuantity, unit)}'
+                : 'Добавьте ещё ${formatQuantity(evaluation.nextGiftIn, unit)}, '
+                    'чтобы получить подарок',
+            key: const ValueKey('product-promotion-state'),
+            style: AppTypography.bodySmall.copyWith(
+                color: unlocked ? palette.gold : palette.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> get _activePromotions => [
+        for (final promotion
+            in widget.view.source.promotions ?? const <ItemPromotion>[])
+          if (promotion.isActive) promotion.toJson(),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -82,13 +164,40 @@ class _ProductPageState extends State<ProductPage> {
             .isLiked(widget.businessId!, widget.view.itemId);
     final quantity = cart.getCatalogQuantity(widget.view.source);
     final topInset = MediaQuery.paddingOf(context).top;
+    final total = CartItem.calculatePrice([
+      CartItem(
+        itemId: widget.view.itemId,
+        name: widget.view.source.name,
+        price: widget.view.source.price,
+        quantity: quantity > 0
+            ? quantity
+            : widget.view.source.effectiveStepQuantity,
+        stepQuantity: widget.view.source.effectiveStepQuantity,
+        selectedVariants: const [],
+        promotions: _activePromotions,
+        itemData: widget.view.source.toJson(),
+      ),
+    ]).totalPrice;
+    final points = widget.view.available && widget.view.bonusEligible
+        ? BonusRules.calculateEarnedBonuses(total)
+        : 0;
 
     return Scaffold(
-      body: Stack(
+      backgroundColor: Theme.of(context).brightness == Brightness.light
+          ? palette.surface
+          : palette.background,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.only(
-                bottom: _actionBarHeight + AppSpacing.huge),
+            padding: EdgeInsets.only(
+              bottom: _actionBarHeight +
+                  MediaQuery.paddingOf(context).bottom +
+                  AppSpacing.huge +
+                  (MediaQuery.textScalerOf(context).scale(16) > 20 ? 120 : 0),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -101,11 +210,10 @@ class _ProductPageState extends State<ProductPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: _TitleBlock(view: widget.view)),
-                      if (widget.view.discount != null ||
-                          widget.view.bonus != null)
+                      if (widget.view.discount != null || points > 0)
                         _Badges(
                           discount: widget.view.discount,
-                          bonus: widget.view.bonus,
+                          bonus: points > 0 ? '+$points' : null,
                         ),
                     ],
                   ),
@@ -123,16 +231,26 @@ class _ProductPageState extends State<ProductPage> {
                   child: _QuantityControl(
                     quantity: quantity,
                     unit: widget.view.unit,
-                    onIncrement: widget.view.available
+                    onIncrement: _canIncrement(cart, quantity)
                         ? () => context
                             .read<CartProvider>()
                             .incrementCatalogItem(widget.view.source)
                         : null,
-                    onDecrement: () => context
-                        .read<CartProvider>()
-                        .decrementCatalogItem(widget.view.source),
+                    onDecrement: quantity > 0
+                        ? () => context
+                            .read<CartProvider>()
+                            .decrementCatalogItem(widget.view.source)
+                        : null,
                   ),
                 ),
+                if (_promotionCard(quantity) case final promoCard?) ...[
+                  const SizedBox(height: AppSpacing.huge),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                    child: promoCard,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.huge),
                 Padding(
                   padding:
@@ -167,7 +285,7 @@ class _ProductPageState extends State<ProductPage> {
                     asset: AppIcons.heart,
                     onTap: widget.onLike,
                     tooltip: 'В избранное',
-                    size: 40,
+                    size: AppSpacing.touchTarget,
                     glyphSize: 24,
                     fill: liked
                         ? palette.brandRed.withValues(alpha: 0.5)
@@ -183,18 +301,17 @@ class _ProductPageState extends State<ProductPage> {
             right: 0,
             bottom: 0,
             child: _ActionBar(
-              height: _actionBarHeight,
-              total: (widget.view.price *
-                      (quantity <= 0
-                          ? widget.view.source.effectiveStepQuantity
-                          : quantity))
-                  .round(),
+              total: total,
               added: _added,
-              onAdd: widget.view.available ? _addToCart : null,
+              onAdd: quantity > 0 || _canIncrement(cart, quantity)
+                  ? _addToCart
+                  : null,
               onCart: widget.onCart,
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -208,18 +325,22 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      width: double.infinity,
-      // The design's hero is `#FFFFFF` + image, filling the full width under the status bar.
-      child: imageUrl == null
-          ? const ColoredBox(color: Colors.white)
-          : Image.network(
-              imageUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const ColoredBox(color: Colors.white),
-            ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+      child: Container(
+        height: height,
+        width: double.infinity,
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(48, 88, 48, 16),
+        child: imageUrl == null
+            ? const Icon(Icons.inventory_2_outlined, color: Colors.black38, size: 56)
+            : Image.network(
+                imageUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.inventory_2_outlined, color: Colors.black38, size: 56),
+              ),
+      ),
     );
   }
 }
@@ -236,45 +357,30 @@ class _TitleBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            if (view.category != null)
-              Flexible(
-                child: Text(
-                  view.category!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.base(size: 12, height: 1.3)
-                      .copyWith(color: palette.textSecondary),
-                ),
-              ),
-            if (view.category != null && view.country != null)
-              const SizedBox(width: AppSpacing.md),
-            if (view.country != null)
-              Flexible(
-                child: Text(
-                  view.country!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.base(size: 12, height: 1.3)
-                      .copyWith(color: palette.gold),
-                ),
-              ),
-          ],
-        ),
+        if (view.category != null)
+          Text(
+            view.category!,
+            style: AppTypography.bodySmall.copyWith(color: palette.textSecondary),
+          ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           view.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          softWrap: true,
           style: AppTypography.displayBold.copyWith(color: palette.textPrimary),
         ),
+        if (view.metadata.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            view.metadata.where((part) =>
+                part.toLowerCase() != view.category?.toLowerCase()).join(' · '),
+            style: AppTypography.bodySmall.copyWith(color: palette.textSecondary),
+          ),
+        ],
       ],
     );
   }
 }
 
-/// Product-page badges: 62 × 23.4, r5, 14/500 — larger than the card's 8/500 chips.
 class _Badges extends StatelessWidget {
   const _Badges({this.discount, this.bonus});
 
@@ -288,28 +394,20 @@ class _Badges extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (discount != null) _pill(palette, discount!, palette.brandRed),
+        if (discount != null)
+          AppPromoChip(icon: AppIcons.fire, label: discount!, fill: palette.brandRed),
         if (discount != null && bonus != null) const SizedBox(height: 8),
-        if (bonus != null) _pill(palette, bonus!, palette.gold),
+        if (bonus != null)
+          Tooltip(
+            message: 'Предварительная оценка бонусов',
+            child: AppPromoChip(
+                icon: AppIcons.bonusStar, label: bonus!, fill: palette.gold,
+                foreground: Colors.black),
+          ),
       ],
     );
   }
 
-  Widget _pill(AppPalette palette, String label, Color fill) {
-    return Container(
-      width: 62,
-      height: 23.4,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.body.copyWith(color: Colors.white, height: 1),
-      ),
-    );
-  }
 }
 
 class _PriceStack extends StatelessWidget {
@@ -334,7 +432,7 @@ class _PriceStack extends StatelessWidget {
             ),
           ),
         Text(
-          formatTenge(view.price),
+          view.unitPriceLabel,
           style: AppTypography.base(size: 32, weight: 700)
               .copyWith(color: palette.accent),
         ),
@@ -348,7 +446,6 @@ class _PriceStack extends StatelessWidget {
   }
 }
 
-/// «Количество» plus the 343 × 54 control: 38 px accent squares inset 8.5, count at 20/500.
 class _QuantityControl extends StatelessWidget {
   const _QuantityControl({
     required this.quantity,
@@ -362,16 +459,7 @@ class _QuantityControl extends StatelessWidget {
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
 
-  static const double _button = 38;
-  static const double _inset = 8.5;
-
-  String get _label {
-    final value = quantity <= 0 ? 0 : quantity;
-    final text = value == value.roundToDouble()
-        ? value.toStringAsFixed(0)
-        : value.toStringAsFixed(2);
-    return unit == null ? text : '$text $unit';
-  }
+  String get _label => formatQuantity(quantity.toDouble(), unit ?? 'шт');
 
   @override
   Widget build(BuildContext context) {
@@ -386,27 +474,23 @@ class _QuantityControl extends StatelessWidget {
               AppTypography.titleRegular.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.md),
-        Container(
-          height: 54,
-          decoration: BoxDecoration(
-            color: palette.surface.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(18),
-          ),
+        AppSurface(
+          radius: 18,
+          padding: const EdgeInsets.all(AppSpacing.xs),
           child: Row(
             children: [
-              const SizedBox(width: _inset),
-              _square(palette, onDecrement, const _MinusGlyph()),
+              _square(palette, onDecrement,
+                  const Icon(Icons.remove_rounded), 'Уменьшить'),
               Expanded(
-                child: Center(
-                  child: Text(
-                    _label,
-                    style: AppTypography.base(size: 20, weight: 500)
-                        .copyWith(color: palette.textPrimary),
-                  ),
+                child: Text(
+                  _label,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.base(size: 20, weight: 500)
+                      .copyWith(color: palette.textPrimary),
                 ),
               ),
-              _square(palette, onIncrement, const _PlusGlyph()),
-              const SizedBox(width: _inset),
+              _square(palette, onIncrement,
+                  const Icon(Icons.add_rounded), 'Увеличить'),
             ],
           ),
         ),
@@ -414,61 +498,24 @@ class _QuantityControl extends StatelessWidget {
     );
   }
 
-  Widget _square(AppPalette palette, VoidCallback? onTap, Widget glyph) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: _button,
-        height: _button,
-        decoration: BoxDecoration(
-          color: palette.accentSoft,
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-        ),
-        child: Center(child: glyph),
+  Widget _square(
+      AppPalette palette, VoidCallback? onTap, Widget glyph, String tooltip) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      style: IconButton.styleFrom(
+        foregroundColor: palette.textOnAccent,
+        minimumSize: const Size.square(AppSpacing.touchTarget),
+        backgroundColor:
+            onTap == null ? palette.accentFaint : palette.accentSoft,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.lg)),
       ),
+      icon: glyph,
     );
   }
 }
 
-class _MinusGlyph extends StatelessWidget {
-  const _MinusGlyph();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-        width: 12,
-        height: 1.6,
-        child: ColoredBox(color: Colors.white),
-      );
-}
-
-class _PlusGlyph extends StatelessWidget {
-  const _PlusGlyph();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-        width: 12,
-        height: 12,
-        child: Stack(
-          children: [
-            Center(
-              child: SizedBox(
-                width: 12,
-                height: 1.6,
-                child: ColoredBox(color: Colors.white),
-              ),
-            ),
-            Center(
-              child: SizedBox(
-                width: 1.6,
-                height: 12,
-                child: ColoredBox(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      );
-}
 
 /// «Описание» with the frame's clamp-and-toggle behaviour.
 class _Description extends StatelessWidget {
@@ -505,8 +552,10 @@ class _Description extends StatelessWidget {
               text: TextSpan(text: text, style: style),
               maxLines: _clampLines,
               textDirection: Directionality.of(context),
+              textScaler: MediaQuery.textScalerOf(context),
             )..layout(maxWidth: constraints.maxWidth);
             final overflows = painter.didExceedMaxLines;
+            painter.dispose();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -518,9 +567,13 @@ class _Description extends StatelessWidget {
                 ),
                 if (overflows) ...[
                   const SizedBox(height: AppSpacing.lg),
-                  GestureDetector(
-                    onTap: onToggle,
-                    behavior: HitTestBehavior.opaque,
+                  TextButton(
+                    onPressed: onToggle,
+                    style: TextButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                    ),
                     child: Text(
                       expanded ? 'Свернуть' : 'Читать далее',
                       style: AppTypography.bodyBold
@@ -540,15 +593,13 @@ class _Description extends StatelessWidget {
 /// Glass action bar: total plus «В корзину», switching to the success pill once added.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
-    required this.height,
     required this.total,
     required this.added,
     this.onAdd,
     this.onCart,
   });
 
-  final double height;
-  final int total;
+  final num total;
   final bool added;
   final VoidCallback? onAdd;
   final VoidCallback? onCart;
@@ -556,81 +607,76 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return SizedBox(
-      height: height,
-      child: AppGlassPanel(
-        radius: 0,
-        tint: Colors.black.withValues(alpha: 0.2),
-        blur: 12,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.huge,
-            AppSpacing.xxxl,
-            AppSpacing.xxxl,
-            0,
-          ),
-          child: added
-              ? GestureDetector(
+    return AppGlassPanel(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+      child: SafeArea(
+        top: false,
+        child: LayoutBuilder(builder: (context, constraints) {
+          final adaptive = constraints.maxWidth < 320 ||
+              MediaQuery.textScalerOf(context).scale(16) > 20;
+          final summary = Text(
+            formatTenge(total),
+            style: AppTypography.base(size: 24, weight: 700)
+                .copyWith(color: palette.textPrimary),
+          );
+          final action = FilledButton(
+            onPressed: onAdd,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(175, 49),
+              shape: const StadiumBorder(),
+            ),
+            child: Text(onAdd == null ? 'Нет в наличии' : 'В корзину'),
+          );
+          if (added) {
+            return Semantics(
+              liveRegion: true,
+              child: AppGlassPanel(
+                radius: AppRadii.pill,
+                tint: palette.success.withValues(alpha: 0.75),
+                child: InkWell(
                   onTap: onCart,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: double.infinity,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: palette.success.withValues(alpha: 0.75),
-                      borderRadius: BorderRadius.circular(AppRadii.pill),
-                    ),
+                  borderRadius: AppRadii.pillAll,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl, vertical: 14),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const AppIcon(AppIcons.check,
                             size: 26, color: Colors.white),
                         const SizedBox(width: AppSpacing.xl),
-                        Text(
-                          'Добавлено в корзину',
-                          style:
-                              AppTypography.title.copyWith(color: Colors.white),
+                        Flexible(
+                          child: Text(
+                            'Добавлено в корзину',
+                            textAlign: TextAlign.center,
+                            style: AppTypography.title
+                                .copyWith(color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          formatTenge(total),
-                          maxLines: 1,
-                          style: AppTypography.base(size: 24, weight: 700)
-                              .copyWith(color: palette.textPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    GestureDetector(
-                      onTap: onAdd,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: 175,
-                        height: 49,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: palette.accentSoft,
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                        ),
-                        child: Text(
-                          'В корзину',
-                          style:
-                              AppTypography.title.copyWith(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-        ),
+              ),
+            );
+          }
+          return adaptive
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    summary,
+                    const SizedBox(height: AppSpacing.md),
+                    action,
+                  ],
+                )
+              : Row(children: [
+                  Expanded(child: summary),
+                  const SizedBox(width: AppSpacing.md),
+                  action,
+                ]);
+        }),
       ),
     );
   }

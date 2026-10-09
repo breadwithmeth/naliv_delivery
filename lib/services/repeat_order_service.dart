@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
+import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
 import 'package:naliv_delivery/utils/smart_cart.dart';
-import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
+import 'package:naliv_delivery/utils/promotion_engine.dart';
 
 class RepeatOrderException implements Exception {
   const RepeatOrderException(this.message);
@@ -53,6 +54,13 @@ class RepeatOrderService {
     required CartProvider cartProvider,
     required BusinessProvider businessProvider,
   }) async {
+    await cartProvider.ensureLoaded();
+    if (cartProvider.hasActiveItems && cartProvider.businessId == null) {
+      throw const RepeatOrderException(
+          'Магазин текущей корзины неизвестен. Корзина не изменена.');
+    }
+    await businessProvider.loadSavedBusiness();
+    final previousBusiness = businessProvider.selectedBusiness;
     final order = await _resolveOrderForRepeat(sourceOrder);
     final business = extractBusiness(order);
     if (business == null) {
@@ -72,22 +80,14 @@ class RepeatOrderService {
           'Не удалось сохранить магазин. Корзина не изменена.');
     }
 
-    cartProvider.clearCart();
-
-    var addedItemsCount = 0;
-    final skippedItems = <String>[...buildResult.skippedItems];
-    for (final group in CartDisplayGroup.groupItems(buildResult.items)) {
-      final added = cartProvider.addDisplayGroupItems(group.items);
-      if (added) {
-        addedItemsCount += group.items.length;
-      } else {
-        skippedItems.add(group.name);
-      }
-    }
-
-    if (addedItemsCount == 0) {
-      throw const RepeatOrderException(
-          'Не удалось добавить товары из этого заказа в корзину.');
+    final businessId = _businessIdOf(business)!;
+    if (!await cartProvider.replaceForBusiness(
+        businessId, buildResult.items)) {
+      final restored =
+          await businessProvider.setSelectedBusiness(previousBusiness);
+      throw RepeatOrderException(restored
+          ? 'Не удалось восстановить товары. Исходная корзина не изменена.'
+          : 'Исходная корзина не изменена, но не удалось восстановить выбранный магазин.');
     }
 
     final restoredAddress = extractDeliveryAddress(order);
@@ -99,8 +99,8 @@ class RepeatOrderService {
       order: order,
       deliveryType: deliveryType,
       business: business,
-      addedItemsCount: addedItemsCount,
-      skippedItems: skippedItems,
+      addedItemsCount: buildResult.items.length,
+      skippedItems: buildResult.skippedItems,
       restoredAddress: restoredAddress,
     );
   }
@@ -156,16 +156,38 @@ class RepeatOrderService {
 
     final recovered = <CartItem>[];
     for (final group in CartDisplayGroup.groupItems(builtItems)) {
-      if (firstSubtractPromotion(group.promotions) == null) {
+      final selection = group.selection;
+      if (group.hasWithdrawnBottles || selection?.containerIssue != null) {
+        skippedItems.add('${group.name}: выбранная тара больше не продаётся');
+        continue;
+      }
+      if (selectSubtractPromotion(group.promotions,
+              paidQuantity: group.totalQuantity) ==
+          null) {
         recovered.addAll(group.items);
         continue;
       }
-      if (group.selection?.usesPourFlow != true) {
+      if (selection?.usesPourFlow != true) {
         if (group.items.any((item) => item.selectedVariants
             .any(SmartCartSelection.looksBottleLikeVariant))) {
           skippedItems.add('${group.name}: магазин не передал данные тары');
-        } else {
-          recovered.addAll(group.items);
+          continue;
+        }
+        final paid = subtractPromotionPaidQuantityForPhysicalQuantity(
+            group.totalQuantity, group.promotions);
+        final step = group.items.first.stepQuantity;
+        if (paid == null ||
+            !step.isFinite ||
+            step <= 0 ||
+            (paid / step - (paid / step).round()).abs() > 0.0000001) {
+          skippedItems.add('${group.name}: нельзя точно восстановить количество');
+          continue;
+        }
+        var remaining = paid;
+        for (final row in group.items) {
+          final quantity = remaining < row.quantity ? remaining : row.quantity;
+          if (quantity > 0) recovered.add(row.copyWith(quantity: quantity));
+          remaining -= quantity;
         }
         continue;
       }
@@ -355,6 +377,12 @@ class RepeatOrderService {
         promotions: promotions,
         itemData: snapshot);
     final catalog = draft.snapshotItem;
+    if (selectedVariants.any((variant) =>
+        catalog == null
+            ? SmartCartSelection.isExplicitWithdrawnBottleVariant(variant)
+            : SmartCartSelection(catalog).isWithdrawnBottleVariant(variant))) {
+      return null;
+    }
     if (catalog != null && SmartCartSelection(catalog).usesPourFlow) {
       unitPrice = catalog.price;
       final selection = SmartCartSelection(catalog);
@@ -369,10 +397,10 @@ class RepeatOrderService {
                   'price': variant.price,
                   'price_type': variant.priceType,
                   'item_name': variant.itemName,
-                  'parent_item_amount':
-                      selection.bottleRelationIds.contains(variant.relationId)
-                          ? selection.volumeForBottle(variant)
-                          : variant.parentItemAmount,
+                  'parent_item_amount': selection.knownBottleRelationIds
+                          .contains(variant.relationId)
+                      ? selection.volumeForBottle(variant)
+                      : variant.parentItemAmount,
                   'required': option.required,
                 },
       ];
@@ -436,21 +464,31 @@ class RepeatOrderService {
     Map<String, dynamic>? snapshot,
     List<Map<String, dynamic>> selectedVariants,
   ) {
-    for (final variant in selectedVariants) {
-      final parentAmount = _asDouble(variant['parent_item_amount']);
-      if (parentAmount != null && parentAmount > 0) {
-        return parentAmount;
+    if (snapshot != null) {
+      final item = Item.fromJson(snapshot);
+      final selection = SmartCartSelection(item);
+      if (selection.usesPourFlow) {
+        for (final bottle in selection.bottleVariants) {
+          if (selectedVariants.any((variant) =>
+              SmartCartSelection.variantRelationId(variant) ==
+              bottle.relationId)) {
+            return selection.volumeForBottle(bottle);
+          }
+        }
       }
     }
-
     final explicitStep = _asDouble(orderItem['step_quantity'] ??
         orderItem['quantity_step'] ??
         snapshot?['step_quantity'] ??
         snapshot?['quantity_step']);
-    if (explicitStep != null && explicitStep > 0) {
+    if (explicitStep != null && explicitStep.isFinite && explicitStep > 0) {
       return explicitStep;
     }
-
+    for (final variant in selectedVariants) {
+      if (!SmartCartSelection.looksBottleLikeVariant(variant)) continue;
+      final parent = SmartCartSelection.variantParentItemAmount(variant);
+      if (parent != null && parent.isFinite && parent > 0) return parent;
+    }
     return 1.0;
   }
 
@@ -603,6 +641,19 @@ class RepeatOrderService {
       'quantity': stepQuantity,
       'step_quantity': stepQuantity,
       if (businessId != null) 'business_id': businessId,
+      for (final key in const [
+        'unit',
+        'unit_name',
+        'measure',
+        'item_type',
+        'packaging_type',
+        'material',
+        'country_name',
+        'volume_liters',
+        'weight_kilograms',
+        'alcohol_percent',
+      ])
+        if (orderItem[key] != null) key: orderItem[key],
       if (_asMap(orderItem['category']) != null)
         'category': _asMap(orderItem['category']),
       if (_extractPromotions(orderItem, null).isNotEmpty)

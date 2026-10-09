@@ -11,6 +11,8 @@ import '../../../utils/cart_provider.dart';
 import '../../product/product_navigation.dart';
 import '../catalog_data_source.dart';
 
+import '../catalog_view_data.dart';
+import 'category_strip.dart';
 /// A complete leaf category with prefetched items and scroll-driven pagination.
 ///
 /// Columns adapt to viewport width and inherited text scaling. The floating
@@ -23,6 +25,7 @@ class CategoryProductsPage extends StatefulWidget {
     this.initialItems,
     this.initialHasMore,
     this.onSearch,
+    this.categories = const [],
     this.onCart,
     super.key,
   });
@@ -30,6 +33,7 @@ class CategoryProductsPage extends StatefulWidget {
   final int categoryId;
   final String title;
   final int businessId;
+  final List<CategoryRef> categories;
 
   /// Items already fetched by a parent screen, so opening a section does not refetch.
   final List<ProductView>? initialItems;
@@ -141,6 +145,21 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
     }
   }
 
+  void _openCategory(CategoryRef category) {
+    Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute(
+        builder: (_) => CategoryProductsPage(
+          categoryId: category.id,
+          title: category.label,
+          businessId: widget.businessId,
+          categories: widget.categories,
+          onSearch: widget.onSearch,
+          onCart: widget.onCart,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = context.watch<CartProvider>();
@@ -161,6 +180,15 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                     onSearch: widget.onSearch,
                   ),
                 ),
+                if (widget.categories.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  CategoryStrip(
+                    categories: widget.categories,
+                    selectedCategoryId: widget.categoryId,
+                    onCategory: _openCategory,
+                    onAll: () => Navigator.of(context).maybePop(),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
                 Expanded(child: _body()),
               ],
@@ -172,7 +200,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
               child: Center(
                 child: AppCartButton(
                   itemCount: count,
-                  total: count == 0 ? null : tabs.getTotalPrice().round(),
+                  total: count == 0 ? null : tabs.getTotalPrice(),
                   onTap: widget.onCart,
                 ),
               ),
@@ -194,7 +222,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
     if (items == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (items.isEmpty) {
+    if (items.isEmpty && !_hasMore) {
       // No designed empty state exists for an empty category; kept plain on purpose.
       return const AppEmptyState(title: 'В этой категории пока нет товаров');
     }
@@ -205,6 +233,8 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
           builder: (context, constraints) {
             final usableWidth = constraints.maxWidth - AppSpacing.gutter * 2;
             final columns = ProductCard.columnsFor(context, usableWidth);
+            final cardWidth =
+                (usableWidth - AppSpacing.md * (columns - 1)) / columns;
             return GridView.builder(
               key: const ValueKey('category-products-grid'),
               controller: _scroll,
@@ -219,19 +249,27 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                 crossAxisCount: columns,
                 mainAxisSpacing: AppSpacing.xl,
                 crossAxisSpacing: AppSpacing.md,
-                mainAxisExtent: ProductCard.heightFor(context,
-                    hasOldPrice: items.any((item) => item.oldPrice != null)),
+                mainAxisExtent: ProductCard.heightFor(
+                  context,
+                  width: cardWidth,
+                  products: items,
+                ),
               ),
               itemCount: items.length + (_hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == items.length) {
                   return Center(
-                    child: _moreFailed
-                        ? TextButton(
+                    child: _loadingMore
+                        ? const CircularProgressIndicator()
+                        : TextButton(
                             onPressed: _loadMore,
-                            child: const Text('Повторить загрузку'),
-                          )
-                        : const CircularProgressIndicator(),
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(0, AppSpacing.touchTarget),
+                            ),
+                            child: Text(_moreFailed
+                                ? 'Повторить загрузку'
+                                : 'Показать ещё'),
+                          ),
                   );
                 }
                 final item = items[index];

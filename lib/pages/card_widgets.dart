@@ -60,9 +60,9 @@ class CardFaqPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return AppSurface(
-      fill: palette.accent.withValues(alpha: .2),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 2),
+    return AppGlassPanel(
+      tint: palette.accent.withValues(alpha: .2),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -143,7 +143,7 @@ class SavedCardRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(card.mask, style: AppTypography.title),
-                Text('Карта',
+                Text(card.canCharge ? 'Карта' : 'Номер карты · оплата недоступна',
                     style: AppTypography.bodySmall
                         .copyWith(color: palette.textSecondary)),
               ],

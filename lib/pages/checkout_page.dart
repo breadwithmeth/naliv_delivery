@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -5,6 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/money.dart';
+import '../core/product_view.dart';
+import '../core/quantity.dart';
+import '../services/auth_service.dart';
+import '../ui/app_icon.dart';
+import '../ui/product_card.dart';
 import '../design/theme.dart';
 import '../design/typography.dart';
 import '../features/cart/ui/cart_page.dart' as feature_cart;
@@ -23,12 +30,13 @@ import '../utils/cart_provider.dart';
 import '../utils/certificate_checkout_math.dart';
 import '../utils/item_name_presentation.dart';
 import '../utils/smart_cart.dart';
-import '../utils/subtract_promotion_math.dart';
+import '../utils/order_ui_helpers.dart';
 import '../widgets/address_selection_modal_material.dart';
 import '../features/faq/models/faq.dart';
 import '../features/faq/faq_navigation.dart';
 import 'login_page.dart';
 import 'payment_method_page.dart';
+import 'profile_setup_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
@@ -55,21 +63,10 @@ class CheckoutPage extends StatefulWidget {
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
 
-class _CheckoutPageState extends State<CheckoutPage> {
-  static const _bagIds = <int, int>{
-    1: 48044,
-    2: 50848,
-    6: 50837,
-    4: 52317,
-    7: 29503,
-    5: 28399,
-    3: 27295,
-    8: 43914,
-    11: 103935,
-    9: 46063,
-    10: 51676,
-  };
-  static const _bagPrice = 30.0;
+class _CheckoutPageState extends State<CheckoutPage>
+    with WidgetsBindingObserver {
+  // Verified public catalogue master code; store-local IDs/prices are read live.
+  static const _brandedBagCode = 'KR-00002264';
 
   final _entrance = TextEditingController();
   final _floor = TextEditingController();
@@ -88,6 +85,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   int _revision = 0;
   int _quoteRequest = 0;
   int _benefitRequest = 0;
+  int _bonusRequest = 0;
+  int _bagRequest = 0;
+  CategoryItem? _bag;
+  bool _loadingBag = false;
+  String? _bagError;
+  Future<void>? _refreshingSession;
   bool _initializing = true;
   bool? _loggedIn;
   bool _loadingBonus = false;
@@ -107,7 +110,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _submitError;
 
   bool get _delivery => _mode == 'DELIVERY';
-  int? get _businessId => _id(_business?.selectedBusiness);
+  int? get _businessId => _hasItems
+      ? _cart?.businessId
+      : _business?.selectedBusinessId;
   List<CartDisplayGroup> get _groups => _cart!.activeDisplayGroups;
   bool get _hasItems => _cart?.hasActiveItems == true;
   bool get _busy =>
@@ -118,6 +123,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _hasItems &&
       _businessId != null &&
       _quoteReady &&
+      !_loadingBag &&
+      _bag != null &&
+      (!_useBonus ||
+          (!_loadingBonus && _bonusBalance != null && _maxBonusUsed > 0)) &&
       !_initializing &&
       !_busy &&
       !_validating &&
@@ -128,6 +137,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_sessionChanged);
     if (widget.initialDeliveryType?.trim().toUpperCase() == 'PICKUP') {
       _mode = 'PICKUP';
     }
@@ -157,6 +168,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_sessionChanged);
     _cart?.removeListener(_dependenciesChanged);
     _business?.removeListener(_dependenciesChanged);
     for (final controller in [
@@ -181,10 +194,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final nextCart = _snapshotCart();
     final nextStore = _businessId;
     if (nextCart == _cartSnapshot && nextStore == _storeSnapshot) return;
+    final storeChanged = nextStore != _storeSnapshot;
     _cartSnapshot = nextCart;
     _storeSnapshot = nextStore;
     setState(_invalidate);
     _calculateDelivery();
+    if (storeChanged || !_loadingBag) _loadBag();
   }
 
   void _invalidate() {
@@ -216,43 +231,208 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
     }
     try {
-      final loggedIn = await ApiService.isUserLoggedIn();
+      await _cart!.ensureLoaded();
+      final storeId = _businessId;
+      if (storeId != null && storeId != _business!.selectedBusinessId) {
+        final response = await ApiService.getBusinesses(page: 1, limit: 1000);
+        final stores = ApiService.mapListFromDynamic(response?['businesses']);
+        final matches = stores.where((store) => _id(store) == storeId);
+        if (matches.length != 1 ||
+            !await _business!.setSelectedBusiness(matches.single)) {
+          throw StateError('Не удалось восстановить магазин корзины');
+        }
+      }
       if (!mounted) return;
-      setState(() {
-        _loggedIn = loggedIn;
-        _initializing = false;
-      });
-      _calculateDelivery();
-      if (loggedIn) _loadBonuses();
+      await _refreshSession(invalidate: false);
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _loggedIn = false;
-        _initializing = false;
-        _submitError = 'Не удалось проверить авторизацию. Войдите в аккаунт.';
-      });
+      setState(() => _submitError =
+          'Не удалось прочитать сохранённую корзину и магазин. Товары не изменены.');
+    } finally {
+      if (mounted) setState(() => _initializing = false);
     }
   }
 
-  Future<void> _loadBonuses() async {
-    if (_loadingBonus) return;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
+        ModalRoute.of(context)?.isCurrent == true &&
+        !_busy &&
+        !_created) {
+      _refreshSession();
+    }
+  }
+
+  void _sessionChanged() {
+    if (!mounted || _created) return;
+    _bonusRequest++;
+    setState(() {
+      _loggedIn = false;
+      _bonusBalance = null;
+      _loadingBonus = false;
+      _invalidate();
+    });
+    if (ModalRoute.of(context)?.isCurrent == true && !_busy) {
+      _refreshSession();
+    }
+  }
+
+  Future<void> _refreshSession({bool invalidate = true}) =>
+      _refreshingSession ??= _readSession(invalidate: invalidate)
+          .whenComplete(() => _refreshingSession = null);
+
+  Future<void> _readSession({required bool invalidate}) async {
+    if (!mounted || _created) return;
+    if (invalidate) setState(_invalidate);
+    try {
+      final token = await ApiService.getAuthToken();
+      final info = token == null
+          ? null
+          : await ApiService.getFullInfo().timeout(const Duration(seconds: 10));
+      final loggedIn = info?['user'] is Map &&
+          !ProfileSetupPage.isRequiredFor(info);
+      if (info != null) {
+        await AuthService.refreshIdentity(verifiedInfo: info);
+      } else if (token == null) {
+        AuthService.bindAuthenticatedIdentity(null);
+      }
+      if (!mounted) return;
+      setState(() {
+        _loggedIn = loggedIn;
+        if (!loggedIn) {
+          _bonusRequest++;
+          _bonusBalance = null;
+          _loadingBonus = false;
+          _useBonus = false;
+          if (token != null) {
+            _submitError =
+                'Не удалось подтвердить аккаунт и заполненный профиль. Повторите вход.';
+          }
+        }
+      });
+      unawaited(_calculateDelivery());
+      unawaited(_loadBag());
+      if (loggedIn) unawaited(_loadBonuses());
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loggedIn = false;
+          _bonusBalance = null;
+          _useBonus = false;
+          _submitError = 'Не удалось обновить аккаунт. Введённые данные сохранены.';
+        });
+      }
+    }
+  }
+
+  Future<bool> _loadBonuses() async {
+    final request = ++_bonusRequest;
     setState(() {
       _loadingBonus = true;
+      _bonusBalance = null;
       _bonusError = null;
     });
     try {
       final result = await ApiService.getUserBonuses();
-      if (!mounted) return;
+      if (!mounted || request != _bonusRequest) return false;
       final data = ApiService.mapFromDynamic(result?['data']);
       final balance = checkoutAmount(data['totalBonuses']);
+      final accepted = result?['success'] == true && balance != null;
       setState(() {
-        _bonusBalance = result?['success'] == true ? balance : null;
-        if (_bonusBalance == null) _bonusError = 'Не удалось загрузить бонусы';
+        _bonusBalance = accepted ? balance : null;
+        if (!accepted) {
+          _bonusError = 'Не удалось загрузить бонусы';
+          _useBonus = false;
+        }
+      });
+      return accepted;
+    } catch (_) {
+      if (mounted && request == _bonusRequest) {
+        setState(() {
+          _bonusBalance = null;
+          _useBonus = false;
+          _bonusError = 'Не удалось загрузить бонусы';
+        });
+      }
+      return false;
+    } finally {
+      if (mounted && request == _bonusRequest) {
+        setState(() => _loadingBonus = false);
+      }
+    }
+  }
+
+  Future<void> _loadBag() async {
+    final request = ++_bagRequest;
+    final store = _businessId;
+    final previous = _bag;
+    if (!mounted) return;
+    setState(() {
+      _bag = null;
+      _loadingBag = store != null && _hasItems;
+      _bagError = null;
+    });
+    if (store == null || !_hasItems) return;
+    try {
+      final matches = <CategoryItem>[];
+      var page = 1;
+      while (true) {
+        final response = await ApiService.searchItemsTyped(
+          'майка',
+          businessId: store,
+          page: page,
+          limit: 100,
+        );
+        if (!mounted || request != _bagRequest || store != _businessId) return;
+        if (response == null || !response.success) {
+          throw StateError('Не удалось прочитать каталог упаковки');
+        }
+        matches.addAll(response.data.items
+            .where((item) => item.code?.trim() == _brandedBagCode));
+        if (!response.data.pagination.hasNextPage) break;
+        page++;
+      }
+      if (matches.length != 1) {
+        throw StateError('В магазине не определён единственный фирменный пакет');
+      }
+      final bag = matches.single;
+      final alreadySelected = _groups
+          .where((group) => group.itemId == bag.itemId)
+          .fold<double>(0, (sum, group) => sum + group.totalOrderQuantity);
+      if (bag.itemId <= 0 ||
+          !bag.price.isFinite ||
+          bag.price < 0 ||
+          bag.visible != 1 ||
+          bag.amount == null ||
+          bag.amount! < math.max(1, alreadySelected) ||
+          (bag.options ?? const <CategoryItemOption>[])
+              .any((option) => option.required)) {
+        throw StateError('Фирменный пакет недоступен в выбранном магазине');
+      }
+      if (!mounted || request != _bagRequest) return;
+      setState(() {
+        _bag = bag;
+        if (previous != null &&
+            (previous.itemId != bag.itemId || previous.price != bag.price)) {
+          _revision++;
+          _benefitRequest++;
+          _promoData = null;
+          _certificateData = null;
+          _useBonus = false;
+          _benefitError =
+              'Упаковка или цена изменились. Проверьте сумму и примените льготу заново.';
+        }
       });
     } catch (_) {
-      if (mounted) setState(() => _bonusError = 'Не удалось загрузить бонусы');
+      if (mounted && request == _bagRequest) {
+        setState(() => _bagError =
+            'Не удалось подтвердить фирменный пакет-майку в этом магазине. Обновите каталог упаковки.');
+      }
     } finally {
-      if (mounted) setState(() => _loadingBonus = false);
+      if (mounted && request == _bagRequest) {
+        setState(() => _loadingBag = false);
+      }
     }
   }
 
@@ -523,7 +703,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               builder: (context) => AlertDialog(
                 title: const Text('Сменить магазин?'),
                 content: const Text(
-                    'Смена магазина очистит корзину и вернёт вас к выбору товаров.'),
+                    'Товары относятся к исходному магазину и не переносятся без пересчёта. Удалить корзину и выбрать другой магазин?'),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
@@ -531,7 +711,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   FilledButton(
                       key: const ValueKey('checkout-confirm-store'),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Сменить')),
+                      child: const Text('Удалить корзину и сменить')),
                 ],
               ),
             ) ==
@@ -558,9 +738,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
           throw StateError('Не удалось сбросить адрес предыдущего города');
         }
       }
-      if (!mounted) return;
-      _cart!.clearCart();
-      _goCatalog();
+      final nextId = _id(selected)!;
+      final committed = _hasItems
+          ? await _cart!.discardForBusiness(nextId)
+          : await _cart!.bindBusiness(nextId);
+      if (!committed) throw StateError('Корзина не сохранена');
+      if (mounted) _goCatalog();
     } catch (_) {
       var restored = true;
       if (storeChanged) {
@@ -639,6 +822,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted || revision != _revision || !_hasItems || !_quoteReady) {
         return;
       }
+      if (_useBonus) {
+        final expectedBonus = _bonusUsed;
+        final fresh = await _loadBonuses();
+        if (!mounted || revision != _revision) return;
+        if (!fresh || expectedBonus != _bonusUsed) {
+          setState(() {
+            _useBonus = false;
+            _benefitError = fresh
+                ? 'Баланс бонусов изменился. Проверьте сумму и включите списание заново.'
+                : 'Списание не подтверждено: обновите баланс бонусов.';
+          });
+          return;
+        }
+      }
       final amount = _total;
       final certificate =
           ApiService.mapFromDynamic(_certificateData?['certificate']);
@@ -680,6 +877,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           builder: (_) => PaymentMethodPage(
             orderData: order,
             displayAmount: amount,
+            amountNotice: checkoutAmountNotice(
+              clientAmount: amount,
+              serverAmount: resolveServerChargedAmount(order),
+            ),
             openCardForm: widget.openCardForm,
             onPaymentCompleted: widget.onPaymentCompleted,
           ),
@@ -708,23 +909,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  bool get _addBag {
-    final bagId = _bagIds[_businessId];
-    if (bagId == null || !_hasItems) return false;
-    return !_groups.any((item) {
-      if (item.itemId == bagId) return true;
-      final name = (item.itemSnapshot?.name ?? item.name)
-          .toLowerCase()
-          .replaceAll('ё', 'е');
-      return name.contains('пакет') || name.contains('bag');
-    });
-  }
+  bool get _addBag => _bag != null &&
+      _hasItems &&
+      !_groups.any((group) => group.itemId == _bag!.itemId);
 
   List<Map<String, dynamic>> _orderItems() {
     final items = _cart!.toJsonForOrder();
     if (_addBag) {
       items.add({
-        'item_id': _bagIds[_businessId],
+        'item_id': _bag!.itemId,
         'amount': 1,
         'options': <Map<String, dynamic>>[]
       });
@@ -732,11 +925,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return items;
   }
 
-  double get _bagCost => _addBag ? _bagPrice : 0;
+  double get _bagCost => _addBag ? _bag!.price : 0;
   double get _itemsSubtotal => _cart!.getTotalPrice() + _bagCost;
-  double get _bonusUsed => _useBonus && _bonusBalance != null
-      ? math.min(_bonusBalance!, _cart!.getTotalPrice() * 0.3)
-      : 0;
+  double get _bonusEligibleSubtotal =>
+      BonusRules.calculateEligibleSubtotalForGroups(_groups);
+  int get _maxBonusUsed => BonusRules.calculateRedeemableBonuses(
+      balance: _bonusBalance ?? 0, eligibleSubtotal: _bonusEligibleSubtotal);
+  double get _bonusUsed => _useBonus ? _maxBonusUsed.toDouble() : 0;
   double? _certificateAvailable(Map<String, dynamic> data) {
     final certificate = ApiService.mapFromDynamic(data['certificate']);
     return checkoutAmount(data['max_available_amount'] ??
@@ -772,20 +967,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _deliveryCost +
       _serviceFee;
 
-  int get _earnedBonuses {
-    if (_promoData != null) return 0;
-    final eligible = _groups.fold<double>(0, (sum, group) {
-      final item = group.itemSnapshot;
-      return BonusRules.isBonusExcludedText(
-              name: item?.name ?? group.name,
-              description: item?.description,
-              categoryName: item?.category?.name,
-              code: item?.code)
-          ? sum
-          : sum + group.totalPrice;
-    });
-    return BonusRules.calculateEarnedBonuses(eligible);
-  }
+  int get _earnedBonuses => _promoData != null
+      ? 0
+      : BonusRules.calculateEarnedBonusesForGroups(_groups);
 
   void _goCatalog() {
     if (widget.onCatalog != null) {
@@ -827,18 +1011,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (replace) {
       navigator.pushReplacement(route);
     } else {
-      navigator.push(route);
+      navigator.push(route).then((_) {
+        if (mounted) _refreshSession();
+      });
     }
   }
 
   Future<void> _signIn() async {
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => const LoginPage(startWithPhoneForm: true)));
-    if (!mounted) return;
-    final loggedIn = await ApiService.isUserLoggedIn();
-    if (!mounted) return;
-    setState(() => _loggedIn = loggedIn);
-    if (loggedIn) _loadBonuses();
+    final authenticated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const LoginPage(
+          startWithPhoneForm: true,
+          completionMode: LoginCompletionMode.returnAuthenticated,
+        ),
+      ),
+    );
+    if (!mounted || authenticated != true) return;
+    await _refreshSession();
   }
 
   @override
@@ -853,24 +1042,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
       child: Scaffold(
         key: const ValueKey('checkout-page'),
         resizeToAvoidBottomInset: false,
-        bottomNavigationBar: !_hasItems ? null : _bottomBar(),
-        body: SafeArea(
-          bottom: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: MediaQuery.viewInsetsOf(context).bottom > 0
-                  ? _checkoutContent(includeHeader: true)
-                  : Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _header(),
-                        ),
-                        const SizedBox(height: 14),
-                        Expanded(child: _checkoutContent()),
-                      ],
+        body: Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom),
+          child: SafeArea(
+            bottom: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _checkoutContent()),
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: AppGlassPanel(
+                        radius: 0,
+                        tintStrength: 0.25,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _header(),
+                      ),
                     ),
+                    if (_hasItems)
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: _bottomBar(),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -882,21 +1081,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
         title: 'Оформление',
         onBack: _back,
         backEnabled: !_busy,
-        trailing: IconButton(
-          key: const ValueKey('checkout-faq'),
-          tooltip: 'Помощь с оформлением',
-          onPressed: () =>
-              openFaqPage(context, initialSection: FaqSection.delivery),
-          icon: const Icon(Icons.help_outline),
-        ),
       );
 
-  Widget _checkoutContent({bool includeHeader = false}) => ListView(
+  double get _footerReserve {
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final stacked = MediaQuery.sizeOf(context).width < 340 || scale > 1.4;
+    return (stacked ? 150 : 106) +
+        (scale > 1 ? (scale - 1) * 48 : 0) +
+        MediaQuery.paddingOf(context).bottom;
+  }
+
+  Widget _checkoutContent() => ListView(
         key: const ValueKey('checkout-scroll'),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: EdgeInsets.fromLTRB(16, 94, 16, _footerReserve + 20),
         children: [
-          if (includeHeader) ...[_header(), const SizedBox(height: 14)],
           if (!_hasItems)
             AppEmptyState(
               key: const ValueKey('checkout-empty'),
@@ -923,15 +1122,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             const SizedBox(height: 24),
             _benefits(),
             const SizedBox(height: 24),
-            Text('Ваш заказ',
-                style: AppTypography.title
-                    .copyWith(color: context.palette.textPrimary)),
-            const SizedBox(height: 12),
-            for (final group in _groups) ...[
-              _item(group),
-              const SizedBox(height: 6),
-            ],
-            if (_addBag) _summaryRow('Пакет · 1 шт.', _money(_bagPrice)),
+            _orderSummary(),
             const SizedBox(height: 24),
             _summary(),
             if (_submitError != null) ...[
@@ -994,11 +1185,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _selectionTile(
           key: const ValueKey('checkout-store'),
           icon: Icons.storefront_outlined,
-          title: _business?.selectedBusinessName ?? 'Выберите магазин',
-          subtitle: _business?.selectedBusiness?['address']?.toString() ??
-              'Магазин для заказа',
+          title: _businessId == null
+              ? 'Выберите магазин'
+              : _business?.selectedBusinessName ?? 'Магазин №$_businessId',
+          subtitle: _businessId == null
+              ? 'Магазин сохранённой корзины не определён'
+              : _business?.selectedBusiness?['address']?.toString() ??
+                  'Магазин для заказа',
           onTap: _busy ? null : _selectStore),
       if (_switchingStore) const LinearProgressIndicator(),
+      if (_cart?.hasUnresolvedBusiness == true)
+        _message(
+            'Магазин старой корзины неизвестен. Товары сохранены: их можно уменьшить или удалить в корзине. Выбор магазина требует отдельного согласия на удаление.',
+            action: TextButton(
+                onPressed: _busy ? null : () => _openCart(),
+                child: const Text('Открыть корзину'))),
       if (_delivery) ...[
         const SizedBox(height: 8),
         _selectionTile(
@@ -1047,14 +1248,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ? 'Выбрать на карте'
                       : 'Повторить сохранение'))),
         ],
-        const SizedBox(height: 16),
-        _summaryRow(
-            'Стоимость доставки',
-            _quoting
-                ? 'Рассчитываем…'
-                : _quote == null
-                    ? 'Не рассчитана'
-                    : _money(_deliveryCost + _serviceFee)),
+        const SizedBox(height: 8),
+        _detailRow(
+          icon: Icons.local_shipping_outlined,
+          title: 'Стоимость доставки',
+          subtitle: _quoting
+              ? 'Рассчитываем…'
+              : _quote == null
+                  ? 'Не рассчитана'
+                  : _money(_deliveryCost + _serviceFee),
+        ),
         if (_quoting)
           const Padding(
               padding: EdgeInsets.only(top: 8),
@@ -1074,9 +1277,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   onPressed: _busy ? null : _pickAddress,
                   child: const Text('Выбрать адрес'))),
       ],
+      if (_delivery)
+        _detailRow(
+          icon: Icons.schedule_outlined,
+          title: 'Когда доставить',
+          subtitle: 'Сейчас',
+        ),
       const SizedBox(height: 12),
-      _summaryRow(_delivery ? 'Когда доставить' : 'Когда забрать',
-          _delivery ? 'Сейчас' : 'Как можно скорее'),
+      AppSurface(
+        key: const ValueKey('checkout-faq'),
+        fill: palette.accentFaint,
+        padding: const EdgeInsets.all(12),
+        onTap: _busy
+            ? null
+            : () => _openHelp(FaqSection.delivery),
+        child: Row(children: [
+          AppIcon(AppIcons.faq, color: palette.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Частые вопросы по оформлению',
+                      style: AppTypography.bodySmallBold),
+                  const SizedBox(height: 4),
+                  Text('Доставка, промокоды, бонусы и отмена заказа',
+                      style: AppTypography.caption
+                          .copyWith(color: palette.textSecondary)),
+                ]),
+          ),
+          Icon(Icons.chevron_right, color: palette.textSecondary),
+        ]),
+      ),
     ]);
   }
 
@@ -1092,48 +1324,75 @@ class _CheckoutPageState extends State<CheckoutPage> {
             : TextInputAction.next,
         onChanged: (_) => setState(() => _addressError = null),
         onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        style: AppTypography.body,
+        scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
+        style: AppTypography.bodySmall,
         decoration: InputDecoration(
-            labelText: label,
-            helperText: 'Необязательно',
-            helperStyle: AppTypography.label
-                .copyWith(color: context.palette.textSecondary),
+            hintText: label,
+            filled: true,
+            fillColor: context.palette.surface,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(100),
+                borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(100),
+                borderSide: BorderSide.none),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 14)),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
       );
 
   Widget _benefits() {
     final palette = context.palette;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Expanded(
-            child: Text('Списать бонусы',
-                style: AppTypography.titleMedium
-                    .copyWith(color: palette.textPrimary))),
-        Switch.adaptive(
-            key: const ValueKey('checkout-bonus-toggle'),
-            value: _useBonus,
-            onChanged:
-                !_busy && (_bonusBalance ?? 0) > 0 ? _toggleBonuses : null),
-      ]),
-      if (_loadingBonus)
-        const LinearProgressIndicator()
-      else if (_bonusBalance != null)
-        Text(
-            'На балансе: ${_money(_bonusBalance!)}\nМожно списать до ${_money(math.min(_bonusBalance!, _cart!.getTotalPrice() * 0.3))}',
-            style:
-                AppTypography.bodySmall.copyWith(color: palette.textSecondary)),
-      if (_bonusError != null)
-        _message(_bonusError!,
-            action: TextButton(
-                key: const ValueKey('checkout-bonus-retry'),
-                onPressed: _loadBonuses,
-                child: const Text('Обновить бонусы'))),
-      TextButton(
-          onPressed: () =>
-              openFaqPage(context, initialSection: FaqSection.bonuses),
-          child: const Text('Как работают бонусы')),
-      const SizedBox(height: 8),
+      AppSurface(
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Expanded(
+                    child: Text('Списать бонусы',
+                        style: AppTypography.titleMedium
+                            .copyWith(color: palette.textPrimary))),
+                Switch.adaptive(
+                    key: const ValueKey('checkout-bonus-toggle'),
+                    value: _useBonus,
+                    onChanged: !_busy &&
+                            !_loadingBonus &&
+                            _loggedIn == true &&
+                            _maxBonusUsed > 0
+                        ? _toggleBonuses
+                        : null),
+              ]),
+              if (_loadingBonus)
+                const LinearProgressIndicator()
+              else if (_bonusBalance != null) ...[
+                Text('На балансе: ${_money(_bonusBalance!)}',
+                    style: AppTypography.captionMedium
+                        .copyWith(color: palette.gold)),
+                Text('Можно списать до ${_money(_maxBonusUsed)}',
+                    style: AppTypography.caption
+                        .copyWith(color: palette.textSecondary)),
+              ],
+              if (_bonusError != null)
+                _message(_bonusError!,
+                    action: TextButton(
+                        key: const ValueKey('checkout-bonus-retry'),
+                        onPressed: _busy ? null : _loadBonuses,
+                        child: const Text('Обновить бонусы'))),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () => _openHelp(FaqSection.bonuses),
+                    style: TextButton.styleFrom(
+                        minimumSize: const Size(44, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 4)),
+                    child: const Text('Как работают бонусы')),
+              ),
+            ]),
+      ),
+      const SizedBox(height: 24),
       _codeField('Промокод', _promo, false),
       const SizedBox(height: 16),
       _codeField('Сертификат', _certificate, true),
@@ -1184,82 +1443,235 @@ class _CheckoutPageState extends State<CheckoutPage> {
           style:
               AppTypography.title.copyWith(color: context.palette.textPrimary)),
       const SizedBox(height: 8),
-      TextField(
-        key: ValueKey('checkout-$name-code'),
-        controller: controller,
-        enabled: !_busy && !_useBonus,
-        textCapitalization: TextCapitalization.characters,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _validateCode(certificate: certificate),
-        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        style: AppTypography.body,
-        decoration: InputDecoration(
-            hintText: 'Введите ${certificate ? 'код сертификата' : 'промокод'}',
-            suffixIcon: IconButton(
-                key: ValueKey('checkout-apply-$name'),
-                tooltip: 'Применить $label',
-                onPressed: !_busy && !_validating && !_useBonus
-                    ? () => _validateCode(certificate: certificate)
-                    : null,
-                icon: const Icon(Icons.arrow_forward))),
-      ),
+      LayoutBuilder(builder: (context, constraints) {
+        final input = TextField(
+          key: ValueKey('checkout-$name-code'),
+          controller: controller,
+          enabled: !_busy && !_useBonus,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.done,
+          scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
+          onSubmitted: (_) => _validateCode(certificate: certificate),
+          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+          style: AppTypography.bodySmall,
+          decoration: InputDecoration(
+              hintText: certificate ? 'Код сертификата' : 'Введите промокод',
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+        );
+        final apply = FilledButton(
+          key: ValueKey('checkout-apply-$name'),
+          onPressed: !_busy && !_validating && !_useBonus
+              ? () => _validateCode(certificate: certificate)
+              : null,
+          style: FilledButton.styleFrom(
+              minimumSize: const Size(44, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              textStyle: AppTypography.captionMedium),
+          child: const Text('Применить'),
+        );
+        return MediaQuery.textScalerOf(context).scale(14) > 20
+            ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                input,
+                const SizedBox(height: 8),
+                apply,
+              ])
+            : Row(children: [
+                Expanded(child: input),
+                const SizedBox(width: 8),
+                apply,
+              ]);
+      }),
     ]);
   }
+
+  Widget _orderSummary() => AppSurface(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Ваш заказ', style: AppTypography.titleMedium),
+              const SizedBox(height: 4),
+              Text('${_groups.length} позиций',
+                  style: AppTypography.caption
+                      .copyWith(color: context.palette.textSecondary)),
+              const SizedBox(height: 12),
+              for (final group in _groups) ...[
+                _item(group),
+                if (group.freeQuantity > 0) _gift(group),
+                const SizedBox(height: 10),
+              ],
+              if (_loadingBag) const LinearProgressIndicator(),
+              if (_addBag) ...[
+                const Divider(height: 20),
+                Row(children: [
+                  AppIcon(AppIcons.bagHappy,
+                      color: context.palette.accent, size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text('Фирменный пакет-майка')),
+                  const SizedBox(width: 8),
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(_money(_bag!.price),
+                            style: AppTypography.bodySmallBold
+                                .copyWith(color: context.palette.accent)),
+                        Text('1 шт.', style: AppTypography.caption),
+                      ]),
+                ]),
+              ],
+              if (_bagError != null)
+                _message(_bagError!,
+                    key: const ValueKey('checkout-bag-error'),
+                    action: TextButton(
+                        key: const ValueKey('checkout-bag-retry'),
+                        onPressed: _busy ? null : _loadBag,
+                        child: const Text('Обновить упаковку'))),
+            ]),
+      );
 
   Widget _item(CartDisplayGroup group) {
     final snapshot = group.itemSnapshot;
     final name = snapshot != null
-        ? presentItemName(
-            rawName: snapshot.name, categoryName: snapshot.category?.name)
+        ? presentItem(snapshot,
+            storedType: group.itemType,
+            storedPackagingType: group.packagingType)
         : presentItemName(
             rawName: group.name,
             storedType: group.itemType,
             storedPackagingType: group.packagingType);
-    final quantity = subtractPromotionBundleLabel(
-        group.totalQuantity, group.promotions,
-        formatQuantity: (value) => value == value.roundToDouble()
-            ? value.toStringAsFixed(0)
-            : value.toStringAsFixed(2));
-    return AppSurface(
-        key: ValueKey('checkout-item-${group.key}'),
-        padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(name.name,
-              style: AppTypography.bodyBold
-                  .copyWith(color: context.palette.textPrimary)),
-          if (name.attributes.isNotEmpty)
-            Text(name.attributes.join(' · '),
-                style: AppTypography.bodySmall
-                    .copyWith(color: context.palette.textSecondary)),
-          if (group.bottleBreakdownLabel != null)
-            Text(group.bottleBreakdownLabel!,
-                style: AppTypography.bodySmall
-                    .copyWith(color: context.palette.textSecondary)),
-          const SizedBox(height: 6),
-          Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              alignment: WrapAlignment.spaceBetween,
+    final unit = quantityUnitLabel(snapshot?.unit) ?? '';
+    return Padding(
+      key: ValueKey('checkout-item-${group.key}'),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _itemImage(snapshot?.image ?? group.image),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('× $quantity', style: AppTypography.bodySmall),
-                if (group.totalPrice < group.subtotalBeforePromotions - 0.001)
-                  Text(_money(group.subtotalBeforePromotions),
-                      style: AppTypography.bodySmall.copyWith(
-                          color: context.palette.textSecondary,
-                          decoration: TextDecoration.lineThrough)),
-                Text(_money(group.totalPrice),
-                    style: AppTypography.bodyBold
-                        .copyWith(color: context.palette.accent)),
+                Text(name.name,
+                    style: AppTypography.bodySmallMedium
+                        .copyWith(color: context.palette.textPrimary)),
+                if (name.attributes.isNotEmpty)
+                  Text(name.attributes.join(' · '),
+                      style: AppTypography.caption
+                          .copyWith(color: context.palette.textSecondary)),
+                if (group.bottleBreakdownLabel != null)
+                  Text(group.bottleBreakdownLabel!,
+                      style: AppTypography.caption
+                          .copyWith(color: context.palette.textSecondary)),
+                Text(formatQuantity(group.totalQuantity, unit),
+                    style: AppTypography.caption
+                        .copyWith(color: context.palette.textSecondary)),
+                if (snapshot != null)
+                  Text(ProductView.fromItem(snapshot).unitPriceLabel,
+                      style: AppTypography.caption
+                          .copyWith(color: context.palette.textSecondary)),
+                const SizedBox(height: 6),
+                LayoutBuilder(builder: (context, constraints) {
+                  final price = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (group.totalPrice <
+                            group.subtotalBeforePromotions - 0.001)
+                          Text(_money(group.subtotalBeforePromotions),
+                              style: AppTypography.caption.copyWith(
+                                  color: context.palette.textSecondary,
+                                  decoration: TextDecoration.lineThrough)),
+                        Text(_money(group.totalPrice),
+                            style: AppTypography.bodySmallBold
+                                .copyWith(color: context.palette.accent)),
+                      ]);
+                  final quantity = SizedBox(
+                    width: math.min(constraints.maxWidth, 140),
+                    child: ProductQuantityControl(
+                      quantity: group.totalQuantity,
+                      unit: unit,
+                      onIncrement: _busy || !group.canIncrease
+                          ? null
+                          : () => _cart!.incrementDisplayGroup(group),
+                      onDecrement: _busy
+                          ? null
+                          : () => _cart!.decrementDisplayGroup(group),
+                    ),
+                  );
+                  final stacked = constraints.maxWidth < 230 ||
+                      MediaQuery.textScalerOf(context).scale(14) > 20;
+                  return stacked
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [price, const SizedBox(height: 6), quantity])
+                      : Row(children: [
+                          Expanded(child: price),
+                          const SizedBox(width: 8),
+                          quantity,
+                        ]);
+                }),
               ]),
-        ]));
+        ),
+      ]),
+    );
+  }
+
+  Widget _itemImage(String? image) => ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: 44,
+          height: 50,
+          child: image?.isNotEmpty == true
+              ? Image.network(image!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(Icons.image_outlined,
+                      color: context.palette.textSecondary))
+              : Icon(Icons.image_outlined,
+                  color: context.palette.textSecondary),
+        ),
+      );
+
+  Widget _gift(CartDisplayGroup group) {
+    final item = group.itemSnapshot;
+    final name = item == null
+        ? presentItemName(rawName: group.name).name
+        : presentItem(item).name;
+    final unit = quantityUnitLabel(item?.unit) ?? '';
+    return AppSurface(
+      key: ValueKey('checkout-gift-${group.key}'),
+      fill: context.palette.brandRed,
+      padding: const EdgeInsets.all(10),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _itemImage(item?.image ?? group.image),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(
+                      '$name · ${formatQuantity(group.freeQuantity, unit)} в подарок',
+                      style: AppTypography.bodySmallMedium
+                          .copyWith(color: Colors.white))),
+              const SizedBox(width: 8),
+              Text(_money(0),
+                  style: AppTypography.bodySmallBold
+                      .copyWith(color: Colors.white)),
+            ]),
+            const SizedBox(height: 6),
+            Text(
+                group.selection?.usesPourFlow == true
+                    ? 'Напиток — 0 ₸. Обычная стоимость подарочной тары включена в сумму товара.'
+                    : 'Подарок по действующей акции товара',
+                style: AppTypography.caption.copyWith(color: Colors.white)),
+          ]),
+    );
   }
 
   Widget _summary() =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Расчёт',
-            style: AppTypography.title
-                .copyWith(color: context.palette.textPrimary)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         _summaryRow('Товары', _money(_cart!.getTotalPrice())),
         if (_bagCost > 0) _summaryRow('Пакет', _money(_bagCost)),
         if (_delivery)
@@ -1273,12 +1685,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           _summaryRow('Сертификат', '−${_money(_certificateUsed)}'),
         if (_earnedBonuses > 0)
           _summaryRow(
-              'Начислится бонусов', '+${_money(_earnedBonuses.toDouble())}'),
-        const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
-        _summaryRow(
-            _quoteReady ? 'К оплате' : 'Товары без доставки', _money(_total),
-            emphasized: true),
+              'Оценка бонусов за заказ', '+${_money(_earnedBonuses)}'),
       ]);
 
   Widget _summaryRow(String label, String value, {bool emphasized = false}) =>
@@ -1286,7 +1693,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: LayoutBuilder(builder: (context, constraints) {
           final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-          final style = emphasized ? AppTypography.title : AppTypography.body;
+          final style =
+              emphasized ? AppTypography.title : AppTypography.bodySmall;
           final labelWidget = Text(label,
               style: style.copyWith(color: context.palette.textSecondary));
           final valueWidget = Text(value,
@@ -1315,7 +1723,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       AppSurface(
         key: key,
         onTap: onTap,
-        padding: const EdgeInsets.all(14),
+        fill: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(icon, color: context.palette.accent),
           const SizedBox(width: 12),
@@ -1324,11 +1733,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(title,
-                    style: AppTypography.titleMedium
+                    style: AppTypography.bodySmallMedium
                         .copyWith(color: context.palette.textPrimary)),
                 const SizedBox(height: 4),
                 Text(subtitle,
-                    style: AppTypography.bodySmall
+                    style: AppTypography.caption
                         .copyWith(color: context.palette.textSecondary)),
               ])),
           const SizedBox(width: 6),
@@ -1348,71 +1757,90 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ]),
       );
 
-  Widget _bottomBar() => Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SafeArea(
-          top: false,
-          child: Center(
-            heightFactor: 1,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                child: AppGlassPanel(
-                  radius: 20,
-                  padding: const EdgeInsets.all(12),
-                  child: LayoutBuilder(builder: (context, constraints) {
-                    final amount = Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_quoteReady ? 'К оплате' : 'Без доставки',
-                              style: AppTypography.bodySmall.copyWith(
-                                  color: context.palette.textSecondary)),
-                          Text(_money(_total),
-                              key: const ValueKey('checkout-total'),
-                              style: AppTypography.displayBold.copyWith(
-                                  color: context.palette.textPrimary)),
-                        ]);
-                    final button = FilledButton(
-                        key: const ValueKey('checkout-submit'),
-                        onPressed: _canSubmit ? _submitOrder : null,
-                        style: FilledButton.styleFrom(
-                            shape: const StadiumBorder(),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 14)),
-                        child: Text(_submitting ? 'Отправляем…' : 'Подтвердить',
-                            textAlign: TextAlign.center));
-                    final stacked = constraints.maxWidth < 290 ||
-                        MediaQuery.textScalerOf(context).scale(14) > 20;
-                    return stacked
-                        ? Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                                amount,
-                                const SizedBox(height: 8),
-                                button
-                              ])
-                        : Row(children: [
-                            Expanded(child: amount),
-                            const SizedBox(width: 12),
-                            Flexible(child: button)
-                          ]);
-                  }),
-                ),
-              ),
-            ),
-          )));
+  Widget _detailRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, color: context.palette.accent),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppTypography.bodySmallMedium),
+                    Text(subtitle,
+                        style: AppTypography.caption
+                            .copyWith(color: context.palette.textSecondary)),
+                  ])),
+        ]),
+      );
+
+  Future<void> _openHelp(FaqSection section) async {
+    await openFaqPage(context, initialSection: section);
+    if (mounted) await _refreshSession();
+  }
+
+  Widget _bottomBar() => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+          child: AppGlassPanel(
+            radius: 28,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final amount = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!_quoteReady)
+                      Text('Товары без доставки',
+                          style: AppTypography.caption.copyWith(
+                              color: context.palette.textSecondary)),
+                    Text(_money(_total),
+                        key: const ValueKey('checkout-total'),
+                        style: AppTypography.headline
+                            .copyWith(color: context.palette.textPrimary)),
+                  ]);
+              final button = FilledButton(
+                  key: const ValueKey('checkout-submit'),
+                  onPressed: _canSubmit ? _submitOrder : null,
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size(44, 48),
+                      shape: const StadiumBorder(),
+                      textStyle: AppTypography.bodySmallBold,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14)),
+                  child: Text(_submitting ? 'Отправляем…' : 'Подтвердить',
+                      textAlign: TextAlign.center));
+              final stacked = constraints.maxWidth < 290 ||
+                  MediaQuery.textScalerOf(context).scale(14) > 20;
+              return stacked
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [amount, const SizedBox(height: 8), button])
+                  : Row(children: [
+                      Expanded(child: amount),
+                      const SizedBox(width: 12),
+                      button,
+                    ]);
+            }),
+          ),
+        ),
+      );
 
   static int? _integer(dynamic value) {
     final parsed = value is int ? value : int.tryParse('$value');
     return parsed != null && parsed > 0 ? parsed : null;
   }
 
-  static int? _id(Map<String, dynamic>? business) => _integer(
-      business?['id'] ?? business?['business_id'] ?? business?['businessId']);
-  static String _money(double value) => '${value.toStringAsFixed(0)} ₸';
+  static int? _id(Map<String, dynamic>? business) =>
+      BusinessProvider.idOf(business);
+  static String _money(num value) => formatTenge(value);
   static String _errorMessage(dynamic error, String fallback) {
     final text = (error is Map ? error['message'] : error)?.toString().trim();
     return text == null || text.isEmpty ? fallback : text;

@@ -1,7 +1,8 @@
 import '../model/item.dart' as item_model;
 
 bool itemHasActivePromotion(item_model.Item item) {
-  return (item.promotions ?? const <item_model.ItemPromotion>[]).any((promotion) => promotion.isActive);
+  return (item.promotions ?? const <item_model.ItemPromotion>[])
+      .any((promotion) => promotion.isActive);
 }
 
 bool hasPromotionBoundaryAfter(
@@ -12,5 +13,6 @@ bool hasPromotionBoundaryAfter(
     return false;
   }
 
-  return itemHasActivePromotion(orderedItems[leadingIndex]) && !itemHasActivePromotion(orderedItems[leadingIndex + 1]);
+  return itemHasActivePromotion(orderedItems[leadingIndex]) &&
+      !itemHasActivePromotion(orderedItems[leadingIndex + 1]);
 }

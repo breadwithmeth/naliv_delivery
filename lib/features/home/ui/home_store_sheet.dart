@@ -47,11 +47,11 @@ class HomeStoreSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Выберите магазин',
-                      style: AppTypography.title
+                      style: AppTypography.headline
                           .copyWith(color: palette.textPrimary)),
                   const SizedBox(height: 4),
                   Text('Цены и ассортимент могут отличаться',
-                      style: AppTypography.label
+                      style: AppTypography.bodySmall
                           .copyWith(color: palette.textSecondary)),
                 ],
               ),
@@ -66,8 +66,11 @@ class HomeStoreSheet extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
                       child: Text(
                         '$city  ${grouped[city]!.length}',
-                        style: AppTypography.bodySmallBold
-                            .copyWith(color: palette.accent),
+                        style: AppTypography.bodySmallBold.copyWith(
+                          color: grouped[city]!.any((store) => store.id == selectedId)
+                              ? palette.accent
+                              : palette.textPrimary,
+                        ),
                       ),
                     ),
                     for (final store in grouped[city]!)
@@ -76,14 +79,20 @@ class HomeStoreSheet extends StatelessWidget {
                         child: Material(
                           color: store.id == selectedId
                               ? palette.accent.withValues(alpha: .18)
-                              : palette.surface,
+                              : palette.surfaceMuted,
                           borderRadius: BorderRadius.circular(AppRadii.md),
                           child: InkWell(
                             key: ValueKey('home-store-${store.id}'),
                             borderRadius: BorderRadius.circular(AppRadii.md),
                             onTap: () => Navigator.of(context).pop(store),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
+                            child: Semantics(
+                              selected: store.id == selectedId,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minHeight: AppSpacing.touchTarget,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
                                   const AppIcon(AppIcons.store, size: 18),
@@ -100,8 +109,6 @@ class HomeStoreSheet extends StatelessWidget {
                                                         palette.textPrimary)),
                                         if (store.address.isNotEmpty)
                                           Text(store.address,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
                                               style: AppTypography.label
                                                   .copyWith(
                                                       color: palette
@@ -115,6 +122,8 @@ class HomeStoreSheet extends StatelessWidget {
                                 ],
                               ),
                             ),
+                              ),
+                              ),
                           ),
                         ),
                       ),

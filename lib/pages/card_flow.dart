@@ -18,48 +18,74 @@ Uri? hostedCardUri(String? value) {
 
 @immutable
 class SavedCard {
-  const SavedCard({required this.id, required this.mask});
+  const SavedCard({
+    required this.rowKey,
+    required this.mask,
+    this.chargeId,
+  });
 
-  final String id;
+  final String rowKey;
   final String mask;
+  final String? chargeId;
+  bool get canCharge => chargeId != null;
   static final _digits = RegExp(r'\d');
   static final _validMask = RegExp(r'^[\d*•xX\s-]+$');
   static final _masking = RegExp(r'[*•xX]');
   static final _panIdentity = RegExp(r'^(?:\d[\s-]?){12,19}$');
 
+  static String? safeMask(Object? value) {
+    if (value is! String) return null;
+    final mask = value.trim();
+    final digitCount = _digits.allMatches(mask).length;
+    return _validMask.hasMatch(mask) && _masking.hasMatch(mask) &&
+            digitCount >= 4 && digitCount <= 10
+        ? mask
+        : null;
+  }
+
   static SavedCardCollection parse(Object? value) {
     if (value is! List) throw const FormatException('Missing card collection');
     final ids = <String>{};
     final duplicates = <String>{};
-    final valid = <SavedCard>[];
-    for (final raw in value) {
+    final displayable = <SavedCard>[];
+    for (var index = 0; index < value.length; index++) {
+      final raw = value[index];
       if (raw is! Map) continue;
+      final mask = safeMask(raw['card_mask'] ?? raw['mask']);
+      if (mask == null) continue;
+      // Only this bank collection supplies charge identities. A bad provider ID
+      // must not fall back to a local row ID; safe masks can still be displayed.
       final rawId = raw['halyk_id'] ?? raw['card_id'] ?? raw['id'];
       final id = rawId is String || rawId is int ? rawId.toString().trim() : '';
-      if (id.isEmpty ||
-          id.toLowerCase() == 'null' ||
-          _panIdentity.hasMatch(id) ||
-          (rawId is int && rawId <= 0)) {
-        continue;
+      final chargeId = id.isEmpty ||
+              id.toLowerCase() == 'null' ||
+              _panIdentity.hasMatch(id) ||
+              (rawId is int && rawId <= 0)
+          ? null
+          : id;
+      if (chargeId != null && !ids.add(chargeId)) {
+        duplicates.add(chargeId);
       }
-      if (!ids.add(id)) duplicates.add(id);
-      final rawMask = raw['card_mask'] ?? raw['mask'];
-      final mask = rawMask is String ? rawMask.trim() : '';
-      final digitCount = _digits.allMatches(mask).length;
-      if (!_validMask.hasMatch(mask) ||
-          !_masking.hasMatch(mask) ||
-          digitCount < 4 ||
-          digitCount > 10) {
-        continue;
-      }
-      valid.add(SavedCard(id: id, mask: mask));
+      displayable.add(SavedCard(
+        rowKey: chargeId ?? 'summary-$index',
+        chargeId: chargeId,
+        mask: mask,
+      ));
     }
-    // An ambiguous identity is never offered for charging, even when one row
-    // with that identity happened to be well formed.
-    final cards = valid.where((card) => !duplicates.contains(card.id)).toList();
+    // Ambiguous valid identities stay visible as summaries, never chargeable.
+    // A malformed mask above does not invalidate a different, valid bank row.
+    for (var index = 0; index < displayable.length; index++) {
+      final card = displayable[index];
+      if (duplicates.contains(card.chargeId)) {
+        displayable[index] = SavedCard(
+          rowKey: 'summary-duplicate-$index',
+          mask: card.mask,
+        );
+      }
+    }
     return SavedCardCollection(
-      cards: List<SavedCard>.unmodifiable(cards),
-      rejectedCount: value.length - cards.length,
+      cards: List<SavedCard>.unmodifiable(displayable),
+      rejectedCount: value.length - displayable.length,
     );
   }
 }
@@ -70,7 +96,8 @@ class SavedCardCollection {
 
   final List<SavedCard> cards;
   final int rejectedCount;
-  bool get complete => rejectedCount == 0;
+  bool get complete =>
+      rejectedCount == 0 && cards.every((card) => card.canCharge);
 }
 
 enum CardAddState {
@@ -152,20 +179,20 @@ class CardFlow extends ChangeNotifier {
           ? null
           : cards.isEmpty
               ? 'Не удалось проверить ни одну запись карты. Список не подтверждён: попробуйте обновить его.'
-              : 'Часть записей карт не удалось прочитать безопасно. Доступны только карты с идентификатором для оплаты и скрытым номером. Обновите список.';
+              : 'Часть записей карт не подтверждена для оплаты. Скрытые номера показаны, но оплатить можно только картами с проверенным банковским идентификатором. Обновите список.';
       final previous = _previousIds;
       if (awaiting) {
         SavedCard? added;
         if (previous != null && collection.complete) {
           for (final card in cards) {
-            if (!previous.contains(card.id)) {
+            if (card.canCharge && !previous.contains(card.chargeId)) {
               added = card;
               break;
             }
           }
         }
         if (added != null) {
-          newCardId = added.id;
+          newCardId = added.chargeId;
           addState = CardAddState.confirmed;
           _previousIds = null;
           _preparedUri = null;
@@ -241,7 +268,8 @@ class CardFlow extends ChangeNotifier {
             error == null &&
             hasLoaded &&
             partialWarning == null
-        ? cards.map((card) => card.id).toSet()
+        ? cards.where((card) => card.canCharge)
+            .map((card) => card.chargeId!).toSet()
         : null;
     addState = CardAddState.preparing;
     message = 'Открываем форму банка…';
@@ -278,6 +306,7 @@ class CardFlow extends ChangeNotifier {
               keepLink: true);
         case CardFormOutcome.cancelled:
           cancel();
+          await refresh();
         case CardFormOutcome.opened:
         case CardFormOutcome.returned:
           _reservedWindow = null;

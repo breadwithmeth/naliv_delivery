@@ -14,6 +14,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final cart = CartProvider();
     addTearDown(cart.dispose);
+    await cart.bindBusiness(1);
     expect(
         cart.syncItemBottleCounts(
             syntheticThreePlusOneSurfaceItem(onlyOneLitre: true),
@@ -29,12 +30,12 @@ void main() {
     ));
     await tester.pump();
     final row = find.byKey(const ValueKey('cart-row-0'));
-    expect(find.descendant(of: row, matching: find.text('4')), findsOneWidget);
+    expect(cart.activeDisplayGroups.single.totalOrderQuantity, 4);
     expect(cart.activeDisplayGroups.single.totalQuantity, 3);
     await tester.tap(
         find.descendant(of: row, matching: find.byIcon(Icons.add_rounded)));
     await tester.pump();
-    expect(find.descendant(of: row, matching: find.text('5')), findsOneWidget);
+    expect(cart.activeDisplayGroups.single.bottleCounts, {93101: 5});
     expect(cart.activeDisplayGroups.single.totalQuantity, 4);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 5);
     await tester.pumpWidget(const SizedBox.shrink());

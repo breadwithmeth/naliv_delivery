@@ -4,6 +4,8 @@ import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/design/typography.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import '../ui/app_icon.dart';
+import '../ui/surfaces.dart';
 
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({
@@ -198,7 +200,8 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     return Scaffold(
       backgroundColor: palette.background,
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xxxl,
@@ -235,9 +238,16 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        AppIcon(
+          AppIcons.wordmark,
+          width: 164,
+          height: 36,
+          color: palette.accent,
+        ),
+        const SizedBox(height: AppSpacing.huge),
         Text(
           'Заполните профиль',
-          style: AppTypography.display.copyWith(color: palette.textPrimary),
+          style: AppTypography.headline.copyWith(color: palette.textPrimary),
         ),
         const SizedBox(height: AppSpacing.xl),
         Text(
@@ -335,31 +345,31 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _saveButton() {
-    final palette = context.palette;
-    return FilledButton(
-      key: const ValueKey('profile-setup-save'),
-      onPressed: _isSaving ? null : _save,
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xxxl,
-          vertical: AppSpacing.xxxl,
+    return AppGlassPanel(
+      radius: AppRadii.pill,
+      tint: context.palette.accentSoft,
+      child: TextButton(
+        key: const ValueKey('profile-setup-save'),
+        onPressed: _isSaving ? null : _save,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          foregroundColor: Colors.black,
         ),
-        textStyle: AppTypography.bodyBold,
-      ),
-      child: _isSaving
-          ? SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: palette.textOnAccent,
-                semanticsLabel: 'Сохраняем профиль',
+        child: _isSaving
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  semanticsLabel: 'Сохраняем профиль',
+                ),
+              )
+            : const Text(
+                'Сохранить и продолжить',
+                textAlign: TextAlign.center,
               ),
-            )
-          : const Text(
-              'Сохранить и продолжить',
-              textAlign: TextAlign.center,
-            ),
+      ),
     );
   }
 

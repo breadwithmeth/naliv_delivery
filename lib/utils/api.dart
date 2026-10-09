@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'order_payment_guard.dart';
+import '../services/auth_service.dart';
 
 /// Класс для работы с API
 class ApiService {
@@ -52,7 +53,11 @@ class ApiService {
 
   static Future<void> _storeAuthToken(
       SharedPreferences prefs, String token) async {
-    await prefs.setString(_authTokenKey, token);
+    final previous = prefs.getString(_authTokenKey);
+    if (!await prefs.setString(_authTokenKey, token)) {
+      throw StateError('Не удалось сохранить авторизацию.');
+    }
+    if (previous != token) await AuthService.notifySessionChanged();
 
     final expiry = _decodeTokenExpiry(token);
     if (expiry == null) {
@@ -64,7 +69,11 @@ class ApiService {
   }
 
   static Future<void> _clearStoredAuth(SharedPreferences prefs) async {
-    await prefs.remove(_authTokenKey);
+    final hadToken = prefs.containsKey(_authTokenKey);
+    if (!await prefs.remove(_authTokenKey)) {
+      throw StateError('Не удалось завершить авторизацию.');
+    }
+    if (hadToken) await AuthService.notifySessionChanged();
     await prefs.remove(_authTokenExpiryKey);
   }
 
@@ -1158,6 +1167,10 @@ class ApiService {
           debugPrint('API getFullInfo error: ${jsonResponse['message']}');
         }
       } else {
+        if ((response.statusCode == 401 || response.statusCode == 403) &&
+            await getAuthToken() == token) {
+          await _clearStoredAuth(await SharedPreferences.getInstance());
+        }
         debugPrint('HTTP getFullInfo error: ${response.statusCode}');
       }
     } catch (e) {
@@ -1279,7 +1292,9 @@ class ApiService {
     return token;
   }
 
-  static Future<String?> getCurrentUserExternalId() async {
+  static Future<String?> getCurrentUserExternalId({
+    Map<String, dynamic>? verifiedInfo,
+  }) async {
     final token = await getAuthToken();
     if (token == null || token.isEmpty) {
       return null;
@@ -1298,7 +1313,7 @@ class ApiService {
       return tokenUserId;
     }
 
-    final fullInfo = await getFullInfo();
+    final fullInfo = verifiedInfo ?? await getFullInfo();
     final user = _asMap(fullInfo?['user']);
     return _firstString(user, const [
           'id',
@@ -2400,7 +2415,11 @@ class ApiService {
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API createKaspiQrPayment: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
+      return {
+        'success': false,
+        'requestSent': false,
+        'error': 'Требуется авторизация',
+      };
     }
 
     final uri = Uri.parse('$baseUrl/orders/$orderId/kaspi-qr/pay');
@@ -2416,15 +2435,32 @@ class ApiService {
       );
 
       final jsonResponse = _decodeResponseMap(response.body);
+      if (jsonResponse.isEmpty) {
+        return {
+          'success': false,
+          'requestSent': true,
+          'statusCode': response.statusCode,
+          'outcomeUnknown': true,
+          'error': 'Не удалось подтвердить результат запроса оплаты.',
+        };
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonResponse;
+        return {
+          ...jsonResponse,
+          'requestSent': true,
+          'statusCode': response.statusCode,
+        };
       }
 
       debugPrint(
           'HTTP createKaspiQrPayment error: ${response.statusCode} - ${response.reasonPhrase}');
       debugPrint('Error body: ${response.body}');
       return {
+        ...jsonResponse,
+        'requestSent': true,
+        if (response.statusCode == 408 || response.statusCode >= 500)
+          'outcomeUnknown': true,
         'success': false,
         'error': jsonResponse['error'] ??
             jsonResponse['message'] ??
@@ -2433,7 +2469,12 @@ class ApiService {
       };
     } catch (e) {
       debugPrint('Network createKaspiQrPayment error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+      return {
+        'success': false,
+        'requestSent': true,
+        'outcomeUnknown': true,
+        'error': 'Ошибка сети или разбора ответа',
+      };
     }
   }
 
@@ -2444,7 +2485,11 @@ class ApiService {
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API getKaspiQrPaymentStatus: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
+      return {
+        'success': false,
+        'requestSent': false,
+        'error': 'Требуется авторизация',
+      };
     }
 
     final uri = Uri.parse('$baseUrl/orders/$orderId/kaspi-qr/status');
@@ -2459,15 +2504,32 @@ class ApiService {
       );
 
       final jsonResponse = _decodeResponseMap(response.body);
+      if (jsonResponse.isEmpty) {
+        return {
+          'success': false,
+          'requestSent': true,
+          'statusCode': response.statusCode,
+          'outcomeUnknown': true,
+          'error': 'Не удалось подтвердить статус оплаты.',
+        };
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonResponse;
+        return {
+          ...jsonResponse,
+          'requestSent': true,
+          'statusCode': response.statusCode,
+        };
       }
 
       debugPrint(
           'HTTP getKaspiQrPaymentStatus error: ${response.statusCode} - ${response.reasonPhrase}');
       debugPrint('Error body: ${response.body}');
       return {
+        ...jsonResponse,
+        'requestSent': true,
+        if (response.statusCode == 408 || response.statusCode >= 500)
+          'outcomeUnknown': true,
         'success': false,
         'error': jsonResponse['error'] ??
             jsonResponse['message'] ??
@@ -2476,7 +2538,12 @@ class ApiService {
       };
     } catch (e) {
       debugPrint('Network getKaspiQrPaymentStatus error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+      return {
+        'success': false,
+        'requestSent': true,
+        'outcomeUnknown': true,
+        'error': 'Ошибка сети или разбора ответа',
+      };
     }
   }
 
@@ -3033,7 +3100,8 @@ class CategoryItem {
   final double? stepQuantity;
   final List<CategoryItemOption>? options;
   final List<CategoryItemPromotion>? promotions;
-  final int? amount; // добавлено: доступное количество / остаток
+  final double? amount;
+  final Map<String, dynamic> identityData;
 
   CategoryItem({
     required this.itemId,
@@ -3050,6 +3118,7 @@ class CategoryItem {
     this.options,
     this.promotions,
     this.amount,
+    this.identityData = const {},
   });
 
   factory CategoryItem.fromJson(Map<String, dynamic> json) {
@@ -3087,8 +3156,19 @@ class CategoryItem {
           ApiService._parseDouble(json['parent_item_amount']),
       options: options.isEmpty ? null : options,
       promotions: promotions.isEmpty ? null : promotions,
-      amount:
-          json['amount'] != null ? ApiService._parseInt(json['amount']) : null,
+      amount: ApiService._parseDouble(json['amount']),
+      identityData: {
+        for (final key in const [
+          'item_type',
+          'packaging_type',
+          'material',
+          'country_name',
+          'volume_liters',
+          'weight_kilograms',
+          'alcohol_percent',
+        ])
+          if (json.containsKey(key)) key: json[key],
+      },
     );
   }
 
@@ -3110,6 +3190,7 @@ class CategoryItem {
         'options': options!.map((option) => option.toJson()).toList(),
       if (promotions != null)
         'promotions': promotions!.map((promo) => promo.toJson()).toList(),
+      ...identityData,
     };
   }
 
@@ -3320,6 +3401,11 @@ class CategoryItemPromotion {
   final double? discount;
   final String name;
 
+  /// Validity window the server nests under `promotion`; without it a catalogue entry could keep
+  /// advertising a promotion that already ended.
+  final DateTime? startDate;
+  final DateTime? endDate;
+
   CategoryItemPromotion({
     required this.detailId,
     required this.type,
@@ -3327,6 +3413,8 @@ class CategoryItemPromotion {
     this.addAmount,
     this.discount,
     required this.name,
+    this.startDate,
+    this.endDate,
   });
 
   factory CategoryItemPromotion.fromJson(Map<String, dynamic> json) {
@@ -3348,6 +3436,12 @@ class CategoryItemPromotion {
           ApiService._parseDouble(json['discount'] ?? json['discount_value']),
       name:
           ApiService._parseString(json['name'] ?? promotionMeta['name']) ?? '',
+      startDate: DateTime.tryParse(ApiService._parseString(
+              json['start_date'] ?? promotionMeta['start_promotion_date']) ??
+          ''),
+      endDate: DateTime.tryParse(ApiService._parseString(
+              json['end_date'] ?? promotionMeta['end_promotion_date']) ??
+          ''),
     );
   }
 
@@ -3359,6 +3453,8 @@ class CategoryItemPromotion {
       if (addAmount != null) 'add_amount': addAmount,
       if (discount != null) 'discount': discount,
       'name': name,
+      if (startDate != null) 'start_date': startDate!.toIso8601String(),
+      if (endDate != null) 'end_date': endDate!.toIso8601String(),
     };
   }
 

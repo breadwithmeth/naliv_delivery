@@ -4,8 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 /// Icons exported from the redesign itself (`assets/icons/design`), so shapes match the
 /// design exactly instead of being approximated with a third-party icon font.
 ///
-/// Regenerate with:
-///   dart run tool/figma_spec.dart svg --map .figma_cache/icons.json
+/// Regenerate the theme-specific brand glyphs with:
+///   dart run tool/figma_spec.dart svg --map .figma_cache/issue_brand_assets.json
 ///
 /// `store` and `scan` are PNG exports: Figma's SVG renderer returns an empty image for those
 /// two nodes, so they are rasterised at 4× instead.
@@ -13,6 +13,7 @@ abstract final class AppIcons {
   static const String root = 'assets/icons/design';
 
   static const String logo = '$root/logo.svg';
+  static const String logoDark = '$root/logo_dark.svg';
 
   /// Horizontal «градусы 24» lockup — the intro slides and the splash, not the round badge.
   static const String wordmark = '$root/wordmark.svg';

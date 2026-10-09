@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,6 +25,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final cart = CartProvider();
+    await cart.bindBusiness(1);
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -232,6 +234,113 @@ void main() {
       expect(itemReads, 1);
       expect(tester.takeException(), isNull);
     }, () => client);
+  });
+
+  testWidgets('ambiguous leaves open their own products and keep route selection',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final semantics = tester.ensureSemantics();
+    final client = MockClient((request) async {
+      if (request.method != 'GET') {
+        throw StateError('Unexpected mutation: $request');
+      }
+      Map<String, dynamic> data;
+      if (request.url.path == '/api/categories/supercategories') {
+        data = {
+          'supercategories': [
+            {
+              'supercategory_id': 1,
+              'name': '  Напитки  ',
+              'categories': [
+                {
+                  'category_id': 2,
+                  'name': 'Пиво',
+                  'subcategories': [
+                    {'category_id': 101, 'name': '  Светлое   '},
+                  ],
+                },
+                {
+                  'category_id': 3,
+                  'name': ' Безалкогольное  пиво ',
+                  'subcategories': [
+                    {'category_id': 202, 'name': 'Светлое'},
+                  ],
+                },
+              ],
+            },
+          ],
+        };
+      } else if (request.url.path == '/api/categories/101/items' ||
+          request.url.path == '/api/categories/202/items') {
+        if (request.url.queryParameters['business_id'] != '1') {
+          throw StateError('Unexpected store: $request');
+        }
+        final isAlcoholFree = request.url.path.contains('/202/');
+        data = {
+          'items': [
+            {
+              'item_id': isAlcoholFree ? 2002 : 1001,
+              'name': isAlcoholFree ? 'Безалкогольный лагер' : 'Светлый лагер',
+              'price': 1000,
+              'amount': 10,
+              'measure': 'шт.',
+            },
+          ],
+        };
+      } else {
+        throw StateError('Unexpected request: $request');
+      }
+      return http.Response(
+        jsonEncode({'success': true, 'data': data}),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.dark(),
+            home: const SupercategoryPage(
+              supercategoryId: 1,
+              businessId: 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Все категории'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Светлое · Безалкогольное пиво').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Безалкогольный лагер'), findsOneWidget);
+      expect(find.text('Светлый лагер'), findsNothing);
+      final strip = find.byKey(const ValueKey('catalog-chip-strip'));
+      final selected = find.descendant(
+        of: strip,
+        matching: find.text('Светлое · Безалкогольное пиво'),
+      );
+      expect(tester.getSemantics(selected).flagsCollection.isSelected,
+          Tristate.isTrue);
+      final all = find.descendant(of: strip, matching: find.text('Все'));
+      await tester.ensureVisible(all);
+      await tester.pumpAndSettle();
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+      expect(find.text('Напитки'), findsOneWidget);
+      expect(
+        tester
+            .getSemantics(find.descendant(
+              of: strip,
+              matching: find.text('Все'),
+            ))
+            .flagsCollection
+            .isSelected,
+        Tristate.isTrue,
+      );
+    }, () => client).whenComplete(semantics.dispose);
   });
 }
 

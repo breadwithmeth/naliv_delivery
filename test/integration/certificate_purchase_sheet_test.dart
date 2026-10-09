@@ -264,9 +264,10 @@ void main() {
   });
 
   testWidgets(
-      'partial card data never offers a summary row or raw PAN for purchase',
+      'partial card data displays safe summaries but charges only bank identity',
       (tester) async {
     var includeValid = true;
+    var purchases = 0;
     final client = MockClient((request) async {
       if (request.method == 'GET' && request.url.path == '/api/certificates') {
         return _json({
@@ -291,6 +292,12 @@ void main() {
           },
         });
       }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        purchases++;
+        expect(jsonDecode(request.body)['halyk_card_id'], 'bank-payable');
+        return _json({'success': false, 'error': 'Fixture refusal'});
+      }
       throw StateError('Unexpected request: ${request.method} ${request.url}');
     });
     await http.runWithClient(() async {
@@ -304,6 +311,12 @@ void main() {
       expect(
           find.byKey(const ValueKey('certificate-card-unsafe')), findsNothing);
       expect(_canPurchase(tester), isTrue);
+      final summary = find.byKey(const ValueKey('certificate-card-summary-1'));
+      await tester.ensureVisible(summary);
+      await tester.tap(summary);
+      await tester.pumpAndSettle();
+      await _tap(tester, 'certificate-purchase-submit');
+      expect(purchases, 1);
       includeValid = false;
       await _tap(tester, 'certificate-refresh-cards');
       expect(find.byKey(const ValueKey('certificate-cards-partial')),
@@ -311,6 +324,9 @@ void main() {
       expect(
           find.byKey(const ValueKey('certificate-cards-empty')), findsNothing);
       expect(_canPurchase(tester), isFalse);
+      expect(find.text('****1234'), findsOneWidget);
+      expect(find.text('4111111111111111'), findsNothing);
+      expect(purchases, 1);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);

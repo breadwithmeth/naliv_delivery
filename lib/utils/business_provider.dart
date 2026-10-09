@@ -17,16 +17,34 @@ class BusinessProvider with ChangeNotifier {
   String? get selectedBusinessName => _selectedBusiness?['name'];
 
   /// Получить ID текущего магазина
-  int? get selectedBusinessId {
-    return _selectedBusiness?['id'] ??
-        _selectedBusiness?['business_id'] ??
-        _selectedBusiness?['businessId'];
+  int? get selectedBusinessId => idOf(_selectedBusiness);
+
+  static int? idOf(Map<String, dynamic>? business) =>
+      normalizeId(business?['id'] ??
+          business?['business_id'] ??
+          business?['businessId']);
+
+  static int? normalizeId(Object? value) {
+    if (value is num && !value.isFinite) return null;
+    final parsed = value is num && value == value.roundToDouble()
+        ? value.toInt()
+        : int.tryParse(value?.toString().trim() ?? '');
+    return parsed != null && parsed > 0 ? parsed : null;
   }
 
   /// Persists the store before publishing it; a rejected write returns `false`.
   Future<bool> setSelectedBusiness(Map<String, dynamic>? business) {
-    final next = business == null ? null : Map<String, dynamic>.of(business);
+    final id = idOf(business);
+    if (business != null && id == null) return Future.value(false);
+    final next = business == null
+        ? null
+        : <String, dynamic>{...business, 'id': id};
     return _enqueue(() async {
+      if (next == null
+          ? _selectedBusiness == null
+          : id == selectedBusinessId) {
+        return true;
+      }
       try {
         final prefs = await SharedPreferences.getInstance();
         final saved = next == null
@@ -58,8 +76,15 @@ class BusinessProvider with ChangeNotifier {
         try {
           final prefs = await SharedPreferences.getInstance();
           final saved = prefs.getString(_storageKey);
-          _selectedBusiness =
-              saved == null ? null : json.decode(saved) as Map<String, dynamic>;
+          final decoded = saved == null ? null : json.decode(saved);
+          if (decoded is Map) {
+            final business = Map<String, dynamic>.from(decoded);
+            final id = idOf(business);
+            _selectedBusiness =
+                id == null ? null : <String, dynamic>{...business, 'id': id};
+          } else {
+            _selectedBusiness = null;
+          }
           if (!_disposed) notifyListeners();
         } catch (error) {
           debugPrint('Не удалось загрузить выбранный магазин: $error');

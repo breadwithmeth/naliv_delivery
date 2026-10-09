@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/money.dart';
 import '../../../design/theme.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
@@ -13,20 +14,7 @@ import '../../../utils/cart_provider.dart';
 import '../certificate_purchase_session.dart';
 import 'certificate_purchase_sheet.dart';
 
-/// Certificates — the design's `Сертификаты` frames.
-///
-/// Geometry: the standard top bar, «Активировать по коду» 16/700 at y = 151 with a 45 px row
-/// beneath it (246 px code field + an 85 px «Ок» button, 12 px apart), a 343 × 60 «Купить
-/// сертификат» row at y = 253, a 343 × 38 filter bar at y = 337 (a 91 × 34 selected pill inside
-/// it) and 343 × 71 certificate rows. The empty state is centred at y = 517.
-///
-/// Certificate rows show the name 20/700 in the accent with the amount 16/500 and a state line
-/// beneath it — green for active, muted for redeemed, error for cancelled.
-///
-/// The status values (`active` / `redeemed` / `canceled`) are the app's own; the design only
-/// names the three tabs.
-///
-/// Purchases use the supported saved-card flow. Verification must use fixtures.
+/// Displays server certificates and preserves claim and purchase outcomes.
 class CertificatesPage extends StatefulWidget {
   const CertificatesPage(
       {this.onBuy, this.onCart, this.openCardForm, super.key});
@@ -40,7 +28,8 @@ class CertificatesPage extends StatefulWidget {
   State<CertificatesPage> createState() => _CertificatesPageState();
 }
 
-class _CertificatesPageState extends State<CertificatesPage> {
+class _CertificatesPageState extends State<CertificatesPage>
+    with WidgetsBindingObserver {
   static const _statuses = <String>['active', 'redeemed', 'canceled'];
   static const _statusLabels = <String, String>{
     'active': 'Активные',
@@ -64,14 +53,23 @@ class _CertificatesPageState extends State<CertificatesPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _code.dispose();
     _purchase.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_purchaseOpen && !_claiming) {
+      _load();
+    }
   }
 
   Future<void> _load({bool append = false}) async {
@@ -217,9 +215,14 @@ class _CertificatesPageState extends State<CertificatesPage> {
                         onBack: () => Navigator.of(context).maybePop(),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.huge),
+                    const SizedBox(height: 24),
                     Expanded(
-                      child: ListView(
+                      child: RefreshIndicator(
+                        onRefresh: () => _load(),
+                        child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: EdgeInsets.only(
                           bottom: AppCartButton.clearanceFor(context) +
                               MediaQuery.paddingOf(context).bottom,
@@ -241,9 +244,10 @@ class _CertificatesPageState extends State<CertificatesPage> {
                                   children: [
                                     Expanded(
                                       child: Container(
-                                        height: 45,
+                                        constraints:
+                                            const BoxConstraints(minHeight: 45),
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: AppSpacing.xxl),
+                                            horizontal: 14, vertical: 8),
                                         decoration: BoxDecoration(
                                           color: palette.surface
                                               .withValues(alpha: 0.75),
@@ -291,7 +295,9 @@ class _CertificatesPageState extends State<CertificatesPage> {
                                       valueListenable: _code,
                                       builder: (context, value, _) => SizedBox(
                                         width: 85,
-                                        height: 48,
+                                        child: ConstrainedBox(
+                                          constraints:
+                                              const BoxConstraints(minHeight: 48),
                                         child: FilledButton(
                                           onPressed: _claiming ||
                                                   value.text.trim().isEmpty
@@ -306,6 +312,7 @@ class _CertificatesPageState extends State<CertificatesPage> {
                                                           strokeWidth: 2),
                                                 )
                                               : const Text('Ок'),
+                                        ),
                                         ),
                                       ),
                                     ),
@@ -332,7 +339,7 @@ class _CertificatesPageState extends State<CertificatesPage> {
                                 horizontal: AppSpacing.xxxl),
                             child: _BuyRow(onTap: _buy),
                           ),
-                          const SizedBox(height: AppSpacing.huge),
+                          const SizedBox(height: 16),
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.xxxl),
@@ -347,14 +354,15 @@ class _CertificatesPageState extends State<CertificatesPage> {
                               },
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.huge),
+                          const SizedBox(height: 12),
                           ..._body(palette),
                         ],
+                      ),
                       ),
                     ),
                   ],
                 ),
-                Positioned(
+                if (widget.onCart != null) Positioned(
                   left: 0,
                   right: 0,
                   bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
@@ -522,7 +530,7 @@ class _StatusTabs extends StatelessWidget {
                         foregroundColor: palette.textPrimary,
                         backgroundColor:
                             status == selected ? palette.accentSoft : null,
-                        minimumSize: const Size(48, 48),
+                        minimumSize: const Size(44, 44),
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.xl),
                         shape: const StadiumBorder(),
@@ -530,7 +538,7 @@ class _StatusTabs extends StatelessWidget {
                       child: Text(
                         labels[status] ?? status,
                         maxLines: 1,
-                        style: AppTypography.body,
+                        style: AppTypography.bodySmall,
                       ),
                     ),
                   ),
@@ -573,14 +581,15 @@ class _CertificateRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          Column(
+          Flexible(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (amount != null)
                 Text(
-                  '$amount ₸',
+                  formatTenge(amount),
                   style: AppTypography.titleMedium
                       .copyWith(color: palette.textPrimary),
                 ),
@@ -590,6 +599,7 @@ class _CertificateRow extends StatelessWidget {
                     AppTypography.label.copyWith(color: _stateColor(palette)),
               ),
             ],
+          ),
           ),
         ],
       ),
@@ -604,12 +614,10 @@ class _CertificateRow extends StatelessWidget {
     return 'Сертификат';
   }
 
-  int? _amount() {
+  num? _amount() {
     final raw = certificate['balance'] ?? certificate['initial_amount'];
-    final amount = raw is num ? raw.toDouble() : double.tryParse('$raw');
-    return amount != null && amount.isFinite && amount >= 0
-        ? amount.round()
-        : null;
+    final amount = raw is num ? raw : num.tryParse('$raw');
+    return amount != null && amount.isFinite && amount >= 0 ? amount : null;
   }
 
   String _stateLine() {

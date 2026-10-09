@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
-import 'package:naliv_delivery/utils/subtract_promotion_math.dart';
+import 'package:naliv_delivery/utils/promotion_engine.dart';
 
 void main() {
   group('ItemPromotion', () {

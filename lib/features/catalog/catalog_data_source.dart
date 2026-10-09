@@ -12,8 +12,9 @@ class CatalogDataSource {
   const CatalogDataSource({required this.businessId});
 
   final int businessId;
+  static final _whitespace = RegExp(r'\s+');
 
-  /// All supercategories, with their categories and subcategories flattened into [CategoryRef]s.
+  /// Reads supercategories without discarding their category hierarchy.
   Future<List<SupercategoryView>> supercategories() async {
     final raw = await ApiService.getSuperCategories();
     if (raw == null) {
@@ -119,32 +120,68 @@ class CatalogDataSource {
   }
 
   SupercategoryView _supercategory(Map<String, dynamic> raw) {
-    final name = _string(raw['name']) ?? '';
+    final name = _name(raw['name']);
+    final rawCategories = _maps(raw['categories']).toList(growable: false);
+    final nameCounts = <String, int>{};
+    void countLeaves(Iterable<Map<String, dynamic>> entries) {
+      for (final entry in entries) {
+        final children = _maps(entry['subcategories']).toList(growable: false);
+        if (children.isEmpty) {
+          final key = _name(entry['name']).toLowerCase();
+          nameCounts.update(key, (count) => count + 1, ifAbsent: () => 1);
+        } else {
+          countLeaves(children);
+        }
+      }
+    }
+
+    countLeaves(rawCategories);
+    final leaves = <CategoryRef>[];
+    List<CategoryRef> parseCategories(
+      Iterable<Map<String, dynamic>> entries, {
+      int? parentId,
+      String? parentName,
+    }) {
+      final categories = <CategoryRef>[];
+      for (final entry in entries) {
+        final id = _int(entry['category_id']);
+        if (id == null) continue;
+        final categoryName = _name(entry['name']);
+        final children = parseCategories(
+          _maps(entry['subcategories']),
+          parentId: id,
+          parentName: categoryName,
+        );
+        final category = CategoryRef(
+          id: id,
+          name: categoryName,
+          parentId: parentId,
+          parentName: parentName,
+          needsParentContext:
+              (nameCounts[categoryName.toLowerCase()] ?? 0) > 1,
+          description: _string(entry['description']),
+          imageUrl: _string(entry['img']),
+          children: children,
+        );
+        categories.add(category);
+        if (children.isEmpty) leaves.add(category);
+      }
+      return categories;
+    }
+
+    final id = _int(raw['supercategory_id']) ?? _int(raw['id']) ?? 0;
+    final categories = parseCategories(
+      rawCategories,
+      parentId: id,
+      parentName: name,
+    );
     return SupercategoryView(
-      id: _int(raw['supercategory_id']) ?? _int(raw['id']) ?? 0,
+      id: id,
       name: name,
       description: _string(raw['description']),
       imageUrl: _string(raw['img']),
-      subcategories: [
-        for (final category in _maps(raw['categories']))
-          // A category with subcategories is a grouping; the design lists its leaves, and the
-          // API's own order is preserved because the design's chips follow it.
-          ...(() {
-            final subs = _maps(category['subcategories']);
-            if (subs.isEmpty) {
-              final id = _int(category['category_id']);
-              final categoryName = _string(category['name']) ?? '';
-              return id == null
-                  ? const <CategoryRef>[]
-                  : [CategoryRef(id: id, name: categoryName)];
-            }
-            return [
-              for (final sub in subs)
-                if (_int(sub['category_id']) case final id?)
-                  CategoryRef(id: id, name: _string(sub['name']) ?? ''),
-            ];
-          })(),
-      ],
+      categories: categories,
+      leaves: leaves,
     );
   }
 
@@ -158,6 +195,9 @@ class CatalogDataSource {
 
   int? _int(Object? value) =>
       value is num ? value.toInt() : int.tryParse('${value ?? ''}');
+
+  String _name(Object? value) =>
+      value?.toString().trim().replaceAll(_whitespace, ' ') ?? '';
 
   String? _string(Object? value) {
     final text = value?.toString().trim();

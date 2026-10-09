@@ -32,6 +32,7 @@ void main() {
     final business = BusinessProvider();
     final requests = <Uri>[];
     final cart = CartProvider();
+    await cart.bindBusiness(1);
     await http.runWithClient(() async {
       await tester.pumpWidget(MultiProvider(
         providers: [
@@ -89,7 +90,6 @@ void main() {
       expect(find.text('Астана  1'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('home-store-2')));
       await tester.pumpAndSettle();
-      expect(find.text('Сменить магазин?'), findsOneWidget);
       await tester.tap(find.text('Отмена'));
       await tester.pumpAndSettle();
       expect(business.selectedBusinessId, isNot(2));
@@ -99,7 +99,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-store-2')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Сменить магазин').last);
+      await tester.tap(find.byKey(const ValueKey('confirm-store-change')));
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -266,9 +266,7 @@ void main() {
           ),
         ));
         await tester.pumpAndSettle();
-        await tester.tap(find.byWidgetPredicate(
-          (widget) => widget is AppIcon && widget.asset == AppIcons.logo,
-        ));
+        await tester.tap(find.byKey(const ValueKey('home-brand-mark')));
         await tester.pumpAndSettle();
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byType(ProfilePage), findsNothing);

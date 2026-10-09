@@ -146,5 +146,40 @@ void main() {
       expect(item.promotions, isNotNull);
       expect(item.promotions!.single.discountType, 'PERCENT');
     });
+
+    test('a catalogue entry keeps the promotion window the server nests', () {
+      Map<String, dynamic> entry(String endDate) => <String, dynamic>{
+            'id': '401',
+            'name': 'Пиво розлив',
+            'price': '890',
+            'measure': 'л',
+            'amount': '20',
+            'promotions': <dynamic>[
+              <String, dynamic>{
+                'detail_id': 8692,
+                'type': 'SUBTRACT',
+                'base_amount': 2,
+                'add_amount': 1,
+                'name': '2+1',
+                'promotion': <String, dynamic>{
+                  'marketing_promotion_id': 355,
+                  'name': 'Выгодный розлив',
+                  'end_promotion_date': endDate,
+                },
+              },
+            ],
+          };
+
+      final expired =
+          item_model.Item.fromCategoryItem(entry('2000-01-01T00:00:00.000Z'));
+      expect(expired.promotions, isNotNull);
+      expect(expired.promotions!.single.isActive, isFalse);
+      expect(expired.promotions!.single.endDate, isNotNull);
+      expect(expired.promotions!.single.marketingName, 'Выгодный розлив');
+
+      final live =
+          item_model.Item.fromCategoryItem(entry('2999-01-01T00:00:00.000Z'));
+      expect(live.promotions!.single.isActive, isTrue);
+    });
   });
 }

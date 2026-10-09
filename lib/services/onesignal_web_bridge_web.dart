@@ -5,6 +5,7 @@ import 'dart:js_interop_unsafe';
 class OneSignalWebBridge {
   static const Duration _timeout = Duration(seconds: 10);
   static JSExportedDartFunction? _changeHandler;
+  static JSExportedDartFunction? _notificationHandler;
 
   static JSObject? get _bridge {
     final bridge = globalContext['GradusyOneSignal'];
@@ -62,6 +63,25 @@ class OneSignalWebBridge {
     return (await _call<bool>(
           'setChangeHandler',
           <Object?>[_changeHandler],
+        )) ??
+        false;
+  }
+
+  static Future<bool> setNotificationHandler(
+    void Function(Map<String, dynamic> data, bool clicked) onNotification,
+  ) async {
+    _notificationHandler = ((JSAny? value, JSAny? clicked) {
+      final data = value?.dartify();
+      if (data is Map) {
+        onNotification(
+          data.map((key, value) => MapEntry(key.toString(), value)),
+          clicked?.dartify() == true,
+        );
+      }
+    }).toJS;
+    return (await _call<bool>(
+          'setNotificationHandler',
+          <Object?>[_notificationHandler],
         )) ??
         false;
   }

@@ -105,10 +105,15 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
       if (newId != null && newId != _lastConfirmedCardId) {
         _lastConfirmedCardId = newId;
         _session.selectedCardId = newId;
-      } else if (!_cards.cards
-          .any((card) => card.id == _session.selectedCardId)) {
-        _session.selectedCardId =
-            _cards.cards.isEmpty ? null : _cards.cards.first.id;
+      } else if (!_cards.cards.any((card) =>
+          card.canCharge && card.chargeId == _session.selectedCardId)) {
+        _session.selectedCardId = null;
+        for (final card in _cards.cards) {
+          if (card.canCharge) {
+            _session.selectedCardId = card.chargeId;
+            break;
+          }
+        }
       }
     }
     setState(() {});
@@ -116,7 +121,10 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _cards.awaiting) _cards.refresh();
+    if (state == AppLifecycleState.resumed) {
+      if (!_session.completed) _cards.refresh();
+      if (_session.unconfirmed) _session.refreshStatus();
+    }
   }
 
   @override
@@ -137,7 +145,8 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
       !_cards.preparing &&
       !_cards.awaiting &&
       _cards.error == null &&
-      _cards.cards.any((card) => card.id == _session.selectedCardId);
+      _cards.cards.any((card) =>
+          card.canCharge && card.chargeId == _session.selectedCardId);
 
   void _close() {
     if (_session.busy) return;
@@ -324,15 +333,13 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
   Widget _cardSection() {
     final palette = context.palette;
     final editable = _session.canPurchase;
-    if (_cards.loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: LinearProgressIndicator(),
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_cards.loading) ...[
+          const LinearProgressIndicator(),
+          const SizedBox(height: AppSpacing.xl),
+        ],
         if (_cards.error != null || _cards.partialWarning != null) ...[
           KeyedSubtree(
             key: ValueKey(_cards.error == null
@@ -342,7 +349,7 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
-        if (_cards.error == null &&
+        if (!_cards.loading && _cards.error == null &&
             _cards.partialWarning == null &&
             _cards.cards.isEmpty)
           Text(
@@ -351,18 +358,22 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
             style:
                 AppTypography.bodySmall.copyWith(color: palette.textSecondary),
           ),
-        if (_cards.error == null && _cards.cards.isNotEmpty) ...[
+        if (_cards.cards.isNotEmpty) ...[
           Text('Карта для оплаты', style: AppTypography.bodyBold),
           const SizedBox(height: AppSpacing.md),
           for (final card in _cards.cards)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: SavedCardRow(
-                key: ValueKey('certificate-card-${card.id}'),
+                key: ValueKey('certificate-card-${card.rowKey}'),
                 card: card,
-                selected: card.id == _session.selectedCardId,
-                onSelected: editable && !_cards.preparing && !_cards.awaiting
-                    ? () => setState(() => _session.selectedCardId = card.id)
+                selected: card.canCharge &&
+                    card.chargeId == _session.selectedCardId,
+                onSelected: card.canCharge && editable &&
+                        _cards.error == null && !_cards.loading &&
+                        !_cards.preparing && !_cards.awaiting
+                    ? () => setState(
+                        () => _session.selectedCardId = card.chargeId)
                     : null,
               ),
             ),

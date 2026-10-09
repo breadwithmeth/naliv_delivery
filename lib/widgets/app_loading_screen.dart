@@ -7,7 +7,8 @@ import '../design/typography.dart';
 import '../ui/app_icon.dart';
 
 import 'app_loading_screen_web_stub.dart'
-    if (dart.library.js_interop) 'app_loading_screen_web_real.dart' as web_splash;
+    if (dart.library.js_interop) 'app_loading_screen_web_real.dart'
+    as web_splash;
 
 class AppLoadingScreen extends StatefulWidget {
   const AppLoadingScreen({super.key, this.message});

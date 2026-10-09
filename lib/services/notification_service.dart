@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 
+
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,13 +10,54 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import '../core/destinations.dart';
+import '../pages/help_chat_page.dart';
+import '../pages/login_page.dart';
+import 'auth_service.dart';
+import 'chat_api_service.dart';
 import 'onesignal_web_bridge_stub.dart'
     if (dart.library.js_interop) 'onesignal_web_bridge_web.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   static NotificationService get instance => _instance;
-  NotificationService._internal();
+  NotificationService._internal()
+      : _navigatorKey = AppNavigator.key,
+        _resolveIdentity = AuthService.refreshIdentity,
+        _chatServiceFactory = ChatApiService.new,
+        _authenticate = null;
+
+  @visibleForTesting
+  NotificationService.forTesting({
+    required GlobalKey<NavigatorState> navigatorKey,
+    required Future<String?> Function() resolveIdentity,
+    required ChatApiService Function() chatServiceFactory,
+    Future<bool> Function(NavigatorState)? authenticate,
+  })  : _navigatorKey = navigatorKey,
+        _resolveIdentity = resolveIdentity,
+        _chatServiceFactory = chatServiceFactory,
+        _authenticate = authenticate;
+
+  final GlobalKey<NavigatorState> _navigatorKey;
+  final Future<String?> Function() _resolveIdentity;
+  final ChatApiService Function() _chatServiceFactory;
+  final Future<bool> Function(NavigatorState)? _authenticate;
+  final _supportUpdates =
+      StreamController<SupportNotificationTarget>.broadcast();
+  final _supportPages = <bool Function(String, String)>[];
+  final _handledSupportClicks = <String>{};
+  SupportNotificationTarget? _pendingSupport;
+  AppDestination? _pendingDestination;
+  Future<void> Function(AppDestination)? _openDestination;
+  bool _navigationReady = false;
+  bool _handlingClick = false;
+
+  Stream<SupportNotificationTarget> get supportUpdates => _supportUpdates.stream;
+
+  VoidCallback registerSupportPage(
+      bool Function(String identity, String sessionId) isVisible) {
+    _supportPages.add(isVisible);
+    return () => _supportPages.remove(isVisible);
+  }
 
   static const String _oneSignalAndroidAppId =
       '3da3fda3-1598-4617-970f-62621f3263ee';
@@ -64,6 +107,9 @@ class NotificationService {
         _webPushSupported = await OneSignalWebBridge.initialize();
         await OneSignalWebBridge.setChangeHandler(() {
           unawaited(syncSubscriptionWithBackend());
+        });
+        await OneSignalWebBridge.setNotificationHandler((data, clicked) {
+          unawaited(handleNotificationData(data, clicked: clicked));
         });
         await _refreshWebSubscription();
         debugPrint(
@@ -233,6 +279,9 @@ class NotificationService {
   }
 
   Future<void> logoutUser() async {
+    _pendingSupport = null;
+    _pendingDestination = null;
+    _handledSupportClicks.clear();
     await initialize();
 
     if (_isWeb) {
@@ -266,9 +315,15 @@ class NotificationService {
 
   void _setupEventHandlers() {
     OneSignal.Notifications.addClickListener((event) {
-      _handleNotificationData(
+      unawaited(handleNotificationData(
         event.notification.additionalData ?? <String, dynamic>{},
-      );
+      ));
+    });
+    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+      unawaited(handleNotificationData(
+        event.notification.additionalData ?? <String, dynamic>{},
+        clicked: false,
+      ));
     });
 
     _pushSubscriptionObserver ??= (_) {
@@ -288,55 +343,106 @@ class NotificationService {
     OneSignal.User.addObserver(_userObserver!);
   }
 
-  void _handleNotificationData(Map<String, dynamic> data) {
-    final type = data['type']?.toString() ?? '';
-    final orderId = data['order_id']?.toString();
-    final businessId = data['business_id']?.toString();
-
-    debugPrint(
-      'OneSignal notification: type=$type, order=$orderId, business=$businessId',
-    );
-
-    switch (type) {
-      case 'order_status_change':
-        _navigateToOrder(orderId);
-        break;
-      case 'promotion':
-        _navigateToPromotions(businessId);
-        break;
-      case 'delivery_update':
-        _navigateToDeliveryTracking(orderId);
-        break;
-      default:
-        _navigateToHome();
-        break;
+  // Only route metadata is used. Message contents and credentials always come
+  // from the history API using an already-owned support session.
+  Future<void> handleNotificationData(
+    Map<String, dynamic> data, {
+    bool clicked = true,
+  }) async {
+    final target = SupportNotificationTarget.tryParse(data);
+    if (target != null) {
+      if (!clicked) {
+        final identity = await _resolveIdentity();
+        if (identity != null &&
+            target.acceptsIdentity(identity) &&
+            await ChatApiService.ownsSession(target.sessionId, identity)) {
+          _supportUpdates.add(target);
+        }
+        return;
+      }
+      _pendingSupport = target;
+      if (_navigationReady) await resumePendingNavigation();
+      return;
     }
+    if (!clicked) return;
+    final type = data['type'];
+    if ((type == 'order_status_change' || type == 'delivery_update') &&
+        SupportNotificationTarget.identifier(data['order_id']) != null) {
+      _pendingDestination = AppDestination.orders;
+      if (_navigationReady) await resumePendingNavigation();
+    }
+    // Unknown payloads must not remove a checkout route or reset a cart.
   }
 
-  void _navigateToOrder(String? orderId) {
-    if (orderId != null && orderId.isNotEmpty) {
-      AppNavigator.goToHome(destination: AppDestination.orders);
+  Future<void> resumePendingNavigation({
+    Future<void> Function(AppDestination)? openDestination,
+  }) async {
+    if (openDestination != null) _openDestination = openDestination;
+    _navigationReady = true;
+    final navigator = _navigatorKey.currentState;
+    if (_handlingClick || navigator == null || !navigator.mounted) return;
+    final target = _pendingSupport;
+    if (target == null) {
+      final destination = _pendingDestination;
+      final open = _openDestination;
+      if (destination != null && open != null) {
+        _pendingDestination = null;
+        await open(destination);
+      }
+      return;
     }
-  }
-
-  void _navigateToPromotions(String? businessId) {
-    if (businessId != null && businessId.isNotEmpty) {
-      AppNavigator.goToHome();
+    _pendingSupport = null;
+    _handlingClick = true;
+    try {
+      var identity = await _resolveIdentity();
+      if (identity == null) {
+        final authenticated = _authenticate == null
+            ? await navigator.push<bool>(MaterialPageRoute(
+                builder: (_) => const LoginPage(
+                  startWithPhoneForm: true,
+                  completionMode: LoginCompletionMode.returnAuthenticated,
+                ),
+              ))
+            : await _authenticate!(navigator);
+        if (authenticated != true || !navigator.mounted) return;
+        identity = await _resolveIdentity();
+      }
+      if (identity == null || !navigator.mounted) return;
+      final revision = AuthService.sessionRevision.value;
+      if (!target.acceptsIdentity(identity) ||
+          !await ChatApiService.ownsSession(target.sessionId, identity)) {
+        final context = _navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
+            content: Text('Это обращение недоступно в текущем аккаунте.'),
+          ));
+        }
+        return;
+      }
+      if (revision != AuthService.sessionRevision.value) return;
+      final clickKey = '$identity:${target.sessionId}:${target.messageId}';
+      if (!_handledSupportClicks.add(clickKey)) return;
+      _supportUpdates.add(target);
+      if (_supportPages.any((page) => page(identity!, target.sessionId))) return;
+      unawaited(navigator.push<void>(MaterialPageRoute(
+        settings: RouteSettings(name: '/support/${target.sessionId}'),
+        builder: (_) => HelpChatPage(
+          entryPoint: 'notification',
+          sessionId: target.sessionId,
+          messageId: target.messageId,
+          chatService: _chatServiceFactory(),
+          notificationService: this,
+          resolveIdentity: _resolveIdentity,
+        ),
+      )));
+    } finally {
+      _handlingClick = false;
+      if (_pendingSupport != null) unawaited(resumePendingNavigation());
     }
-  }
-
-  void _navigateToDeliveryTracking(String? orderId) {
-    if (orderId != null && orderId.isNotEmpty) {
-      AppNavigator.goToHome(destination: AppDestination.orders);
-    }
-  }
-
-  void _navigateToHome() {
-    AppNavigator.goToHome();
   }
 
   Future<String?> _resolveExternalId() async {
-    return ApiService.getCurrentUserExternalId();
+    return AuthService.refreshIdentity();
   }
 
   Future<void> _refreshWebSubscription() async {
@@ -437,6 +543,15 @@ class NotificationService {
     return false;
   }
 
+  Future<PushPermissionState> getPermissionState() async {
+    await initialize();
+    return PushPermissionState(
+      supported: _isMobilePushSupported || (_isWeb && _webPushSupported),
+      permissionGranted: await _permissionGranted(),
+      optedIn: await _optedIn(),
+    );
+  }
+
   Future<bool> _optedIn() async {
     if (_isWeb) {
       return OneSignalWebBridge.getOptedIn();
@@ -448,4 +563,56 @@ class NotificationService {
   }
 
   String _topicTag(String topic) => 'notification_$topic';
+}
+
+class PushPermissionState {
+  const PushPermissionState({
+    required this.supported,
+    required this.permissionGranted,
+    required this.optedIn,
+  });
+
+  final bool supported;
+  final bool permissionGranted;
+  final bool optedIn;
+}
+
+// These are client-side route fields, not proof of a deployed support publisher.
+// The provider must send the same session/message IDs as the widget history API;
+// no session token is accepted from a notification.
+class SupportNotificationTarget {
+  const SupportNotificationTarget({
+    required this.sessionId,
+    required this.messageId,
+    this.externalId,
+  });
+
+  final String sessionId;
+  final int messageId;
+  final String? externalId;
+
+  static String? identifier(Object? value) {
+    if (value is! String && value is! int) return null;
+    final id = value.toString().trim();
+    return id.isEmpty || id == 'null' ? null : id;
+  }
+
+  static SupportNotificationTarget? tryParse(Map<String, dynamic> data) {
+    if (data['type'] != 'support_message' && data['type'] != 'chat_message') {
+      return null;
+    }
+    if (data.keys.any((key) => key.toLowerCase().contains('token'))) return null;
+    final session = identifier(data['session_id'] ?? data['sessionId']);
+    final rawMessage = identifier(data['message_id'] ?? data['messageId']);
+    final message = rawMessage == null ? null : int.tryParse(rawMessage);
+    if (session == null || message == null || message <= 0) return null;
+    return SupportNotificationTarget(
+      sessionId: session,
+      messageId: message,
+      externalId: identifier(data['external_id'] ?? data['externalId']),
+    );
+  }
+
+  bool acceptsIdentity(String identity) =>
+      externalId == null || externalId == identity;
 }

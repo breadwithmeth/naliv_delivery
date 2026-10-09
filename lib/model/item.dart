@@ -28,6 +28,14 @@ class Item {
   // Шаг изменения количества (для товаров без опций)
   final double? stepQuantity;
 
+  final String? itemType;
+  final String? packagingType;
+  final String? material;
+  final String? countryName;
+  final double? volumeLiters;
+  final double? weightKilograms;
+  final double? alcoholPercent;
+
   // Дополнительные функции
   final List<ItemOption>? options;
   final List<ItemPromotion>? promotions;
@@ -47,33 +55,56 @@ class Item {
     this.visible,
     this.amount,
     this.stepQuantity,
+    this.itemType,
+    this.packagingType,
+    this.material,
+    this.countryName,
+    this.volumeLiters,
+    this.weightKilograms,
+    this.alcoholPercent,
     this.options,
     this.promotions,
   });
 
   /// Создание из JSON API
   factory Item.fromJson(Map<String, dynamic> json) {
-    final stepQuantityValue = _parseDouble(json['step_quantity']) ?? _parseDouble(json['quantity_step']) ?? _parseDouble(json['parent_item_amount']);
-    final quantityValue = _parseDouble(json['quantity']) ?? _parseDouble(json['parent_item_amount']);
+    final stepQuantityValue = _parseDouble(json['step_quantity']) ??
+        _parseDouble(json['quantity_step']) ??
+        _parseDouble(json['parent_item_amount']);
+    final quantityValue = _parseDouble(json['quantity']) ??
+        _parseDouble(json['parent_item_amount']);
     final categoryData = _asMap(json['category']);
-    final options = _mapListFromDynamic(json['options']).map(ItemOption.fromJson).toList(growable: false);
-    final promotions = _mapListFromDynamic(json['promotions']).map(ItemPromotion.fromJson).toList(growable: false);
+    final options = _mapListFromDynamic(json['options'])
+        .map(ItemOption.fromJson)
+        .toList(growable: false);
+    final promotions = _mapListFromDynamic(json['promotions'])
+        .map(ItemPromotion.fromJson)
+        .toList(growable: false);
 
     return Item(
       itemId: _parseInt(json['item_id'] ?? json['id']),
       name: _parseString(json['name']) ?? '',
       description: _parseString(json['description']),
       price: _parseDouble(json['price']) ?? 0.0,
-      image: _parseString(json['image']) ?? _parseString(json['img']), // Поддержка обоих вариантов
+      image: _parseString(json['image']) ??
+          _parseString(json['img']), // Поддержка обоих вариантов
       code: _parseString(json['code']),
       unit: _parseString(json['unit'] ?? json['unit_name'] ?? json['measure']),
       quantity: quantityValue,
       categoryId: _parseInt(json['category_id'] ?? json['categoryId']),
-      category: categoryData != null ? ItemCategory.fromJson(categoryData) : null,
+      category:
+          categoryData != null ? ItemCategory.fromJson(categoryData) : null,
       businessId: _parseInt(json['business_id'] ?? json['businessId']),
       visible: json['visible'] != null ? _parseInt(json['visible']) : null,
       amount: _parseDouble(json['amount']),
       stepQuantity: stepQuantityValue,
+      itemType: _parseString(json['item_type']),
+      packagingType: _parseString(json['packaging_type']),
+      material: _parseString(json['material']),
+      countryName: _parseString(json['country_name']),
+      volumeLiters: _parseDouble(json['volume_liters']),
+      weightKilograms: _parseDouble(json['weight_kilograms']),
+      alcoholPercent: _parseDouble(json['alcohol_percent']),
       options: options.isEmpty ? null : options,
       promotions: promotions.isEmpty ? null : promotions,
     );
@@ -88,30 +119,8 @@ class Item {
       return Item.fromJson(categoryItem);
     }
 
-    // Если это объект CategoryItem, конвертируем его поля
-    // Сначала пробуем взять stepQuantity из CategoryItem
-    double? stepQuantity = categoryItem.stepQuantity;
-
-
-    return Item(
-      itemId: categoryItem.itemId ?? 0,
-      name: categoryItem.name ?? '',
-      description: categoryItem.description,
-      price: _parseDouble(categoryItem.price) ?? 0.0,
-      image: categoryItem.img ?? categoryItem.img,
-      code: categoryItem.code,
-      amount: _parseDouble(categoryItem.amount),
-      categoryId: categoryItem.category?.categoryId,
-      category: categoryItem.category != null ? ItemCategory.fromApiCategory(categoryItem.category) : null,
-      visible: categoryItem.visible,
-      unit: categoryItem.unit,
-      quantity: _parseDouble(categoryItem.quantity) ?? stepQuantity,
-      stepQuantity: stepQuantity,
-      options: categoryItem.options != null ? (categoryItem.options as List?)?.map((opt) => ItemOption.fromCategoryItemOption(opt)).toList() : null,
-      promotions: categoryItem.promotions != null
-          ? (categoryItem.promotions as List?)?.map((promo) => ItemPromotion.fromCategoryItemPromotion(promo)).toList()
-          : null,
-    );
+    return Item.fromJson(
+        Map<String, dynamic>.from(categoryItem.toJson() as Map));
   }
 
   /// Конвертация в JSON
@@ -131,8 +140,17 @@ class Item {
       if (visible != null) 'visible': visible,
       if (amount != null) 'amount': amount,
       if (stepQuantity != null) 'step_quantity': stepQuantity,
-      if (options != null) 'options': options!.map((option) => option.toJson()).toList(),
-      if (promotions != null) 'promotions': promotions!.map((promo) => promo.toJson()).toList(),
+      if (itemType != null) 'item_type': itemType,
+      if (packagingType != null) 'packaging_type': packagingType,
+      if (material != null) 'material': material,
+      if (countryName != null) 'country_name': countryName,
+      if (volumeLiters != null) 'volume_liters': volumeLiters,
+      if (weightKilograms != null) 'weight_kilograms': weightKilograms,
+      if (alcoholPercent != null) 'alcohol_percent': alcoholPercent,
+      if (options != null)
+        'options': options!.map((option) => option.toJson()).toList(),
+      if (promotions != null)
+        'promotions': promotions!.map((promo) => promo.toJson()).toList(),
     };
   }
 
@@ -146,6 +164,14 @@ class Item {
     String? code,
     String? unit,
     double? quantity,
+    double? stepQuantity,
+    String? itemType,
+    String? packagingType,
+    String? material,
+    String? countryName,
+    double? volumeLiters,
+    double? weightKilograms,
+    double? alcoholPercent,
     int? categoryId,
     ItemCategory? category,
     int? businessId,
@@ -168,7 +194,14 @@ class Item {
       businessId: businessId ?? this.businessId,
       visible: visible ?? this.visible,
       amount: amount ?? this.amount,
-      stepQuantity: stepQuantity,
+      stepQuantity: stepQuantity ?? this.stepQuantity,
+      itemType: itemType ?? this.itemType,
+      packagingType: packagingType ?? this.packagingType,
+      material: material ?? this.material,
+      countryName: countryName ?? this.countryName,
+      volumeLiters: volumeLiters ?? this.volumeLiters,
+      weightKilograms: weightKilograms ?? this.weightKilograms,
+      alcoholPercent: alcoholPercent ?? this.alcoholPercent,
       options: options ?? this.options,
       promotions: promotions ?? this.promotions,
     );
@@ -188,8 +221,9 @@ class Item {
 
   /// The quantity step in the product's base unit, independent of option order.
   double get effectiveStepQuantity {
-    if (stepQuantity != null && stepQuantity! > 0) return stepQuantity!;
-    if (quantity != null && quantity! > 0) return quantity!;
+    if (stepQuantity != null && stepQuantity!.isFinite && stepQuantity! > 0) {
+      return stepQuantity!;
+    }
     return 1.0;
   }
 
@@ -223,7 +257,8 @@ class Item {
     if (value == null) return null;
 
     final normalized = value.toString().trim();
-    if (!allowEmpty && (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
+    if (!allowEmpty &&
+        (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
       return null;
     }
 
@@ -249,7 +284,10 @@ class Item {
   }
 
   static List<Map<String, dynamic>> _mapListFromDynamic(dynamic value) {
-    return _asList(value).map(_asMap).whereType<Map<String, dynamic>>().toList(growable: false);
+    return _asList(value)
+        .map(_asMap)
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
   }
 
   static double? _parseDouble(dynamic value) {
@@ -283,12 +321,16 @@ class ItemCategory {
   });
 
   factory ItemCategory.fromJson(Map<String, dynamic> json) {
-    final subcategories = Item._mapListFromDynamic(json['subcategories']).map(ItemCategory.fromJson).toList(growable: false);
+    final subcategories = Item._mapListFromDynamic(json['subcategories'])
+        .map(ItemCategory.fromJson)
+        .toList(growable: false);
 
     return ItemCategory(
       categoryId: Item._parseInt(json['category_id'] ?? json['id']),
       name: Item._parseString(json['name']) ?? '',
-      parentId: json['parent_id'] != null || json['parent_category'] != null ? Item._parseInt(json['parent_id'] ?? json['parent_category']) : null,
+      parentId: json['parent_id'] != null || json['parent_category'] != null
+          ? Item._parseInt(json['parent_id'] ?? json['parent_category'])
+          : null,
       itemsCount: Item._parseInt(json['items_count']),
       subcategories: subcategories.isEmpty ? null : subcategories,
     );
@@ -315,7 +357,8 @@ class ItemCategory {
       'name': name,
       if (parentId != null) 'parent_id': parentId,
       if (itemsCount != null) 'items_count': itemsCount,
-      if (subcategories != null) 'subcategories': subcategories!.map((cat) => cat.toJson()).toList(),
+      if (subcategories != null)
+        'subcategories': subcategories!.map((cat) => cat.toJson()).toList(),
     };
   }
 
@@ -351,7 +394,8 @@ class ItemOption {
       name: Item._parseString(json['name']) ?? '',
       required: Item._parseInt(json['required']),
       selection: Item._parseString(json['selection']) ?? '',
-      optionItems: optionItemsJson.map(ItemOptionItem.fromJson).toList(growable: false),
+      optionItems:
+          optionItemsJson.map(ItemOptionItem.fromJson).toList(growable: false),
     );
   }
 
@@ -367,7 +411,11 @@ class ItemOption {
       required: categoryOption.required ? 1 : 0,
       selection: categoryOption.selection ?? '',
       optionItems: categoryOption.variants != null
-          ? (categoryOption.variants as List?)?.map((item) => ItemOptionItem.fromCategoryItemOptionItem(item)).toList() ?? []
+          ? (categoryOption.variants as List?)
+                  ?.map(
+                      (item) => ItemOptionItem.fromCategoryItemOptionItem(item))
+                  .toList() ??
+              []
           : [],
     );
   }
@@ -411,14 +459,16 @@ class ItemOptionItem {
       relationId: Item._parseInt(json['relation_id']),
       itemId: Item._parseInt(json['item_id']),
       priceType: Item._parseString(json['price_type']) ?? '',
-      itemName: Item._parseString(json['item_name'] ?? json['name']) ?? '', // Добавлено поле для имени товара
+      itemName: Item._parseString(json['item_name'] ?? json['name']) ??
+          '', // Добавлено поле для имени товара
       price: Item._parseDouble(json['price']) ?? 0.0,
       parentItemAmount: Item._parseDouble(json['parent_item_amount']) ?? 0.0,
     );
   }
 
   /// Создание из CategoryItemOptionItem для совместимости
-  factory ItemOptionItem.fromCategoryItemOptionItem(dynamic categoryOptionItem) {
+  factory ItemOptionItem.fromCategoryItemOptionItem(
+      dynamic categoryOptionItem) {
     if (categoryOptionItem is Map<String, dynamic>) {
       return ItemOptionItem.fromJson(categoryOptionItem);
     }
@@ -427,7 +477,8 @@ class ItemOptionItem {
       relationId: categoryOptionItem.relationId,
       itemId: categoryOptionItem.itemId,
       priceType: categoryOptionItem.priceType,
-      itemName: categoryOptionItem.itemName ?? '', // Добавлено поле для имени товара
+      itemName:
+          categoryOptionItem.itemName ?? '', // Добавлено поле для имени товара
       price: categoryOptionItem.price,
       parentItemAmount: (categoryOptionItem.parentItemAmount as num).toDouble(),
     );
@@ -454,6 +505,12 @@ class ItemOptionItem {
 class ItemPromotion {
   final int promotionId;
   final String name;
+
+  /// The campaign the detail belongs to (`Выгодный розлив`), when the payload nests one.
+  ///
+  /// The detail's own [name] is the short label (`2+1`); the campaign name is what a customer
+  /// should read as the promotion's title.
+  final String? marketingName;
   final String? description;
   final String discountType; // "PERCENT" | "FIXED" | "SUBTRACT"
   final double discountValue;
@@ -465,6 +522,7 @@ class ItemPromotion {
   ItemPromotion({
     required this.promotionId,
     required this.name,
+    this.marketingName,
     this.description,
     required this.discountType,
     required this.discountValue,
@@ -475,21 +533,35 @@ class ItemPromotion {
   });
 
   factory ItemPromotion.fromJson(Map<String, dynamic> json) {
-    final rawType = Item._parseString(json['discount_type'] ?? json['type']) ?? '';
-    final rawValue = Item._parseDouble(json['discount_value']) ?? Item._parseDouble(json['discount']) ?? 0.0;
+    final rawType =
+        Item._parseString(json['discount_type'] ?? json['type']) ?? '';
+    final rawValue = Item._parseDouble(json['discount_value']) ??
+        Item._parseDouble(json['discount']) ??
+        0.0;
     // Map API "DISCOUNT" type to internal "PERCENT"
     final mappedType = rawType == 'DISCOUNT' ? 'PERCENT' : rawType;
+    // The server nests the marketing promotion and its validity window under `promotion`
+    // (`start_promotion_date` / `end_promotion_date`); the flat keys only appear on payloads this
+    // client produced itself. Without the nested read no promotion ever expired client-side.
+    final marketing = Item._asMap(json['promotion']);
 
     return ItemPromotion(
-      promotionId: Item._parseInt(json['promotion_id'] ?? json['detail_id']),
-      name: Item._parseString(json['name']) ?? '',
-      description: Item._parseString(json['description']),
+      promotionId: Item._parseInt(
+          json['promotion_id'] ?? json['detail_id'] ?? marketing?['detail_id']),
+      name: Item._parseString(json['name'] ?? marketing?['name']) ?? '',
+      marketingName: Item._parseString(marketing?['name']),
+      description:
+          Item._parseString(json['description'] ?? marketing?['description']),
       discountType: mappedType,
       discountValue: rawValue,
       baseAmount: Item._parseInt(json['base_amount'] ?? json['baseAmount']),
       addAmount: Item._parseInt(json['add_amount'] ?? json['addAmount']),
-      startDate: DateTime.tryParse(Item._parseString(json['start_date']) ?? ''),
-      endDate: DateTime.tryParse(Item._parseString(json['end_date']) ?? ''),
+      startDate: DateTime.tryParse(Item._parseString(
+              json['start_date'] ?? marketing?['start_promotion_date']) ??
+          ''),
+      endDate: DateTime.tryParse(Item._parseString(
+              json['end_date'] ?? marketing?['end_promotion_date']) ??
+          ''),
     );
   }
 
@@ -506,13 +578,14 @@ class ItemPromotion {
     return ItemPromotion(
       promotionId: categoryPromotion.detailId ?? 0,
       name: categoryPromotion.name ?? '',
-      description: categoryPromotion.formattedDescription ?? categoryPromotion.name,
+      description:
+          categoryPromotion.formattedDescription ?? categoryPromotion.name,
       discountType: mappedType,
       discountValue: categoryPromotion.discount ?? 0.0,
       baseAmount: categoryPromotion.baseAmount ?? 0,
       addAmount: categoryPromotion.addAmount ?? 0,
-      startDate: null,
-      endDate: null,
+      startDate: categoryPromotion.startDate,
+      endDate: categoryPromotion.endDate,
     );
   }
 
@@ -520,6 +593,7 @@ class ItemPromotion {
     return {
       'promotion_id': promotionId,
       'name': name,
+      if (marketingName != null) 'promotion': {'name': marketingName},
       if (description != null) 'description': description,
       'discount_type': discountType,
       'discount_value': discountValue,
@@ -576,4 +650,3 @@ class ItemPromotion {
     return 'ItemPromotion(id: $promotionId, name: $name, discount: $discountValue $discountType)';
   }
 }
-

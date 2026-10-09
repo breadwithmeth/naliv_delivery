@@ -9,20 +9,15 @@ import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_card.dart';
+import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
 import '../../product/product_navigation.dart';
 import '../catalog_data_source.dart';
 import '../catalog_view_data.dart';
 import 'category_products_page.dart';
+import 'category_strip.dart';
 
-/// A supercategory screen — the design's `Каталог` frame.
-///
-/// Structure measured from the frame: top bar, category chips, a 245 px promo panel, then
-/// subcategory sections (header plus a 3-up card grid at 375 px), each 24 px apart.
-/// The first subcategory is presented as the promo panel; the rest are grids.
-///
-/// Only visible sections load: the list is a `ListView.builder`, so a subcategory's items are
-/// fetched when its section is first built rather than on page open.
+/// A supercategory with navigable category sections and a featured product rail.
 class SupercategoryPage extends StatefulWidget {
   const SupercategoryPage({
     required this.supercategoryId,
@@ -88,8 +83,9 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
       MaterialPageRoute(
         builder: (_) => CategoryProductsPage(
           categoryId: ref.id,
-          title: ref.name,
+          title: ref.label,
           businessId: widget.businessId,
+          categories: _data?.leaves ?? const [],
           initialItems: initialItems,
           initialHasMore: initialHasMore,
           onSearch: widget.onSearch,
@@ -138,7 +134,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
               child: Center(
                 child: AppCartButton(
                   itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice().round(),
+                  total: count == 0 ? null : cart.getTotalPrice(),
                   onTap: widget.onCart,
                 ),
               ),
@@ -161,7 +157,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
           ? const AppEmptyState(title: 'В этой категории пока нет товаров')
           : const Center(child: CircularProgressIndicator());
     }
-    if (data.subcategories.isEmpty) {
+    if (data.leaves.isEmpty) {
       return const AppEmptyState(title: 'В этой категории пока нет товаров');
     }
     return ListView.builder(
@@ -169,18 +165,18 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
         bottom: AppCartButton.clearanceFor(context) +
             MediaQuery.paddingOf(context).bottom,
       ),
-      itemCount: data.subcategories.length + 1,
+      itemCount: data.leaves.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-            child: _ChipStrip(
-              categories: data.subcategories,
-              onTap: _openSubcategory,
+            child: CategoryStrip(
+              categories: data.leaves,
+              onCategory: _openSubcategory,
             ),
           );
         }
-        final ref = data.subcategories[index - 1];
+        final ref = data.leaves[index - 1];
         return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.huge),
           child: _Section(
@@ -202,45 +198,6 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
   }
 }
 
-class _ChipStrip extends StatelessWidget {
-  const _ChipStrip({required this.categories, this.onTap});
-
-  final List<CategoryRef> categories;
-  final ValueChanged<CategoryRef>? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return SizedBox(
-      key: const ValueKey('catalog-chip-strip'),
-      height: AppSpacing.touchTarget +
-          (MediaQuery.textScalerOf(context).scale(14) - 14)
-                  .clamp(0, double.infinity) *
-              1.3,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
-        itemBuilder: (context, index) {
-          final ref = categories[index];
-          return TextButton(
-            onPressed: onTap == null ? null : () => onTap!(ref),
-            style: TextButton.styleFrom(
-              foregroundColor: palette.textPrimary,
-              backgroundColor:
-                  index == 0 ? palette.surface : palette.surfaceMuted,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-              shape:
-                  const RoundedRectangleBorder(borderRadius: AppRadii.pillAll),
-            ),
-            child: Text(ref.name.trim(), style: AppTypography.bodySmallMedium),
-          );
-        },
-      ),
-    );
-  }
-}
 
 /// One subcategory: a promo panel for the featured one, otherwise a header plus a 3-up grid.
 class _Section extends StatefulWidget {
@@ -308,14 +265,26 @@ class _SectionState extends State<_Section> {
     final open =
         widget.onOpen == null ? null : () => widget.onOpen!(items, _hasMore);
     if (_failed) {
-      return AppErrorState(
-        message: 'Не удалось загрузить товары',
-        onRetry: _load,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+            child: _SectionHeader(
+              title: widget.category.label,
+              onOpen: open,
+            ),
+          ),
+          AppErrorState(
+            message: 'Не удалось загрузить товары',
+            onRetry: _load,
+          ),
+        ],
       );
     }
     if (widget.featured) {
       return _PromoPanel(
-        title: widget.category.name.trim(),
+        category: widget.category,
         items: items,
         onOpen: open,
         onProductTap: _openProduct,
@@ -326,8 +295,7 @@ class _SectionState extends State<_Section> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-          child:
-              _SectionHeader(title: widget.category.name.trim(), onOpen: open),
+          child: _SectionHeader(title: widget.category.label, onOpen: open),
         ),
         const SizedBox(height: AppSpacing.xl),
         if (items == null)
@@ -355,20 +323,20 @@ class _SectionHeader extends StatelessWidget {
               child: Text(title,
                   style: AppTypography.headline
                       .copyWith(color: context.palette.textPrimary))),
-          TextButton(onPressed: onOpen, child: const Text('Все')),
+          AppGlassChip(label: 'Все', onTap: onOpen),
         ],
       );
 }
 
 class _PromoPanel extends StatelessWidget {
   const _PromoPanel({
-    required this.title,
+    required this.category,
     required this.items,
     required this.onProductTap,
     this.onOpen,
   });
 
-  final String title;
+  final CategoryRef category;
   final List<ProductView>? items;
   final ValueChanged<ProductView> onProductTap;
   final VoidCallback? onOpen;
@@ -379,76 +347,136 @@ class _PromoPanel extends StatelessWidget {
     final cart = context.watch<CartProvider>();
     final products = items;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-      child: Container(
+      padding: const EdgeInsets.only(left: AppSpacing.gutter),
+      child: AppSurface(
         key: const ValueKey('catalog-featured-panel'),
+        fill: palette.brandRed,
         padding: const EdgeInsets.all(AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: palette.brandRed,
-          borderRadius: AppRadii.lgAll,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+        clip: true,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+            final cardWidth =
+                106.0 + (scale - 1).clamp(0, double.infinity) * 100;
+            final artUrl = category.imageUrl ??
+                (products?.isNotEmpty == true ? products!.first.imageUrl : null);
+            final heading = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: onOpen,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      alignment: Alignment.centerLeft,
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: Text(title,
-                        style: AppTypography.headline
-                            .copyWith(color: Colors.white)),
-                  ),
-                ),
                 TextButton(
                   onPressed: onOpen,
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
-                  child: const Text('Все'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    alignment: Alignment.centerLeft,
+                    padding: EdgeInsets.zero,
+                    minimumSize:
+                        const Size(AppSpacing.touchTarget, AppSpacing.touchTarget),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          category.label,
+                          style: AppTypography.headline.copyWith(color: Colors.white),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, size: 20),
+                    ],
+                  ),
                 ),
+                if (category.description?.isNotEmpty == true)
+                  Text(
+                    category.description!,
+                    style: AppTypography.label.copyWith(color: Colors.white),
+                  ),
+                if (artUrl?.isNotEmpty == true) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  AspectRatio(
+                    aspectRatio: .8,
+                    child: Image.network(
+                      artUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
               ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (products == null)
-              const SizedBox(
-                height: 96,
-                child: Center(
-                    child: CircularProgressIndicator(color: Colors.white)),
-              )
-            else if (products.isEmpty)
-              Text('В этой категории пока нет товаров',
-                  style: AppTypography.bodySmall.copyWith(color: Colors.white))
-            else
-              SizedBox(
-                height: ProductCard.heightFor(context,
-                    hasOldPrice: products.any((item) => item.oldPrice != null)),
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: products.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(width: AppSpacing.md),
-                  itemBuilder: (context, index) {
-                    final item = products[index];
-                    return ProductCard.fromView(
-                      item,
-                      key: ValueKey('catalog-featured-product-$index'),
-                      quantity: cart.getCatalogQuantity(item.source),
-                      onTap: () => onProductTap(item),
-                      onIncrement: () => context
-                          .read<CartProvider>()
-                          .incrementCatalogItem(item.source),
-                      onDecrement: () => context
-                          .read<CartProvider>()
-                          .decrementCatalogItem(item.source),
-                    );
-                  },
-                ),
-              ),
-          ],
+            );
+            final rail = products == null
+                ? const SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                  )
+                : products.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Text(
+                          'В этой категории пока нет товаров',
+                          style: AppTypography.bodySmall.copyWith(color: Colors.white),
+                        ),
+                      )
+                    : SizedBox(
+                        height: ProductCard.heightFor(
+                          context,
+                          width: cardWidth,
+                          products: products,
+                        ),
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: products.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: AppSpacing.md),
+                          itemBuilder: (context, index) {
+                            final item = products[index];
+                            return SizedBox(
+                              width: cardWidth,
+                              child: ProductCard.fromView(
+                                item,
+                                key: ValueKey('catalog-featured-product-$index'),
+                                quantity: cart.getCatalogQuantity(item.source),
+                                onTap: () => onProductTap(item),
+                                onIncrement: () => context
+                                    .read<CartProvider>()
+                                    .incrementCatalogItem(item.source),
+                                onDecrement: () => context
+                                    .read<CartProvider>()
+                                    .decrementCatalogItem(item.source),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+            if (constraints.maxWidth < 300 || scale > 1.35) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: heading),
+                      TextButton(
+                        onPressed: onOpen,
+                        style: TextButton.styleFrom(foregroundColor: Colors.white),
+                        child: const Text('Все'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  rail,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: constraints.maxWidth * .42, child: heading),
+                const SizedBox(width: AppSpacing.xl),
+                Expanded(child: rail),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -469,13 +497,8 @@ class _Grid extends StatelessWidget {
         builder: (context, constraints) {
           final columns = ProductCard.columnsFor(context, constraints.maxWidth);
           final previewCount = items.length.clamp(0, columns * 2);
-          var hasOldPrice = false;
-          for (var index = 0; index < previewCount; index++) {
-            if (items[index].oldPrice != null) {
-              hasOldPrice = true;
-              break;
-            }
-          }
+          final cardWidth =
+              (constraints.maxWidth - AppSpacing.md * (columns - 1)) / columns;
           return GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -483,8 +506,11 @@ class _Grid extends StatelessWidget {
               crossAxisCount: columns,
               mainAxisSpacing: AppSpacing.xl,
               crossAxisSpacing: AppSpacing.md,
-              mainAxisExtent:
-                  ProductCard.heightFor(context, hasOldPrice: hasOldPrice),
+              mainAxisExtent: ProductCard.heightFor(
+                context,
+                width: cardWidth,
+                products: items.take(previewCount),
+              ),
             ),
             itemCount: previewCount,
             itemBuilder: (context, index) {

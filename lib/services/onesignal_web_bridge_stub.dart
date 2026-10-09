@@ -15,6 +15,10 @@ class OneSignalWebBridge {
 
   static Future<bool> setChangeHandler(void Function() onChange) async => false;
 
+  static Future<bool> setNotificationHandler(
+    void Function(Map<String, dynamic> data, bool clicked) onNotification,
+  ) async => false;
+
   static Future<bool> login(String externalId) async => false;
 
   static Future<bool> logout() async => false;

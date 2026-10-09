@@ -1,58 +1,60 @@
 # Fidelity report — redesigned screens vs the Figma file
 
-## Current measurements — 2026-10-02
+## Current measurements — 2026-10-09
 
-The readability remediation, clarified gift/Kaspi follow-up and catalog/card balance correction are implemented and reviewed in strict fixtures. This is **not pixel-parity or authenticated-production acceptance**. Compact readable browsing supersedes the former catalog/card visual conclusions; gift packing and official Kaspi artwork remain unchanged. See `PLAN.md` and the current gate in `STATUS.md`.
-
-The 2026-10-04 cleanup re-exercised light active home/search/cart, dark cart with 1.6× inherited text and real wheel scrolling, a native paid-order fixture journey, and tracked intro/city onboarding. It did **not** rerun the full Figma sweep: numbers below remain dated 2026-10-02. Current **226 host cases / one native e2e**, release footprint and limitations are recorded in `../CLEANUP_PLAN.md` and `STATUS.md`; run commands/test categories are in the root README.
+The F1–F11 client corrections and whole-screen design cutover are implemented and reviewed in
+strict fixtures. **This is not pixel-parity, authenticated-production, bank or push acceptance.**
+All 212 original Figma frames are retained, including separate ordinary/modal home variants.
+The measurements below come from the settled-source `dart run tool/verify_surface.dart all
+--theme both`; implementation and runtime evidence is in `STATUS.md`.
 
 ### Method and scope
 
 - The final `dart run tool/verify_surface.dart all --theme both` completed **82 captures** for **41 surfaces**, at **375 × 812 logical / DPR 2 = 750 × 1624 pixels**, and **50 applicable frame comparisons**. Sixteen surfaces per theme have no exact app frame and are capture-only.
 - Current metric: for each app pixel, take `max(abs(ΔR), abs(ΔG), abs(ΔB))`; report its mean out of 255 and the percentage above 32. Only the simulated **48 px top / 34 px bottom** logical insets are excluded. This is not the historical masked-artwork/channel-average measurement.
 - `tool/design/surface_compare_test.dart` has **no golden threshold**. Passing means the captures/references had valid dimensions and measurement completed, not that the residual is acceptable.
-- The removed throwaway probe passed **882** render/strict-request cases across all 41 surfaces, 320/375/800, 1×/1.6×/2× and both themes, with 300 px keyboard insets for 12 relevant surfaces at the larger scales. A render pass alone does not prove usable interactions.
-- Catalog correction additionally passed **306 disposable render/state cases** over the shared-card consumers and price/quantity/stock boundaries. Actual release-browser screenshots reviewed catalog, selected quantities, complete grids and wheel-scrolled photo/unavailable states at 320/375/800 widths, 1×/1.6×/2× and both themes. These are variations of the existing strict `DesignSurfaceApp`, not authenticated API fixtures or new golden baselines.
+- The owned disposable adaptive probe passed **434** render/strict-request cases across 41 surfaces, 320/375/800 logical widths, 1.6×/2× inherited text and both themes; relevant forms also used a 300 px keyboard inset. These are overflow/transport checks, not proof that every control was operated at every size.
+- A retained bottling regression verifies that the live summary and first quantity control remain above the purchase action at the 375 × 812 / 48–34 inset reference. Actual browser journeys establish navigation and state transitions separately.
 
 ### Current diagnostic results
 
 | Surface | Dark mean Δ /255 | Dark pixels >32 | Light mean Δ /255 | Light pixels >32 |
 |---|---:|---:|---:|---:|
-| home | 67.47 | 51.02% | 97.83 | 43.23% |
-| catalog | 86.42 | 47.77% | 75.82 | 35.77% |
-| all_products | 94.05 | 47.38% | 41.57 | 22.67% |
-| cart | 76.92 | 35.18% | 44.85 | 31.30% |
-| profile | 15.66 | 8.61% | 14.51 | 8.22% |
-| profile_guest | 23.66 | 11.92% | 22.23 | 11.26% |
-| orders | 12.42 | 3.85% | 10.54 | 4.33% |
-| order_detail | 23.56 | 12.86% | 19.44 | 11.09% |
-| support | 18.98 | 8.43% | 18.50 | 8.20% |
-| certificates | 14.25 | 7.02% | 13.93 | 7.50% |
-| addresses | 14.40 | 9.54% | 14.19 | 8.57% |
-| address_map | 97.21 | 43.07% | 42.62 | 53.58% |
-| address_details | 13.84 | 9.83% | 13.63 | 9.67% |
-| cards | 20.64 | 14.83% | 21.53 | 28.24% |
-| checkout_delivery | 31.39 | 24.24% | 29.05 | 21.87% |
-| checkout_pickup | 33.89 | 22.66% | 32.24 | 23.71% |
-| certificate_purchase | 27.76 | 20.21% | 55.34 | 36.00% |
-| payment_success | 13.92 | 10.24% | 13.62 | 10.22% |
-| search | 26.67 | 37.35% | 19.23 | 24.05% |
-| favorites | 5.56 | 3.30% | 5.53 | 3.32% |
-| bonus_history | 14.41 | 5.76% | 13.03 | 6.12% |
-| bonus_explainer | 27.22 | 13.67% | 25.70 | 13.58% |
-| faq | 28.78 | 9.42% | 23.70 | 9.44% |
+| home | 22.05 | 16.59% | 30.81 | 18.54% |
+| catalog | 53.83 | 35.94% | 49.48 | 28.08% |
+| all_products | 73.89 | 40.67% | 50.23 | 28.30% |
+| cart | 91.24 | 45.64% | 50.97 | 25.54% |
+| profile | 15.93 | 8.81% | 14.81 | 8.42% |
+| profile_guest | 23.30 | 11.73% | 21.83 | 11.04% |
+| orders | 15.37 | 9.68% | 11.32 | 4.42% |
+| order_detail | 28.22 | 22.90% | 21.36 | 12.07% |
+| support | 20.45 | 9.13% | 20.36 | 8.02% |
+| certificates | 18.07 | 12.69% | 15.31 | 7.50% |
+| addresses | 19.40 | 11.59% | 18.88 | 9.85% |
+| address_map | 93.71 | 43.17% | 42.75 | 53.59% |
+| address_details | 20.31 | 12.54% | 19.75 | 11.37% |
+| cards | 13.43 | 8.50% | 13.62 | 8.48% |
+| checkout_delivery | 31.46 | 26.16% | 29.30 | 21.03% |
+| checkout_pickup | 37.44 | 24.36% | 34.97 | 19.60% |
+| certificate_purchase | 27.76 | 20.21% | 55.35 | 36.00% |
+| payment_success | 15.22 | 6.83% | 14.59 | 6.68% |
+| search | 24.67 | 32.32% | 19.71 | 23.80% |
+| favorites | 9.54 | 8.45% | 7.57 | 4.10% |
+| bonus_history | 18.20 | 11.99% | 14.74 | 6.68% |
+| bonus_explainer | 23.86 | 13.56% | 23.46 | 13.63% |
+| faq | 17.56 | 9.55% | 16.00 | 9.31% |
 | intro | 15.84 | 12.00% | 17.00 | 12.26% |
-| sign_in | 51.99 | 50.32% | 39.91 | 17.66% |
+| sign_in | 49.52 | 50.62% | 36.41 | 18.10% |
 
-Home/catalog/cart/map residuals are large; these figures must not be described as a pixel match or explained away as font antialiasing. Fixtures use synthetic names, missing product/category artwork and synthetic map tiles, while readable layout deliberately changes tiny metadata and columns. The measurements do not isolate the contribution of each difference.
+Catalogue/cart/map residuals remain large. These figures are not a pixel match and must not be attributed solely to font antialiasing. Fixtures contain synthetic names, missing product/category photos and synthetic map tiles; readable/scalable content also changes geometry. The measurements do not isolate the contribution of each difference.
 
 ### Visual review and deliberate departures
 
-- The previous 39 dark/light baselines were reviewed in contact sheets. Added Kaspi and 3+1 surfaces were reviewed full-size in both themes; gift cart/configuration, checkout and created-order detail received actual browser review. Critical journeys and exact price observations are recorded separately in `STATUS.md`.
-- Body/actions use 16 px, secondary text 14 px, auxiliary text at least 12 px; text scaling is not clamped. Cards/rows grow and grids use fewer columns rather than reproducing unreadable 6–10 px metadata. Home has two category columns at the 375 px/1× reference, adapting to one at narrow/large text and up to three at wider widths.
-- Catalog/card balance deliberately departs from the lead illustration and tiny dense reference metadata: 96 px maximum artwork, prices immediately following readable names/metadata, a 44 px add tile and quiet selected stepper. Normal card heights are 255 px, or 271 px for datasets with an old-price row; the mixed grid grows to 324/360 px at 1.6×/2×. Full lists use 2/1/1 columns at phone widths and 4/3/3 at 800 px for the three reviewed scales. Overview previews are bounded to two rows; “Все” and page-two continuation retain the complete list. Wrapping prices/status take priority over artwork, not text size. Muted fallback art and real captured photography were reviewed separately; the baseline captures still use synthetic missing-art items.
-- The logo is static; no drawer/bottom tab strip. Header actions remain reachable, with floating cart-only navigation and scroll clearance. Store/search/campaign/bonus content participates in adaptive flow. Production uses real insets, not a simulated Figma status bar.
-- One product-card implementation serves grids/strips. Configuration shows explicit paid selections, all physical bottle counts, paid/free drink quantities and shared price breakdowns. Gift litres add ordinary fully charged bottles; the cart counter shows total physical litres. There is no borrowed simple-product frame for this undesigned configuration.
+- All 82 final-source full captures were reviewed uncropped in 22 light/dark contact sheets; changed bottling frames were additionally reviewed full-size after the live-summary cutover. Actual guest shopping and account/support journeys are recorded separately in `STATUS.md`.
+- Text scaling remains inherited. At the normal 375 px reference, home categories and complete product grids retain the full-frame three-column composition; narrower/larger-text layouts reduce columns and flow row controls instead of forcing unreadable text or fixed-height clipping.
+- A single `ProductCard` serves grids/strips. Metadata, bonus/gift chips, price and ≥44 px add/quantity controls have priority over missing/synthetic artwork. Previously documented forced two-column/96 px artwork rules are superseded.
+- Guest profile is inside the store card with an independent ≥44 px target; signed-in shortcuts remain separate. Canonical white dark-brand artwork is used instead of whitening the light asset. The floating cart has one lower glass layer and the original starburst alpha, without a second circular backing; no drawer/bottom tab strip was introduced.
+- The pour picker starts with live paid/gift litres, complete physical mix, ADD/REPLACE pricing and promotion progress. Affected bottle rows show actual paid/gift drink allocation; gift drink is 0 ₸, every physical container is charged. The first normal-size control is visible above the cart action. Larger text scrolls; it is not shrunk to match an unrelated simple-product frame.
 - Order names occupy the full text width above price/quantity; a real long-name 30318 order was reviewed after the final fix. Unresolved payment hides Pay/Repeat and exposes refresh, including at 320 px/2×. Missing backend values remain unknown rather than synthetic customer/order metadata.
 - Card success uses black text on green. Unavailable bonus/history data is an error/unknown state, not a fake zero balance or QR. Unsupported scanner, notification-count and fixed “25%” decorations were removed.
 - Widget captures lack system fallback for `№`; the fresh release browser with fallback fonts rendered the actual order title correctly. Initial blocked-font/cached-bundle observations are not counted as final visual proof.
@@ -60,7 +62,7 @@ Home/catalog/cart/map residuals are large; these figures must not be described a
 
 Capture-only IDs (both themes): `promotion`, `onboarding`, `payment_method`, `payment_kaspi`, `checkout_error`, `product_options`, `product_pour`, `product_pour_real`, `product_pour_gift`, `product_pour_three_plus_one`, `product_pour_fractional`, `product_replacement`, `notifications`, `profile_setup`, `startup`, `active_route`. Notification preferences are not the Figma inbox. Gift packing/tariff follows the explicit user policy and is exercised through synthetic create/repeat, not a production transaction. The official Kaspi component is sourced/reviewed independently; there is no exact app-screen Figma baseline for the mixed payment screen.
 
-Fresh tracked release smoke at 375 × 812 / DPR 2 reached intro → real city onboarding using a read-only public cities GET. Synthetic fixtures do not establish authenticated production, real bank/OS lifecycle or bank certification. Official presentation review is source-linked, not inferred from a pixel score.
+Final tracked release smoke at 375 × 812 / DPR 2 operated intro → city onboarding with production mutation guards. The final city's preflight was blocked; retry and disabled continuation were observed, not a successful final public cities GET. An earlier read-only cities observation is historical. Synthetic journeys establish client transitions separately, not authenticated production, real bank/OS lifecycle or bank certification. Official presentation review is source-linked, not inferred from a pixel score.
 
 ### Kaspi rule trace
 

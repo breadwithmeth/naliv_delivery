@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -21,6 +22,7 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({
         'chat_widget_session': jsonEncode({
           'id': 'fixture-session',
+          'identity': null,
           'token': 'fixture-token',
         }),
       }));
@@ -135,6 +137,109 @@ void main() {
     addTearDown(service.dispose);
     await service.init();
     expect(await service.fetchHistory(), isA<FetchFailure>());
+    expect(unexpected, isEmpty);
+  });
+
+  test('account switch cannot restore or expose another account history',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'chat_widget_session': jsonEncode({
+        'identity': 'user-a',
+        'id': 'fixture-session',
+        'token': 'fixture-token',
+      }),
+    });
+    final oldReply = Completer<http.Response>();
+    final requested = Completer<void>();
+    final unexpected = <String>[];
+    final client = MockClient((request) {
+      if (request.method == 'GET' &&
+          request.url.host == 'bm.drawbridge.kz' &&
+          request.url.path == _messagesPath &&
+          request.headers['authorization'] == 'Bearer fixture-token' &&
+          request.url.queryParameters.length == 1 &&
+          request.url.queryParameters['limit'] == '100') {
+        requested.complete();
+        return oldReply.future;
+      }
+      unexpected.add('${request.method} ${request.url}');
+      throw StateError(unexpected.last);
+    });
+    final service = ChatApiService(client: client, enableSocket: false);
+    addTearDown(service.dispose);
+    await service.init(identity: 'user-a');
+    final pending = service.fetchHistory();
+    await requested.future;
+    await service.init(identity: 'user-b');
+    expect(service.hasSession, isFalse);
+    expect(await ChatApiService.ownsSession('fixture-session', 'user-b'), isFalse);
+    expect(await service.sendMessage('Другой аккаунт'), isA<SendFailure>());
+    oldReply.complete(_json({
+      'messages': [
+        {'id': 11, 'content': 'Частный ответ A', 'fromMe': true},
+      ],
+    }));
+    expect(await pending, isA<FetchFailure>());
+    expect((await SharedPreferences.getInstance()).getString('chat_widget_session'),
+        isNull);
+    expect(unexpected, isEmpty);
+  });
+
+  test('unowned device-wide legacy chat is discarded rather than reassigned',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'chat_widget_session': jsonEncode({
+        'id': 'fixture-session',
+        'token': 'fixture-token',
+      }),
+    });
+    final requests = <String>[];
+    final service = ChatApiService(
+      enableSocket: false,
+      client: MockClient((request) async {
+        requests.add('${request.method} ${request.url}');
+        throw StateError(requests.last);
+      }),
+    );
+    addTearDown(service.dispose);
+    await service.init(identity: 'user-b');
+    expect(service.hasSession, isFalse);
+    expect(await service.fetchHistory(), isA<FetchFailure>());
+    expect(requests, isEmpty);
+  });
+
+  test('a repeated message ID is returned once by incremental delivery',
+      () async {
+    final unexpected = <String>[];
+    final service = ChatApiService(
+      enableSocket: false,
+      client: MockClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.host == 'bm.drawbridge.kz' &&
+            request.url.path == _messagesPath &&
+            request.headers['authorization'] == 'Bearer fixture-token' &&
+            request.url.queryParameters['limit'] == '100' &&
+            request.url.queryParameters.keys
+                .every((key) => {'limit', 'afterId'}.contains(key))) {
+          return _json({
+            'messages': [
+              {'id': 11, 'content': 'Один ответ', 'fromMe': true},
+              {'id': 11, 'content': 'Один ответ', 'fromMe': true},
+            ],
+          });
+        }
+        unexpected.add('${request.method} ${request.url}');
+        throw StateError(unexpected.last);
+      }),
+    );
+    addTearDown(service.dispose);
+    await service.init();
+    final first = await service.fetchHistory(afterLatest: true) as FetchSuccess;
+    final second = await service.fetchHistory(afterLatest: true) as FetchSuccess;
+    final reload = await service.fetchHistory() as FetchSuccess;
+    expect(first.messages.map((message) => message.content), ['Один ответ']);
+    expect(second.messages, isEmpty);
+    expect(reload.messages.map((message) => message.content), ['Один ответ']);
     expect(unexpected, isEmpty);
   });
 }

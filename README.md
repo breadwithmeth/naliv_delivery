@@ -18,7 +18,7 @@ Keep signing keys, Figma credentials and account tokens local. Android signing c
 flutter run -d windows -t tool/dev_surface.dart
 ```
 
-The gallery uses synthetic preferences and a strict HTTP fixture. Unexpected requests are rejected, never forwarded to production. Its controls select the surface, theme, width, text scaling and keyboard inset. VS Code's **Design fixtures (Windows)** launch configuration uses this entry point and supports hot reload.
+The gallery uses synthetic preferences and a strict HTTP fixture. Unexpected requests are rejected, never forwarded to production. Its controls select the surface, theme, width, text scaling and keyboard inset. A fixture web URL may use `?surface=active_route&guest=1` to remove only the synthetic auth token and exercise guest checkout/login continuation. Card/payment scenario names are the existing enums in `test/support/design_surfaces.dart`. VS Code's **Design fixtures (Windows)** launch configuration uses this entry point and supports hot reload.
 
 The production API and personal account are read-only during verification: never send SMS, change addresses/cards, create real orders, buy certificates or execute real payments. Fixture checkout/payment is synthetic and does not establish authenticated production or bank/device acceptance.
 
@@ -31,11 +31,11 @@ The production API and personal account are read-only during verification: never
 
 ```sh
 flutter test --concurrency=1
-flutter test integration_test/shopping_e2e_test.dart -d windows
+flutter test integration_test/shopping_e2e_test.dart -d windows --concurrency=1
 dart analyze lib test integration_test tool
 ```
 
-Run the affected file first, then the retained suite. Keep tests serial: default-concurrency coverage previously exhausted memory on this workstation. The native journey includes product-page add, catalog quantity changes, pickup checkout, a saved-card fixture payment and paid order history; it does not launch the production bootstrap. Configurable-product, gift and mixed-bottle failures remain covered by retained integration/financial regressions.
+Run the affected file first, then the retained suite; use `flutter test --coverage --concurrency=1` for LCOV. Keep Flutter processes serial: default-concurrency coverage previously exhausted memory on this workstation. The Windows journey ignores the concurrency setting internally but runs as one native process. It boots the active fixture wrapper with an empty cart, selects a store, browses a category/product, commits quantity two, resumes pickup checkout after synthetic OTP, includes the resolved synthetic bag, pays with a verified fixture card and opens server-confirmed paid history. Configurable-product, gift, mixed-bottle, legacy 3 L and unknown-payment boundaries remain covered by retained regressions.
 
 ## Visual review and release
 

@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:collection/collection.dart';
+
 import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
-import 'subtract_promotion_math.dart';
+import 'promotion_engine.dart';
+import '../core/quantity.dart';
 
 class SmartCartSelection {
   SmartCartSelection(this.item)
@@ -24,15 +27,71 @@ class SmartCartSelection {
       r'(\d+(?:\.\d+)?)\s*(мл|ml|л|l)(?![a-zа-я])',
       caseSensitive: false);
 
+  /// Container volume the shop withdrew from the range.
+  ///
+  /// Three-litre bottles are never allocated for a new selection. Persisted rows
+  /// retain their relation, litres and tariff, but can only be reduced or removed.
+  static const double withdrawnBottleVolume = 3;
+
   late final List<item_model.ItemOptionItem> filteredBottles =
       _filterAllowedBottles();
+
+  /// Every relation the store identifies as a container, including volumes this client no longer
+  /// offers.
+  late final List<int> knownBottleRelationIds =
+      bottleVariants.map((bottle) => bottle.relationId).toList(growable: false);
   late final List<int> bottleRelationIds = filteredBottles
       .map((bottle) => bottle.relationId)
       .toList(growable: false);
-  late final bool usesPourFlow =
-      containerOption != null && filteredBottles.isNotEmpty;
+  late final bool usesPourFlow = containerOption != null;
   late final String defaultDisplayKey =
       displayKeyForVariants(defaultNonBottleVariants);
+
+  /// Litres a bottle-count map represents, for both offered and withdrawn containers.
+  double litersForCounts(Map<int, int> counts) {
+    final volumes = {
+      for (final bottle in bottleVariants)
+        bottle.relationId: volumeForBottle(bottle),
+    };
+    return counts.entries.fold<double>(
+        0, (sum, entry) => sum + (volumes[entry.key] ?? 0) * entry.value);
+  }
+
+  String? get quantityIssue {
+    if (quantityUnitLabel(item.unit) == 'кг' &&
+        (item.stepQuantity == null ||
+            !item.stepQuantity!.isFinite ||
+            item.stepQuantity! <= 0)) {
+      return 'Магазин не передал шаг продажи весового товара.';
+    }
+    return null;
+  }
+
+  bool isWithdrawnBottleRelation(int relationId) => bottleVariants.any(
+      (bottle) =>
+          bottle.relationId == relationId &&
+          volumeForBottle(bottle) == withdrawnBottleVolume);
+
+  bool isWithdrawnBottleVariant(Map<String, dynamic> variant) {
+    if (!isBottleVariant(variant)) return false;
+    final relationId = variantRelationId(variant);
+    if (relationId != null && knownBottleRelationIds.contains(relationId)) {
+      return isWithdrawnBottleRelation(relationId);
+    }
+    return isExplicitWithdrawnBottleVariant(variant);
+  }
+
+  static bool isExplicitWithdrawnBottleVariant(Map<String, dynamic> variant) {
+    final nested = variant['variant'];
+    final data = nested is Map
+        ? Map<String, dynamic>.from(nested)
+        : variant;
+    if (!looksBottleLikeVariant(data)) return false;
+    final amount = variantParentItemAmount(variant) ??
+        _extractVolumeFromText(
+            data['item_name']?.toString() ?? data['name']?.toString() ?? '');
+    return amount == withdrawnBottleVolume;
+  }
 
   String? get containerIssue {
     final unit = item.unit?.trim().toLowerCase().replaceAll('.', '');
@@ -53,6 +112,9 @@ class SmartCartSelection {
                   .any((variant) => _containerVolume(variant) <= 0))) {
         return 'Магазин не передал объём доступной тары. Выбор недоступен.';
       }
+    }
+    if (containerOption != null && filteredBottles.isEmpty) {
+      return 'Тара объёмом 3 л больше не продаётся.';
     }
     return null;
   }
@@ -85,7 +147,7 @@ class SmartCartSelection {
 
   bool isBottleVariant(Map<String, dynamic> variant) {
     final relationId = variantRelationId(variant);
-    if (relationId != null && bottleRelationIds.contains(relationId)) {
+    if (relationId != null && knownBottleRelationIds.contains(relationId)) {
       return true;
     }
     if (relationId != null) {
@@ -163,14 +225,9 @@ class SmartCartSelection {
     ];
     final gift = subtractPromotionFreeQuantity(paidLiters, promotions);
     if (retainedCounts != null) {
-      final volume = filteredBottles.fold<double>(
-          0,
-          (sum, bottle) =>
-              sum +
-              volumeForBottle(bottle) *
-                  (retainedCounts[bottle.relationId] ?? 0));
+      final volume = litersForCounts(retainedCounts);
       if (retainedCounts.entries.any((entry) =>
-              entry.value < 0 || !bottleRelationIds.contains(entry.key)) ||
+              entry.value < 0 || !knownBottleRelationIds.contains(entry.key)) ||
           (volume - gift).abs() > 0.0000001) {
         throw StateError('Подарочный объём не совпадает с выбранной тарой.');
       }
@@ -282,10 +339,11 @@ class SmartCartSelection {
       if (selection != null && selection.usesPourFlow && rows.isNotEmpty) {
         final gifts = selection.giftBottleBreakdown(group.totalQuantity,
             retainedCounts: group.retainedGiftBottleCounts);
-        for (final bottle in selection.filteredBottles) {
-          final count = gifts[bottle.relationId] ?? 0;
-          if (count == 0) continue;
-          final volume = selection.volumeForBottle(bottle) * count;
+        for (final entry in gifts.entries) {
+          final bottle = selection.bottleVariants.firstWhereOrNull(
+              (candidate) => candidate.relationId == entry.key);
+          if (bottle == null || entry.value == 0) continue;
+          final volume = selection.volumeForBottle(bottle) * entry.value;
           final index = rows.indexWhere((row) => row.selectedVariants.any(
               (variant) => variantRelationId(variant) == bottle.relationId));
           if (index >= 0) {
@@ -486,7 +544,9 @@ class SmartCartSelection {
 
   List<item_model.ItemOptionItem> _filterAllowedBottles() => bottleVariants
       .where((bottle) =>
-          volumeForBottle(bottle).isFinite && volumeForBottle(bottle) > 0)
+          volumeForBottle(bottle).isFinite &&
+          volumeForBottle(bottle) > 0 &&
+          volumeForBottle(bottle) != withdrawnBottleVolume)
       .toList(growable: false);
 
   Map<String, dynamic> _variantMap(item_model.ItemOptionItem optionItem,
@@ -545,6 +605,50 @@ class CartDisplayGroup {
   double get freeQuantity =>
       subtractPromotionFreeQuantity(totalQuantity, promotions);
   double get totalOrderQuantity => totalQuantity + freeQuantity;
+  bool get hasWithdrawnBottles {
+    final currentSelection = selection;
+    if (retainedGiftBottleCounts?.entries.any((entry) =>
+            entry.value > 0 &&
+            currentSelection?.isWithdrawnBottleRelation(entry.key) == true) ==
+        true) {
+      return true;
+    }
+    return items.any((item) => item.selectedVariants.any((variant) =>
+        currentSelection?.isWithdrawnBottleVariant(variant) ??
+        SmartCartSelection.isExplicitWithdrawnBottleVariant(variant)));
+  }
+
+  bool get canIncrease {
+    final currentSelection = selection;
+    if (hasWithdrawnBottles || allocationIssue != null) return false;
+    if (currentSelection?.containerIssue != null ||
+        currentSelection?.quantityIssue != null) {
+      return false;
+    }
+    var step = currentSelection?.defaultStepQuantity ?? items.first.stepQuantity;
+    if (currentSelection?.usesPourFlow == true) {
+      final counts = paidBottleCounts;
+      var batches = 0;
+      for (final count in counts.values) {
+        if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
+      }
+      if (batches == 0) return false;
+      step = totalQuantity / batches;
+    }
+    final nextPaid = totalQuantity + step;
+    final physical =
+        nextPaid + subtractPromotionFreeQuantity(nextPaid, promotions);
+    if (maxAmount != null && physical > maxAmount! + 0.0000001) return false;
+    if (currentSelection?.usesPourFlow == true) {
+      try {
+        currentSelection!.giftBottleBreakdown(nextPaid);
+      } on StateError {
+        return false;
+      }
+    }
+    return step.isFinite && step > 0;
+  }
+
   Map<int, int>? get retainedGiftBottleCounts {
     for (final item in items) {
       if (item.giftBottleCounts != null) return item.giftBottleCounts;
@@ -745,7 +849,9 @@ class CartDisplayGroup {
 
   static double _bottleVolumeForCartItem(
       CartItem item, SmartCartSelection selection) {
-    for (final bottle in selection.filteredBottles) {
+    // Every container the store recognises, so a row holding a withdrawn volume still resolves
+    // instead of silently losing its litres.
+    for (final bottle in selection.bottleVariants) {
       if (item.selectedVariants.any((variant) =>
           SmartCartSelection.variantRelationId(variant) == bottle.relationId)) {
         return selection.volumeForBottle(bottle);

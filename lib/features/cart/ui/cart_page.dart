@@ -3,18 +3,19 @@ import 'package:provider/provider.dart';
 
 import '../../../core/money.dart';
 import '../../../core/product_view.dart';
+import '../../../core/quantity.dart';
 import '../../../design/theme.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
+import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/bonus_rules.dart';
-import '../../../utils/item_name_presentation.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/smart_cart.dart';
-import '../../../utils/subtract_promotion_math.dart';
+import '../../../utils/promotion_engine.dart';
 import '../../../pages/product_detail_page.dart';
 import '../../catalog/catalog_data_source.dart';
 import '../../product/product_navigation.dart';
@@ -45,11 +46,50 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   List<ProductView> _recommendations = const [];
   int? _recommendedFor;
+  int? _recommendationBusinessId;
+  int _recommendationRequest = 0;
+  bool _recommendationsLoading = false;
+  bool _recommendationsFailed = false;
+  bool _cartRestoreStarted = false;
+  bool _loadingCart = true;
+  bool _cartReadFailed = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _maybeLoadRecommendations();
+    if (!_cartRestoreStarted) {
+      _cartRestoreStarted = true;
+      _restoreCart();
+    } else if (!_loadingCart && !_cartReadFailed) {
+      _maybeLoadRecommendations();
+    }
+  }
+
+  Future<void> _restoreCart({bool retry = false}) async {
+    final cart = context.read<CartProvider>();
+    try {
+      await (retry ? cart.loadCart() : cart.ensureLoaded());
+      if (!mounted) return;
+      setState(() {
+        _loadingCart = false;
+        _cartReadFailed = false;
+      });
+      _maybeLoadRecommendations();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingCart = false;
+        _cartReadFailed = true;
+      });
+    }
+  }
+
+  void _retryCart() {
+    setState(() {
+      _loadingCart = true;
+      _cartReadFailed = false;
+    });
+    _restoreCart(retry: true);
   }
 
   /// «Вам также может понравиться» has no endpoint of its own. The strip is filled from the
@@ -58,45 +98,56 @@ class _CartPageState extends State<CartPage> {
   Future<void> _maybeLoadRecommendations() async {
     final cart = context.read<CartProvider>();
     final groups = cart.displayGroups.where((g) => g.items.isNotEmpty).toList();
-    if (groups.isEmpty || widget.businessId == null) return;
-    final categoryId = groups.first.itemSnapshot?.category?.categoryId;
-    if (categoryId == null || categoryId == _recommendedFor) return;
+    final businessId =
+        widget.businessId == null ? null : cart.businessId ?? widget.businessId;
+    final categoryId = groups.firstOrNull?.itemSnapshot?.category?.categoryId;
+    if (categoryId == null || businessId == null || cart.hasUnresolvedBusiness) {
+      _recommendationRequest++;
+      _recommendedFor = null;
+      _recommendations = const [];
+      _recommendationsLoading = false;
+      _recommendationsFailed = false;
+      return;
+    }
+    if (categoryId == _recommendedFor &&
+        businessId == _recommendationBusinessId) {
+      return;
+    }
     _recommendedFor = categoryId;
+    _recommendationBusinessId = businessId;
+    final request = ++_recommendationRequest;
+    _recommendationsLoading = true;
+    _recommendationsFailed = false;
     await Future<void>.delayed(Duration.zero);
     try {
-      final items = await CatalogDataSource(businessId: widget.businessId!)
+      final items = await CatalogDataSource(businessId: businessId)
           .items(categoryId, limit: 24);
-      if (!mounted) return;
-      final inCart = {for (final group in groups) group.itemId};
+      if (!mounted || request != _recommendationRequest) return;
+      final inCart = {
+        for (final group in context.read<CartProvider>().displayGroups)
+          group.itemId,
+      };
       setState(() {
+        _recommendationsLoading = false;
         _recommendations = items
             .where((item) => !inCart.contains(item.itemId))
             .take(6)
             .toList();
       });
-    } catch (error) {
-      // Recommendations are supplemental; a failed category read must not
-      // prevent the cart from showing its lines and checkout action.
-      debugPrint('Cart recommendations unavailable: $error');
-      if (!mounted) return;
-      setState(() => _recommendations = const []);
+    } catch (_) {
+      if (!mounted || request != _recommendationRequest) return;
+      setState(() {
+        _recommendations = const [];
+        _recommendationsLoading = false;
+        _recommendationsFailed = true;
+      });
     }
   }
 
-  int _earnedBonuses(List<CartDisplayGroup> groups) {
-    final eligible = groups.fold<double>(0, (sum, group) {
-      final snapshot = group.itemSnapshot;
-      final excluded = BonusRules.isBonusExcludedText(
-        name: snapshot?.name ?? group.name,
-        description: snapshot?.description,
-        categoryName: snapshot?.category?.name,
-        code: snapshot?.code,
-      );
-      return excluded || group.allocationIssue != null
-          ? sum
-          : sum + group.totalPrice;
-    });
-    return BonusRules.calculateEarnedBonuses(eligible);
+  void _retryRecommendations() {
+    _recommendedFor = null;
+    _maybeLoadRecommendations();
+    setState(() {});
   }
 
   void _editConfiguration(CartDisplayGroup group) {
@@ -106,12 +157,13 @@ class _CartPageState extends State<CartPage> {
       builder: (_) => ProductDetailPage(
         item: snapshot,
         initialBaseVariants: group.baseVariants,
-        businessId: widget.businessId,
+        businessId: context.read<CartProvider>().businessId ?? widget.businessId,
       ),
     ));
   }
 
   bool _canIncrement(CartProvider cart, CartDisplayGroup group) {
+    if (!group.canIncrease) return false;
     final stock = group.maxAmount;
     if (stock != null && stock <= 0) return false;
     final step = _batchVolume(group);
@@ -169,30 +221,48 @@ class _CartPageState extends State<CartPage> {
     final palette = context.palette;
     final cart = context.watch<CartProvider>();
     final groups = cart.displayGroups.where((g) => g.items.isNotEmpty).toList();
-    final bonuses = _earnedBonuses(cart.activeDisplayGroups);
+    final bonuses = BonusRules.calculateEarnedBonusesForGroups(
+        cart.activeDisplayGroups);
     final allocationIssue =
         groups.any((group) => group.allocationIssue != null);
-
+    final unresolvedBusiness = cart.hasUnresolvedBusiness;
+    final matchingBusiness =
+        cart.businessId == null || cart.businessId == widget.businessId;
+    final footerSpace = 148 +
+        MediaQuery.paddingOf(context).bottom +
+        (MediaQuery.textScalerOf(context).scale(16) > 20 ||
+                MediaQuery.sizeOf(context).width < 352
+            ? 120
+            : 0);
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Stack(
+            children: [
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
                     child: AppTopBar(
                       title: 'Корзина',
-                      subtitle: widget.address,
+                      subtitle: matchingBusiness ? widget.address : null,
                       onBack: () => Navigator.of(context).maybePop(),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
                   Expanded(
-                    child: groups.isEmpty
+                    child: _loadingCart
+                        ? const AppLoading(key: ValueKey('cart-loading'))
+                        : _cartReadFailed
+                            ? AppErrorState(
+                                key: const ValueKey('cart-load-error'),
+                                message: 'Не удалось восстановить корзину',
+                                onRetry: _retryCart,
+                              )
+                            : groups.isEmpty
                         ? AppEmptyState(
                             title: 'Корзина пуста',
                             subtitle:
@@ -205,11 +275,20 @@ class _CartPageState extends State<CartPage> {
                                   ),
                           )
                         : ListView(
-                            padding: EdgeInsets.only(
-                              bottom: AppSpacing.huge +
-                                  MediaQuery.paddingOf(context).bottom,
-                            ),
+                            key: const ValueKey('cart-scroll'),
+                            padding: EdgeInsets.only(bottom: footerSpace),
                             children: [
+                              if (unresolvedBusiness)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                  child: Text(
+                                    'Магазин сохранённой корзины не определён. '
+                                    'Удалите её товары, чтобы начать заказ в выбранном магазине.',
+                                    key: const ValueKey('cart-business-issue'),
+                                    style: AppTypography.body
+                                        .copyWith(color: palette.error),
+                                  ),
+                                ),
                               for (final (index, group) in groups.indexed)
                                 Padding(
                                   padding: EdgeInsets.fromLTRB(
@@ -228,14 +307,17 @@ class _CartPageState extends State<CartPage> {
                                         group.itemSnapshot?.hasOptions == true
                                             ? () => _editConfiguration(group)
                                             : null,
-                                    onIncrement: _canIncrement(cart, group)
+                                    onIncrement: !unresolvedBusiness &&
+                                            _canIncrement(cart, group)
                                         ? () => _adjustGroup(cart, group, 1)
                                         : null,
                                     onDelete: () =>
                                         _adjustGroup(cart, group, -1),
                                   ),
                                 ),
-                              if (_recommendations.isNotEmpty) ...[
+                              if (_recommendations.isNotEmpty ||
+                                  _recommendationsLoading ||
+                                  _recommendationsFailed) ...[
                                 const SizedBox(height: 32),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -249,12 +331,47 @@ class _CartPageState extends State<CartPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 24),
+                                if (_recommendationsLoading)
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 24),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        key: ValueKey('cart-recommendation-loading'),
+                                      ),
+                                    ),
+                                  )
+                                else if (_recommendationsFailed)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: AppSurface(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Не удалось загрузить товары',
+                                              style: AppTypography.body
+                                                  .copyWith(color: palette.textSecondary)),
+                                          TextButton(
+                                            key: const ValueKey('cart-recommendation-retry'),
+                                            onPressed: _retryRecommendations,
+                                            child: const Text('Повторить'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                else
                                 SizedBox(
                                   key: const ValueKey(
                                       'cart-recommendation-strip'),
-                                  height: ProductCard.heightFor(context,
-                                      hasOldPrice: _recommendations.any(
-                                          (item) => item.oldPrice != null)),
+                                  height: ProductCard.heightFor(
+                                    context,
+                                    width: ProductCard.widthFor(context),
+                                    products: _recommendations,
+                                    hasOldPrice: _recommendations.any(
+                                        (item) => item.oldPrice != null),
+                                  ),
                                   child: ListView.separated(
                                     scrollDirection: Axis.horizontal,
                                     padding: const EdgeInsets.symmetric(
@@ -272,13 +389,15 @@ class _CartPageState extends State<CartPage> {
                                         onTap: () => openProduct(
                                           context,
                                           item,
-                                          businessId: widget.businessId,
+                                          businessId: cart.businessId ?? widget.businessId,
                                           onCart: () =>
                                               Navigator.of(context).maybePop(),
                                         ),
-                                        onIncrement: () => context
-                                            .read<CartProvider>()
-                                            .incrementCatalogItem(item.source),
+                                        onIncrement: item.available
+                                            ? () => context
+                                                .read<CartProvider>()
+                                                .incrementCatalogItem(item.source)
+                                            : null,
                                         onDecrement: () => context
                                             .read<CartProvider>()
                                             .decrementCatalogItem(item.source),
@@ -293,17 +412,26 @@ class _CartPageState extends State<CartPage> {
                               ],
                             ],
                           ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            _TotalsBar(
-              key: const ValueKey('cart-total-bar'),
-              total: allocationIssue ? null : cart.getTotalPrice().round(),
-              bonuses: bonuses,
-              onCheckout: allocationIssue ? null : widget.onCheckout,
-            ),
-          ],
+              if (!_loadingCart && !_cartReadFailed && groups.isNotEmpty)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _TotalsBar(
+                    key: const ValueKey('cart-total-bar'),
+                    total: allocationIssue ? null : cart.getTotalPrice(),
+                    bonuses: bonuses,
+                    onCheckout: allocationIssue || unresolvedBusiness
+                        ? null
+                        : widget.onCheckout,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -354,121 +482,223 @@ class _CartRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final snapshot = group.itemSnapshot;
-    final quantity = group.selection?.usesPourFlow == true
-        ? group.totalOrderQuantity
-        : group.totalQuantity;
-    final title = snapshot == null
-        ? group.name
-        : presentItemName(
-            rawName: snapshot.name,
-            categoryName: snapshot.category?.name,
-          ).name;
-    final secondary = [
-      snapshot?.category?.name,
-      snapshot?.quantity != null ? null : group.itemType,
-    ].whereType<String>().where((s) => s.trim().isNotEmpty).join(', ');
+    final view = snapshot == null ? null : ProductView.fromItem(snapshot);
+    final pour = group.selection?.usesPourFlow == true;
+    final quantity = pour ? group.totalOrderQuantity : group.totalQuantity;
+    final title = view?.title ?? group.name;
+    final secondary = {
+      if (view?.category case final category?) category,
+      ...(view?.metadata ?? const <String>[]).where((part) =>
+          part.toLowerCase() != view?.category?.toLowerCase()),
+      if (view == null && group.itemType != null) group.itemType!,
+    }.where((part) => part.trim().isNotEmpty).join(' · ');
     final configuration = group.baseVariants
         .map((variant) => variant['item_name']?.toString() ?? '')
         .where((name) => name.trim().isNotEmpty)
         .join(', ');
     final allocationIssue = group.allocationIssue;
     final bottles = allocationIssue == null ? group.bottleBreakdownLabel : null;
+    final hasDetails = configuration.isNotEmpty ||
+        bottles != null ||
+        group.freeQuantity > 0 ||
+        allocationIssue != null ||
+        onEdit != null;
+    final unit = snapshot?.unit?.trim().isNotEmpty == true
+        ? snapshot!.unit!.trim()
+        : 'шт';
+    final evaluation = evaluatePromotion(
+      paidQuantity: group.totalQuantity,
+      promotions: group.promotions,
+    );
+    final award = evaluation.award;
+    final giftCaption = award == null
+        ? null
+        : 'За каждые ${formatQuantity(award.baseAmount.toDouble(), unit)} '
+            '— ${formatQuantity(award.addAmount.toDouble(), unit)} этого товара в подарок';
 
     final price = Text(
       allocationIssue == null
-          ? formatTenge(group.totalPrice.round())
+          ? formatTenge(group.totalPrice)
           : 'Расчёт недоступен',
-      style: AppTypography.title.copyWith(color: palette.accent),
+      style: AppTypography.bodyBold.copyWith(color: palette.accent),
     );
     final stepper = _CartStepper(
       quantity: quantity,
+      unit: unit,
       lastBatch: lastBatch,
       pour: group.selection?.usesPourFlow == true,
       onIncrement: onIncrement,
       onDelete: onDelete,
     );
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
+    final identity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title,
+            style: AppTypography.bodyMedium
+                .copyWith(color: palette.textPrimary)),
+        if (secondary.isNotEmpty)
+          Text(secondary,
+              style: AppTypography.caption
+                  .copyWith(color: palette.textSecondary)),
+      ],
+    );
+    final image = ClipRRect(
+      borderRadius: AppRadii.smAll,
+      child: Container(
+        width: 52,
+        height: 52,
+        color: Colors.white,
+        child: group.image == null
+            ? const Icon(Icons.inventory_2_outlined, color: Colors.black38)
+            : Image.network(
+                group.image!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.inventory_2_outlined, color: Colors.black38),
+              ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadii.sm),
-            child: SizedBox(
-              width: 52,
-              height: 52,
-              child: group.image == null
-                  ? const ColoredBox(color: Colors.white)
-                  : Image.network(
-                      group.image!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const ColoredBox(color: Colors.white),
-                    ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.xl),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+    );
+    return AppSurface(
+      padding: const EdgeInsets.all(AppSpacing.xs),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final compact = !hasDetails &&
+            (unit == 'шт' || unit == 'шт.') &&
+            quantity < 100 &&
+            constraints.maxWidth >= 335 &&
+            MediaQuery.textScalerOf(context).scale(14) <= 16 &&
+            title.length <= 18 &&
+            secondary.length <= 36 &&
+            formatTenge(group.totalPrice).length <= 9;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  style: AppTypography.titleMedium
-                      .copyWith(color: palette.textPrimary),
-                ),
-                if (secondary.isNotEmpty)
-                  Text(
-                    secondary,
-                    style: AppTypography.bodySmall
-                        .copyWith(color: palette.textSecondary),
-                  ),
-                if (configuration.isNotEmpty)
-                  Text(configuration,
-                      key: ValueKey('cart-configuration-${group.key}'),
-                      style: AppTypography.bodySmall
-                          .copyWith(color: palette.textSecondary)),
-                if (bottles != null)
-                  Text(bottles,
-                      key: ValueKey('cart-bottles-${group.key}'),
-                      style: AppTypography.bodySmall
-                          .copyWith(color: palette.textSecondary)),
-                if (group.freeQuantity > 0)
-                  Text(
-                      '${group.selection?.volumeLabel(group.totalOrderQuantity) ?? group.totalOrderQuantity} всего · ${group.freeQuantity} в подарок',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: palette.accent)),
-                if (allocationIssue != null)
-                  Text(allocationIssue,
-                      style: AppTypography.bodySmall
-                          .copyWith(color: palette.error)),
-                if (onEdit != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      key: ValueKey('cart-edit-${group.key}'),
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Изменить параметры'),
-                    ),
-                  ),
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
+                image,
+                const SizedBox(width: AppSpacing.md),
+                Expanded(child: identity),
+                if (compact) ...[
+                  const SizedBox(width: AppSpacing.xs),
+                  price,
+                  stepper,
+                ],
+              ],
+            ),
+            if (!compact)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Wrap(
                   alignment: WrapAlignment.spaceBetween,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: AppSpacing.md,
                   runSpacing: AppSpacing.md,
                   children: [price, stepper],
                 ),
+              ),
+            if (view != null && !hasDetails)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(60, 0, 4, 2),
+                child: Text(view.unitPriceLabel,
+                    style: AppTypography.caption
+                        .copyWith(color: palette.textSecondary)),
+              ),
+            if (configuration.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(configuration,
+                    key: ValueKey('cart-configuration-${group.key}'),
+                    style: AppTypography.bodySmall
+                        .copyWith(color: palette.textSecondary)),
+              ),
+            if (bottles != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: Text(bottles,
+                    key: ValueKey('cart-bottles-${group.key}'),
+                    style: AppTypography.bodySmall
+                        .copyWith(color: palette.textSecondary)),
+              ),
+            if (group.freeQuantity > 0)
+              _GiftLine(
+                key: ValueKey('cart-gift-${group.key}'),
+                quantityLabel: formatQuantity(group.freeQuantity, unit),
+                caption: pour
+                    ? '${giftCaption ?? 'Напиток в подарок'}. Тара для подарка оплачивается обычно.'
+                    : giftCaption,
+              ),
+            if (allocationIssue != null)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(allocationIssue,
+                    style: AppTypography.bodySmall
+                        .copyWith(color: palette.error)),
+              ),
+            if (onEdit != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: ValueKey('cart-edit-${group.key}'),
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Изменить параметры'),
+                ),
+              ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class _GiftLine extends StatelessWidget {
+  const _GiftLine({
+    required this.quantityLabel,
+    this.caption,
+    super.key,
+  });
+
+  final String quantityLabel;
+  final String? caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: palette.brandRed,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppIcon(AppIcons.bonusStar, size: 16, color: palette.gold),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Подарок · $quantityLabel',
+                    key: const ValueKey('cart-gift-label'),
+                    style: AppTypography.bodySmallMedium
+                        .copyWith(color: Colors.white)),
+                if (caption != null)
+                  Text(caption!,
+                      style: AppTypography.caption
+                          .copyWith(color: Colors.white.withValues(alpha: 0.8))),
               ],
             ),
           ),
+          const SizedBox(width: AppSpacing.md),
+          Text('0 ₸',
+              key: const ValueKey('cart-gift-price'),
+              style:
+                  AppTypography.bodySmallBold.copyWith(color: palette.gold)),
         ],
       ),
     );
@@ -479,6 +709,7 @@ class _CartRow extends StatelessWidget {
 class _CartStepper extends StatelessWidget {
   const _CartStepper({
     required this.quantity,
+    required this.unit,
     required this.lastBatch,
     required this.pour,
     this.onIncrement,
@@ -486,6 +717,7 @@ class _CartStepper extends StatelessWidget {
   });
 
   final num quantity;
+  final String unit;
   final bool lastBatch;
   final bool pour;
   final VoidCallback? onIncrement;
@@ -493,15 +725,26 @@ class _CartStepper extends StatelessWidget {
 
   static const double _height = 44;
 
-  String get _label =>
-      quantity.toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '');
+  String get _label {
+    final normalized = unit.toLowerCase().replaceAll('.', '');
+    return formatQuantity(quantity.toDouble(),
+        const ['шт', 'pcs', 'piece'].contains(normalized) ? '' : unit);
+  }
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final last = lastBatch;
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final width = 96.0 + _label.length * 10 * (scale < 1 ? 1.0 : scale);
+    final style = AppTypography.bodyMedium
+        .copyWith(color: palette.textPrimary);
+    final painter = TextPainter(
+      text: TextSpan(text: _label, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final width = (96 + painter.width)
+        .clamp(100.0, MediaQuery.sizeOf(context).width - 48);
+    painter.dispose();
     const height = _height;
     return SizedBox(
       width: width,
@@ -547,12 +790,14 @@ class _CartStepper extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: palette.accentSoft,
+                    color: onIncrement == null
+                        ? palette.accentFaint
+                        : palette.accentSoft,
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  child: const Center(
+                  child: Center(
                       child: Icon(Icons.add_rounded,
-                          color: Colors.white, size: 20)),
+                          color: palette.textOnAccent, size: 20)),
                 ),
               ),
             ),
@@ -572,15 +817,20 @@ class _TotalsBar extends StatelessWidget {
     super.key,
   });
 
-  final int? total;
+  final num? total;
   final int bonuses;
   final VoidCallback? onCheckout;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return LayoutBuilder(builder: (context, constraints) {
-      final adaptive = constraints.maxWidth < 520 ||
+    return AppGlassPanel(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
+      child: SafeArea(
+        top: false,
+        child: LayoutBuilder(builder: (context, constraints) {
+      final adaptive = constraints.maxWidth < 320 ||
           MediaQuery.textScalerOf(context).scale(16) > 20;
       final summary = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,43 +847,25 @@ class _TotalsBar extends StatelessWidget {
                 AppTypography.displayBold.copyWith(color: palette.textPrimary),
           ),
           if (bonuses > 0)
-            Text(
-              '+$bonuses бонусов',
-              style: AppTypography.bodyBold.copyWith(color: palette.accent),
+            Tooltip(
+              message: 'Предварительная оценка. Начисление подтверждает магазин.',
+              child: Text(
+                '+$bonuses бонусов',
+                style: AppTypography.bodyBold.copyWith(color: palette.accent),
+              ),
             ),
         ],
       );
-      final checkout = InkWell(
-        onTap: onCheckout,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        child: Container(
-          key: const ValueKey('cart-checkout-button'),
-          width: adaptive ? double.infinity : 154,
-          constraints: const BoxConstraints(minHeight: 49),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-          decoration: BoxDecoration(
-            color: palette.accentSoft,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-          ),
-          child: Text(
-            'Оформить',
-            style: AppTypography.title.copyWith(color: Colors.white),
-          ),
+      final checkout = FilledButton(
+        key: const ValueKey('cart-checkout-button'),
+        onPressed: onCheckout,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(154, 49),
+          shape: const StadiumBorder(),
         ),
+        child: const Text('Оформить'),
       );
-      return AppGlassPanel(
-        radius: 0,
-        tint: Colors.black.withValues(alpha: 0.2),
-        blur: 12,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.xxxl,
-            AppSpacing.xl,
-            AppSpacing.xxxl,
-            AppSpacing.xl + MediaQuery.paddingOf(context).bottom,
-          ),
-          child: adaptive
+      return adaptive
               ? Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -647,10 +879,10 @@ class _TotalsBar extends StatelessWidget {
                   Expanded(child: summary),
                   const SizedBox(width: AppSpacing.xl),
                   checkout,
-                ]),
-        ),
-      );
-    });
+                ]);
+        }),
+      ),
+    );
   }
 }
 

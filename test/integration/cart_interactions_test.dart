@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('keeps display order stable when regrouping an existing item', () {
+  test('keeps display order stable when regrouping an existing item', () async {
     final first = _pourItem();
     final second = Item(
         itemId: 802,
@@ -20,7 +20,10 @@ void main() {
         amount: 10,
         quantity: 1,
         unit: 'шт.');
-    final cart = CartProvider()
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    expect(await cart.bindBusiness(1), isTrue);
+    cart
       ..syncItemBottleCounts(first, [], {1: 1})
       ..incrementCatalogItem(second);
     expect(
@@ -40,7 +43,10 @@ void main() {
         amount: 4,
         quantity: 1,
         unit: 'шт.');
-    final cart = CartProvider()..syncItemSelectionQuantity(item, [], 3);
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    await cart.bindBusiness(1);
+    cart.syncItemSelectionQuantity(item, [], 3);
     final semantics = tester.ensureSemantics();
     try {
       await _mount(tester, cart);
@@ -68,8 +74,12 @@ void main() {
         price: 5000,
         amount: 2,
         quantity: 0.25,
+        stepQuantity: 0.25,
         unit: 'кг.');
-    final cart = CartProvider()..syncItemSelectionQuantity(item, [], 0.5);
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    await cart.bindBusiness(1);
+    cart.syncItemSelectionQuantity(item, [], 0.5);
     final semantics = tester.ensureSemantics();
     try {
       await _mount(tester, cart);
@@ -122,9 +132,9 @@ Item _pourItem() => Item(
                   relationId: 2,
                   itemId: 102,
                   priceType: 'FIXED',
-                  itemName: 'Бутылка 3 л',
-                  price: 180,
-                  parentItemAmount: 3),
+                  itemName: 'Бутылка 2 л',
+                  price: 120,
+                  parentItemAmount: 2),
             ])
       ],
     );

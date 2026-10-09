@@ -34,7 +34,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   bool? _consent;
   bool _consentSaving = false;
   bool _consentLoadFailed = false;
@@ -48,9 +48,21 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _account = widget.account;
     _refreshAccount();
     _loadConsent();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshAccount();
   }
 
   Future<void> _loadConsent() async {
@@ -252,7 +264,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: EdgeInsets.only(
                         top: AppSpacing.xl,
-                        bottom: AppSpacing.huge +
+                        bottom: AppSpacing.xl +
                             MediaQuery.paddingOf(context).bottom,
                       ),
                       children: [
@@ -414,19 +426,14 @@ class _ProfileRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
           child: Container(
             key: rowKey,
-            constraints: const BoxConstraints(minHeight: 58),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxxl,
-              AppSpacing.md,
-              AppSpacing.xl,
-              AppSpacing.md,
-            ),
+            constraints: const BoxConstraints(minHeight: 60),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
             decoration:
                 BoxDecoration(borderRadius: BorderRadius.circular(AppRadii.lg)),
             child: Row(
               children: [
                 AppIcon(spec.icon, size: 24, color: palette.accent),
-                const SizedBox(width: AppSpacing.xxxl),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -435,15 +442,13 @@ class _ProfileRow extends StatelessWidget {
                     children: [
                       Text(
                         spec.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: null,
                         style: AppTypography.titleMedium
                             .copyWith(color: palette.textPrimary),
                       ),
                       Text(
                         spec.subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: null,
                         style: AppTypography.label
                             .copyWith(color: palette.textSecondary),
                       ),

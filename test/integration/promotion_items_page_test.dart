@@ -110,6 +110,7 @@ void main() {
       'prefetched products stay visible and fractional stock is bounded',
       (tester) async {
     final cart = CartProvider();
+    await cart.bindBusiness(7);
     final weight = Item(
       itemId: 17,
       name: 'Весовой товар',
@@ -139,6 +140,7 @@ void main() {
               _step(first, index == 0 ? 'Добавить' : 'Увеличить количество')),
           alignment: 0.5,
         );
+        await tester.pumpAndSettle();
         await tester.tap(
             _step(first, index == 0 ? 'Добавить' : 'Увеличить количество'));
         await tester.pumpAndSettle();
@@ -149,6 +151,7 @@ void main() {
       await Scrollable.ensureVisible(
           tester.element(_step(first, 'Уменьшить количество')),
           alignment: 0.5);
+      await tester.pumpAndSettle();
       await tester.tap(_step(first, 'Уменьшить количество'));
       await tester.pumpAndSettle();
       expect(cart.getCatalogQuantity(weight), 0.5);

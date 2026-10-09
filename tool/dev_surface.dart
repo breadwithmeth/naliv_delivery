@@ -14,9 +14,12 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
     // This entry point is fixture-only; no device credentials or consent are read.
     // Synthetic credentials only; the strict transport rejects unknown requests.
-    // ignore: invalid_use_of_visible_for_testing_member
-    SharedPreferences.setMockInitialValues(surfaceFixturePreferences);
     final query = Uri.base.queryParameters;
+    // ignore: invalid_use_of_visible_for_testing_member
+    SharedPreferences.setMockInitialValues({
+      ...surfaceFixturePreferences,
+    }..removeWhere((key, _) =>
+        query['guest'] == '1' && key == 'auth_token'));
     RemainingMilestoneFixture.paymentScenario =
         PaymentFixtureScenario.values.firstWhere(
       (value) => value.name == query['payment'],

@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import '../utils/api.dart';
+import '../services/auth_service.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
+import '../ui/surfaces.dart';
 import '../features/faq/models/faq.dart';
 import '../features/faq/faq_navigation.dart';
 import '../core/destinations.dart';
@@ -91,8 +93,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
@@ -106,7 +107,6 @@ class _LoginPageState extends State<LoginPage>
   int _currentPage = 0;
   Map<String, dynamic>? _profileSetupUser;
 
-  late final AnimationController _iconPulse;
 
   Timer? _autoSlideTimer;
   Timer? _resumeTimer;
@@ -117,22 +117,22 @@ class _LoginPageState extends State<LoginPage>
 
   static const _slides = [
     _SlideData(
-      icon: Icons.local_offer_rounded,
+      icon: AppIcons.discountShape,
       title: 'Персональные акции',
       subtitle: 'Уникальные скидки только для вас',
     ),
     _SlideData(
-      icon: Icons.flash_on_rounded,
+      icon: AppIcons.bagHappy,
       title: 'Быстрый заказ',
       subtitle: 'Оформление в пару нажатий',
     ),
     _SlideData(
-      icon: Icons.history_rounded,
+      icon: AppIcons.bagTimer,
       title: 'История покупок',
       subtitle: 'Повторите любой прошлый заказ',
     ),
     _SlideData(
-      icon: Icons.star_rounded,
+      icon: AppIcons.bonusStar,
       title: 'Бонусы',
       subtitle: 'Копите с каждой покупки',
     ),
@@ -143,18 +143,11 @@ class _LoginPageState extends State<LoginPage>
     super.initState();
     _showAuthForm = widget.startWithPhoneForm;
     if (_showAuthForm) _ensurePhonePrefix();
-    _iconPulse = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-      lowerBound: 0.0,
-      upperBound: 1.0,
-    );
     _startAutoSlide();
   }
 
   @override
   void dispose() {
-    _iconPulse.dispose();
     _autoSlideTimer?.cancel();
     _resumeTimer?.cancel();
     _sendCodeCooldownTimer?.cancel();
@@ -358,6 +351,8 @@ class _LoginPageState extends State<LoginPage>
     if (user is! Map) {
       throw StateError('Не удалось подтвердить профиль. Повторите вход.');
     }
+    await AuthService.refreshIdentity(verifiedInfo: userInfo);
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (ProfileSetupPage.isRequiredFor(userInfo)) {
       setState(() => _profileSetupUser = Map<String, dynamic>.from(user));
     } else {
@@ -370,6 +365,8 @@ class _LoginPageState extends State<LoginPage>
     if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (refreshedUserInfo?['user'] is Map &&
         !ProfileSetupPage.isRequiredFor(refreshedUserInfo)) {
+      await AuthService.refreshIdentity(verifiedInfo: refreshedUserInfo);
+      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
       Navigator.of(context).pop<bool>(true);
       return;
     }
@@ -454,9 +451,9 @@ class _LoginPageState extends State<LoginPage>
           else if (canClose)
             Positioned(
               left: 16,
-              child: _materialCircleButton(
-                tooltip: 'Закрыть',
-                icon: Icons.close_rounded,
+              child: AppIconButton(
+                asset: AppIcons.back,
+                tooltip: 'Назад',
                 onTap: () => Navigator.of(context).pop(),
               ),
             ),
@@ -479,7 +476,6 @@ class _LoginPageState extends State<LoginPage>
               itemCount: _slides.length,
               onPageChanged: (index) {
                 setState(() => _currentPage = index);
-                _iconPulse.forward(from: 0);
               },
               itemBuilder: (_, index) => _slidePage(_slides[index]),
             ),
@@ -540,64 +536,49 @@ class _LoginPageState extends State<LoginPage>
 
   Widget _slidePage(_SlideData slide) {
     final palette = context.palette;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 22, 28, 0),
-      child: Column(
-        children: [
-          const Spacer(),
-          _glowIcon(slide.icon),
-          const SizedBox(height: 28),
-          Text(
-            slide.title,
-            textAlign: TextAlign.center,
-            style: AppTypography.display.copyWith(
-              color: palette.textPrimary,
-              height: 1.15,
-              letterSpacing: -.5,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const AppIcon(AppIcons.cartFab, size: 100),
+                      AppIcon(slide.icon, size: 54, color: palette.accent),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  slide.title,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.headline.copyWith(
+                    color: palette.textPrimary,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  slide.subtitle,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body.copyWith(color: palette.textSecondary),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            slide.subtitle,
-            textAlign: TextAlign.center,
-            style: AppTypography.bodySmall.copyWith(
-              color: palette.textSecondary,
-              height: 1.4,
-            ),
-          ),
-          const Spacer(flex: 2),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _glowIcon(IconData icon) {
-    final palette = context.palette;
-    return AnimatedBuilder(
-      animation: _iconPulse,
-      builder: (context, child) {
-        final value = Curves.easeOut.transform(_iconPulse.value);
-        return Transform.scale(
-          scale: .85 + .15 * value,
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  palette.accent.withValues(alpha: .18 + .12 * value),
-                  palette.accent.withValues(alpha: 0),
-                ],
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 52, color: palette.accent),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _authFormView() {
     final palette = context.palette;
@@ -654,7 +635,7 @@ class _LoginPageState extends State<LoginPage>
                               horizontal: 4,
                               vertical: 4,
                             ),
-                            minimumSize: const Size(0, 36),
+                            minimumSize: const Size(44, 44),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
@@ -829,12 +810,13 @@ class _LoginPageState extends State<LoginPage>
     return SizedBox(
       key: key,
       width: double.infinity,
-      height: 48,
-      child: Material(
-        color: onPressed == null ? palette.accentSoft : palette.accent,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
+      height: MediaQuery.textScalerOf(context).scale(16) * 1.3 + 26,
+      child: AppGlassPanel(
+        tint: onPressed == null ? palette.accentFaint : palette.accentSoft,
+        radius: _showAuthForm ? AppRadii.lg : AppRadii.pill,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: BorderRadius.circular(
+              _showAuthForm ? AppRadii.lg : AppRadii.pill),
           onTap: onPressed,
           child: Center(
             child: _isLoading
@@ -858,33 +840,10 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Widget _materialCircleButton({
-    required String tooltip,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    final palette = context.palette;
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: palette.surface.withValues(alpha: .75),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(icon, size: 20, color: palette.textPrimary),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _SlideData {
-  final IconData icon;
+  final String icon;
   final String title;
   final String subtitle;
   const _SlideData(

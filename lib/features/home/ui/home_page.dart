@@ -15,9 +15,8 @@ import '../home_view_data.dart';
 
 /// The public landing page measured from the 375 × 812 Figma home frames.
 ///
-/// At 375 px, content uses 16 px gutters; wider windows cap the column at 520 px.
-/// Campaigns and product strips adapt separately. Readable type deliberately
-/// departs from tiny reference metadata while preserving real data and actions.
+/// At 375 px, content keeps the full header/store/search/campaign/category rhythm.
+/// Real names and metadata wrap at large text; wider windows cap the content.
 class HomePage extends StatelessWidget {
   const HomePage({
     required this.data,
@@ -44,7 +43,7 @@ class HomePage extends StatelessWidget {
 
   final HomeViewData data;
   final int cartItemCount;
-  final int? cartTotal;
+  final num? cartTotal;
   final VoidCallback? onSearch;
   final VoidCallback? onCallCenter;
   final VoidCallback? onLiked;
@@ -81,22 +80,41 @@ class HomePage extends StatelessWidget {
                   _ContentWidth(
                     child: KeyedSubtree(
                       key: const ValueKey('home-header'),
-                      child: _HomeHeader(
-                        onCallCenter: onCallCenter,
-                        onBonusHistory: onBonusHistory,
-                        onLiked: onLiked,
-                        onNotifications: onNotifications,
-                        onProfile: onProfile,
+                      child: data.signedIn
+                          ? _HomeHeader(
+                              onCallCenter: onCallCenter,
+                              onBonusHistory: onBonusHistory,
+                              onLiked: onLiked,
+                              onNotifications: onNotifications,
+                              onProfile: onProfile,
+                            )
+                          : Row(
+                              children: [
+                                const _HomeBrandMark(),
+                                const SizedBox(width: AppSpacing.xl),
+                                Expanded(
+                                  child: KeyedSubtree(
+                                    key: const ValueKey('home-store-card'),
+                                    child: _StoreCard(
+                                        data: data,
+                                        onTap: onStore,
+                                        onProfile: onProfile),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  if (data.signedIn) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-store-card'),
+                        child: _StoreCard(
+                            data: data, onTap: onStore, onProfile: onProfile),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  _ContentWidth(
-                    child: KeyedSubtree(
-                      key: const ValueKey('home-store-card'),
-                      child: _StoreCard(data: data, onTap: onStore),
-                    ),
-                  ),
+                  ],
                   if (data.activeOrder case final order?) ...[
                     const SizedBox(height: AppSpacing.xl),
                     _ContentWidth(
@@ -135,14 +153,16 @@ class HomePage extends StatelessWidget {
                         key: const ValueKey('home-promo-card'),
                         child: _PromoCard(
                           promo: promo,
-                          onTap: () => onCategory?.call(
-                            HomeCategory(
-                              id: promo.id,
-                              title: promo.title,
-                              imageUrl: promo.imageUrl,
-                              fill: promo.fill,
-                            ),
-                          ),
+                          onTap: onCategory == null
+                              ? null
+                              : () => onCategory!(
+                                    HomeCategory(
+                                      id: promo.id,
+                                      title: promo.title,
+                                      imageUrl: promo.imageUrl,
+                                      fill: promo.fill,
+                                    ),
+                                  ),
                         ),
                       ),
                     ),
@@ -157,7 +177,7 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!data.signedIn || data.bonusBalance != null) ...[
+                  const SizedBox(height: AppSpacing.huge),
                     _ContentWidth(
                       child: KeyedSubtree(
                         key: const ValueKey('home-bonus-card'),
@@ -169,7 +189,6 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: data.signedIn ? 32 : 24),
-                  ],
                   _ProductSections(
                     sections: data.productSections,
                     onCategory: onCategory,
@@ -219,6 +238,18 @@ class _ContentWidth extends StatelessWidget {
   }
 }
 
+class _HomeBrandMark extends StatelessWidget {
+  const _HomeBrandMark();
+
+  @override
+  Widget build(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const AppIcon(AppIcons.logoDark,
+              key: ValueKey('home-brand-mark'), width: 48, height: 48)
+          : const AppIcon(AppIcons.logo,
+              key: ValueKey('home-brand-mark'), width: 48, height: 48);
+}
+
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({
     this.onCallCenter,
@@ -235,28 +266,67 @@ class _HomeHeader extends StatelessWidget {
   final VoidCallback? onProfile;
 
   @override
-  Widget build(BuildContext context) => ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 57),
-        child: Row(
-          children: [
-            const AppIcon(AppIcons.logo, width: 52, height: 50),
-            const Spacer(),
-            _HeaderAction(
-                icon: AppIcons.phone, label: 'Поддержка', onTap: onCallCenter),
-            _HeaderAction(
-                icon: AppIcons.star, label: 'Бонусы', onTap: onBonusHistory),
-            _HeaderAction(
-                icon: AppIcons.heart,
-                label: 'Избранные товары',
-                onTap: onLiked),
-            _HeaderAction(
-                icon: AppIcons.bell,
-                label: 'Настройки уведомлений',
-                onTap: onNotifications),
-            _HeaderAction(
-                icon: AppIcons.user, label: 'Профиль', onTap: onProfile),
-          ],
-        ),
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final phone = InkWell(
+            onTap: onCallCenter,
+            borderRadius: AppRadii.mdAll,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: AppSpacing.touchTarget),
+              child: Row(
+                children: [
+                  AppIcon(AppIcons.phone, size: 18, color: context.palette.accent),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      'Поддержка',
+                      style: AppTypography.label.copyWith(color: context.palette.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          final actions = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _HeaderAction(
+                  icon: AppIcons.star, label: 'Бонусы', onTap: onBonusHistory),
+              _HeaderAction(
+                  icon: AppIcons.heart, label: 'Избранные товары', onTap: onLiked),
+              _HeaderAction(
+                  icon: AppIcons.bell,
+                  label: 'Настройки уведомлений',
+                  onTap: onNotifications),
+              _HeaderAction(
+                  icon: AppIcons.user, label: 'Профиль', onTap: onProfile),
+            ],
+          );
+          if (constraints.maxWidth < 320 ||
+              MediaQuery.textScalerOf(context).scale(14) > 21) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    const _HomeBrandMark(),
+                    const SizedBox(width: AppSpacing.xl),
+                    Expanded(child: phone),
+                  ],
+                ),
+                Align(alignment: Alignment.centerRight, child: actions),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              const _HomeBrandMark(),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: phone),
+              const SizedBox(width: AppSpacing.xs),
+              actions,
+            ],
+          );
+        },
       );
 }
 
@@ -294,20 +364,36 @@ class _HeaderAction extends StatelessWidget {
 
 /// y = 141, 343 × 57.
 class _StoreCard extends StatelessWidget {
-  const _StoreCard({required this.data, this.onTap});
+  const _StoreCard(
+      {required this.data, required this.onProfile, this.onTap});
 
   final HomeViewData data;
   final VoidCallback? onTap;
+  final VoidCallback? onProfile;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final glyph = AppGlassPanel(
+      radius: AppRadii.md,
+      tint: palette.accentSoft,
+      blur: 18,
+      width: 32,
+      height: 32,
+      child: Center(
+        child: data.signedIn
+            ? const AppIcon(AppIcons.shop, size: 18, color: Colors.white)
+            : const AppIcon(AppIcons.user, size: 18, color: Colors.white),
+      ),
+    );
     return InkWell(
-      onTap: onTap,
+      onTap: data.signedIn ? onTap : null,
       borderRadius: AppRadii.lgAll,
       child: Container(
         constraints: const BoxConstraints(minHeight: 57),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        padding: data.signedIn
+            ? const EdgeInsets.fromLTRB(12, 8, 12, 8)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: palette.surface,
           borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -315,62 +401,79 @@ class _StoreCard extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const AppIcon(AppIcons.store, size: 12),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          data.storeName,
-                          style: AppTypography.bodySmallBold.copyWith(
-                            color: palette.textPrimary,
-                          ),
+              child: Semantics(
+                button: !data.signedIn,
+                enabled: onTap != null,
+                child: InkWell(
+                  onTap: data.signedIn ? null : onTap,
+                  child: ConstrainedBox(
+                    constraints: data.signedIn
+                        ? const BoxConstraints()
+                        : const BoxConstraints(
+                            minHeight: AppSpacing.touchTarget),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const AppIcon(AppIcons.store, size: 12),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                data.storeName,
+                                style: AppTypography.bodySmallBold.copyWith(
+                                  color: palette.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      AppIcon(
-                        AppIcons.location,
-                        size: 12,
-                        color: palette.textSecondary,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          data.storeAddress.isEmpty
-                              ? 'Укажите адрес'
-                              : data.storeAddress,
-                          style: AppTypography.bodySmall
-                              .copyWith(color: palette.textSecondary),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            AppIcon(
+                              AppIcons.location,
+                              size: 12,
+                              color: palette.textSecondary,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                data.storeAddress.isEmpty
+                                    ? 'Выберите магазин'
+                                    : data.storeAddress,
+                                style: AppTypography.bodySmall
+                                    .copyWith(color: palette.textSecondary),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: palette.accentSoft,
-                borderRadius: BorderRadius.circular(AppRadii.md),
+            if (data.signedIn)
+              glyph
+            else
+              Tooltip(
+                message: 'Профиль',
+                child: Semantics(
+                  button: true,
+                  enabled: onProfile != null,
+                  child: InkWell(
+                    onTap: onProfile,
+                    child: SizedBox(
+                      width: AppSpacing.touchTarget,
+                      height: AppSpacing.touchTarget,
+                      child: Center(child: glyph),
+                    ),
+                  ),
+                ),
               ),
-              child: const AppIcon(
-                AppIcons.shop,
-                size: 18,
-                color: Colors.white,
-              ),
-            ),
           ],
         ),
       ),
@@ -391,8 +494,8 @@ class _ActiveOrderCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: AppRadii.lgAll,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 57),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        constraints: const BoxConstraints(minHeight: 80),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           color: palette.surface,
           borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -406,7 +509,7 @@ class _ActiveOrderCard extends StatelessWidget {
                 children: [
                   Text(
                     order.status,
-                    style: AppTypography.bodySmallBold
+                    style: AppTypography.headline
                         .copyWith(color: palette.textPrimary),
                   ),
                   Text(
@@ -418,13 +521,13 @@ class _ActiveOrderCard extends StatelessWidget {
               ),
             ),
             const SizedBox(
-              width: 40,
-              height: 40,
+              width: 56,
+              height: 56,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  AppIcon(AppIcons.cartFab, size: 40),
-                  AppIcon(AppIcons.orders, size: 20, color: Colors.white),
+                  AppIcon(AppIcons.cartFab, size: 56),
+                  AppIcon(AppIcons.orders, size: 24, color: Colors.white),
                 ],
               ),
             ),
@@ -462,8 +565,6 @@ class _SearchField extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
               Expanded(
                   child: Text('Найти любимый напиток...',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: AppTypography.body
                           .copyWith(color: palette.textSecondary))),
             ],
@@ -522,9 +623,49 @@ class _BannerCarouselState extends State<_BannerCarousel> {
                 }
               });
             }
-            final scale = MediaQuery.textScalerOf(context).scale(20) / 20;
+            final textScaler = MediaQuery.textScalerOf(context);
+            final scale = textScaler.scale(20) / 20;
+            final textWidth = width - AppSpacing.md * 2;
+            final defaultStyle = DefaultTextStyle.of(context).style;
+            final textDirection = Directionality.of(context);
+            final locale = Localizations.maybeLocaleOf(context);
+            double textHeight(String text, TextStyle style) {
+              final painter = TextPainter(
+                text: TextSpan(text: text,
+                    style: defaultStyle.merge(style)),
+                textDirection: textDirection,
+                locale: locale,
+                textScaler: textScaler,
+              )..layout(maxWidth: textWidth);
+              final height = painter.height.ceilToDouble();
+              painter.dispose();
+              return height;
+            }
+
+            var height = 114.0 * (scale < 1 ? 1.0 : scale);
+            double? actionHeight;
+            for (final banner in widget.banners) {
+              final title = banner.title.trim();
+              final subtitle = banner.subtitle?.trim() ?? '';
+              var contentHeight = AppSpacing.md * 2;
+              if (title.isNotEmpty) {
+                contentHeight += textHeight(title, AppTypography.headline);
+              }
+              if (title.isNotEmpty && subtitle.isNotEmpty) {
+                contentHeight += AppSpacing.xs;
+              }
+              if (subtitle.isNotEmpty) {
+                contentHeight += textHeight(subtitle, AppTypography.bodySmall);
+              }
+              if (banner.promotionId != null && widget.onTap != null) {
+                actionHeight ??= textHeight('Смотреть товары →',
+                    AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600));
+                contentHeight += AppSpacing.sm + actionHeight;
+              }
+              if (contentHeight > height) height = contentHeight;
+            }
             return SizedBox(
-              height: 114.0 * (scale < 1 ? 1.0 : scale),
+              height: height,
               child: ListView.separated(
                 controller: _controller,
                 scrollDirection: Axis.horizontal,
@@ -613,8 +754,7 @@ class _BannerCard extends StatelessWidget {
               if (title.isNotEmpty)
                 Text(
                   title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   style: AppTypography.headline
                       .copyWith(color: palette.textOnAccent),
                 ),
@@ -623,8 +763,7 @@ class _BannerCard extends StatelessWidget {
               if (subtitle.isNotEmpty)
                 Text(
                   subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   style: AppTypography.bodySmall
                       .copyWith(color: palette.textOnAccent),
                 ),
@@ -659,41 +798,44 @@ class _PromoCard extends StatelessWidget {
       borderRadius: AppRadii.lgAll,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        child: SizedBox(
-          height: 160 +
-              (MediaQuery.textScalerOf(context).scale(20) - 20)
-                      .clamp(0, double.infinity)
-                      .toDouble() *
-                  4,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 160),
           child: Stack(
-            fit: StackFit.expand,
             children: [
-              _NetworkFill(
-                imageUrl: promo.imageUrl,
-                fallback: promo.fill ?? palette.surface,
+              Positioned.fill(
+                child: _NetworkFill(
+                  imageUrl: promo.imageUrl,
+                  fallback: promo.fill ?? palette.surface,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.xxxl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      promo.title,
-                      style: AppTypography.headline.copyWith(
-                        color: palette.textPrimary,
+                child: AppSurface(
+                  fill: promo.imageUrl?.isNotEmpty == true
+                      ? palette.surface.withValues(alpha: .9)
+                      : Colors.transparent,
+                  padding: promo.imageUrl?.isNotEmpty == true
+                      ? const EdgeInsets.all(AppSpacing.md)
+                      : EdgeInsets.zero,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        promo.title,
+                        style: AppTypography.headline
+                            .copyWith(color: palette.textPrimary),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    if (promo.subtitle.isNotEmpty)
-                      SizedBox(
-                        width: 180,
-                        child: Text(
+                      if (promo.subtitle.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
                           promo.subtitle,
                           style: AppTypography.bodySmall
                               .copyWith(color: palette.textPrimary),
                         ),
-                      ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -713,20 +855,22 @@ class _CategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visible = categories.length < 6 ? categories.length : 6;
+    final visible = categories.length;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-        final minimumWidth = 140 * (scale < 1 ? 1.0 : scale);
-        final columns = ((constraints.maxWidth + AppSpacing.xl) /
-                (minimumWidth + AppSpacing.xl))
+        // The frames fill the gutters with three 98 px columns at 375; larger text needs
+        // wider columns, never narrower ones, and the artwork never outgrows its column.
+        final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
+        final minimumWidth = 98 * (1 + (scale - 1) * 0.34);
+        final columns = ((constraints.maxWidth + AppSpacing.huge) /
+                (minimumWidth + AppSpacing.huge))
             .floor()
             .clamp(1, 3);
         final tileWidth =
-            (constraints.maxWidth - AppSpacing.xl * (columns - 1)) / columns;
+            (constraints.maxWidth - AppSpacing.huge * (columns - 1)) / columns;
         return Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          runSpacing: AppSpacing.md,
+          spacing: AppSpacing.huge,
+          runSpacing: AppSpacing.xl,
           children: [
             for (var index = 0; index < visible; index++)
               _CategoryTile(
@@ -762,8 +906,8 @@ class _CategoryTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadii.lg),
               child: SizedBox(
-                width: 98,
-                height: 98,
+                width: width,
+                height: width,
                 child: _NetworkFill(
                   imageUrl: category.imageUrl,
                   fallback: category.fill ?? palette.accent,
@@ -806,7 +950,7 @@ class _BonusCard extends StatelessWidget {
                       style: AppTypography.title
                           .copyWith(color: palette.textPrimary))),
               if (data.signedIn)
-                TextButton(onPressed: onHistory, child: const Text('История')),
+                AppGlassChip(label: 'История', onTap: onHistory),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -873,7 +1017,9 @@ class _BonusCard extends StatelessWidget {
                       style: AppTypography.body
                           .copyWith(color: palette.textSecondary)),
                   const SizedBox(height: AppSpacing.xl),
-                  FilledButton(onPressed: onSignIn, child: const Text('Войти')),
+                  Align(
+                    child: AppGlassChip(label: 'Войти', onTap: onSignIn),
+                  ),
                 ],
               ),
             ),
@@ -952,20 +1098,22 @@ class _ProductSection extends StatelessWidget {
                         child: Text(section.category.title,
                             style: AppTypography.headline
                                 .copyWith(color: context.palette.textPrimary))),
-                    TextButton(
-                      onPressed: onCategory == null
+                    AppGlassChip(
+                      label: 'Все',
+                      onTap: onCategory == null
                           ? null
                           : () => onCategory!(section.category),
-                      child: const Text('Все'),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
-                height: ProductCard.heightFor(context,
-                    hasOldPrice:
-                        section.products.any((item) => item.oldPrice != null)),
+                height: ProductCard.heightFor(
+                  context,
+                  width: ProductCard.widthFor(context),
+                  products: section.products,
+                ),
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding:

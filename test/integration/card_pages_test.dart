@@ -54,6 +54,17 @@ Future<void> _pumpPage(
   }
 }
 
+Future<void> _showControl(WidgetTester tester, Finder target) async {
+  if (target.evaluate().isEmpty) {
+    final scrollable = find.byType(Scrollable).first;
+    tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+    await tester.pump();
+    await tester.scrollUntilVisible(target, 200, scrollable: scrollable);
+  }
+  await Scrollable.ensureVisible(tester.element(target), alignment: .3);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUp(() =>
       SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'}));
@@ -232,6 +243,7 @@ void main() {
       'completed historical payment preserves the current cart and opens real order history',
       (tester) async {
     final cart = CartProvider();
+    await cart.bindBusiness(1);
     cart.addItem(CartItem(
         itemId: 83,
         name: 'Другой товар',
@@ -271,6 +283,12 @@ void main() {
             }),
             200);
       }
+      if (request.method == 'GET' && request.url.path == '/api/bonuses') {
+        return http.Response(jsonEncode({
+          'success': true,
+          'data': {'totalBonuses': 0, 'bonusHistory': <Object>[]},
+        }), 200);
+      }
       throw StateError('Unexpected request: ${request.method} ${request.url}');
     });
     await http.runWithClient(() async {
@@ -282,6 +300,8 @@ void main() {
             'payable_amount': 1200,
           }),
           cart: cart);
+      await _showControl(tester,
+          find.byKey(const ValueKey('payment-card-server-a')));
       await tester.tap(find.byKey(const ValueKey('payment-card-server-a')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
@@ -331,6 +351,8 @@ void main() {
             'business_id': 1,
             'payable_amount': 1200,
           }));
+      await _showControl(tester,
+          find.byKey(const ValueKey('payment-card-server-a')));
       await tester.tap(find.byKey(const ValueKey('payment-card-server-a')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
@@ -373,6 +395,8 @@ void main() {
             'business_id': 1,
             'payable_amount': 1200,
           }));
+      await _showControl(tester,
+          find.byKey(const ValueKey('payment-card-server-a')));
       await tester.tap(find.byKey(const ValueKey('payment-card-server-a')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
@@ -419,7 +443,7 @@ void main() {
             'total_amount': 1200
           }));
       final row = find.byKey(const ValueKey('payment-card-bank-b'));
-      await tester.ensureVisible(row);
+      await _showControl(tester, row);
       await tester.pumpAndSettle();
       await tester.tap(row);
       await tester.pump();
@@ -431,11 +455,10 @@ void main() {
           isNotNull);
       failed = true;
       final refresh = find.byKey(const ValueKey('refresh-card-list'));
-      await tester.ensureVisible(refresh);
+      await _showControl(tester, refresh);
       await tester.pumpAndSettle();
       await tester.tap(refresh);
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('payment-card-bank-b')), findsNothing);
       expect(
           tester
               .widget<FilledButton>(
@@ -515,8 +538,8 @@ void main() {
               : const PaymentMethodPage(orderData: {'order_id': 902}),
         );
         unauthorized = true;
-        await tester
-            .ensureVisible(find.byKey(const ValueKey('refresh-card-list')));
+        await _showControl(tester,
+            find.byKey(const ValueKey('refresh-card-list')));
         await tester.tap(find.byKey(const ValueKey('refresh-card-list')));
         await tester.pumpAndSettle();
         final prefix = profile ? 'saved-card' : 'payment-card';
@@ -550,8 +573,9 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('partial collection displays only safe payable source identities',
+  testWidgets('bank collection summaries display without becoming charge identities',
       (tester) async {
+    final chargedIds = <String>[];
     final client = MockClient((request) async {
       if (request.method == 'GET' && request.url.path == '/api/user/cards') {
         return _response([
@@ -564,11 +588,25 @@ void main() {
           {'id': 'pan', 'mask': '4111111111111111'},
         ]);
       }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/orders/902/pay') {
+        chargedIds.add(jsonDecode(request.body)['card_id'] as String);
+        return http.Response(jsonEncode({
+          'success': false,
+          'data': {'payment_status': 'failed'},
+        }), 200);
+      }
       throw StateError('Unexpected request: ${request.method} ${request.url}');
     });
     await http.runWithClient(() async {
+      await _pumpPage(tester, const ProfileCardsPage());
+      expect(find.byKey(const ValueKey('saved-card-bank-safe')), findsOneWidget);
+      expect(find.text('****1234'), findsOneWidget);
+      expect(find.text('4111111111111111'), findsNothing);
       await _pumpPage(
-          tester, const PaymentMethodPage(orderData: {'order_id': 902}));
+          tester, const PaymentMethodPage(orderData: {
+            'order_id': 902, 'payable_amount': 1200,
+          }));
       expect(find.byKey(const ValueKey('card-read-partial')), findsOneWidget);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('payment-card-bank-safe')),
@@ -579,13 +617,84 @@ void main() {
       expect(
           find.byKey(const ValueKey('payment-card-summary-row')), findsNothing);
       expect(find.byKey(const ValueKey('payment-card-pan')), findsNothing);
-      expect(
-        tester
-            .widget<FilledButton>(
-                find.byKey(const ValueKey('pay-order-button')))
-            .onPressed,
-        isNotNull,
-      );
+      final summary = find.byKey(const ValueKey('payment-card-summary-1'));
+      await _showControl(tester, summary);
+      await tester.tap(summary);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('pay-order-button')));
+      await tester.pumpAndSettle();
+      expect(chargedIds, ['bank-safe']);
+      expect(find.text('4111111111111111'), findsNothing);
+      await tester.tap(find.text('Понятно'));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('resume refreshes a loaded bank collection without claiming binding success',
+      (tester) async {
+    var cards = <Object?>[
+      {'halyk_id': 'bank-existing', 'card_mask': '****4444'},
+      {'halyk_id': 'bank-existing', 'card_mask': null},
+    ];
+    var reads = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        reads++;
+        return _response(cards);
+      }
+      throw StateError('Unexpected request: ${request.method} ${request.url}');
+    });
+    await http.runWithClient(() async {
+      await _pumpPage(tester, const ProfileCardsPage());
+      expect(find.byKey(const ValueKey('saved-card-bank-existing')), findsOneWidget);
+      cards = [
+        {'halyk_id': 'bank-existing', 'card_mask': '****4949'},
+        {'halyk_id': 'bank-refreshed', 'card_mask': '****1234'},
+      ];
+      tester.binding
+          .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(reads, 2);
+      expect(find.text('****4949'), findsOneWidget);
+      expect(find.byKey(const ValueKey('saved-card-bank-refreshed')), findsOneWidget);
+      expect(find.text('Новая карта сохранена и готова к оплате'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('primary payable amount prefers server summary over echoed total',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _response(<Object>[]);
+      }
+      throw StateError('Unexpected request: ${request.method} ${request.url}');
+    });
+    await http.runWithClient(() async {
+      await _pumpPage(tester, const PaymentMethodPage(
+        orderData: {
+          'order_id': 'server-summary',
+          'total_amount': 26340,
+          'cost_summary': {'total_sum': 26370.25},
+        },
+        displayAmount: 26340,
+        amountNotice: 'Сервер подтвердил другую сумму: 26 370,25 ₸',
+      ));
+      expect(find.text('26\u00a0370,25 ₸'), findsOneWidget);
+      expect(find.text('26\u00a0340 ₸'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pumpPage(tester, const PaymentMethodPage(orderData: {
+        'order_id': 'explicit-server-total',
+        'payable_amount': 27000.5,
+        'total_amount': 26340,
+        'cost_summary': {'total_sum': 26370.25},
+      }));
+      expect(find.text('27\u00a0000,5 ₸'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);

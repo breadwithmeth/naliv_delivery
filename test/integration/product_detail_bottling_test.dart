@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/core/money.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
+import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
@@ -21,7 +23,7 @@ void main() {
       'required multi selection blocks save and optional single can be cleared',
       (tester) async {
     final item = _optionsItem(amount: 3);
-    final cart = CartProvider();
+    final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     await _tap(tester, 'configuration-option-8-51');
     await _tap(tester, 'configuration-save');
@@ -42,14 +44,14 @@ void main() {
       'single and multiple options preserve price and relation IDs after reload and edit',
       (tester) async {
     final item = _optionsItem();
-    final cart = CartProvider();
+    final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     await _tap(tester, 'configuration-option-7-42');
     await _tap(tester, 'configuration-option-8-52');
     await _tap(tester, 'configuration-option-9-61');
     await _tap(tester, 'configuration-save');
     final restored = CartProvider();
-    await tester.runAsync(restored.loadCart);
+    await restored.loadCart();
     final group = restored.activeDisplayGroups.single;
     expect(group.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
         {42, 51, 52, 61});
@@ -93,7 +95,8 @@ void main() {
       _map(item.options![0].optionItems[0], required: 1),
       _map(item.options![1].optionItems[0], required: 1)
     ];
-    final cart = CartProvider()
+    final cart = await _newCart(tester);
+    cart
       ..syncItemSelectionQuantity(item, plain, 1)
       ..syncItemSelectionQuantity(item, sweet, 2);
     await _mount(tester, cart,
@@ -142,7 +145,8 @@ void main() {
       _map(item.options![0].optionItems[1], required: 1),
       _map(item.options![1].optionItems[0], required: 1)
     ];
-    final cart = CartProvider()
+    final cart = await _newCart(tester);
+    cart
       ..syncItemSelectionQuantity(item, plain, 1)
       ..syncItemSelectionQuantity(item, sweet, 2);
     final before = cart.items.map((item) => item.toJson()).toList();
@@ -155,10 +159,37 @@ void main() {
         find.byKey(const ValueKey('configuration-feedback')), findsOneWidget);
   });
 
+  testWidgets('pour summary and first bottle remain exposed before buying',
+      (tester) async {
+    final cart = await _newCart(tester);
+    await _mount(
+        tester,
+        cart,
+        Builder(builder: (context) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+                padding: const EdgeInsets.only(top: 48, bottom: 34)),
+            child: ProductDetailPage(item: capturedPourSurfaceItem()),
+          );
+        }));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpAndSettle();
+    final buy = find.byKey(const ValueKey('configuration-save'));
+    final summary = find.byKey(
+        const ValueKey('configuration-price-breakdown'));
+    final firstBottle = find.byKey(
+        const ValueKey('configuration-bottle-2710-plus'));
+    expect(tester.getBottomRight(summary).dy,
+        lessThanOrEqualTo(tester.getTopLeft(buy).dy));
+    expect(tester.getBottomRight(firstBottle).dy,
+        lessThanOrEqualTo(tester.getTopLeft(buy).dy));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('3+1 preview cart reopen and stepping retain paid litres only',
       (tester) async {
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
-    final cart = CartProvider();
+    final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     await _tap(tester, 'configuration-bottle-93101-plus');
     await _tap(tester, 'configuration-bottle-93101-plus');
@@ -166,7 +197,7 @@ void main() {
         tester
             .widget<Text>(find.byKey(const ValueKey('configuration-total')))
             .data,
-        '3400 ₸');
+        formatTenge(3400));
     expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('configuration-volume')))
@@ -187,7 +218,7 @@ void main() {
         tester
             .widget<Text>(find.byKey(const ValueKey('configuration-total')))
             .data,
-        '3400 ₸');
+        formatTenge(3400));
     await _tap(tester, 'configuration-save');
     await tester.tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
     await tester.pumpAndSettle();
@@ -210,7 +241,7 @@ void main() {
           baseAmount: 2,
           addAmount: 1),
     ]);
-    final cart = CartProvider();
+    final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     expect(
         tester
@@ -226,7 +257,7 @@ void main() {
   testWidgets('zero stock never adds a configuration or allocates bottles',
       (tester) async {
     final item = _pourItem(amount: 0);
-    final cart = CartProvider();
+    final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     expect(
         tester
@@ -249,7 +280,8 @@ void main() {
     final item = _pourItem(withTaste: true);
     final plain = [_map(item.options![1].optionItems[0], required: 1)];
     final berry = [_map(item.options![1].optionItems[1], required: 1)];
-    final cart = CartProvider()
+    final cart = await _newCart(tester);
+    cart
       ..syncItemBottleCounts(item, plain, {1: 1, 2: 1})
       ..syncItemBottleCounts(item, berry, {2: 1});
     final before = cart.items.map((item) => item.toJson()).toList();
@@ -300,13 +332,14 @@ void main() {
     final berry = [_map(item.options![1].optionItems[1], required: 1)];
     final plainKey = SmartCartSelection(item).displayKeyForVariants(plain);
     final berryKey = SmartCartSelection(item).displayKeyForVariants(berry);
-    final cart = CartProvider()
+    final cart = await _newCart(tester);
+    cart
       ..syncItemBottleCounts(item, plain, {1: 1, 2: 2})
       ..syncItemBottleCounts(item, berry, {2: 1});
     await _mount(tester, cart, const CartPage());
     await tester.pumpAndSettle();
     final restored = CartProvider();
-    await tester.runAsync(restored.loadCart);
+    await restored.loadCart();
     final group = restored.activeDisplayGroups
         .singleWhere((group) => group.key == plainKey);
     await _mount(tester, restored, const CartPage());
@@ -354,7 +387,8 @@ void main() {
       final item = _pourItem(amount: 7, withTaste: true);
       final plain = [_map(item.options![1].optionItems[0], required: 1)];
       final berry = [_map(item.options![1].optionItems[1], required: 1)];
-      final cart = CartProvider()
+      final cart = await _newCart(tester);
+      cart
         ..syncItemBottleCounts(item, plain, {1: 1, 2: 1})
         ..syncItemBottleCounts(item, berry, {1: 1});
       await _mount(tester, cart, const CartPage());
@@ -428,23 +462,107 @@ void main() {
         ],
       }
     ];
-    final cart = CartProvider();
+    final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: Item.fromJson(raw)));
     final preview = tester
         .widget<Text>(find.byKey(const ValueKey('configuration-total')))
         .data;
-    expect(preview, '500 ₸');
+    expect(preview, formatTenge(500));
     await _tap(tester, 'configuration-bottle-2710-plus');
     expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('configuration-total')))
             .data,
-        '1000 ₸');
+        formatTenge(1000));
     await _tap(tester, 'configuration-save');
     expect(cart.getTotalPrice(), 1000);
     expect(cart.activeDisplayGroups.single.bottleCounts, {2710: 2});
     expect(cart.toJsonForOrder().single['amount'], 2.5);
   });
+  testWidgets(
+      'persisted withdrawn bottle and its gift can be removed through the editor at zero stock',
+      (tester) async {
+    final bottle = _option(93, 'Бутылка 3 л', 150, amount: 3);
+    final promotion = ItemPromotion(
+        promotionId: 93,
+        name: '3+3',
+        discountType: 'SUBTRACT',
+        discountValue: 0,
+        baseAmount: 3,
+        addAmount: 3);
+    final item = Item(
+      itemId: 993,
+      name: 'Разливной напиток',
+      price: 1000,
+      amount: 0,
+      unit: 'л.',
+      options: [
+        ItemOption(
+            optionId: 93,
+            name: 'Тара',
+            required: 1,
+            selection: 'SINGLE',
+            optionItems: [bottle]),
+      ],
+      promotions: [promotion],
+    );
+    final savedRow = CartItem(
+      itemId: item.itemId,
+      name: item.name,
+      price: item.price,
+      quantity: 3,
+      stepQuantity: 3,
+      maxAmount: 0,
+      selectedVariants: [_map(bottle, required: 1)],
+      promotions: [promotion.toJson()],
+      giftBottleCounts: const {93: 1},
+      itemData: item.toJson(),
+    );
+    SharedPreferences.setMockInitialValues({
+      'cart_items': jsonEncode({
+        'business_id': 1,
+        'items': [savedRow.toJson()],
+      }),
+    });
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    await cart.loadCart();
+    final group = cart.activeDisplayGroups.single;
+    expect(group.totalQuantity, 3);
+    expect(group.freeQuantity, 3);
+    expect(group.bottleCounts, {93: 2});
+    expect(group.totalPrice, 3300);
+    final before = cart.items.map((row) => row.toJson()).toList();
+    final semantics = tester.ensureSemantics();
+    try {
+      await _mount(tester, cart, const CartPage());
+      await tester.tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
+      await tester.pumpAndSettle();
+      expect(cart.items.map((row) => row.toJson()).toList(), before);
+      await _tap(tester, 'cart-edit-${group.key}');
+      await _tap(tester, 'configuration-bottle-93-plus');
+      await _tap(tester, 'configuration-back');
+      expect(cart.items.map((row) => row.toJson()).toList(), before);
+      await _tap(tester, 'cart-edit-${group.key}');
+      await _tap(tester, 'configuration-bottle-93-minus');
+      await _tap(tester, 'configuration-save');
+      expect(cart.items, isEmpty);
+      final reopened = CartProvider();
+      addTearDown(reopened.dispose);
+      await reopened.loadCart();
+      expect(reopened.items, isEmpty);
+      expect(reopened.businessId, 1);
+    } finally {
+      semantics.dispose();
+    }
+  });
+}
+
+Future<CartProvider> _newCart(WidgetTester tester) async {
+  final cart = CartProvider();
+  addTearDown(cart.dispose);
+  expect(await cart.bindBusiness(1), isTrue);
+  return cart;
 }
 
 Future<void> _mount(

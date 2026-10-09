@@ -53,8 +53,10 @@ const _draft = <String, dynamic>{
 http.Response _json(Object value) => http.Response(jsonEncode(value), 200,
     headers: {'content-type': 'application/json'});
 
-CartProvider _cart() => CartProvider()
-  ..addItem(CartItem(
+Future<CartProvider> _cart() async {
+  final cart = CartProvider();
+  await cart.bindBusiness(1);
+  cart.addItem(CartItem(
     itemId: 83,
     name: 'Другой товар',
     price: 1000,
@@ -63,6 +65,8 @@ CartProvider _cart() => CartProvider()
     selectedVariants: [],
     promotions: [],
   ));
+  return cart;
+}
 
 Future<void> _pump(WidgetTester tester, CartProvider cart,
     {bool settle = true, Map<String, dynamic> orderData = _draft}) async {
@@ -98,7 +102,7 @@ void main() {
         '$acknowledgment recovery cannot pay through history or a new route after reload',
         (tester) async {
       var posts = 0;
-      final cart = _cart();
+      final cart = await _cart();
       final client = MockClient((request) async {
         expect(request.headers['Authorization'], 'Bearer fixture-only');
         if (request.method == 'GET' && request.url.path == '/api/user/cards') {
@@ -134,6 +138,12 @@ void main() {
           return _json({
             'success': true,
             'data': {'order': _draft}
+          });
+        }
+        if (request.method == 'GET' && request.url.path == '/api/bonuses') {
+          return _json({
+            'success': true,
+            'data': {'totalBonuses': 0, 'bonusHistory': <Object>[]},
           });
         }
         throw StateError('Unexpected fixture request: $request');
@@ -196,7 +206,7 @@ void main() {
       'auth_token': 'fixture-only',
       OrderPaymentGuard.preferenceKey('1101'): 'completed',
     });
-    final cart = _cart();
+    final cart = await _cart();
     var posts = 0;
     final client = MockClient((request) async {
       if (request.method == 'GET' && request.url.path == '/api/user/cards') {
@@ -233,11 +243,11 @@ void main() {
       (tester) async {
     final store = _PaymentStore();
     store.install();
+    final cart = await _cart();
     await SharedPreferences.getInstance();
     final stored = await store.getAll();
     final held = Completer<Map<String, Object>>();
     store.heldRead = held;
-    final cart = _cart();
     final client = MockClient((request) async {
       if (request.method == 'GET' && request.url.path == '/api/user/cards') {
         return _json({
@@ -272,7 +282,7 @@ void main() {
       (tester) async {
     final store = _PaymentStore()..rejectPaymentWrites = true;
     store.install();
-    final cart = _cart();
+    final cart = await _cart();
     var posts = 0;
     final client = MockClient((request) async {
       if (request.method == 'GET' && request.url.path == '/api/user/cards') {
@@ -329,7 +339,7 @@ void main() {
         'refused': 'kaspi-refused',
       }[outcome]!;
       final draft = {..._draft, 'order_id': orderId};
-      final cart = _cart();
+      final cart = await _cart();
       var creates = 0;
       var statusReads = 0;
       final heldStatus = Completer<http.Response>();
@@ -437,10 +447,188 @@ void main() {
     });
   }
 
+  testWidgets('failed bank opening reopens the accepted link after reload without another pay',
+      (tester) async {
+    const orderId = 'kaspi-reopen-same';
+    const link = 'https://fixture-bank.example/pay/accepted-attempt';
+    final cart = await _cart();
+    var creates = 0;
+    var completed = false;
+    final openedLinks = <String>[];
+    const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (call) async {
+      if (call.method == 'canLaunch') return false;
+      if (call.method != 'launch') {
+        throw StateError('Unexpected bank operation: ${call.method}');
+      }
+      openedLinks.add(call.arguments['url'] as String);
+      return openedLinks.length > 1;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _json({
+          'success': true,
+          'data': {'cards': <Object>[]},
+        });
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/orders/$orderId/kaspi-qr/pay') {
+        creates++;
+        return _json({
+          'success': true,
+          'data': {'paymentLink': link},
+        });
+      }
+      if (request.method == 'GET' &&
+          request.url.path == '/api/orders/$orderId/kaspi-qr/status') {
+        return _json({
+          'success': true,
+          'data': {'payment_status': completed ? 'completed' : 'pending'},
+        });
+      }
+      throw StateError('Unexpected fixture request: $request');
+    });
+    await http.runWithClient(() async {
+      final draft = {..._draft, 'order_id': orderId};
+      await _pump(tester, cart, orderData: draft);
+      await tester.tap(find.byKey(const ValueKey('pay-order-button')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PaymentSuccessPage), findsNothing);
+      expect(await OrderPaymentGuard.readKaspiLink(orderId), link);
+      await tester.tap(find.text('Понятно'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('reopen-kaspi-payment')), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      SharedPreferences.resetStatic();
+      await _pump(tester, cart, orderData: draft);
+      expect(_payAction(tester), isNull);
+      await tester.tap(find.byKey(const ValueKey('reopen-kaspi-payment')));
+      await tester.pumpAndSettle();
+      expect(openedLinks, [link, link]);
+      expect(creates, 1);
+      expect(find.byType(PaymentSuccessPage), findsNothing);
+      tester.binding
+          .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(_payAction(tester), isNull);
+      expect(await OrderPaymentGuard.read(orderId), OrderPaymentState.unconfirmed);
+      completed = true;
+      await tester.ensureVisible(find.byKey(const ValueKey('payment-state-refresh')));
+      await tester.tap(find.byKey(const ValueKey('payment-state-refresh')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PaymentSuccessPage), findsOneWidget);
+      expect(await OrderPaymentGuard.readKaspiLink(orderId), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      SharedPreferences.resetStatic();
+      await _pump(tester, cart, orderData: draft);
+      expect(find.byType(PaymentSuccessPage), findsNothing);
+      expect(find.byKey(const ValueKey('reopen-kaspi-payment')), findsNothing);
+      expect(_payAction(tester), isNull);
+      expect(creates, 1);
+      expect(openedLinks, [link, link]);
+      expect(cart.items.single.itemId, 83);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  for (final responseKind in ['network', 'malformed', 'server-unavailable', 'refused']) {
+    testWidgets('Kaspi $responseKind creation preserves the genuine retry boundary',
+        (tester) async {
+      final orderId = 'kaspi-create-$responseKind-boundary';
+      final cart = await _cart();
+      var creates = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+          return _json({
+            'success': true,
+            'data': {'cards': <Object>[]},
+          });
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/orders/$orderId/kaspi-qr/pay') {
+          creates++;
+          if (responseKind == 'network') {
+            throw http.ClientException('Fixture connection dropped');
+          }
+          if (responseKind == 'malformed') return http.Response('{unreadable', 200);
+          return http.Response(jsonEncode({
+            'success': false,
+            'error': 'Fixture refusal',
+            'data': {'payment_status': 'failed'},
+          }), responseKind == 'refused' ? 400 : 503);
+        }
+        throw StateError('Unexpected fixture request: $request');
+      });
+      await http.runWithClient(() async {
+        final draft = {..._draft, 'order_id': orderId};
+        await _pump(tester, cart, orderData: draft);
+        await tester.tap(find.byKey(const ValueKey('pay-order-button')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Понятно'));
+        await tester.pumpAndSettle();
+        final refused = responseKind == 'refused';
+        expect(await OrderPaymentGuard.read(orderId),
+            refused ? OrderPaymentState.ready : OrderPaymentState.unconfirmed);
+        expect(_payAction(tester), refused ? isNotNull : isNull);
+        expect(find.byType(PaymentSuccessPage), findsNothing);
+        expect(creates, 1);
+        await tester.pumpWidget(const SizedBox.shrink());
+        SharedPreferences.resetStatic();
+        await _pump(tester, cart, orderData: draft);
+        expect(_payAction(tester), refused ? isNotNull : isNull);
+        expect(creates, 1);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => client);
+      cart.dispose();
+      await tester.binding.setSurfaceSize(null);
+    });
+  }
+
+  testWidgets('closed historical orders cannot pay even without a payment flag',
+      (tester) async {
+    final cart = await _cart();
+    var mutations = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _json({
+          'success': true,
+          'data': {'cards': [
+            {'halyk_id': 'bank-card', 'card_mask': '****4444'},
+          ]},
+        });
+      }
+      mutations++;
+      throw StateError('Closed order cannot charge: $request');
+    });
+    await http.runWithClient(() async {
+      for (final status in ['4', '7', '71', '50']) {
+        await _pump(tester, cart, orderData: {
+          ..._draft,
+          'order_id': 'closed-$status',
+          'current_status': {'status': status},
+        });
+        expect(_payAction(tester), isNull);
+        expect(find.byType(PaymentSuccessPage), findsNothing);
+        expect(cart.items.single.itemId, 83);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
+      expect(mutations, 0);
+    }, () => client);
+    cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('unreadable Kaspi creation persists uncertainty before any link',
       (tester) async {
     const orderId = 'kaspi-create-unknown';
-    final cart = _cart();
+    final cart = await _cart();
     var creates = 0;
     final client = MockClient((request) async {
       expect(request.headers['Authorization'], 'Bearer fixture-only');

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -14,43 +16,65 @@ import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/order_ui_helpers.dart';
 import '../../../pages/order_detail_page.dart';
+import '../../bonuses/bonus_account.dart';
 
-/// Order history — the design's `История заказов` frames.
-///
-/// Geometry: the standard top bar, then 343 × 114 cards from y = 143 at a 118 px pitch. Each card
-/// carries the date 16/700, «№N» 12/400 muted beneath it, a two-part summary («Сумма» over the
-/// amount, «Начислено» over the bonus in gold) and the status 12/400 in the top-right corner.
-/// The empty state is centred text at y = 369.
-///
-/// Status text comes from the app's frozen `orderStatusLabels`; its wording differs from the
-/// design's mock in places («Собирается» rather than «Собираем (15-30 мин)»), and the app's copy
-/// is the real one, so it wins — recorded in `docs/redesign/STATUS.md`.
+/// Displays server order history without treating estimates as earned points.
 class OrdersPage extends StatefulWidget {
   const OrdersPage({this.businessId, this.onCart, this.onOpenOrder, super.key});
 
   final int? businessId;
   final VoidCallback? onCart;
-  final ValueChanged<Map<String, dynamic>>? onOpenOrder;
+  final FutureOr<void> Function(Map<String, dynamic>)? onOpenOrder;
 
   @override
   State<OrdersPage> createState() => _OrdersPageState();
 }
 
-class _OrdersPageState extends State<OrdersPage> {
+class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
   List<Map<String, dynamic>>? _orders;
+  BonusAccount? _bonuses;
+  bool _loading = false;
   bool _failed = false;
+  bool _bonusFailed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
   Future<void> _load() async {
-    setState(() {
-      _failed = false;
-      _orders = null;
-    });
+    if (_loading) return;
+    setState(() => _loading = true);
+    await Future.wait([_loadOrders(), _loadBonuses()]);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadBonuses() async {
+    setState(() => _bonusFailed = false);
+    try {
+      final bonuses =
+          BonusAccount.fromResponse(await ApiService.getUserBonuses());
+      if (mounted) setState(() => _bonuses = bonuses);
+    } catch (_) {
+      if (mounted) setState(() => _bonusFailed = true);
+    }
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() => _failed = false);
     try {
       final response = await ApiService.getMyOrdersHistory(
         businessId: widget.businessId,
@@ -95,6 +119,19 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
+  Future<void> _openOrder(Map<String, dynamic> order) async {
+    final open = widget.onOpenOrder;
+    if (open != null) {
+      await open(order);
+      if (mounted) await _load();
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OrderDetailPage(order: order),
+    ));
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
@@ -102,7 +139,10 @@ class _OrdersPageState extends State<OrdersPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Stack(
           children: [
             Column(
               children: [
@@ -115,10 +155,15 @@ class _OrdersPageState extends State<OrdersPage> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.huge),
-                Expanded(child: _body()),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: _body(),
+                  ),
+                ),
               ],
             ),
-            Positioned(
+            if (widget.onCart != null) Positioned(
               left: 0,
               right: 0,
               bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
@@ -132,57 +177,91 @@ class _OrdersPageState extends State<OrdersPage> {
             ),
           ],
         ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _body() {
-    if (_failed) {
-      return AppErrorState(
-        message: 'Не удалось загрузить заказы',
-        onRetry: _load,
-      );
-    }
     final orders = _orders;
-    if (orders == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (orders.isEmpty) {
-      return const AppEmptyState(
-        title: 'Заказов пока нет',
-        subtitle:
-            'Когда появятся активные или завершённые заказы, они будут отображаться здесь',
-        topOffset: 218,
-      );
-    }
-    return ListView.separated(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xxxl,
-        0,
-        AppSpacing.xxxl,
-        AppCartButton.clearanceFor(context) + MediaQuery.paddingOf(context).bottom,
-      ),
-      itemCount: orders.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
-      itemBuilder: (context, index) => _OrderCard(
-        order: orders[index],
-        onTap: widget.onOpenOrder == null
-            ? () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => OrderDetailPage(order: orders[index]),
-                  ),
-                )
-            : () => widget.onOpenOrder!(orders[index]),
-      ),
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        if (_loading)
+          const SliverToBoxAdapter(child: LinearProgressIndicator()),
+        if (_failed)
+          SliverToBoxAdapter(
+            child: AppErrorState(
+              message: orders == null
+                  ? 'Не удалось загрузить заказы'
+                  : 'Не удалось обновить заказы. Показаны ранее полученные данные.',
+              onRetry: _load,
+              topOffset: 24,
+            ),
+          ),
+        if (_bonusFailed && orders != null && orders.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: TextButton.icon(
+                onPressed: _loading ? null : _load,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Не удалось обновить бонусные операции'),
+              ),
+            ),
+          ),
+        if (orders != null && orders.isEmpty)
+          const SliverToBoxAdapter(
+            child: AppEmptyState(
+              title: 'Заказов пока нет',
+              subtitle:
+                  'Когда появятся активные или завершённые заказы, они будут отображаться здесь',
+              topOffset: 218,
+            ),
+          ),
+        if (orders != null)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final order = orders[index];
+                  final orderId = '${order['order_id'] ?? ''}';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: _OrderCard(
+                      order: order,
+                      operations: _bonuses?.entriesForOrder(orderId) ?? const [],
+                      onTap: () => _openOrder(order),
+                    ),
+                  );
+                },
+                childCount: orders.length,
+              ),
+            ),
+          ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: AppCartButton.clearanceFor(context) +
+                MediaQuery.paddingOf(context).bottom,
+          ),
+        ),
+      ],
     );
   }
 }
 
 /// One history card: 343 × 114, r10.
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, this.onTap});
+  const _OrderCard({
+    required this.order,
+    required this.operations,
+    this.onTap,
+  });
 
   final Map<String, dynamic> order;
+  final Iterable<BonusLedgerEntry> operations;
   final VoidCallback? onTap;
 
   @override
@@ -191,7 +270,7 @@ class _OrderCard extends StatelessWidget {
     final canceled = isOrderCanceled(order);
     final statusText = resolveOrderStatusText(order);
     final total = resolveOrderTotalAmount(order);
-    final bonus = _bonusPoints(order);
+    final estimate = _pendingBonusEstimate(order);
     final timestamp = _timestamp(order);
     final scaled = MediaQuery.textScalerOf(context).scale(16) > 20;
     final date = Text(
@@ -203,15 +282,21 @@ class _OrderCard extends StatelessWidget {
     final status = Text(
       statusText,
       style: AppTypography.base(size: 12, weight: 400).copyWith(
-        color: canceled ? palette.error : palette.textSecondary,
+        color: canceled
+            ? palette.error
+            : asOrderMap(order['current_status'])?['status']?.toString() == '4'
+                ? palette.success
+                : palette.textSecondary,
       ),
     );
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.lgAll,
       child: Container(
-        height: scaled ? null : 114,
+        constraints: const BoxConstraints(minHeight: 114),
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
         decoration: BoxDecoration(
@@ -237,31 +322,45 @@ class _OrderCard extends StatelessWidget {
               style: AppTypography.base(size: 12, weight: 400)
                   .copyWith(color: palette.textSecondary),
             ),
-            if (scaled) const SizedBox(height: 12) else const Spacer(),
+            const SizedBox(height: 14),
             Wrap(
               spacing: AppSpacing.huge,
               runSpacing: 12,
               children: [
                 _Summary(
                   label: 'Сумма',
-                  value: total == null ? '—' : formatTenge(total.round()),
+                  value: total == null ? '—' : formatTenge(total),
                   valueColor: palette.textPrimary,
                 ),
-                if (bonus != null)
+                if (operations.isNotEmpty)
                   _Summary(
-                    label: 'Начислено',
-                    value: '+$bonus бонусов',
+                    label: 'Бонусные операции',
+                    value: operations
+                        .map((entry) => signedBonusLabel(entry.amount))
+                        .join(' · '),
                     valueColor: palette.gold,
+                  )
+                else if (estimate != null)
+                  _Summary(
+                    label: 'Оценка · ещё не начислено',
+                    value: '≈${signedBonusLabel(estimate)}',
+                    valueColor: palette.gold,
+                  )
+                else
+                  _Summary(
+                    label: 'Бонусы',
+                    value: 'Подтверждённые операции не переданы',
+                    valueColor: palette.textSecondary,
                   ),
               ],
             ),
           ],
         ),
       ),
+      ),
     );
   }
 
-  /// The design's humanised date («10 июля в 23:00») rather than the legacy `dd.MM.yyyy, HH:mm`.
   String _humanDate(DateTime? date) {
     if (date == null) return 'Дата неизвестна';
     return '${DateFormat('d MMMM', 'ru').format(date)} в '
@@ -275,26 +374,36 @@ class _OrderCard extends StatelessWidget {
     return DateTime.tryParse(raw)?.toLocal();
   }
 
-  /// «Начислено» — the order payload carries **no** earned-bonus field (`cost_summary` has
-  /// `bonus_used`, not `bonus_points`), so it is computed from the order's items with the same
-  /// frozen rule the cart uses: 3 % of eligible lines, tobacco excluded. Returns null when the
-  /// order earns nothing, which hides the line exactly as the design omits it elsewhere.
-  int? _bonusPoints(Map<String, dynamic> order) {
+  int? _pendingBonusEstimate(Map<String, dynamic> order) {
+    if (isOrderClosed(order)) return null;
+    final status = asOrderMap(order['current_status']) ??
+        asOrderMap(order['status']);
+    if (!const {'1', '11', '12', '2', '21', '3', '31'}
+        .contains(status?['status']?.toString())) {
+      return null;
+    }
     final items = order['items'];
-    if (items is! List) return null;
+    if (items is! List || items.isEmpty) return null;
     var eligible = 0.0;
     for (final entry in items) {
       final map = asOrderMap(entry);
-      if (map == null) continue;
+      if (map == null) return null;
+      final snapshot = asOrderMap(map['item_data']);
       if (BonusRules.isBonusExcludedText(
-        name: map['name']?.toString() ?? '',
-        description: map['description']?.toString(),
-        code: map['code']?.toString(),
+        name: (map['name'] ?? map['item_name'] ?? snapshot?['name'])?.toString() ??
+            '',
+        description:
+            (map['description'] ?? snapshot?['description'])?.toString(),
+        code: (map['code'] ?? snapshot?['code'])?.toString(),
+        categoryName: asOrderMap(map['category'] ?? snapshot?['category'])?['name']
+            ?.toString(),
       )) {
         continue;
       }
-      final total = map['total_cost'];
-      if (total is num) eligible += total.toDouble();
+      final raw = map['total_cost'];
+      final total = raw is num ? raw : num.tryParse('$raw');
+      if (total == null || !total.isFinite || total < 0) return null;
+      eligible += total.toDouble();
     }
     final points = BonusRules.calculateEarnedBonuses(eligible);
     return points > 0 ? points : null;

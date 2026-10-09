@@ -3,17 +3,22 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../core/money.dart';
+import '../core/quantity.dart';
+import '../features/bonuses/bonus_account.dart';
+import '../features/bonuses/ui/bonus_ledger_row.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../services/repeat_order_service.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
+import '../ui/surfaces.dart';
 import '../utils/api.dart';
 import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/order_ui_helpers.dart' as order_ui;
 import '../utils/order_payment_guard.dart';
+import '../utils/item_name_presentation.dart';
 import 'checkout_page.dart';
 import '../features/faq/models/faq.dart';
 import '../features/faq/faq_navigation.dart';
@@ -30,18 +35,33 @@ class OrderDetailPage extends StatefulWidget {
   State<OrderDetailPage> createState() => _OrderDetailPageState();
 }
 
-class _OrderDetailPageState extends State<OrderDetailPage> {
+class _OrderDetailPageState extends State<OrderDetailPage>
+    with WidgetsBindingObserver {
   _OrderDetails? _details;
   bool _loading = false;
   bool _repeating = false;
   bool _openingPayment = false;
   String? _notice;
   int _loadGeneration = 0;
+  BonusAccount? _bonuses;
+  bool _bonusFailed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadOrder();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadOrder();
   }
 
   @override
@@ -62,6 +82,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       _notice = null;
     });
 
+    final bonusRead = _readBonuses();
     Map<String, dynamic>? loaded;
     if (orderId != null) {
       try {
@@ -77,10 +98,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       merged[OrderPaymentGuard.localStateKey] =
           (await OrderPaymentGuard.read(paymentId)).name;
     }
+    final bonuses = await bonusRead;
     if (!mounted || generation != _loadGeneration) return;
     setState(() {
       _details = _OrderDetails(merged);
       _loading = false;
+      _bonusFailed = bonuses == null;
+      if (bonuses != null) _bonuses = bonuses;
       if (orderId == null) {
         _notice = 'Подробности недоступны: номер заказа не передан.';
       } else if (loaded == null || loaded.isEmpty) {
@@ -88,6 +112,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             'Не удалось обновить заказ. Показаны ранее полученные данные.';
       }
     });
+  }
+
+  Future<BonusAccount?> _readBonuses() async {
+    try {
+      return BonusAccount.fromResponse(await ApiService.getUserBonuses());
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _repeatOrder() async {
@@ -139,6 +171,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Future<bool> _confirmReplaceCart(Map<String, dynamic> order) async {
+    await context.read<CartProvider>().ensureLoaded();
+    if (!mounted) return false;
     if (!context.read<CartProvider>().hasActiveItems) return true;
     final current = context.read<BusinessProvider>().selectedBusiness;
     final target = RepeatOrderService.resolveBusiness(order);
@@ -240,6 +274,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final details = _details;
     final id = details?.id ?? _text(widget.order['order_id']) ?? '—';
     return Scaffold(
+      extendBody: true,
       body: SafeArea(
         bottom: false,
         child: Center(
@@ -256,9 +291,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ),
                 ),
                 Expanded(
-                  child: details == null
-                      ? const AppLoading()
-                      : _orderBody(details),
+                  child: Builder(builder: (bodyContext) {
+                    return details == null
+                        ? const AppLoading()
+                        : _orderBody(details,
+                            bottomClearance:
+                                MediaQuery.paddingOf(bodyContext).bottom);
+                  }),
                 ),
               ],
             ),
@@ -271,15 +310,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _orderBody(_OrderDetails details) {
+  Widget _orderBody(_OrderDetails details, {required double bottomClearance}) {
     if (details.order.isEmpty) {
       return AppErrorState(
         message: 'Не удалось загрузить заказ',
         onRetry: _loading ? null : _loadOrder,
       );
     }
-    return CustomScrollView(
-      slivers: [
+    return RefreshIndicator(
+      onRefresh: _loadOrder,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
         if (_loading)
           const SliverToBoxAdapter(child: LinearProgressIndicator()),
         if (_notice != null)
@@ -329,10 +371,21 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _costSection(details),
-                const SizedBox(height: 24),
-                _informationSection(details),
-                const SizedBox(height: 24),
+                _bonusSection(details),
+                const SizedBox(height: 16),
+                ExpansionTile(
+                  key: const PageStorageKey('order-detail-information'),
+                  tilePadding: EdgeInsets.zero,
+                  title: Text('Подробности заказа',
+                      style: AppTypography.title
+                          .copyWith(color: context.palette.textPrimary)),
+                  children: [
+                    _costSection(details),
+                    const SizedBox(height: 16),
+                    _informationSection(details),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 _sectionTitle('История статусов'),
                 if (details.history.isEmpty)
                   _muted('История статусов не передана'),
@@ -355,6 +408,36 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: _supportSection(details),
           ),
         ),
+        SliverToBoxAdapter(child: SizedBox(height: bottomClearance + 16)),
+      ],
+      ),
+    );
+  }
+
+  Widget _bonusSection(_OrderDetails details) {
+    final entries = _bonuses?.entriesForOrder(details.id).toList() ??
+        const <BonusLedgerEntry>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionTitle('Бонусные операции'),
+        if (_bonusFailed)
+          TextButton.icon(
+            onPressed: _loading ? null : _loadOrder,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Не удалось обновить бонусы · повторить'),
+          ),
+        if (entries.isEmpty)
+          _muted(details.statusCode == '7' || details.statusCode == '71'
+              ? 'Сервер не передал бонусные проводки по возврату. '
+                  'Изменение баланса подтверждается историей бонусов, а не статусом заказа.'
+              : 'Подтверждённые бонусные операции по заказу не переданы. '
+                  'Фактический баланс и проводки доступны в истории бонусов.'),
+        for (final entry in entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: BonusLedgerRow(entry: entry),
+          ),
       ],
     );
   }
@@ -602,7 +685,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           Text(
             details.deliveryFee == null
                 ? 'Не указана'
-                : formatTenge(details.deliveryFee!.round()),
+                : formatTenge(details.deliveryFee!),
             style: AppTypography.titleRegular
                 .copyWith(color: context.palette.textPrimary),
           ),
@@ -612,7 +695,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         Text(
           details.total == null
               ? 'Не передано'
-              : formatTenge(details.total!.round()),
+              : formatTenge(details.total!),
           style: AppTypography.displayBold
               .copyWith(color: context.palette.textPrimary),
         ),
@@ -637,20 +720,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       label: Text(_repeating ? 'Собираем корзину…' : 'Повторить заказ',
           textAlign: TextAlign.center),
     );
-    return Container(
-      decoration: BoxDecoration(
-        color: context.palette.background,
-        border: Border(top: BorderSide(color: context.palette.divider)),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Center(
-          heightFactor: 1,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 616),
+          child: AppGlassPanel(
+            radius: 24,
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -703,7 +782,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ],
                 ],
               ),
-            ),
           ),
         ),
       ),
@@ -751,81 +829,109 @@ class _OrderItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = _text(item['img'] ?? item['item_img']);
+    final snapshot = order_ui.asOrderMap(item['item_data']);
+    final identity = presentOrderItem(item);
+    final image = _text(item['img'] ?? item['item_img'] ?? snapshot?['img']);
     final quantity = _number(item['amount']);
+    final unit = quantityUnitLabel(_text(item['unit'] ?? snapshot?['unit']));
     final total = _lineTotal(item);
-    final name =
-        _text(item['name'] ?? item['item_name']) ?? 'Название не передано';
-    return Container(
-      constraints: const BoxConstraints(minHeight: 60),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-          color: context.palette.surface, borderRadius: AppRadii.lgAll),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: AppRadii.smAll,
-            child: SizedBox(
-              width: 52,
-              height: 52,
-              child: image == null
-                  ? _imageFallback(context)
-                  : Image.network(
-                      image,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => _imageFallback(context),
-                    ),
-            ),
+    final price = _number(item['price']);
+    final metadata = <String>[
+      ...identity.attributes,
+      if (price != null && unit != null) '${formatTenge(price)}/$unit',
+    ];
+    final title = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          identity.name.isEmpty ? 'Название не передано' : identity.name,
+          style: AppTypography.body
+              .copyWith(color: context.palette.textPrimary),
+        ),
+        if (metadata.isNotEmpty)
+          Text(
+            metadata.join(' · '),
+            style: AppTypography.label
+                .copyWith(color: context.palette.textSecondary),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: AppTypography.titleMedium
-                        .copyWith(color: context.palette.textPrimary)),
-                const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Цена',
-                              style: AppTypography.label.copyWith(
-                                  color: context.palette.textSecondary)),
-                          Text(
-                              total == null
-                                  ? 'Не передана'
-                                  : formatTenge(total.round()),
-                              style: AppTypography.title.copyWith(
-                                  color: context.palette.textPrimary)),
-                        ],
+      ],
+    );
+    final sum = Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('Сумма',
+            style: AppTypography.label
+                .copyWith(color: context.palette.textSecondary)),
+        Text(
+          total == null ? 'Не передана' : formatTenge(total),
+          textAlign: TextAlign.end,
+          style: AppTypography.bodyBold
+              .copyWith(color: context.palette.accent),
+        ),
+      ],
+    );
+    final count = Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('Кол-во',
+            style: AppTypography.label
+                .copyWith(color: context.palette.textSecondary)),
+        Text(
+          quantity == null ? '—' : formatQuantity(quantity.toDouble(), unit ?? ''),
+          style: AppTypography.body
+              .copyWith(color: context.palette.textPrimary),
+        ),
+      ],
+    );
+    return AppSurface(
+      padding: const EdgeInsets.all(4),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final compact = constraints.maxWidth >= 320 &&
+            MediaQuery.textScalerOf(context).scale(14) <= 19;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: AppRadii.smAll,
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: image == null
+                    ? _imageFallback(context)
+                    : Image.network(
+                        image,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => _imageFallback(context),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: compact
+                  ? title
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Кол-во',
-                            style: AppTypography.label.copyWith(
-                                color: context.palette.textSecondary)),
-                        Text(quantity == null ? '—' : _quantityText(quantity),
-                            style: AppTypography.titleMedium
-                                .copyWith(color: context.palette.textPrimary)),
+                        title,
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
+                          children: [sum, count],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ],
             ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+            if (compact) ...[
+              const SizedBox(width: 12),
+              Flexible(child: sum),
+              const SizedBox(width: 12),
+              Flexible(child: count),
+            ],
+            const SizedBox(width: 8),
+          ],
+        );
+      }),
     );
   }
 
@@ -860,7 +966,7 @@ class _CostRow extends StatelessWidget {
             const SizedBox(width: 16),
             Flexible(
               child: Text(
-                formatTenge(amount.round()),
+                formatTenge(amount),
                 textAlign: TextAlign.right,
                 style:
                     (total ? AppTypography.title : AppTypography.body).copyWith(
@@ -970,9 +1076,6 @@ num? _lineTotal(Map<String, dynamic> item) {
   final price = _number(item['price']);
   return quantity != null && price != null ? quantity * price : null;
 }
-
-String _quantityText(num quantity) =>
-    quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toString();
 
 String _formatTimestamp(String raw) {
   final timestamp = DateTime.tryParse(raw);

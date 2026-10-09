@@ -1,7 +1,12 @@
 import 'package:web/web.dart' as web;
 
 Object? reserveWebNamedWindow(String windowName) {
-  return web.window.open('about:blank', windowName);
+  try {
+    final window = web.window.open('about:blank', windowName);
+    return window == null || window.closed ? null : window;
+  } catch (_) {
+    return null;
+  }
 }
 
 bool navigateReservedWebWindow(
@@ -9,24 +14,24 @@ bool navigateReservedWebWindow(
   String url, {
   required String windowName,
 }) {
-  if (windowHandle != null) {
-    try {
-      final dynamic reservedWindow = windowHandle;
-      reservedWindow.location.replace(url);
-      return true;
-    } catch (_) {
-      // Fallback below.
-    }
+  if (windowHandle == null) return false;
+  try {
+    final reservedWindow = windowHandle as web.Window;
+    if (reservedWindow.closed) return false;
+    reservedWindow.location.replace(url);
+    return !reservedWindow.closed;
+  } catch (_) {
+    // Never reopen after await: only an explicit user gesture can reserve a
+    // replacement window for the same already-accepted link.
+    return false;
   }
-
-  return web.window.open(url, windowName) != null;
 }
 
 void closeReservedWebWindow(Object? windowHandle) {
   if (windowHandle == null) return;
 
   try {
-    final dynamic reservedWindow = windowHandle;
+    final reservedWindow = windowHandle as web.Window;
     reservedWindow.close();
   } catch (_) {}
 }

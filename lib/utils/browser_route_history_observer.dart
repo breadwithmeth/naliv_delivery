@@ -29,12 +29,15 @@ class BrowserRouteHistoryObserver extends NavigatorObserver {
   }
 
   void _pushDepthState() {
-    final query = Map<String, String>.from(browserHistoryCurrentQueryParameters())..['routeDepth'] = _routeDepth.toString();
+    final query =
+        Map<String, String>.from(browserHistoryCurrentQueryParameters())
+          ..['routeDepth'] = _routeDepth.toString();
     browserHistoryPushQueryParameters(query);
   }
 
   void _replaceDepthState() {
-    final query = Map<String, String>.from(browserHistoryCurrentQueryParameters());
+    final query =
+        Map<String, String>.from(browserHistoryCurrentQueryParameters());
     if (_routeDepth <= 0) {
       query.remove('routeDepth');
     } else {

@@ -31,6 +31,7 @@ import 'package:naliv_delivery/features/home/ui/home_store_sheet.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 
 class AuthenticationWrapper extends StatefulWidget {
@@ -42,25 +43,66 @@ class AuthenticationWrapper extends StatefulWidget {
   State<AuthenticationWrapper> createState() => _AuthenticationWrapperState();
 }
 
-class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
+class _AuthenticationWrapperState extends State<AuthenticationWrapper>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isAuthenticated = false;
   Map<String, dynamic>? _userInfo;
   bool _businessLoaded = false;
   bool _requiresProfileSetup = false;
   bool _initialDestinationQueued = false;
+  Future<void>? _checkingAuth;
+  int _homeRequest = 0;
+  bool _selectingStore = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_sessionChanged);
     _checkAuth();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_sessionChanged);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshOnReturn();
+  }
+
+  void _sessionChanged() {
+    if (!mounted) return;
+    _homeRequest++;
+    setState(() {
+      _userInfo = null;
+      _isAuthenticated = false;
+      _requiresProfileSetup = false;
+      _homeData = null;
+    });
+    _refreshOnReturn();
+  }
+
+  Future<void> _refreshOnReturn() async {
+    if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    await _checkAuth();
   }
 
   /// Bound on the session check. Without it a stalled `/auth/full-info` — a dead dev server, a
   /// captive network — keeps [_isLoading] true and the app never leaves its loader.
   static const Duration _authCheckTimeout = Duration(seconds: 10);
 
-  Future<void> _checkAuth() async {
+  Future<void> _checkAuth() =>
+      _checkingAuth ??= _readAuth().whenComplete(() => _checkingAuth = null);
+
+  Future<void> _readAuth() async {
     Map<String, dynamic>? userInfo;
     try {
       userInfo = await ApiService.getFullInfo().timeout(_authCheckTimeout);
@@ -71,6 +113,14 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     }
 
     if (!mounted) return;
+
+    // An unavailable account read is not proof of an invalid token.
+    if (userInfo != null) {
+      await AuthService.refreshIdentity(verifiedInfo: userInfo);
+    } else if (await ApiService.getAuthToken() == null) {
+      AuthService.bindAuthenticatedIdentity(null);
+    }
+    if (!mounted) return;
     setState(() {
       _userInfo = userInfo;
       _isAuthenticated = userInfo != null;
@@ -78,25 +128,26 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       _isLoading = false;
     });
 
-    // A guest has nothing to log out of. In particular, do not initialize the
-    // push SDK on every anonymous launch before loading the public home page.
-    if (userInfo == null && await ApiService.getAuthToken() != null) {
-      try {
-        await AuthService.clearToken();
-      } catch (error) {
-        debugPrint('Could not clear invalid session: $error');
-      }
-    }
-
     // The home screen is public — the design ships a signed-out variant of it — so it is loaded
     // whether or not there is a session. Loading it only for signed-in users left everyone else
     // staring at the loader, because [build] shows [AppLoadingScreen] while [_homeData] is null.
     if (mounted) await _loadHome();
+    if (mounted && _homeData != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          NotificationService.instance.resumePendingNavigation(
+              openDestination: _navigate);
+        }
+      });
+    }
   }
 
   Future<void> _handleProfileSetupCompleted(
       Map<String, dynamic>? refreshedUserInfo) async {
     final userInfo = refreshedUserInfo ?? await ApiService.getFullInfo();
+    if (userInfo != null) {
+      await AuthService.refreshIdentity(verifiedInfo: userInfo);
+    }
     if (!mounted) return;
     setState(() {
       _userInfo = userInfo;
@@ -169,31 +220,55 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
   static const Duration _homeLoadTimeout = Duration(seconds: 20);
 
   Future<void> _loadHome() async {
+    if (!mounted) return;
+    final request = ++_homeRequest;
     setState(() => _homeError = null);
     try {
       final selected = context.read<BusinessProvider>();
+      final cart = context.read<CartProvider>();
+      await cart.ensureLoaded();
       if (!_businessLoaded) {
         await selected.loadSavedBusiness();
         _businessLoaded = true;
       }
-      final data = await HomeDataSource(businessId: selected.selectedBusinessId)
-          .load()
-          .timeout(_homeLoadTimeout);
-      if (!mounted) return;
+      final cartStore = cart.hasActiveItems ? cart.businessId : null;
+      final data = await HomeDataSource(
+        businessId: cartStore ??
+            (cart.hasUnresolvedBusiness ? null : selected.selectedBusinessId),
+        allowDefaultBusiness: !cart.hasUnresolvedBusiness,
+        onBusinessSelected: (business) async {
+          if (!mounted || request != _homeRequest) return false;
+          final id = BusinessProvider.idOf(business);
+          if (id == null ||
+              (cart.hasActiveItems && cart.businessId != id)) {
+            return false;
+          }
+          final previous = selected.selectedBusiness;
+          if (!await selected.setSelectedBusiness(business)) return false;
+          if (!await cart.bindBusiness(id)) {
+            await selected.setSelectedBusiness(previous);
+            return false;
+          }
+          return true;
+        },
+      ).load().timeout(_homeLoadTimeout);
+      if (!mounted || request != _homeRequest) return;
       setState(() => _homeData = data);
     } catch (e) {
       debugPrint('HomeDataSource failed: $e');
-      if (!mounted) return;
+      if (!mounted || request != _homeRequest) return;
       setState(() => _homeError = 'Не удалось загрузить главную страницу');
     }
   }
 
   Future<void> _signIn({AppDestination? destination}) async {
-    await _pushForResult(LoginPage(
+    final authenticated = await _pushForResult<bool>(const LoginPage(
       startWithPhoneForm: true,
-      destinationAfterSignIn: destination,
+      completionMode: LoginCompletionMode.returnAuthenticated,
     ));
-    if (mounted) await _checkAuth();
+    if (!mounted || authenticated != true) return;
+    await _checkAuth();
+    if (mounted && destination != null) await _navigate(destination);
   }
 
   Future<T?> _pushForResult<T>(Widget page) =>
@@ -203,6 +278,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
 
   Future<void> _selectStore() async {
     final data = _homeData;
+    if (_selectingStore) return;
     if (data == null || data.stores.isEmpty) return;
     final palette = Theme.of(context).colorScheme;
     final store = await showModalBottomSheet<HomeStore>(
@@ -217,15 +293,18 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
         selectedId: data.storeId,
       ),
     );
-    if (!mounted || store == null || store.id == data.storeId) return;
+    if (!mounted || store == null) return;
     final cart = context.read<CartProvider>();
+    final selected = context.read<BusinessProvider>();
+    final currentId = cart.hasActiveItems ? cart.businessId : data.storeId;
+    if (store.id == currentId) return;
     if (cart.hasActiveItems) {
       final discard = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('Сменить магазин?'),
           content: const Text(
-            'Цены и ассортимент отличаются. Товары текущего магазина будут удалены из корзины.',
+            'Товары относятся к исходному магазину: переносить их без пересчёта нельзя. Удалить текущую корзину и выбрать другой магазин?',
           ),
           actions: [
             TextButton(
@@ -233,21 +312,30 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
               child: const Text('Отмена'),
             ),
             TextButton(
+              key: const ValueKey('confirm-store-change'),
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Сменить магазин'),
+              child: const Text('Удалить корзину и сменить'),
             ),
           ],
         ),
       );
       if (!mounted || discard != true) return;
     }
-    final saved = await context.read<BusinessProvider>().setSelectedBusiness({
+    _selectingStore = true;
+    final previous = selected.selectedBusiness;
+    final saved = await selected.setSelectedBusiness({
       'id': store.id,
       'name': store.name,
       'address': store.address,
       if (store.city != null) '_cityName': store.city,
     });
-    if (!saved) {
+    final cartSaved = saved &&
+        (cart.hasActiveItems
+            ? await cart.discardForBusiness(store.id)
+            : await cart.bindBusiness(store.id));
+    if (saved && !cartSaved) await selected.setSelectedBusiness(previous);
+    _selectingStore = false;
+    if (!cartSaved) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -257,7 +345,6 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
       }
       return;
     }
-    cart.clearCart();
     if (mounted) {
       setState(() => _homeData = null);
       await _loadHome();
@@ -280,6 +367,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => page),
     );
+    if (mounted) await _refreshOnReturn();
   }
 
   Future<void> _navigate(AppDestination destination) async {
@@ -357,6 +445,10 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
 
   /// The redesigned search screen, scoped to the store the home screen is showing.
   void _openSearch() {
+    if (_homeData?.storeId == null) {
+      _selectStore();
+      return;
+    }
     _push(SearchPage(
       businessId: _homeData?.storeId,
       onCart: () => _openCart(),
@@ -365,18 +457,22 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper> {
 
   /// Home tiles and the promo card open the supercategory screen.
   void _openSupercategory(HomeCategory category) {
+    final storeId = _homeData?.storeId;
+    if (storeId == null) {
+      _selectStore();
+      return;
+    }
     _push(SupercategoryPage(
       supercategoryId: category.id,
-      businessId: _homeData?.storeId ?? 0,
+      businessId: storeId,
       title: category.title,
       onSearch: _openSearch,
       onCart: () => _openCart(),
     ));
   }
 
-  void _openHowBonusesWork() {
-    _push(BonusHowItWorksPage(onOpenFaq: () => _push(const FaqPage())));
-  }
+  Future<void> _openHowBonusesWork() =>
+      _push(BonusHowItWorksPage(onOpenFaq: () => _push(const FaqPage())));
 
   Future<void> _logout() async {
     try {

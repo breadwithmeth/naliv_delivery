@@ -8,6 +8,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../services/notification_service.dart';
 import '../ui/app_top_bar.dart';
+import 'help_chat_page.dart';
 
 /// Notification preferences, not an inbox without a backing history API.
 class NotificationSettingsPage extends StatefulWidget {
@@ -18,7 +19,8 @@ class NotificationSettingsPage extends StatefulWidget {
       _NotificationSettingsPageState();
 }
 
-class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
+class _NotificationSettingsPageState extends State<NotificationSettingsPage>
+    with WidgetsBindingObserver {
   static const _options = [
     (
       topic: 'orders',
@@ -46,6 +48,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   final Set<String> _pendingTopics = {};
   SharedPreferences? _preferences;
   String? _subscriptionId;
+  PushPermissionState? _permissionState;
   bool _loading = true;
   bool _loadFailed = false;
   bool _subscriptionFailed = false;
@@ -53,6 +56,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _actionRunning = false;
 
   bool get _supportsPush =>
+      _pushPlatform && (_permissionState?.supported ?? true);
+
+  bool get _pushPlatform =>
       kIsWeb ||
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
@@ -60,7 +66,21 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _pushPlatform && !_loading) {
+      _refreshSubscriptionId();
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -79,7 +99,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         }
         _loading = false;
       });
-      if (_supportsPush) await _refreshSubscriptionId();
+      if (_pushPlatform) await _refreshSubscriptionId();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -95,9 +115,12 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     try {
       final subscriptionId =
           await NotificationService.instance.getCurrentSubscriptionId();
+      final permissionState =
+          await NotificationService.instance.getPermissionState();
       if (!mounted) return;
       setState(() {
         _subscriptionId = subscriptionId;
+        _permissionState = permissionState;
         _subscriptionFailed = false;
       });
     } catch (_) {
@@ -117,7 +140,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Future<void> _toggle(String topic, bool value) async {
     final preferences = _preferences;
-    if (!_supportsPush || preferences == null || _pendingTopics.contains(topic)) {
+    if (!_supportsPush ||
+        preferences == null ||
+        _pendingTopics.contains(topic)) {
       return;
     }
     final previous = _values[topic]!;
@@ -223,9 +248,45 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                               ),
                               children: [
                                 Text(
-                                    'Выберите, о чём получать push-уведомления',
+                                    'Настройки push на этом устройстве. История обращений находится в чате поддержки.',
                                     style: AppTypography.body.copyWith(
                                         color: palette.textSecondary)),
+                                const SizedBox(height: AppSpacing.xl),
+                                _ActionRow(
+                                  icon: Icons.support_agent_rounded,
+                                  title: 'Ответы поддержки · открыть чат',
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const HelpChatPage(
+                                        entryPoint: 'notification_settings',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Text(
+                                  'Ответы поддержки не относятся к акциям. Push возможен при разрешении устройства и отправке уведомления сервисом поддержки; отдельная настройка поддержки пока не предоставлена.',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: palette.textSecondary,
+                                  ),
+                                ),
+                                if (_pushPlatform) ...[
+                                  const SizedBox(height: AppSpacing.xl),
+                                  Text(
+                                    _permissionState == null
+                                        ? 'Статус разрешения не получен'
+                                        : !_permissionState!.supported
+                                            ? 'Браузер не поддерживает push на этом устройстве'
+                                            : !_permissionState!.permissionGranted
+                                                ? 'Разрешение на уведомления не получено'
+                                                : !_permissionState!.optedIn
+                                                    ? 'Разрешение есть, подписка выключена'
+                                                    : 'Уведомления разрешены, подписка включена',
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: palette.textSecondary,
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: AppSpacing.huge),
                                 for (final option in _options) ...[
                                   _NotificationPreference(
@@ -234,7 +295,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                     icon: option.icon,
                                     value: _values[option.topic]!,
                                     onChanged: !_supportsPush ||
-                                            _pendingTopics.contains(option.topic)
+                                            _pendingTopics
+                                                .contains(option.topic)
                                         ? null
                                         : (value) =>
                                             _toggle(option.topic, value),
@@ -295,7 +357,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                                   await Clipboard.setData(
                                                       ClipboardData(text: id));
                                                   if (mounted) {
-                                                    _showMessage('ID скопирован');
+                                                    _showMessage(
+                                                        'ID скопирован');
                                                   }
                                                 } catch (_) {
                                                   if (mounted) {

@@ -371,7 +371,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
               child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
+              constraints: const BoxConstraints(maxWidth: 560),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 22, 16, 24),
                 child: Column(children: [
@@ -382,11 +382,13 @@ class _MapAddressPageState extends State<MapAddressPage> {
                         tooltip: 'Назад'),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: AppSurface(
+                        child: InkWell(
                       key: const Key('address_map_search'),
-                      radius: AppRadii.pill,
-                      fill: palette.surface.withValues(alpha: .9),
                       onTap: _openSearch,
+                      borderRadius: AppRadii.pillAll,
+                      child: AppGlassPanel(
+                      radius: AppRadii.pill,
+                      tint: palette.surface.withValues(alpha: .94),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       child: Row(children: [
@@ -403,6 +405,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
                         )),
                       ]),
                     )),
+                    ),
                   ]),
                   const Spacer(),
                   Flexible(
@@ -412,12 +415,16 @@ class _MapAddressPageState extends State<MapAddressPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
+                              AppGlassPanel(
+                                radius: 24,
+                                width: 44,
+                                height: 44,
+                                child:
                               IconButton.filled(
                                 key: const Key('address_locate'),
                                 tooltip: 'Определить моё местоположение',
                                 style: IconButton.styleFrom(
-                                  backgroundColor:
-                                      palette.surface.withValues(alpha: .9),
+                                  backgroundColor: Colors.transparent,
                                   foregroundColor: palette.textPrimary,
                                   minimumSize: const Size(44, 44),
                                 ),
@@ -430,8 +437,11 @@ class _MapAddressPageState extends State<MapAddressPage> {
                                             strokeWidth: 2))
                                     : const Icon(Icons.my_location),
                               ),
+                              ),
                               const SizedBox(height: 12),
-                              AppSurface(
+                              AppGlassPanel(
+                                radius: 16,
+                                tint: palette.surface.withValues(alpha: .94),
                                 padding: const EdgeInsets.all(12),
                                 child: Column(
                                     crossAxisAlignment:
@@ -580,77 +590,107 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
     final palette = context.palette;
     return Scaffold(
       backgroundColor: palette.background,
+      extendBody: true,
       body: SafeArea(
-          child: Center(
-              child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(children: [
-            AppTopBar(
-                title: 'Детали адреса', onBack: () => Navigator.pop(context)),
-            const SizedBox(height: 24),
-            Expanded(
-                child: ListView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              children: [
-                AppSurface(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Выбранный адрес',
-                            style: AppTypography.bodySmall
-                                .copyWith(color: palette.textSecondary)),
-                        const SizedBox(height: 6),
-                        Text(_label,
-                            style: AppTypography.title
-                                .copyWith(color: palette.textPrimary)),
-                      ],
-                    )),
-                if (widget.onChangeAddress != null)
-                  Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: _changing ? null : _changeAddress,
-                        icon: const Icon(Icons.map_outlined),
-                        label: const Text('Изменить на карте'),
-                      )),
-                const SizedBox(height: 24),
-                _field(_entrance, 'entrance', 'Подъезд', 'Например: 2 или 2А'),
-                const SizedBox(height: 12),
-                _field(_floor, 'floor', 'Этаж', 'Например: 7 или м'),
-                const SizedBox(height: 12),
-                _field(
-                    _apartment, 'apartment', 'Квартира', 'Например: 45 или 45Б',
-                    last: true),
-                const SizedBox(height: 12),
-                Text(
-                    'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: palette.textSecondary)),
-                const SizedBox(height: 24),
-              ],
-            )),
-            Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: const Key('address_details_confirm'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 49),
-                      shape: const StadiumBorder(),
-                    ),
-                    onPressed:
-                        _changing || _label.trim().isEmpty ? null : _confirm,
-                    child: Text(widget.confirmButtonLabel,
-                        textAlign: TextAlign.center),
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  AppTopBar(
+                    title: 'Детали адреса',
+                    onBack: () => Navigator.pop(context),
                   ),
-                )),
-          ]),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: Builder(builder: (bodyContext) {
+                      return ListView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.only(
+                            bottom:
+                                MediaQuery.paddingOf(bodyContext).bottom + 16),
+                        children: [
+                          AppSurface(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Выбранный адрес',
+                                    style: AppTypography.label
+                                        .copyWith(color: palette.textSecondary)),
+                                const SizedBox(height: 6),
+                                Text(_label,
+                                    style: AppTypography.title
+                                        .copyWith(color: palette.textPrimary)),
+                              ],
+                            ),
+                          ),
+                          if (widget.onChangeAddress != null)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: _changing ? null : _changeAddress,
+                                icon: const Icon(Icons.map_outlined),
+                                label: const Text('Изменить на карте'),
+                              ),
+                            ),
+                          const SizedBox(height: 24),
+                          _field(_entrance, 'entrance', 'Подъезд',
+                              'Например: 2 или 2А'),
+                          const SizedBox(height: 12),
+                          _field(_floor, 'floor', 'Этаж', 'Например: 7 или м'),
+                          const SizedBox(height: 12),
+                          _field(_apartment, 'apartment', 'Квартира',
+                              'Например: 45 или 45Б',
+                              last: true),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Можно заполнить сейчас или позже на этапе оформления заказа. Буквы тоже подойдут: корпус, секция, подъезд А, кв. 12Б.',
+                            style: AppTypography.bodySmall
+                                .copyWith(color: palette.textSecondary),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ))),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: AppGlassPanel(
+              radius: 32,
+              padding: const EdgeInsets.all(8),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: const Key('address_details_confirm'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 49),
+                    shape: const StadiumBorder(),
+                  ),
+                  onPressed:
+                      _changing || _label.trim().isEmpty ? null : _confirm,
+                  child: Text(widget.confirmButtonLabel,
+                      textAlign: TextAlign.center),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -794,7 +834,7 @@ class _AddressSearchPageState extends State<AddressSearchPage> {
       body: SafeArea(
           child: Center(
               child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
+        constraints: const BoxConstraints(maxWidth: 560),
         child: Column(children: [
           Padding(
               padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),

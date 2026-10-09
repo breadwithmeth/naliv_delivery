@@ -10,9 +10,12 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../model/item.dart';
-import '../model/cart_item.dart';
 import '../utils/bonus_rules.dart';
 import '../utils/item_name_presentation.dart';
+import '../utils/promotion_engine.dart';
+import '../utils/smart_cart.dart';
+import 'money.dart';
+import 'quantity.dart';
 
 @immutable
 class ProductView {
@@ -25,15 +28,25 @@ class ProductView {
     this.volume,
     this.category,
     this.unit,
+    this.type,
+    this.packagingType,
+    this.material,
+    this.alcoholPercent,
+    this.alcoholLabel,
+    this.weightLabel,
+    this.metadata = const [],
+    double? discountedUnitPrice,
+    this.bonusEligible = true,
     this.oldPrice,
     this.saving,
     this.discount,
+    this.promo,
     this.bonus,
     this.imageUrl,
     this.quantity = 0,
     this.available = true,
     this.lowStock = false,
-  });
+  }) : _discountedUnitPrice = discountedUnitPrice;
 
   final int itemId;
 
@@ -53,17 +66,41 @@ class ProductView {
   /// Measurement unit («шт», «кг»), appended to the quantity in the product page's stepper.
   final String? unit;
 
+  final String? type;
+  final String? packagingType;
+  final String? material;
+  final double? alcoholPercent;
+  final String? alcoholLabel;
+  final String? weightLabel;
+  final List<String> metadata;
+  final double? _discountedUnitPrice;
+  final bool bonusEligible;
+
+  double get discountedUnitPrice => _discountedUnitPrice ?? price.toDouble();
+  String? get unitPriceUnit => quantityUnitLabel(unit);
+  String get unitPriceLabel {
+    final value = formatTenge(discountedUnitPrice);
+    final basis = unitPriceUnit;
+    return basis == null ? value : '$value/$basis';
+  }
+
   /// Price the customer pays — already discount-adjusted.
-  final int price;
+  final num price;
 
   /// Struck-through price; null without an active discount promotion.
-  final int? oldPrice;
+  final num? oldPrice;
 
   /// «Выгода» amount; null when under 1 ₸ or without a promotion.
-  final int? saving;
+  final num? saving;
 
   /// `-10%` label; null when the promotion yields no whole percent.
   final String? discount;
+
+  /// `2+1` label of the active `N+M` (SUBTRACT) promotion; null without one.
+  ///
+  /// The card only advertises the promotion; the gift maths and the progress towards the next gift
+  /// come from `promotion_engine.dart`.
+  final String? promo;
 
   /// `+100` label; null when no bonus is earned or the item is excluded (tobacco).
   final String? bonus;
@@ -82,27 +119,29 @@ class ProductView {
   /// Builds display prices, promotion metadata and name attributes for [item].
   factory ProductView.fromItem(Item item, {num quantity = 0}) {
     final basePrice = item.price;
-    final discounted = CartItem(
-      itemId: item.itemId,
-      name: item.name,
-      price: basePrice,
+    final promotions = [
+      for (final promotion in item.promotions ?? const <ItemPromotion>[])
+        if (promotion.isActive) promotion.toJson(),
+    ];
+    final discounted = applyPromotionsToPaidBaseTotal(
+      unitPrice: basePrice,
       quantity: 1,
-      stepQuantity: item.effectiveStepQuantity,
-      selectedVariants: const [],
-      promotions: [
-        for (final promotion in item.promotions ?? const <ItemPromotion>[])
-          if (promotion.isActive) promotion.toJson(),
-      ],
-    ).totalPrice;
-    final hasDiscount = discounted < basePrice;
-
-    final presentation = presentItemName(
-      rawName: item.name,
-      categoryName: item.category?.name,
+      promotions: promotions,
     );
+    final hasDiscount = discounted < basePrice;
+    final promo = evaluatePromotion(
+      paidQuantity: quantity.toDouble(),
+      promotions: promotions,
+    ).label;
+
+    final presentation = presentItem(item);
 
     final amount = item.amount;
     final outOfStock = amount != null && amount <= 0;
+    final selection = SmartCartSelection(item);
+    final sellable = !outOfStock &&
+        selection.containerIssue == null &&
+        selection.quantityIssue == null;
     final points = outOfStock ? 0 : _bonusPoints(item, discounted);
     final savingAmount = hasDiscount ? basePrice - discounted : 0.0;
     final percent = hasDiscount && basePrice > 0
@@ -117,14 +156,29 @@ class ProductView {
       volume: presentation.volumeLabel,
       category: item.category?.name,
       unit: item.unit,
-      price: discounted.round(),
-      oldPrice: hasDiscount ? basePrice.round() : null,
-      saving: hasDiscount && savingAmount >= 1 ? savingAmount.round() : null,
+      type: presentation.type,
+      packagingType: presentation.packagingType,
+      material: presentation.material,
+      alcoholPercent: presentation.alcoholPercent,
+      alcoholLabel: presentation.alcoholLabel,
+      weightLabel: presentation.weightLabel,
+      metadata: presentation.attributes,
+      discountedUnitPrice: discounted,
+      bonusEligible: !BonusRules.isBonusExcludedText(
+        name: item.name,
+        description: item.description,
+        categoryName: item.category?.name,
+        code: item.code,
+      ),
+      price: discounted,
+      oldPrice: hasDiscount ? basePrice : null,
+      saving: hasDiscount && savingAmount >= 1 ? savingAmount : null,
       discount: hasDiscount && percent > 0 ? '-$percent%' : null,
+      promo: promo,
       bonus: points > 0 ? '+$points' : null,
       imageUrl: item.hasImage ? item.image : null,
       quantity: quantity,
-      available: !outOfStock,
+      available: sellable,
       lowStock: amount != null && amount > 0 && amount <= 5,
     );
   }
