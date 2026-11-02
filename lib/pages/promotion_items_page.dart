@@ -284,6 +284,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
         constraints: const BoxConstraints(maxWidth: 840),
         child: ProductGrid(
           key: const ValueKey('promotion-products-grid'),
+          products: items,
           padding: EdgeInsets.fromLTRB(
             AppSpacing.gutter,
             0,

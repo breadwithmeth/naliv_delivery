@@ -429,45 +429,31 @@ class _OrderDetailPageState extends State<OrderDetailPage>
             ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: ExpansionTile(
+                key: const PageStorageKey('order-detail-information'),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(top: 8),
+                expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+                title: Text('Подробности заказа',
+                    style: AppTypography.title
+                        .copyWith(color: context.palette.textPrimary)),
                 children: [
+                  _costSection(details),
+                  const SizedBox(height: 24),
+                  _informationSection(details),
+                  const SizedBox(height: 24),
                   _bonusSection(details),
-                  const SizedBox(height: 16),
-                  ExpansionTile(
-                    key: const PageStorageKey('order-detail-information'),
-                    tilePadding: EdgeInsets.zero,
-                    title: Text('Подробности заказа',
-                        style: AppTypography.title
-                            .copyWith(color: context.palette.textPrimary)),
-                    children: [
-                      _costSection(details),
-                      const SizedBox(height: 16),
-                      _informationSection(details),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _sectionTitle('История статусов'),
                   if (details.history.isEmpty)
-                    _muted('История статусов не передана'),
+                    _muted('История статусов не передана')
+                  else
+                    for (final status in details.history) _historyRow(status),
+                  const SizedBox(height: 8),
+                  _supportSection(details),
                 ],
               ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _historyRow(details.history[index]),
-                childCount: details.history.length,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              child: _supportSection(details),
             ),
           ),
           SliverToBoxAdapter(child: SizedBox(height: bottomClearance + 16)),

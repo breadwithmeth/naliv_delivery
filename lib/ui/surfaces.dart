@@ -75,6 +75,7 @@ class AppPromoChip extends StatelessWidget {
     required this.label,
     required this.fill,
     this.foreground = Colors.white,
+    this.compact = false,
     super.key,
   });
 
@@ -82,23 +83,26 @@ class AppPromoChip extends StatelessWidget {
   final String label;
   final Color fill;
   final Color foreground;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        padding: EdgeInsets.symmetric(
+            horizontal: compact ? 3 : AppSpacing.sm,
+            vertical: compact ? 1 : AppSpacing.xs),
         decoration: BoxDecoration(color: fill, borderRadius: AppRadii.xsAll),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon(icon, size: 12, color: foreground),
-            const SizedBox(width: AppSpacing.xs),
+            AppIcon(icon, size: compact ? 9 : 12, color: foreground),
+            SizedBox(width: compact ? 2 : AppSpacing.xs),
             Flexible(
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelMedium.copyWith(color: foreground),
+                style: AppTypography.labelMedium
+                    .copyWith(color: foreground, fontSize: compact ? 10 : null),
               ),
             ),
           ],
@@ -142,7 +146,9 @@ class AppSectionAction extends StatelessWidget {
                   child: Text(
                     label,
                     style: AppTypography.labelMedium.copyWith(
-                      color: palette.textPrimary,
+                      color: onTap == null
+                          ? palette.textSecondary
+                          : palette.textOnAccent,
                     ),
                   ),
                 ),

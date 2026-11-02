@@ -255,11 +255,30 @@ class _FavoritesPageState extends State<FavoritesPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (visible.isEmpty && !_hasMore) {
-      return const AppEmptyState(
-        title: 'Список пуст',
-        subtitle:
-            'Добавляйте товары в избранное, чтобы быстро находить их позже',
-      );
+      return LayoutBuilder(builder: (context, constraints) {
+        final clearance = AppCartButton.clearanceFor(context) +
+            MediaQuery.paddingOf(context).bottom;
+        return SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: clearance),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  (constraints.maxHeight - clearance).clamp(0, double.infinity),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppEmptyState(
+                  title: 'Список пуст',
+                  subtitle:
+                      'Добавляйте товары в избранное, чтобы быстро находить их позже',
+                ),
+              ],
+            ),
+          ),
+        );
+      });
     }
     return ListView.separated(
       controller: _scroll,

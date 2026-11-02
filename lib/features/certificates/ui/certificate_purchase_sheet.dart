@@ -28,7 +28,9 @@ Future<Map<String, dynamic>?> showCertificatePurchase(
       isDismissible: false,
       enableDrag: false,
       showDragHandle: false,
-      backgroundColor: context.palette.surface,
+      backgroundColor: Theme.of(context).brightness == Brightness.light
+          ? context.palette.background
+          : context.palette.surface,
       constraints: const BoxConstraints(maxWidth: 640),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
@@ -264,11 +266,12 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
                                       })
                                   : null,
                               style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, 44),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 12),
+                                minimumSize: const Size(44, 44),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.xl),
                                 shape: const StadiumBorder(),
-                                textStyle: AppTypography.body,
+                                textStyle: AppTypography.bodySmall,
                                 side: BorderSide(
                                     color: selectedAmount == amount
                                         ? palette.accent
@@ -515,7 +518,11 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
       hintText: hint,
       hintStyle: AppTypography.bodyLight.copyWith(color: palette.textSecondary),
       filled: true,
-      fillColor: filled ? palette.background : palette.surface,
+      fillColor: Theme.of(context).brightness == Brightness.light
+          ? palette.surface
+          : filled
+              ? palette.background
+              : palette.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: AppRadii.lgAll,

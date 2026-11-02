@@ -418,89 +418,101 @@ class _MapAddressPageState extends State<MapAddressPage> {
                           )),
                     ),
                   ]),
-                  const Spacer(),
-                  Flexible(
-                      flex: 3,
-                      child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              AppSurface(
-                                radius: 24,
-                                width: 44,
-                                height: 44,
-                                clip: true,
-                                child: IconButton.filled(
-                                  key: const Key('address_locate'),
-                                  tooltip: 'Определить моё местоположение',
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    foregroundColor: palette.textPrimary,
-                                    minimumSize: const Size(44, 44),
+                  const SizedBox(height: 16),
+                  Expanded(
+                      child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: SingleChildScrollView(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  AppSurface(
+                                    radius: 24,
+                                    width: 44,
+                                    height: 44,
+                                    clip: true,
+                                    child: IconButton.filled(
+                                      key: const Key('address_locate'),
+                                      tooltip: 'Определить моё местоположение',
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        foregroundColor: palette.textPrimary,
+                                        minimumSize: const Size(44, 44),
+                                      ),
+                                      onPressed: _locating ? null : _locate,
+                                      icon: _locating
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2))
+                                          : const Icon(Icons.my_location),
+                                    ),
                                   ),
-                                  onPressed: _locating ? null : _locate,
-                                  icon: _locating
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2))
-                                      : const Icon(Icons.my_location),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              AppSurface(
-                                radius: 16,
-                                fill: palette.surface,
-                                clip: true,
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                          _resolving
-                                              ? 'Определяем адрес…'
-                                              : _addressLabel ??
-                                                  'Адрес не определён',
-                                          style: AppTypography.title.copyWith(
-                                              color: palette.textPrimary)),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                          _resolveError ??
-                                              'Сначала подтвердите точку на карте, затем добавьте подъезд, этаж и квартиру на следующем шаге.',
-                                          style: AppTypography.label.copyWith(
-                                              color: palette.textSecondary)),
-                                      if (_resolveError != null)
-                                        TextButton(
-                                            onPressed: _initialize,
-                                            child: const Text(
-                                                'Повторить определение адреса')),
-                                      const SizedBox(height: 24),
-                                      SizedBox(
-                                          width: double.infinity,
-                                          child: FilledButton(
-                                            key: const Key(
-                                                'address_map_confirm'),
-                                            style: FilledButton.styleFrom(
-                                              minimumSize: const Size(0, 44),
-                                              shape: const StadiumBorder(),
-                                              textStyle: AppTypography.bodyBold,
-                                            ),
-                                            onPressed: _resolving ||
-                                                    _resolvedAddress == null ||
-                                                    _openingDetails
-                                                ? null
-                                                : _confirm,
-                                            child: const Text(
-                                                'Подтвердить адрес',
-                                                textAlign: TextAlign.center),
-                                          )),
-                                    ]),
-                              ),
-                            ],
-                          ))),
+                                  const SizedBox(height: 12),
+                                  AppSurface(
+                                    radius: 16,
+                                    fill: palette.surface,
+                                    clip: true,
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              _resolving
+                                                  ? 'Определяем адрес…'
+                                                  : _addressLabel ??
+                                                      'Адрес не определён',
+                                              style: AppTypography.title
+                                                  .copyWith(
+                                                      color:
+                                                          palette.textPrimary)),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                              _resolveError ??
+                                                  (widget.collectDetails
+                                                      ? 'Подтвердите точку на карте. Подъезд, этаж и квартиру добавите на следующем шаге.'
+                                                      : 'Подтвердите выбранную точку на карте.'),
+                                              style: AppTypography.label
+                                                  .copyWith(
+                                                      color: palette
+                                                          .textSecondary)),
+                                          if (_resolveError != null)
+                                            TextButton(
+                                                onPressed: _initialize,
+                                                child: const Text(
+                                                    'Повторить определение адреса')),
+                                          const SizedBox(height: 20),
+                                          SizedBox(
+                                              width: double.infinity,
+                                              child: FilledButton(
+                                                key: const Key(
+                                                    'address_map_confirm'),
+                                                style: FilledButton.styleFrom(
+                                                  minimumSize:
+                                                      const Size(0, 44),
+                                                  shape: const StadiumBorder(),
+                                                  textStyle:
+                                                      AppTypography.bodyBold,
+                                                ),
+                                                onPressed: _resolving ||
+                                                        _resolvedAddress ==
+                                                            null ||
+                                                        _openingDetails
+                                                    ? null
+                                                    : _confirm,
+                                                child: const Text(
+                                                    'Подтвердить адрес',
+                                                    textAlign:
+                                                        TextAlign.center),
+                                              )),
+                                        ]),
+                                  ),
+                                ],
+                              )))),
                 ]),
               ),
             ),

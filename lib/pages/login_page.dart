@@ -434,7 +434,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _topBar() {
-    final palette = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final canClose = !_showAuthForm && Navigator.of(context).canPop();
     return SizedBox(
       width: double.infinity,
@@ -444,10 +444,9 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           AppIcon(
             key: const ValueKey('auth-wordmark'),
-            AppIcons.wordmark,
+            dark ? AppIcons.wordmark : AppIcons.wordmarkLight,
             width: 164,
-            height: 51,
-            color: palette.textPrimary,
+            height: 38,
           ),
           if (_showAuthForm)
             Positioned(
@@ -723,54 +722,60 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _phoneInput() {
     final palette = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = dark ? palette.surface : palette.background;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppRadii.lg),
-      borderSide: BorderSide(
-        color: palette.textSecondary.withValues(alpha: .45),
-      ),
+      borderSide:
+          BorderSide(color: dark ? palette.divider : Colors.transparent),
     );
-    return TextFormField(
-      key: const ValueKey('auth-phone-input'),
-      controller: _phoneController,
-      focusNode: _phoneFocusNode,
-      autofocus: true,
-      keyboardType: TextInputType.phone,
-      textInputAction: TextInputAction.done,
-      inputFormatters: [PhoneTextInputFormatter()],
-      onTap: _ensurePhonePrefix,
-      validator: (value) {
-        final normalized = PhoneTextInputFormatter.normalize(value ?? '');
-        if (normalized.isEmpty || normalized == '7') {
-          return 'Введите номер телефона';
-        }
-        if (normalized.length != 11) return 'Неверный формат номера';
-        return null;
-      },
-      style: AppTypography.titleRegular.copyWith(color: palette.textPrimary),
-      cursorColor: palette.accent,
-      decoration: InputDecoration(
-        hintText: '+7 700 123 45 67',
-        hintStyle: AppTypography.titleRegular.copyWith(
-          color: palette.textSecondary.withValues(alpha: .55),
+    return AppSurface(
+      fill: fill,
+      shadow: AppShadows.control(palette),
+      child: TextFormField(
+        key: const ValueKey('auth-phone-input'),
+        controller: _phoneController,
+        focusNode: _phoneFocusNode,
+        autofocus: true,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.done,
+        inputFormatters: [PhoneTextInputFormatter()],
+        onTap: _ensurePhonePrefix,
+        validator: (value) {
+          final normalized = PhoneTextInputFormatter.normalize(value ?? '');
+          if (normalized.isEmpty || normalized == '7') {
+            return 'Введите номер телефона';
+          }
+          if (normalized.length != 11) return 'Неверный формат номера';
+          return null;
+        },
+        style: AppTypography.titleRegular.copyWith(color: palette.textPrimary),
+        cursorColor: palette.accent,
+        decoration: InputDecoration(
+          hintText: '+7 700 123 45 67',
+          hintStyle: AppTypography.titleRegular.copyWith(
+            color: palette.textSecondary.withValues(alpha: .55),
+          ),
+          filled: true,
+          fillColor: fill,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 15,
+          ),
+          border: border,
+          enabledBorder: border,
+          focusedBorder: border.copyWith(
+            borderSide:
+                BorderSide(color: palette.textSecondary.withValues(alpha: .45)),
+          ),
+          errorBorder: border.copyWith(
+            borderSide: BorderSide(color: palette.error),
+          ),
+          focusedErrorBorder: border.copyWith(
+            borderSide: BorderSide(color: palette.error, width: 1.5),
+          ),
+          errorStyle: AppTypography.label.copyWith(color: palette.error),
         ),
-        filled: true,
-        fillColor: palette.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
-        ),
-        border: border,
-        enabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: BorderSide(color: palette.accent, width: 1.5),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: BorderSide(color: palette.error),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: BorderSide(color: palette.error, width: 1.5),
-        ),
-        errorStyle: AppTypography.label.copyWith(color: palette.error),
       ),
     );
   }
@@ -833,36 +838,35 @@ class _LoginPageState extends State<LoginPage> {
     return SizedBox(
       key: key,
       width: double.infinity,
-      height: MediaQuery.textScalerOf(context).scale(16) * 1.3 + 26,
-      child: AppSurface(
-        fill: Color.alphaBlend(
-          onPressed == null ? palette.accentFaint : palette.accentSoft,
-          palette.surface,
-        ),
-        radius: _showAuthForm ? AppRadii.lg : AppRadii.pill,
-        clip: true,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(
-              _showAuthForm ? AppRadii.lg : AppRadii.pill),
-          onTap: onPressed,
-          child: Center(
-            child: _isLoading
-                ? SizedBox(
-                    width: 23,
-                    height: 23,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: foreground,
-                    ),
-                  )
-                : Text(
-                    label,
-                    style: AppTypography.titleMedium.copyWith(
-                      color: foreground,
-                    ),
-                  ),
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor:
+              Color.alphaBlend(palette.accentSoft, palette.surface),
+          foregroundColor: palette.textPrimary,
+          disabledBackgroundColor:
+              Color.alphaBlend(palette.accentFaint, palette.surface),
+          disabledForegroundColor: palette.textSecondary,
+          minimumSize: const Size(44, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+                _showAuthForm ? AppRadii.lg : AppRadii.pill),
           ),
+          elevation: 4,
+          shadowColor: palette.shadow,
+          textStyle: AppTypography.titleMedium,
         ),
+        child: _isLoading
+            ? SizedBox(
+                width: 23,
+                height: 23,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: foreground,
+                ),
+              )
+            : Text(label, textAlign: TextAlign.center),
       ),
     );
   }

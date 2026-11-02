@@ -25,7 +25,7 @@ abstract final class AppSpacing {
   static const double huge = 24;
 
   /// Horizontal page gutter, measured from the frames' content edges.
-  static const double gutter = 12;
+  static const double gutter = 16;
 
   /// Minimum touch target. The design's own controls are not smaller than this.
   static const double touchTarget = 44;

@@ -5,10 +5,125 @@ its original author in the loop: **every question that needs a human answer is l
 the default I am proceeding on**, so nothing blocks unnecessarily, and nothing gets decided
 silently either.
 
-Last updated: 2026-11-02. Current source release: **1.2.116+12116**. The app-wide ownership, recovery and performance changes are recorded first below; prior 1.2.115 evidence is historical. Client corrections F1–F11, dark/light themes, inherited text scaling, floating cart-only navigation and genuine glass remain preserved. The older Huawei report is not resolved by host/browser proof: physical Huawei/S25 Ultra, Apple-native glass, bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
+Last updated: 2026-11-02. Current source release: **1.2.116+12116**. The latest Figma composition restoration is recorded first below; the earlier correctness release and its APK evidence are historical. Client corrections F1–F11, dark/light themes, inherited text scaling, floating cart-only navigation and genuine glass remain preserved. Physical Huawei/S25 Ultra, Apple-native glass, bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
 
 ---
 ## Current remediation gate
+
+### Card, cart control and add-to-cart follow-up — 2026-11-02
+
+- Product cards: larger contained artwork, «объём · страна» meta, and a quiet
+  raised add pill (orange «+», «В корзину» when it fits); only items already in
+  the cart show the solid orange stepper.
+- Cart control: the 78 px stamp is replaced by a 60 px stamp for an empty cart and
+  a compact orange capsule (count badge, «Корзина», total) once filled; the label
+  drops before the total at narrow/large-text widths.
+- Notifications float above the cart dock (theme `insetPadding`); dark notices
+  get a hairline border.
+- Product page: «В корзину» adds the first step, confirms with «Добавлено», then
+  becomes «Перейти в корзину» with «В корзине: N шт» — repeated presses open the
+  cart instead of silently re-confirming. Regression in `catalog_flow_test.dart`.
+- Gate: 604 tests, clean analysis, Windows shopping journey, tracked web rebuilt;
+  real-catalogue captures `real_v5_*`, `real_v6_*`, fixture `v5_snack_*`.
+
+### Real-catalogue visual rework — 2026-11-02
+
+The single-name fixture hid the real problems. The tracked release was rendered
+against the live public catalogue (store 11, read-only GETs; any write request
+blocked) at 375 × 812 / DPR 2 in both themes. Long product names produced 5–6 line
+cards, ragged rows and misaligned prices; cart names wrapped in a 90 px column; the
+featured rail left dead red space; the floating dock blur was grainy.
+
+- `ProductCard`/`ProductGrid`/`ProductRail`: Figma card anatomy with 2-line names,
+  one meta line, bottom-pinned price and a 32 px solid-orange CTA with white glyphs
+  inside a 44 px hit area. Rows and rails use one computed extent, so prices and
+  actions align; single-item rails start at the left.
+- Featured category panel: title row on top, equal-height cards, a card-styled
+  «Все товары», and category artwork filling its slot instead of floating.
+- Cart/search rows clamp names to two lines and move price/stepper to a second
+  line at phone widths. Steppers share the solid accent.
+- Product page: badges beside the title, spec chips instead of a repeated
+  category line, a raised stepper card that shows the step to be added, and no
+  placeholder-only descriptions.
+- `LiquidGlassDock`: full-bleed bar with top radius 20 like Figma; the frost is a
+  Gaussian pre-blur of the bar crop sampled by the existing refraction shader
+  (no stochastic per-pixel disc), so the grain is gone. Clearance follows the bar.
+
+Evidence: `.figma_cache/render/probe/real_*.png` (before), `real_v2_*`, `real_v3_*`,
+`real_v4_*` (after) and `real_compare_*.png`; fixture-only surfaces in
+`fidelity_v3_*`. Final gate on this source: **603 tests passed**, analysis of
+`lib test integration_test tool` clean, strict Windows shopping journey passed,
+tracked `build/web` rebuilt. Physical-phone glass performance is not measured.
+
+### Figma composition restoration — 2026-11-02
+
+Implemented against the supplied Figma file rather than the October intentional
+layout departures. The active routes retain their existing services, ownership
+guards and real financial/product data.
+
+- Restored home spacing/kitchen height, category-title navigation, the featured
+  rail and three-column compact catalogue. Added compact photo badges and larger
+  cart recommendations without removing full detail or stock/configuration controls.
+- Reworked cart/checkout density, profile identity and full address, authentication
+  artwork, bottom-aligned map confirmation, address/order/certificate/bonus rows,
+  FAQ filtering, top-row search and centered Favorites.
+- Preserved inherited scaling and reachable controls. Large-text headings use the
+  full width; compact catalogue falls back to a grid. The keyboard checkout header
+  scrolls with the form instead of consuming its gesture area.
+- Live interaction exposed merged favorite semantics and unreadable light-theme
+  storage feedback. Favorite actions now own an isolated semantic node; inverse
+  feedback uses its matching foreground rather than normal black body text.
+
+Visual evidence:
+
+- **111 reviewed fixture captures:** 42 surfaces in both themes at 375 × 812 /
+  DPR 2, 19 compact 320 px / 2× text cases including keyboard-300, and eight
+  768/1280 px home/cart captures. No recorded page/console errors or unexpected
+  network requests. The canonical layout captures precede the final feedback-only
+  color correction; its actual warning state is verified separately.
+- Before/Figma/after panels cover home, catalogue, all products, cart and profile.
+  The web fixture embeds exported product art offline; baseline image placeholders
+  differ, so image improvement is not attributed solely to layout.
+- Actual browser actions exercised category selection → product → quantity/add;
+  loaded search, favorite add/remove through semantics, and the 13,170 ₸ cart;
+  FAQ filtering; map-panel scrolling/confirmation; and entrance `12` in dark
+  320 px / 2× / keyboard-300 checkout. Favorite persistence refusal remains
+  explicit; this is not a claim of durable fixture storage.
+
+Evidence: `.figma_cache/render/probe/fidelity_final.json`,
+`fidelity_diagnostics.json`, `fidelity_interactions.json`,
+`fidelity_comparison_*.png`, `fidelity_map_compact_confirm.png`,
+`fidelity_checkout_compact_entrance.png`, and `fidelity_search_loaded_*.png`.
+The synthetic data, gift rows, missing category artwork and genuine glass grain
+remain documented differences in [`FIDELITY.md`](FIDELITY.md), not pixel parity.
+No production SMS, address/card mutations, orders or payments were performed.
+
+Final settled-source gate:
+
+- **603 retained tests passed**, including both-theme feedback contrast regressions;
+  `dart analyze lib test integration_test tool`: **no issues**.
+- Fresh LCOV: **15,791 / 18,831 = 83.86%**, 107 source records.
+- Strict Windows shopping journey passed through active home/catalogue, product/cart,
+  fixture authentication, pickup checkout, saved-card payment and paid history.
+- Strict release fixture and tracked `build/web` rebuilt successfully after the
+  final feedback correction. Production-bundle home rendered in both persisted
+  themes at 375 × 812 / DPR 2 using exactly five known synthetic GETs per run,
+  zero unknown requests/mutations, and no page/console errors.
+- Final light/dark warning screenshots confirm readable feedback after actual
+  favorite changes. Semantic add/remove was operated separately, and cart quantity
+  remained independent. No physical-phone, Apple-native, real-bank or deployed
+  service-worker acceptance is inferred.
+- This design pass updates source and tracked web output; it does not rebuild the
+  earlier Android APK artifacts or change package/signing/version identities.
+
+Commands: `dart run tool/design_harness.dart check --full --native`,
+`dart run tool/design_harness.dart build`, and
+`dart run tool/design_harness.dart build --tracked`.
+Final logs: `.figma_cache/harness/runs/2026-11-02T02-49-50.736638Z_21744.log`,
+`2026-11-02T02-55-43.321458Z_14940.log`, and
+`2026-11-02T02-56-30.217570Z_6708.log`.
+Additional evidence: `fidelity_coverage.json`, `fidelity_production.json`,
+`fidelity_production_*.png`, and `fidelity_feedback_*.png` under the probe directory.
 
 ### App-wide correctness, ownership and performance — 2026-11-02
 

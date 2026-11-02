@@ -32,7 +32,7 @@ abstract final class AppTheme {
       outline: palette.divider,
       shadow: palette.shadow,
       inverseSurface: palette.surfaceInverse,
-      onInverseSurface: palette.textPrimary,
+      onInverseSurface: palette.textOnAccent,
     );
 
     return ThemeData(
@@ -170,9 +170,17 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: palette.surfaceInverse,
         contentTextStyle:
-            AppTypography.bodyMedium.copyWith(color: palette.textPrimary),
+            AppTypography.bodyMedium.copyWith(color: scheme.onInverseSurface),
         behavior: SnackBarBehavior.floating,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
+        // Floating notices sit above the floating cart dock (stamp + bar ≈ 76 px
+        // above the safe-area inset) instead of covering it.
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadii.lgAll,
+          side: brightness == Brightness.dark
+              ? BorderSide(color: palette.divider)
+              : BorderSide.none,
+        ),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: palette.accent),
       switchTheme: SwitchThemeData(

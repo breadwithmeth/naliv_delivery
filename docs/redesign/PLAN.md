@@ -1,14 +1,65 @@
 # Whole-app quality remediation
 
+## Figma fidelity restoration — 2026-11-02
+
+The user's latest request supersedes prior deliberate layout departures: implement the
+provided Figma design rather than treating it only as inspiration. Live Figma inventory
+was retrieved with the local credentials (212 frames); credentials remain private.
+Existing data, financial safety, cart-only navigation, both themes and text scaling stay.
+No new backend feature, production mutation, dependency upgrade or renderer replacement.
+
+### Implementation and ownership
+
+1. **Catalogue / shared cards:** restore the category title in the top bar, horizontal
+   category selection and the featured-category product rail. Restore three compact
+   product columns at 375 px / normal text, reduced columns for large text/narrow widths.
+   Product photo, concise identity, price and compact image-overlay promotion badges
+   replace the current full metadata paragraph/big bonus strip. Complete attributes
+   remain on the real product page and in semantics; price units and stock remain truthful.
+   Own `product_card.dart`, `product_grid.dart`, catalogue pages/category switcher.
+2. **Cart / checkout / product rows:** restore compact cart rows and side-by-side
+   total/action footer at reference width, with stacked adaptive fallback. Preserve
+   configuration/gift details when actually needed rather than expanding every plain
+   item. Restore checkout grouping/spacing from exact frames without exposing unsupported
+   scheduled delivery or hiding cost/unknown-payment state. Own cart page, checkout page
+   and shared `product_row.dart`; keep all callbacks and operation guards intact.
+3. **Home / shared chrome (integration owner):** restore reference header/search rhythm,
+   114 px promotion artwork slot, 160 px kitchen panel and constrained category captions.
+   Align icons, surfaces, typography and cart foreground to measured Figma geometry.
+   Preserve actual glass optics and platform insets; no fake status bar or screen image.
+4. **Remaining routes:** compare profile, product, authentication, address, order,
+   certificate, bonus and support surfaces with their exact references; apply specific
+   composition corrections, not cosmetic churn or unsupported actions.
+5. **Evidence:** use existing strict fixture entrypoint and actual production widgets.
+   Capture baseline and final in both themes at 375 × 812 / DPR 2; inspect 320 px / 2×
+   text / keyboard and wider layouts. Exercise home → category → product → cart and
+   account/checkout navigation. Existing behavior tests stay meaningful; no permanent
+   pixel-constant assertions. Run serial full tests, analysis, Windows shopping, rebuild
+   tracked release web and smoke it after source settles.
+
+### Acceptance and review focus
+
+- Obvious side-by-side improvement in catalogue density/hierarchy, cart row/footer
+  balance and home vertical composition; do not call absent product art a layout match.
+- Local strict fixtures may use authentic exported Figma imagery for controlled visual
+  comparisons, but production product imagery remains the API's data.
+- Category switching retains complete prefetched pages and retry/pagination behavior;
+  unavailable/configurable products retain real actions, not mock add buttons.
+- Long names, fractional quantities, large totals, gift configurations, pending financial
+  operations, failed image loads and inherited text scale must remain usable.
+- API/provider data not supplied by the design stays truthful. Unimplemented server
+  capabilities shown in mockups are not invented for screenshot similarity.
+- Parent owns shared tokens/chrome, fixture data, Figma exports, all builds/captures,
+  integration checks and documentation. Workers do not run tests/builds/formatters.
+
 ## Authority and current status
 
 The user's reported defects supersede the previous `DONE` quality conclusions. Historical tests, synthetic captures and releases remain recorded in `STATUS.md`; they do not establish readable typography, correct real card loading, correct bottling prices or Kaspi presentation compliance. This plan covers every active route, not just the redesigned landing page.
 
-**Current cutover — 2026-10-09:** client corrections F1–F11 are retained. Catalogue,
-category selection, information-complete cards and confirmation hierarchy are rebuilt;
-genuine native/shader material now covers the whole cart control. Strict Windows and
-release-web interactions, calibrated adaptive/keyboard captures and settled integration
-checks passed. Current exercised evidence and unexecuted Apple checks are in `STATUS.md`.
+**Current cutover — 2026-11-02:** the Figma composition restoration above supersedes
+the October layout departures. Client corrections F1–F11, backend contracts and
+financial safety remain retained. Current visual, interaction and integration
+evidence is recorded in `STATUS.md` and `FIDELITY.md`.
 Active routes/controls are mapped below. The selected material contract is actual native
 Apple `UIGlassEffect` on iOS 26+ and genuine live-backdrop shader refraction elsewhere;
 non-Apple output is not claimed Apple-native/pixel-identical. Xcode 26/Apple runtime
@@ -21,29 +72,37 @@ constraints overriding required app information or the new usability request.
 
 | Surface | Visible controls and destination/action | Data and states retained |
 |---|---|---|
-| Catalogue overview (`SupercategoryPage`) | Back to home; search to wrapper search; one section header to that leaf; card to actual product/configuration; stock-aware add/stepper; floating cart to wrapper cart | Selected-business `CatalogDataSource`; lazy section reads/full first-page prefetch; loading, missing supercategory, empty leaf, error/retry, stock/configuration availability |
-| Category products (`CategoryProductsPage`) | Back/overview; one full-label category picker and complete selected sheet; sibling replacement; product/detail/quantity; search and cart | Branch/leaf IDs and contextual duplicate labels; prefetched continuity; page-more loading/error/retry; fractional stock/quantity and real source items |
-| Shared product card | Full name and all known identity metadata; current/old price, saving, promotion and bonus; photo/missing-photo; detail and >=44 px quantity/configuration targets | `ProductView`/`presentItem`, no inferred country/ABV/material; two columns at 375, one for narrow/large text; home/cart rails and promotions share the new sizing |
-| Confirmation (`CheckoutPage`) | Delivery/pickup; address/store change; optional delivery details; order quantity/remove/edit; benefit disclosure with existing bonus/code/certificate controls; quiet FAQ; persistent confirm/recovery | Existing cart/store/address and draft controllers; independent quote/bag/bonus loads; precise cost breakdown including mandatory bag/physical containers; existing exclusivity, invalidation/readiness and durable unknown-create/payment guards |
+| Catalogue overview (`SupercategoryPage`) | Back; search; horizontal category tabs plus complete category sheet; featured rail and section links; real product/configuration and stock-aware add/stepper; floating cart | Selected-business `CatalogDataSource`; lazy section reads/full first-page prefetch; loading, missing supercategory, empty leaf, error/retry, stock/configuration availability; grid fallback for narrow/large text |
+| Category products (`CategoryProductsPage`) | Back/overview; category tabs and selected sheet; sibling replacement; product/detail/quantity; search and cart | Branch/leaf IDs and contextual duplicate labels; prefetched continuity; page-more loading/error/retry; fractional stock/quantity and real source items |
+| Shared product card | Photo-first compact identity; current/old price, saving, promotion and bonus; detail and >=44 px quantity/configuration targets; full metadata in detail/semantics | `ProductView`/`presentItem`, no inferred country/ABV/material; three columns at 375, fewer for narrow/large text; compact featured rail and larger recommendation rail |
+| Confirmation (`CheckoutPage`) | Delivery/pickup; address/store change; expandable delivery details; visible bonus/code/certificate controls; order quantity/remove/edit; FAQ; persistent confirm/recovery | Existing cart/store/address and draft controllers; quote/bag/bonus loads; precise breakdown including packaging; exclusivity, invalidation/readiness and durable uncertainty guards; scrolling header with keyboard |
 | Floating glass/cart | Same cart tap/count/total semantics; expanded material covers the badge and total; content can scroll entirely above it | Native capability on iOS 26+; shader samples the live underlay on other supported renderers, while controls stay sharp in a separate foreground; material loading/error states are explicit, not another blur called Liquid Glass |
 
-Composition: consistent category sections instead of the oversized first-category sidebar;
-one category-switch mechanism instead of chips plus a menu; wider information-complete
-cards; fulfilment -> order review -> optional benefits -> one readable price breakdown.
+Composition: the red featured rail and three-column catalogue follow Figma at the
+reference width; adaptive layouts reflow rather than shrinking inherited text.
+Confirmation exposes benefits before order composition while preserving cost review.
 Decorative chrome does not need a fake glass treatment. Genuine floating material must be
 proved against a moving/textured backdrop and both themes, then active-route interactions
 and large-text clearance must be reviewed.
 
 Implemented material contract: `LiquidGlassDock` keeps the sampled scene separate from
-sharp, hit-testable foreground controls. `shaders/liquid_glass.frag` uses a curved shell,
-Snell refraction (IOR 1.45) concentrated in the rim over a nearly flat interior, a
-per-pixel-rotated 21-tap golden-angle frost, mild dispersion, Fresnel plus a crisp top
-streak, and dithering; there is no screenshot timer or CPU pixel readback. A theme base
-tint plus adaptive shadow-lift/highlight-crush keep sharp text readable without flattening
-the scene into fog. The 2026-10-11 quality pass removed the earlier fog, saturation boost
-and tap-moiré after rendered dock review. Windows runtime checkerboard captures in
-`.figma_cache/harness/optical/` show the bent rim, unchanged scene outside the dock, a
-response to moved scenery and working foreground taps in both themes.
+sharp, hit-testable foreground controls. The dock is a full-bleed bottom bar (Figma: flush
+to the screen bottom under the home-indicator inset, top corners radius 20, no side or
+bottom margin); `LiquidGlassDock` pads its foreground 16 px at the sides and by the bottom
+inset plus 4 px, so page footers only add their own vertical padding (16 top, 12 bottom).
+The 78 px cart stamp declares `DockOverhang` (27 px) and projects above the bar, centered.
+`onDockHeightChanged` reports the bar height without the inset; consumers still add the
+inset. The frost is a real Gaussian (sigma 10, `ImageFilter.blur` into a `toImageSync`
+crop of the dock region, at most 1.5 texels per logical pixel) that `shaders/liquid_glass.frag`
+samples through a curved shell with Snell refraction (IOR 1.45) concentrated in the top rim,
+a fixed 9-tap smoothing (no per-pixel rotation, so no grain), mild dispersion, Fresnel plus
+a crisp top streak, dithering (at most 1/255) and an upward shadow along the top edge only;
+there is no screenshot timer or CPU pixel readback. A theme base tint (light white 62 %,
+dark `#0E0E10` 55 %) plus adaptive shadow-lift/highlight-crush keep sharp text readable
+without flattening the scene into fog. The 2026-10-11 quality pass removed the earlier fog,
+saturation boost and tap-moiré after rendered dock review. Windows runtime checkerboard
+captures in `.figma_cache/harness/optical/` show the bent rim, unchanged scene outside the
+dock, a response to moved scenery and working foreground taps in both themes.
 Ordinary chrome uses `AppSurface`/`AppSectionAction`; the old blur/rim glass API is removed.
 
 On iOS 26+, `NativeLiquidGlassBackdrop` uses `UIVisualEffectView` with `UIGlassEffect`,

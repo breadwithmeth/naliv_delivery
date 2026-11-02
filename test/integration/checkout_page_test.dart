@@ -350,7 +350,7 @@ Future<void> _openDeliveryDetails(WidgetTester tester) => _openDisclosure(
     tester, 'checkout-delivery-details-toggle', 'checkout-entrance');
 
 Future<void> _openBenefits(WidgetTester tester) =>
-    _openDisclosure(tester, 'checkout-benefits-toggle', 'checkout-promo-code');
+    _show(tester, 'checkout-promo-code');
 
 Future<void> _fillDraft(WidgetTester tester) async {
   await _openDeliveryDetails(tester);
@@ -411,8 +411,7 @@ void main() {
   setUp(() =>
       SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'}));
 
-  testWidgets(
-      'closing delivery and benefit disclosures retains the draft and applied price',
+  testWidgets('closing delivery details retains the draft and applied price',
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize();
@@ -423,9 +422,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
       await tester.pumpAndSettle();
       expect(fixture.promoValidations, 1);
-      await _toggleDisclosure(tester, 'checkout-benefits-toggle');
       await _toggleDisclosure(tester, 'checkout-delivery-details-toggle');
-      await _show(tester, 'checkout-benefits-toggle');
+      await _show(tester, 'checkout-benefit-applied');
       expect(find.byKey(const ValueKey('checkout-benefit-applied')),
           findsOneWidget);
       expect(
@@ -435,7 +433,6 @@ void main() {
           formatTenge(1730));
       await _expectDraft(tester);
       expect(fixture.promoValidations, 1);
-      await _toggleDisclosure(tester, 'checkout-benefits-toggle');
       await _toggleDisclosure(tester, 'checkout-delivery-details-toggle');
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
@@ -1208,11 +1205,6 @@ void main() {
       fixture.bag = (_) => packaging.future;
       await http.runWithClient(() async {
         await _pump(tester, fixture, settle: false);
-        await _show(tester, 'checkout-benefits-toggle');
-        await tester
-            .tap(find.byKey(const ValueKey('checkout-benefits-toggle')));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
         await _show(tester, 'checkout-$benefit-code');
         final field = find.byKey(ValueKey('checkout-$benefit-code'));
         expect(field.hitTestable(), findsOneWidget);
@@ -1627,7 +1619,7 @@ void main() {
       await _show(tester, 'checkout-edit-cart');
       expect(
           tester
-              .widget<TextButton>(
+              .widget<IconButton>(
                   find.byKey(const ValueKey('checkout-edit-cart')))
               .onPressed,
           isNull);
@@ -1635,12 +1627,11 @@ void main() {
       await _show(tester, 'checkout-remove-${group.key}');
       expect(
           tester
-              .widget<TextButton>(
+              .widget<IconButton>(
                   find.byKey(ValueKey('checkout-remove-${group.key}')))
               .onPressed,
           isNull);
       await _openBenefits(tester);
-      await _toggleDisclosure(tester, 'checkout-benefits-toggle');
       expect(_enabled(tester), isFalse);
       await _show(tester, 'checkout-check-orders');
       expect(

@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/product_view.dart';
-import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
-import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
@@ -151,6 +149,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
   }
 
   void _openCategory(CategoryRef category) {
+    if (category.id == widget.categoryId) return;
     Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute(
         builder: (_) => CategoryProductsPage(
@@ -165,6 +164,13 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
     );
   }
 
+  String get _selectedLabel {
+    for (final category in widget.categories) {
+      if (category.id == widget.categoryId) return category.label;
+    }
+    return widget.title;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,12 +183,12 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
                 child: AppTopBar(
-                  title: 'Товары',
+                  title: _selectedLabel,
                   onBack: () => Navigator.of(context).maybePop(),
                   onSearch: widget.onSearch,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.huge),
               Expanded(child: _body()),
             ],
           ),
@@ -204,13 +210,6 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
 
   Widget _body() {
     final items = _items;
-    var selectedLabel = widget.title;
-    for (final category in widget.categories) {
-      if (category.id == widget.categoryId) {
-        selectedLabel = category.label;
-        break;
-      }
-    }
     Widget? footer;
     if (_failed) {
       footer = AppErrorState(
@@ -248,6 +247,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
         constraints: const BoxConstraints(maxWidth: 840),
         child: ProductGrid(
           key: const ValueKey('category-products-grid'),
+          products: items,
           controller: _scroll,
           padding: EdgeInsets.fromLTRB(
             AppSpacing.gutter,
@@ -257,15 +257,11 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                 MediaQuery.paddingOf(context).bottom,
           ),
           header: widget.categories.isEmpty
-              ? Text(
-                  selectedLabel,
-                  style: AppTypography.displayBold
-                      .copyWith(color: context.palette.textPrimary),
-                )
+              ? null
               : CategorySwitcher(
                   categories: widget.categories,
                   selectedCategoryId: widget.categoryId,
-                  selectedLabel: selectedLabel,
+                  selectedLabel: _selectedLabel,
                   onCategory: _openCategory,
                   onOverview: () => Navigator.of(context).maybePop(),
                 ),

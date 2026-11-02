@@ -518,38 +518,55 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
       child: AppSurface(
         key: ValueKey('address_select_$id'),
         onTap: _busy || _loading ? null : () => _select(address),
-        padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
-        child: Row(children: [
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(
-                    _label(address).isEmpty
-                        ? 'Уточните адрес на карте'
-                        : _label(address),
-                    style: AppTypography.title
-                        .copyWith(color: palette.textPrimary)),
-                if (details.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(details,
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary)),
-                ],
-                const SizedBox(height: 6),
-                Text(
-                    '${local ? 'На этом устройстве' : 'Из аккаунта'}${selected ? ' · Для доставки' : ''}',
-                    style: AppTypography.label.copyWith(
-                        color:
-                            selected ? palette.accent : palette.textSecondary)),
-              ])),
-          IconButton(
-            key: ValueKey('address_menu_$id'),
-            tooltip: 'Действия с адресом ${_label(address)}',
-            onPressed: _busy || _loading ? null : () => _menu(address, local),
-            icon: Icon(Icons.more_horiz, color: palette.textSecondary),
-          ),
-        ]),
+        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 50),
+          child: Row(children: [
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(
+                      _label(address).isEmpty
+                          ? 'Уточните адрес на карте'
+                          : _label(address),
+                      style: AppTypography.title
+                          .copyWith(color: palette.textPrimary)),
+                  if (details.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(details,
+                        style: AppTypography.label.copyWith(
+                            color: palette.textSecondary, height: 1.2)),
+                  ],
+                  const SizedBox(height: 1),
+                  Text(
+                      '${local ? 'На этом устройстве' : 'Из аккаунта'}${selected ? ' · Для доставки' : ''}',
+                      style: AppTypography.label.copyWith(
+                          color:
+                              selected ? palette.accent : palette.textSecondary,
+                          height: 1.2)),
+                ])),
+            IconButton(
+              key: ValueKey('address_menu_$id'),
+              tooltip: 'Действия с адресом ${_label(address)}',
+              onPressed: _busy || _loading ? null : () => _menu(address, local),
+              style: IconButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: palette.textSecondary, width: 1.5),
+                ),
+                child: Icon(Icons.more_horiz_rounded,
+                    color: palette.textSecondary, size: 16),
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -575,8 +592,8 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(
               empty ? 'Не определяется адрес?' : 'Вопросы по адресу и доставке',
-              style:
-                  AppTypography.bodyBold.copyWith(color: palette.textPrimary)),
+              style: AppTypography.bodySmallBold
+                  .copyWith(color: palette.textPrimary)),
           const SizedBox(height: 8),
           Text(
               empty
@@ -590,7 +607,8 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
             const SizedBox(width: 6),
             Flexible(
                 child: Text('Открыть FAQ',
-                    style: AppTypography.body.copyWith(color: palette.accent))),
+                    style: AppTypography.bodySmall
+                        .copyWith(color: palette.accent))),
           ]),
         ])),
       ]),

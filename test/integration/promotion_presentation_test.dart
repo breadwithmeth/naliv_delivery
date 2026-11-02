@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:naliv_delivery/core/money.dart';
-import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/model/item.dart';
@@ -81,7 +79,7 @@ void main() {
   for (final (width, scale) in [(375.0, 1.0), (320.0, 2.0)]) {
     for (final brightness in Brightness.values) {
       testWidgets(
-          'complete offer and quantity controls remain visible at '
+          'compact offers stay truthful and quantity controls remain accessible at '
           '$width/$scale/${brightness.name}', (tester) async {
         SharedPreferences.setMockInitialValues({});
         await tester.binding.setSurfaceSize(Size(width, 812));
@@ -110,7 +108,6 @@ void main() {
             _giftPromotion,
           ],
         });
-        final view = ProductView.fromItem(item);
         final cart = CartProvider();
         await cart.bindBusiness(1);
         cart.incrementCatalogItem(item);
@@ -124,54 +121,42 @@ void main() {
             scale: scale,
           );
           final card = find.byKey(const ValueKey('promotion-product-0'));
-          final cardRect = tester.getRect(card);
-          if (width == 375) {
-            final second = tester.getRect(
-              find.byKey(const ValueKey('promotion-product-1')),
-            );
-            expect(second.top, cardRect.top);
-            expect(second.left, greaterThan(cardRect.right));
-          } else {
-            expect(cardRect.width, greaterThan(width / 2));
-          }
-          final facts = [
-            view.title,
-            ...view.metadata,
-            view.unitPriceLabel,
-            formatTenge(view.oldPrice!),
-            formatTenge(view.saving!),
-            view.discount!,
-            view.promo!,
-            view.bonus!,
-          ];
-          for (final fact in facts) {
-            final visibleFact = find.descendant(
-              of: card,
-              matching: find.textContaining(fact),
-            );
-            expect(visibleFact, findsOneWidget);
-            await Scrollable.ensureVisible(
-              tester.element(visibleFact),
-              alignment: .5,
-            );
-            await tester.pumpAndSettle();
-            final textRect = tester.getRect(visibleFact);
-            final currentCard = tester.getRect(card);
-            expect(textRect.left, greaterThanOrEqualTo(currentCard.left));
-            expect(textRect.right, lessThanOrEqualTo(currentCard.right));
-            expect(textRect.top, greaterThanOrEqualTo(currentCard.top));
-            expect(textRect.bottom, lessThanOrEqualTo(currentCard.bottom));
-          }
-          final art = tester.getRect(find.descendant(
+          final offer = find.descendant(
             of: card,
-            matching: find.byIcon(Icons.image_outlined),
-          ));
-          for (final fact in [view.discount!, view.promo!, view.bonus!]) {
-            final rect = tester.getRect(find.descendant(
-              of: card,
-              matching: find.textContaining(fact),
-            ));
-            expect(rect.top, greaterThan(art.bottom));
+            matching: find.bySemanticsLabel(RegExp(r'^Aperol Riserva')),
+          );
+          expect(offer, findsOneWidget);
+          final description = tester.getSemantics(offer).label;
+          for (final fact in const [
+            'Aperol Riserva с длинным названием специальной коллекции',
+            'Аперитив',
+            'Италия',
+            '0,5 л',
+            '0,75 кг',
+            '11%',
+            'Бутылка',
+            'Стекло',
+            '11\u00a0853 ₸',
+            'Прежняя цена 13\u00a0170 ₸',
+            'Выгода 1\u00a0317 ₸',
+            'Скидка -10%',
+            'Акция 2+1',
+            'Бонусы +356',
+          ]) {
+            expect(description, contains(fact));
+          }
+          for (final fact in const [
+            '11\u00a0853 ₸',
+            '13\u00a0170 ₸',
+            'Выгода 1\u00a0317 ₸',
+            '-10%',
+            '2+1',
+            '+356',
+          ]) {
+            expect(
+              find.descendant(of: card, matching: find.text(fact)),
+              findsOneWidget,
+            );
           }
           for (final label in [
             'Увеличить количество',

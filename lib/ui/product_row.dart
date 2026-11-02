@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/money.dart';
 import '../core/product_view.dart';
+import '../core/quantity.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
@@ -20,6 +21,9 @@ class ProductRow extends StatelessWidget {
     required this.title,
     required this.price,
     this.metadata = const [],
+    this.category,
+    this.country,
+    this.identityLabel,
     this.unitPriceLabel,
     this.quantityUnit,
     this.discount,
@@ -40,6 +44,9 @@ class ProductRow extends StatelessWidget {
   final String title;
   final num price;
   final List<String> metadata;
+  final String? category;
+  final String? country;
+  final String? identityLabel;
   final String? unitPriceLabel;
   final String? quantityUnit;
   final String? discount;
@@ -71,6 +78,12 @@ class ProductRow extends StatelessWidget {
         title: view.title,
         price: view.price,
         metadata: view.metadata,
+        category: view.category ?? view.type,
+        country: view.country,
+        identityLabel: [
+          if (view.volume case final volume?) volume,
+          if (view.weightLabel case final weight?) weight,
+        ].join(' · '),
         unitPriceLabel: view.unitPriceLabel,
         quantityUnit: view.unit,
         discount: view.discount,
@@ -91,37 +104,19 @@ class ProductRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final identity = metadata.join(' · ');
-    final badges = <Widget>[
-      if (discount != null)
-        AppPromoChip(
-          icon: AppIcons.fire,
-          label: discount!,
-          fill: palette.brandRed,
-        ),
-      if (promo != null)
-        AppPromoChip(
-          icon: AppIcons.fire,
-          label: promo!,
-          fill: palette.accent,
-          foreground: palette.textOnAccent,
-        ),
-      if (bonus != null)
-        AppPromoChip(
-          icon: AppIcons.bonusStar,
-          label: bonus!,
-          fill: palette.gold,
-          foreground: Colors.black,
-        ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-        final artWidth = constraints.maxWidth * (scale > 1.3 ? .3 : .4);
-        final artwork = SizedBox(
-          width: artWidth,
-          height: artWidth,
-          child: Stack(
+    final identity = identityLabel ?? metadata.join(' · ');
+    final normalizedUnit = quantityUnit?.toLowerCase().replaceAll('.', '');
+    final perPiece = const ['шт', 'pcs', 'piece'].contains(normalizedUnit);
+    final priceLabel =
+        perPiece ? formatTenge(price) : unitPriceLabel ?? formatTenge(price);
+    return AppSurface(
+      padding: const EdgeInsets.all(AppSpacing.xs),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+          final artWidth = (constraints.maxWidth * (scale > 1.3 ? .28 : .35))
+              .clamp(72.0, 180.0);
+          final artwork = Stack(
             fit: StackFit.expand,
             children: [
               InkWell(
@@ -143,11 +138,34 @@ class ProductRow extends StatelessWidget {
                   ),
                 ),
               ),
+              if (promo != null)
+                Positioned(
+                  left: AppSpacing.xs,
+                  right: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: palette.accent,
+                      borderRadius: AppRadii.smAll,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      child: Text(promo!,
+                          style: AppTypography.captionMedium
+                              .copyWith(color: palette.textOnAccent)),
+                    ),
+                  ),
+                ),
               if (onLike != null)
                 Positioned(
                   top: AppSpacing.xs,
                   right: AppSpacing.xs,
                   child: Semantics(
+                    container: true,
+                    button: true,
+                    label: liked ? 'Убрать из избранного' : 'В избранное',
+                    onTap: onLike,
+                    excludeSemantics: true,
                     toggled: liked,
                     child: liked
                         ? IconButton(
@@ -174,103 +192,187 @@ class ProductRow extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
-        );
-        final text = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            InkWell(
-              onTap: onTap,
-              borderRadius: AppRadii.smAll,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTypography.titleMedium
-                        .copyWith(color: palette.textPrimary),
-                  ),
-                  if (identity.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      identity,
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary),
-                    ),
-                  ],
-                  if (!available)
-                    Text(
-                      'Нет в наличии',
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary),
-                    ),
-                ],
-              ),
-            ),
-            if (badges.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Wrap(
-                spacing: AppSpacing.xs,
-                runSpacing: AppSpacing.xxs,
-                children: badges.take(2).toList(growable: false),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.sm),
-            if (oldPrice != null)
-              Text(
-                formatTenge(oldPrice!),
-                style: AppTypography.strikethrough
-                    .copyWith(color: palette.textSecondary),
-              ),
-            Text(
-              unitPriceLabel ?? formatTenge(price),
-              style:
-                  AppTypography.headline.copyWith(color: palette.textPrimary),
-            ),
-            if (saving != null)
-              Text(
-                'Выгода ${formatTenge(saving!)}',
-                style: AppTypography.labelMedium.copyWith(color: palette.gold),
-              ),
-            const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: Alignment.centerRight,
-              child: quantity <= 0
-                  ? SizedBox(
-                      width: AppSpacing.touchTarget,
-                      child: ProductQuantityControl(
-                        quantity: quantity,
-                        unit: quantityUnit,
-                        onIncrement: available ? onIncrement : null,
-                        onDecrement: onDecrement,
-                      ),
-                    )
-                  : ProductQuantityControl(
-                      quantity: quantity,
-                      unit: quantityUnit,
-                      onIncrement: available ? onIncrement : null,
-                      onDecrement: onDecrement,
-                    ),
-            ),
-          ],
-        );
-        return AppSurface(
-          padding: const EdgeInsets.all(AppSpacing.xs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          );
+          return Stack(
             children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xs),
-                  child: text,
+              Padding(
+                padding: EdgeInsets.only(right: artWidth + AppSpacing.xs),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 106),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xs),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        InkWell(
+                          onTap: onTap,
+                          borderRadius: AppRadii.smAll,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (category != null || country != null)
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      if (category != null)
+                                        Flexible(
+                                          child: Text(category!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.caption
+                                                  .copyWith(
+                                                      color: palette
+                                                          .textSecondary)),
+                                        ),
+                                      if (category != null && country != null)
+                                        const SizedBox(width: AppSpacing.xs),
+                                      if (country != null)
+                                        Flexible(
+                                          child: Text(country!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.caption
+                                                  .copyWith(
+                                                      color: palette.gold)),
+                                        ),
+                                    ],
+                                  ),
+                                Semantics(
+                                  label: [
+                                    title,
+                                    ...metadata,
+                                    if (discount != null) 'Скидка $discount',
+                                    if (bonus != null)
+                                      'Предварительно $bonus бонусов',
+                                  ].join(' · '),
+                                  child: ExcludeSemantics(
+                                    child: Text(
+                                      title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.bodySmallMedium
+                                          .copyWith(color: palette.textPrimary),
+                                    ),
+                                  ),
+                                ),
+                                if (identity.isNotEmpty)
+                                  Text(identity,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.caption.copyWith(
+                                          color: palette.textSecondary)),
+                                if (!available)
+                                  Text('Нет в наличии',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.caption.copyWith(
+                                          color: palette.textSecondary)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        LayoutBuilder(builder: (context, textConstraints) {
+                          final quantityLabel = formatQuantity(
+                            quantity.toDouble(),
+                            perPiece
+                                ? ''
+                                : quantityUnitLabel(quantityUnit) ?? '',
+                          );
+                          final countPainter = TextPainter(
+                            text: TextSpan(
+                              text: quantityLabel,
+                              style: AppTypography.bodyMedium,
+                            ),
+                            textDirection: Directionality.of(context),
+                            textScaler: MediaQuery.textScalerOf(context),
+                          )..layout();
+                          final controlWidth = quantity <= 0
+                              ? AppSpacing.touchTarget
+                              : (AppSpacing.touchTarget * 2 +
+                                      countPainter.width +
+                                      AppSpacing.md)
+                                  .clamp(AppSpacing.touchTarget * 2,
+                                      textConstraints.maxWidth);
+                          countPainter.dispose();
+                          final pricePainter = TextPainter(
+                            text: TextSpan(
+                                text: priceLabel,
+                                style: AppTypography.headline),
+                            textDirection: Directionality.of(context),
+                            textScaler: MediaQuery.textScalerOf(context),
+                          )..layout();
+                          final inline = pricePainter.width +
+                                  controlWidth +
+                                  AppSpacing.xs <=
+                              textConstraints.maxWidth;
+                          pricePainter.dispose();
+                          final amount = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (oldPrice != null)
+                                Text(formatTenge(oldPrice!),
+                                    style: AppTypography.strikethrough.copyWith(
+                                        color: palette.textSecondary)),
+                              Text(priceLabel,
+                                  style: AppTypography.headline
+                                      .copyWith(color: palette.textPrimary)),
+                              if (saving != null)
+                                Text('Выгода ${formatTenge(saving!)}',
+                                    style: AppTypography.caption
+                                        .copyWith(color: palette.gold)),
+                            ],
+                          );
+                          final control = SizedBox(
+                            width: controlWidth,
+                            child: ProductQuantityControl(
+                              quantity: quantity,
+                              unit: perPiece ? null : quantityUnit,
+                              onIncrement: available ? onIncrement : null,
+                              onDecrement: onDecrement,
+                            ),
+                          );
+                          return inline
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Expanded(child: amount),
+                                    const SizedBox(width: AppSpacing.xs),
+                                    control,
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    amount,
+                                    const SizedBox(height: AppSpacing.xs),
+                                    Align(
+                                        alignment: Alignment.centerRight,
+                                        child: control),
+                                  ],
+                                );
+                        }),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: AppSpacing.xs),
-              artwork,
+              Positioned(
+                top: 0,
+                bottom: 0,
+                right: 0,
+                width: artWidth,
+                child: artwork,
+              ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

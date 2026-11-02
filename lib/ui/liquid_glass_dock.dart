@@ -9,19 +9,28 @@ import '../design/tokens.dart';
 import 'native_liquid_glass.dart';
 import 'scene_sampler_orientation.dart';
 
-/// A floating material with a sampled underlay and a separate sharp foreground.
+/// A full-bleed frosted bottom bar with a separate sharp foreground.
+///
+/// The bar spans the whole width, sits flush on the bottom edge (under the
+/// system inset) and rounds only its top corners. [dock] is laid out inside it
+/// with [horizontalPadding] on both sides and the bottom safe-area inset plus
+/// [basePadding] below, so callers only describe their own vertical rhythm.
+///
+/// A foreground that projects above the bar (the cart stamp) declares how far
+/// with [DockOverhang]; that strip belongs to the foreground's layout box, so
+/// the projecting part stays hit-testable, but the glass starts below it.
 ///
 /// iOS 26+ uses Apple's native effect. Other supported Flutter renderers sample
-/// [content] into a GPU image and refract it with a fragment shader, without a
-/// per-frame CPU readback or a delayed screenshot. One paired-marker probe at
-/// [warmUp] measures the sampler's vertical orientation. Platform views in
-/// [content] cannot be sampled by Flutter; keep them outside this optical underlay.
+/// [content] into a GPU image, Gaussian-blur the part of it near the bar, and
+/// refract that blurred crop with a fragment shader, without a per-frame CPU
+/// readback or a delayed screenshot. One paired-marker probe at [warmUp]
+/// measures the sampler's vertical orientation. Platform views in [content]
+/// cannot be sampled by Flutter; keep them outside this optical underlay.
 class LiquidGlassDock extends StatefulWidget {
   const LiquidGlassDock({
     required this.content,
     required this.dock,
-    this.margin,
-    this.borderRadius = const BorderRadius.all(Radius.circular(36)),
+    this.borderRadius = const BorderRadius.vertical(top: Radius.circular(20)),
     this.tint,
     this.onDockHeightChanged,
     super.key,
@@ -29,12 +38,24 @@ class LiquidGlassDock extends StatefulWidget {
 
   final Widget content;
   final Widget? dock;
-  final EdgeInsets? margin;
   final BorderRadius borderRadius;
   final Color? tint;
 
-  /// Reports the actual material height after layout, excluding [margin].
+  /// Reports the bar's height after layout, excluding the bottom safe-area
+  /// inset (which the bar also covers) and any [DockOverhang]. Content that
+  /// must stay clear of the bar reserves this plus the inset. Reports 0 while
+  /// the foreground is empty.
   final ValueChanged<double>? onDockHeightChanged;
+
+  /// Space between the foreground and the page's left and right edges.
+  static const double horizontalPadding = AppSpacing.xxxl;
+
+  /// Space under the foreground, on top of the bottom safe-area inset.
+  static const double basePadding = AppSpacing.xs;
+
+  // Float uniforms of `liquid_glass.frag`: uSize, uBounds, uCorners, uTint,
+  // uDark, uFlipY, uCrop.
+  static const int _uniformFloatCount = 20;
 
   static Future<void>? _preparation;
   static bool _prepared = false;
@@ -86,8 +107,9 @@ class LiquidGlassDock extends StatefulWidget {
     final sceneImage = scene.toImageSync(2, 2);
     final shader = program.fragmentShader();
     // CanvasKit may reuse uncleared WASM uniform memory. Make the raw
-    // passthrough bounds and flip explicit instead of relying on zero defaults.
-    for (var index = 2; index < 16; index++) {
+    // passthrough bounds, flip and crop explicit instead of relying on zero
+    // defaults (a zero crop width makes the sampler span `uSize`).
+    for (var index = 2; index < _uniformFloatCount; index++) {
       shader.setFloat(index, 0);
     }
     shader
@@ -120,23 +142,98 @@ class LiquidGlassDock extends StatefulWidget {
 }
 
 class _DockGeometry {
+  /// The glass bar in the content's coordinates; empty while the foreground is.
   Rect bounds = Rect.zero;
+  double reportedHeight = 0;
+}
+
+/// Carries a foreground's declared overhang from [DockOverhang] to the layout.
+class _DockScope extends InheritedWidget {
+  const _DockScope({required this.overhang, required super.child});
+
+  final ValueNotifier<double> overhang;
+
+  @override
+  bool updateShouldNotify(_DockScope oldWidget) =>
+      overhang != oldWidget.overhang;
+}
+
+/// Declares that the surrounding [LiquidGlassDock] foreground projects [extent]
+/// logical pixels above the glass bar.
+///
+/// The foreground's own box includes that strip (so the projecting control is
+/// hit-testable); the dock starts the glass [extent] below the top of the box.
+/// Outside a [LiquidGlassDock] this is transparent.
+class DockOverhang extends StatefulWidget {
+  const DockOverhang({required this.extent, required this.child, super.key});
+
+  final double extent;
+  final Widget child;
+
+  @override
+  State<DockOverhang> createState() => _DockOverhangState();
+}
+
+class _DockOverhangState extends State<DockOverhang> {
+  ValueNotifier<double>? _target;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next =
+        context.dependOnInheritedWidgetOfExactType<_DockScope>()?.overhang;
+    if (next == _target) return;
+    _target?.value = 0;
+    _target = next;
+    _target?.value = widget.extent;
+  }
+
+  @override
+  void didUpdateWidget(covariant DockOverhang oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _target?.value = widget.extent;
+  }
+
+  @override
+  void dispose() {
+    _target?.value = 0;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 enum _MaterialStatus { loading, native, shader, error }
 
-enum _DockSlot { content, dock }
+enum _DockSlot { content, backdrop, dock }
 
 class _LiquidGlassDockState extends State<LiquidGlassDock> {
   final _geometry = _DockGeometry();
+  final _overhang = ValueNotifier<double>(0);
   final _paint = Paint();
   // The page is drawn through Flutter's own image painter, which is upright on
-  // every renderer; only the glass samples the snapshot through the shader.
+  // every renderer; only the glass samples the blurred crop through the shader.
   final _pagePaint = Paint()..filterQuality = FilterQuality.none;
+  final _blurPaint = Paint()
+    ..imageFilter = ui.ImageFilter.blur(
+      sigmaX: _blurSigma,
+      sigmaY: _blurSigma,
+      tileMode: TileMode.clamp,
+    );
 
-  // `liquid_glass.frag` leaves everything farther than this from the glass
-  // untouched (`distance > 14.0`), so only that ring needs the shader.
-  static const _glassReach = 14.0;
+  // `liquid_glass.frag` leaves everything farther than this above the glass
+  // untouched (`distance > 24.0`), so only that band needs the shader.
+  static const _glassReach = 24.0;
+  // The frost is a real Gaussian of the page, taken in the page's logical
+  // pixels. Its input is read this far (3 sigma) beyond the sampled crop so the
+  // crop's own edges are not darkened by missing neighbours.
+  static const _blurSigma = 10.0;
+  static const _blurReach = _blurSigma * 3;
+  // Refraction bends sampling up to 32 px, plus the shader's smoothing taps.
+  static const _sampleReach = 40.0;
+  // A smooth blur needs no more than about 1.5 texels per logical pixel.
+  static const _maxTexelsPerPixel = 1.5;
   ui.FragmentShader? _shader;
   _MaterialStatus _status = _MaterialStatus.loading;
   Object? _error;
@@ -198,26 +295,62 @@ class _LiquidGlassDockState extends State<LiquidGlassDock> {
   void dispose() {
     _paint.shader = null;
     _shader?.dispose();
+    _overhang.dispose();
     super.dispose();
+  }
+
+  /// Gaussian-blurs the part of [image] around [crop] into a new GPU image
+  /// that covers exactly [crop] (both in logical page coordinates). Like the
+  /// page snapshot it comes from `toImageSync`, so the measured sampler
+  /// orientation applies to it unchanged.
+  ui.Image _blurredCrop(
+    ui.Image image,
+    Size size,
+    Rect crop,
+    double devicePixelRatio,
+  ) {
+    final texelsPerPixel = math.min(devicePixelRatio, _maxTexelsPerPixel);
+    final width = math.max(1, (crop.width * texelsPerPixel).ceil());
+    final height = math.max(1, (crop.height * texelsPerPixel).ceil());
+    final input = crop.inflate(_blurReach).intersect(Offset.zero & size);
+    final imageScaleX = image.width / size.width;
+    final imageScaleY = image.height / size.height;
+    final recorder = ui.PictureRecorder();
+    Canvas(recorder)
+      ..scale(width / crop.width, height / crop.height)
+      ..translate(-crop.left, -crop.top)
+      ..saveLayer(input, _blurPaint)
+      ..drawImageRect(
+        image,
+        Rect.fromLTRB(
+          input.left * imageScaleX,
+          input.top * imageScaleY,
+          input.right * imageScaleX,
+          input.bottom * imageScaleY,
+        ),
+        input,
+        _pagePaint,
+      )
+      ..restore();
+    final picture = recorder.endRecording();
+    try {
+      return picture.toImageSync(width, height);
+    } finally {
+      picture.dispose();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (widget.dock == null) return widget.content;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    // Apple's glass carries a base material under its adaptive response; the
-    // shader's range control only handles luminance extremes on top of it.
+    // A frosted base material under the optics: enough tint that text under
+    // the bar reads as colour, never as garbled letters.
     final tint = widget.tint ??
         (dark
-            ? const Color(0xFF0E0E10).withValues(alpha: 0.32)
-            : Colors.white.withValues(alpha: 0.30));
-    final margin = widget.margin ??
-        EdgeInsets.fromLTRB(
-          AppSpacing.xxxl,
-          0,
-          AppSpacing.xxxl,
-          AppSpacing.xl + MediaQuery.paddingOf(context).bottom,
-        );
+            ? const Color(0xFF0E0E10).withValues(alpha: 0.55)
+            : Colors.white.withValues(alpha: 0.62));
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final underlay = ColoredBox(
       color: context.palette.background,
       child: widget.content,
@@ -237,121 +370,198 @@ class _LiquidGlassDockState extends State<LiquidGlassDock> {
             );
             final bounds = _geometry.bounds;
             if (bounds.isEmpty) return;
-            final shader = _shader!;
-            final corners = widget.borderRadius;
-            shader
-              ..setFloat(0, size.width)
-              ..setFloat(1, size.height)
-              ..setFloat(2, bounds.left)
-              ..setFloat(3, bounds.top)
-              ..setFloat(4, bounds.width)
-              ..setFloat(5, bounds.height)
-              ..setFloat(6, corners.topLeft.x)
-              ..setFloat(7, corners.topRight.x)
-              ..setFloat(8, corners.bottomRight.x)
-              ..setFloat(9, corners.bottomLeft.x)
-              ..setFloat(10, tint.r)
-              ..setFloat(11, tint.g)
-              ..setFloat(12, tint.b)
-              ..setFloat(13, tint.a)
-              ..setFloat(14, dark ? 1 : 0)
-              ..setFloat(15, LiquidGlassDock._sceneFlipY ? 1 : 0)
-              ..setImageSampler(0, image);
-            _paint.shader = shader;
-            canvas.drawRect(bounds.inflate(_glassReach), _paint);
+            final crop =
+                bounds.inflate(_sampleReach).intersect(Offset.zero & size);
+            if (crop.isEmpty) return;
+            final blurred = _blurredCrop(image, size, crop, devicePixelRatio);
+            try {
+              final shader = _shader!;
+              final corners = widget.borderRadius;
+              shader
+                ..setFloat(0, size.width)
+                ..setFloat(1, size.height)
+                ..setFloat(2, bounds.left)
+                ..setFloat(3, bounds.top)
+                ..setFloat(4, bounds.width)
+                ..setFloat(5, bounds.height)
+                ..setFloat(6, corners.topLeft.x)
+                ..setFloat(7, corners.topRight.x)
+                ..setFloat(8, corners.bottomRight.x)
+                ..setFloat(9, corners.bottomLeft.x)
+                ..setFloat(10, tint.r)
+                ..setFloat(11, tint.g)
+                ..setFloat(12, tint.b)
+                ..setFloat(13, tint.a)
+                ..setFloat(14, dark ? 1 : 0)
+                ..setFloat(15, LiquidGlassDock._sceneFlipY ? 1 : 0)
+                ..setFloat(16, crop.left)
+                ..setFloat(17, crop.top)
+                ..setFloat(18, crop.width)
+                ..setFloat(19, crop.height)
+                ..setImageSampler(0, blurred);
+              _paint.shader = shader;
+              // The bar's sides and bottom lie on the page edge: only the
+              // band above it needs the shadow.
+              canvas.drawRect(
+                Rect.fromLTRB(
+                  bounds.left,
+                  bounds.top - _glassReach,
+                  bounds.right,
+                  bounds.bottom,
+                ),
+                _paint,
+              );
+            } finally {
+              blurred.dispose();
+            }
           }, child: underlay)
         : underlay;
-    return CustomMultiChildLayout(
-      delegate: _DockLayout(_geometry, margin, _reportDockHeight),
-      children: [
-        LayoutId(id: _DockSlot.content, child: background),
-        LayoutId(id: _DockSlot.dock, child: _foreground(dark, tint)),
-      ],
+    final backdrop = _backdrop(dark, tint);
+    return _DockScope(
+      overhang: _overhang,
+      child: CustomMultiChildLayout(
+        delegate: _DockLayout(
+          geometry: _geometry,
+          overhang: _overhang,
+          bottomInset: MediaQuery.paddingOf(context).bottom,
+          onHeightChanged: _reportDockHeight,
+        ),
+        children: [
+          LayoutId(id: _DockSlot.content, child: background),
+          if (backdrop != null)
+            LayoutId(id: _DockSlot.backdrop, child: backdrop),
+          LayoutId(id: _DockSlot.dock, child: widget.dock!),
+        ],
+      ),
     );
   }
 
   bool _heightReportScheduled = false;
+  double _pendingHeight = 0;
 
-  void _reportDockHeight() {
+  void _reportDockHeight(double height) {
+    _pendingHeight = height;
     if (_heightReportScheduled || widget.onDockHeightChanged == null) return;
     _heightReportScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _heightReportScheduled = false;
-      if (mounted) widget.onDockHeightChanged?.call(_geometry.bounds.height);
+      if (mounted) widget.onDockHeightChanged?.call(_pendingHeight);
     });
   }
 
-  Widget _foreground(bool dark, Color tint) {
-    if (_status == _MaterialStatus.native) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: NativeLiquidGlassBackdrop(
-              borderRadius: widget.borderRadius,
-              tint: tint,
-              dark: dark,
-            ),
-          ),
-          widget.dock!,
-        ],
-      );
-    }
-    if (_status == _MaterialStatus.shader) return widget.dock!;
-    final failure = _status == _MaterialStatus.error;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: widget.borderRadius,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: Semantics(
-              liveRegion: true,
-              child: Tooltip(
-                message: failure ? '$_error' : '',
-                child: Text(
-                  failure ? 'Стекло недоступно' : 'Подготовка стекла…',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+  /// The material under the foreground when the shader is not the renderer:
+  /// Apple's native glass, or a plain surface while the shader loads or if it
+  /// failed. The layout sizes it to exactly the bar.
+  Widget? _backdrop(bool dark, Color tint) {
+    switch (_status) {
+      case _MaterialStatus.native:
+        return NativeLiquidGlassBackdrop(
+          borderRadius: widget.borderRadius,
+          tint: tint,
+          dark: dark,
+        );
+      case _MaterialStatus.shader:
+        return null;
+      case _MaterialStatus.loading:
+      case _MaterialStatus.error:
+        final failure = _status == _MaterialStatus.error;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: widget.borderRadius,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: dark ? 0.24 : 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, -4),
               ),
-            ),
+            ],
           ),
-          widget.dock!,
-        ],
-      ),
-    );
+          child: failure
+              ? Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      LiquidGlassDock.horizontalPadding,
+                      AppSpacing.xs,
+                      LiquidGlassDock.horizontalPadding,
+                      0,
+                    ),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Tooltip(
+                        message: '$_error',
+                        child: Text(
+                          'Стекло недоступно',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        );
+    }
   }
 }
 
 class _DockLayout extends MultiChildLayoutDelegate {
-  _DockLayout(this.geometry, this.margin, this.onHeightChanged);
+  _DockLayout({
+    required this.geometry,
+    required this.overhang,
+    required this.bottomInset,
+    required this.onHeightChanged,
+  }) : super(relayout: overhang);
 
   final _DockGeometry geometry;
-  final EdgeInsets margin;
-  final VoidCallback onHeightChanged;
+  final ValueNotifier<double> overhang;
+  final double bottomInset;
+  final ValueChanged<double> onHeightChanged;
 
   @override
   void performLayout(Size size) {
-    final width = math.max(0.0, size.width - margin.horizontal);
-    final maxHeight = math.max(0.0, size.height - margin.vertical);
+    final bottomPadding = bottomInset + LiquidGlassDock.basePadding;
+    final width =
+        math.max(0.0, size.width - LiquidGlassDock.horizontalPadding * 2);
     final dock = layoutChild(
       _DockSlot.dock,
-      BoxConstraints(minWidth: width, maxWidth: width, maxHeight: maxHeight),
+      BoxConstraints(
+        minWidth: width,
+        maxWidth: width,
+        maxHeight: math.max(0.0, size.height - bottomPadding),
+      ),
     );
-    final top = math.max(margin.top, size.height - margin.bottom - dock.height);
-    final previousHeight = geometry.bounds.height;
-    geometry.bounds = Rect.fromLTWH(margin.left, top, width, dock.height);
-    if ((dock.height - previousHeight).abs() > 0.5) onHeightChanged();
-    positionChild(_DockSlot.dock, geometry.bounds.topLeft);
+    // An empty foreground (a hidden cart button) has no material at all.
+    final present = dock.height > 0.5;
+    final projecting = present ? math.min(overhang.value, dock.height) : 0.0;
+    final barHeight = present ? dock.height - projecting + bottomPadding : 0.0;
+    final bar = present
+        ? Rect.fromLTWH(0, size.height - barHeight, size.width, barHeight)
+        : Rect.zero;
+    geometry.bounds = bar;
+    final reported = present ? barHeight - bottomInset : 0.0;
+    if ((reported - geometry.reportedHeight).abs() > 0.5) {
+      geometry.reportedHeight = reported;
+      onHeightChanged(reported);
+    }
+    positionChild(
+      _DockSlot.dock,
+      Offset(
+        LiquidGlassDock.horizontalPadding,
+        size.height - bottomPadding - dock.height,
+      ),
+    );
+    if (hasChild(_DockSlot.backdrop)) {
+      layoutChild(_DockSlot.backdrop, BoxConstraints.tight(bar.size));
+      positionChild(_DockSlot.backdrop, bar.topLeft);
+    }
     layoutChild(_DockSlot.content, BoxConstraints.tight(size));
     positionChild(_DockSlot.content, Offset.zero);
   }
 
   @override
   bool shouldRelayout(covariant _DockLayout oldDelegate) =>
-      geometry != oldDelegate.geometry || margin != oldDelegate.margin;
+      geometry != oldDelegate.geometry ||
+      overhang != oldDelegate.overhang ||
+      bottomInset != oldDelegate.bottomInset;
 }

@@ -52,6 +52,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(target.answer), findsOneWidget);
 
+    await tester.tap(find.byTooltip('Поиск'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '  SMS  ');
     await tester.pumpAndSettle();
     expect(find.text(entryMatching('SMS').question), findsOneWidget);

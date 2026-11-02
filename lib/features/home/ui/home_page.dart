@@ -127,7 +127,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.huge),
                 _ContentWidth(
                   child: KeyedSubtree(
                     key: const ValueKey('home-search-field'),
@@ -135,7 +135,7 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 if (data.banners.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.huge),
+                  const SizedBox(height: 18),
                   KeyedSubtree(
                     key: const ValueKey('home-banner-carousel'),
                     child: _BannerCarousel(
@@ -424,8 +424,8 @@ class _StoreCard extends StatelessWidget {
       height: 32,
       child: Center(
         child: data.signedIn
-            ? AppIcon(AppIcons.shopGlyph, size: 24, color: palette.textPrimary)
-            : AppIcon(AppIcons.user, size: 18, color: palette.textPrimary),
+            ? const AppIcon(AppIcons.shopGlyph, size: 24, color: Colors.white)
+            : const AppIcon(AppIcons.user, size: 24, color: Colors.white),
       ),
     );
     return InkWell(
@@ -465,14 +465,14 @@ class _StoreCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 data.storeName,
-                                style: AppTypography.bodySmallBold.copyWith(
+                                style: AppTypography.labelBold.copyWith(
                                   color: palette.textPrimary,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppSpacing.sm),
                         Row(
                           children: [
                             AppIcon(
@@ -486,7 +486,7 @@ class _StoreCard extends StatelessWidget {
                                 data.storeAddress.isEmpty
                                     ? 'Выберите магазин'
                                     : data.storeAddress,
-                                style: AppTypography.bodySmall
+                                style: AppTypography.label
                                     .copyWith(color: palette.textSecondary),
                               ),
                             ),
@@ -608,8 +608,9 @@ class _SearchField extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
               Expanded(
                   child: Text('Найти любимый напиток...',
-                      style: AppTypography.body
-                          .copyWith(color: palette.textSecondary))),
+                      style: AppTypography.bodySmall.copyWith(
+                          fontWeight: FontWeight.w300,
+                          color: palette.textSecondary))),
             ],
           ),
         ),
@@ -648,8 +649,13 @@ class _BannerCarouselState extends State<_BannerCarousel> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 552),
           child: LayoutBuilder(builder: (context, constraints) {
-            final width =
-                (constraints.maxWidth - 80).clamp(240.0, 420.0).toDouble();
+            // A lone campaign sits on the same gutters as every other block; several
+            // campaigns peek from either side so the row reads as a carousel.
+            final width = widget.banners.length == 1
+                ? (constraints.maxWidth - AppSpacing.gutter * 2)
+                    .clamp(240.0, 520.0)
+                    .toDouble()
+                : (constraints.maxWidth - 80).clamp(240.0, 420.0).toDouble();
             final step = width + _gap;
             if (_step != step) {
               final index = _step != null && _controller.hasClients
@@ -837,18 +843,15 @@ class _PromoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final hasArtwork = (promo.imageUrl?.trim() ?? '').isNotEmpty;
-    final hasFill = promo.fill != null;
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadii.lgAll,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadii.lg),
         child: ConstrainedBox(
-          // An artwork-less promo without even a campaign fill has nothing to
-          // show below its copy; reserving artwork height leaves a bare panel.
-          constraints:
-              BoxConstraints(minHeight: hasArtwork || hasFill ? 160 : 0),
+          // The kitchen panel keeps the reference composition even when its
+          // optional artwork has not been supplied by the selected store.
+          constraints: const BoxConstraints(minHeight: 160),
           child: Stack(
             children: [
               Positioned.fill(
@@ -877,10 +880,13 @@ class _PromoCard extends StatelessWidget {
                       ),
                       if (promo.subtitle.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          promo.subtitle,
-                          style: AppTypography.bodySmall
-                              .copyWith(color: palette.textPrimary),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 150),
+                          child: Text(
+                            promo.subtitle,
+                            style: AppTypography.label
+                                .copyWith(color: palette.textPrimary),
+                          ),
                         ),
                       ],
                     ],
@@ -1006,9 +1012,9 @@ class _CategoryTile extends StatelessWidget {
             const SizedBox(height: 9),
             _CategoryCaption(
               title: category.title,
-              style: AppTypography.bodySmall.copyWith(
+              style: AppTypography.label.copyWith(
                 color: palette.textPrimary,
-                fontSize: AppTypography.bodySmall.fontSize! * captionScale,
+                fontSize: AppTypography.label.fontSize! * captionScale,
               ),
             ),
           ],
@@ -1224,7 +1230,8 @@ class _ProductSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xl),
               ProductRail(
-                spacing: AppSpacing.xl,
+                spacing: AppSpacing.md,
+                products: section.products,
                 itemCount: section.products.length,
                 itemBuilder: (context, index) {
                   final product = section.products[index];

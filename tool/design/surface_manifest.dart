@@ -6,6 +6,7 @@ const surfaceReferenceFrames = <String, String?>{
   'all_products': 'Каталог - Все товары',
   'cart': 'Корзина',
   'profile': 'Профиль',
+  'product': 'Описание товара',
   'profile_guest': 'Профиль',
   'promotion': null,
   'orders': 'История заказов',

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../core/money.dart';
@@ -7,11 +9,115 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
-import 'surfaces.dart';
 
-/// A naturally sized product card with complete identity, pricing and offers.
+/// Tells every [ProductCard] below it which optional price lines exist somewhere in the
+/// collection, so each card reserves the same slots and prices and buttons line up.
+class ProductCardLayout extends InheritedWidget {
+  const ProductCardLayout({
+    required this.hasOldPrice,
+    required this.hasSaving,
+    required super.child,
+    super.key,
+  });
+
+  /// Derives the flags from the products a grid or rail is about to show.
+  ///
+  /// A null collection is treated as the tallest case, so cards can never be clipped.
+  static ({bool hasOldPrice, bool hasSaving}) flagsOf(
+    Iterable<ProductView>? products,
+  ) {
+    if (products == null) return (hasOldPrice: true, hasSaving: true);
+    var oldPrice = false;
+    var saving = false;
+    for (final product in products) {
+      oldPrice = oldPrice || product.oldPrice != null;
+      saving = saving || product.saving != null;
+    }
+    return (hasOldPrice: oldPrice, hasSaving: saving);
+  }
+
+  final bool hasOldPrice;
+  final bool hasSaving;
+
+  static ProductCardLayout? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ProductCardLayout>();
+
+  @override
+  bool updateShouldNotify(ProductCardLayout oldWidget) =>
+      hasOldPrice != oldWidget.hasOldPrice || hasSaving != oldWidget.hasSaving;
+}
+
+/// Every vertical measure of a card, derived from its width and the text scaler.
 ///
-/// Names and known attributes wrap without truncation or text-scale overrides.
+/// The same numbers size the card's slots and the grid/rail row height, so a row of cards
+/// has one height and nothing inside it can overflow.
+class _CardMetrics {
+  _CardMetrics(
+    this.width,
+    TextScaler scaler, {
+    required this.hasOldPrice,
+    required this.hasSaving,
+  }) {
+    double line(double size, [int lines = 1]) =>
+        (scaler.scale(size) * 1.3 * lines).ceilToDouble();
+    nameHeight = line(13, 2);
+    metaHeight = line(12);
+    oldPriceHeight = line(12);
+    priceHeight = line(16);
+    savingHeight = line(12);
+    pillHeight = math.max(34.0, (scaler.scale(14) * 1.2 + 10).ceilToDouble());
+    hitHeight = math.max(AppSpacing.touchTarget, pillHeight + 8);
+  }
+
+  static const double pad = 4;
+  static const double textInset = 4;
+  static const double imageGap = 8;
+  static const double nameGap = 2;
+  static const double minGap = 6;
+  static const double ctaGap = 6;
+  static const double maxImageHeight = 170;
+
+  final double width;
+  final bool hasOldPrice;
+  final bool hasSaving;
+  late final double nameHeight;
+  late final double metaHeight;
+  late final double oldPriceHeight;
+  late final double priceHeight;
+  late final double savingHeight;
+  late final double pillHeight;
+  late final double hitHeight;
+
+  double get innerWidth => width - pad * 2;
+  double get textWidth => innerWidth - textInset * 2;
+  double get imageHeight =>
+      math.min(innerWidth * 1.1, maxImageHeight).roundToDouble();
+  double get priceBlockHeight =>
+      (hasOldPrice ? oldPriceHeight : 0) +
+      priceHeight +
+      (hasSaving ? savingHeight : 0);
+  double get ctaReserve => ctaGap + pillHeight;
+
+  double get extent =>
+      pad +
+      imageHeight +
+      imageGap +
+      nameHeight +
+      nameGap +
+      metaHeight +
+      minGap +
+      priceBlockHeight +
+      ctaReserve +
+      pad;
+}
+
+/// A compact photo-first card with the complete identity in its description.
+///
+/// The anatomy is fixed: artwork, a two-line name, one meta line, then the price block and
+/// the cart control pinned to the bottom. Long names ellipsize (the full text stays in the
+/// semantics label), so cards in one row always share a height and their prices and
+/// buttons share baselines. Inside a [ProductGrid] or [ProductRail] the height is dictated
+/// by the parent; on its own the card sizes itself from the same metrics.
 class ProductCard extends StatelessWidget {
   const ProductCard({
     required this.title,
@@ -19,6 +125,8 @@ class ProductCard extends StatelessWidget {
     this.oldPrice,
     this.saving,
     this.metadata = const [],
+    this.country,
+    this.volume,
     this.unitPriceLabel,
     this.quantityUnit,
     this.imageUrl,
@@ -39,6 +147,8 @@ class ProductCard extends StatelessWidget {
   final num? oldPrice;
   final num? saving;
   final List<String> metadata;
+  final String? country;
+  final String? volume;
   final String? unitPriceLabel;
   final String? quantityUnit;
   final String? imageUrl;
@@ -52,22 +162,47 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
+
+  /// An extra control (for example a favourite toggle) overlaid on the artwork's top
+  /// corner. It brings its own hit target.
   final Widget? trailingAction;
 
-  /// Returns a readable width for a horizontal product rail.
-  static double widthFor(BuildContext context) {
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    return 176 + (scale - 1).clamp(0, double.infinity) * 100;
-  }
+  static final TextStyle _nameStyle = AppTypography.base(size: 13, weight: 500);
+  static final TextStyle _metaStyle = AppTypography.base(size: 12);
+  static final TextStyle _countStyle =
+      AppTypography.base(size: 14, weight: 700, height: 1.2);
 
-  /// Keeps two columns at phone widths and one for narrow or enlarged content.
+  static double _scaleOf(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(14) / 14;
+
+  /// The width of a card in a horizontal rail: about two and a half fit at 375 px.
+  static double widthFor(BuildContext context) =>
+      128 + math.max(0.0, _scaleOf(context) - 1.15) * 120;
+
+  /// The height of every card [width] wide at the current text scale.
+  ///
+  /// [hasOldPrice] / [hasSaving] say whether any card in the collection shows those price
+  /// lines; they default to the tallest case.
+  static double extentFor(
+    BuildContext context,
+    double width, {
+    bool hasOldPrice = true,
+    bool hasSaving = true,
+  }) =>
+      _CardMetrics(
+        width,
+        MediaQuery.textScalerOf(context),
+        hasOldPrice: hasOldPrice,
+        hasSaving: hasSaving,
+      ).extent;
+
+  /// Fits three compact cards at 375 px, fewer for narrow screens or large text.
   static int columnsFor(BuildContext context, double availableWidth,
-      {double spacing = AppSpacing.md}) {
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final minimumWidth = 160 + (scale - 1).clamp(0, double.infinity) * 140;
+      {double spacing = AppSpacing.sm}) {
+    final minimumWidth = 104 + math.max(0.0, _scaleOf(context) - 1.15) * 160;
     return ((availableWidth + spacing) / (minimumWidth + spacing))
         .floor()
-        .clamp(1, 4)
+        .clamp(1, 6)
         .toInt();
   }
 
@@ -84,6 +219,8 @@ class ProductCard extends StatelessWidget {
         key: key,
         title: view.title,
         metadata: view.metadata,
+        country: view.country,
+        volume: view.volume,
         unitPriceLabel: view.unitPriceLabel,
         quantityUnit: view.unit,
         price: view.price,
@@ -104,139 +241,297 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final priceLabel = unitPriceLabel ?? formatTenge(price);
-    return SizedBox(
-      width: widthFor(context),
-      child: AppSurface(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            InkWell(
-              onTap: onTap,
-              borderRadius: AppRadii.smAll,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) => SizedBox(
-                      height: (constraints.maxWidth * .8).clamp(96, 152),
-                      child: ClipRRect(
-                        borderRadius: AppRadii.smAll,
-                        child: ColoredBox(
-                          color: Colors.white,
-                          child: imageUrl?.isNotEmpty == true
-                              ? Image.network(
-                                  imageUrl!,
-                                  cacheWidth: (constraints.maxWidth *
-                                          MediaQuery.devicePixelRatioOf(
-                                              context))
-                                      .ceil(),
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) =>
-                                      _missingArt(palette),
-                                )
-                              : _missingArt(palette),
+    final basis = quantityUnitLabel(quantityUnit);
+    final priceLabel = basis == 'шт'
+        ? formatTenge(price)
+        : unitPriceLabel ??
+            '${formatTenge(price)}${basis == null ? '' : '/$basis'}';
+    final description = [
+      title,
+      ...metadata,
+      if (country != null && !metadata.contains(country)) country!,
+      if (volume != null && !metadata.contains(volume)) volume!,
+      priceLabel,
+      if (oldPrice != null) 'Прежняя цена ${formatTenge(oldPrice!)}',
+      if (saving != null) 'Выгода ${formatTenge(saving!)}',
+      if (discount != null) 'Скидка $discount',
+      if (promo != null) 'Акция $promo',
+      if (bonus != null) 'Бонусы $bonus',
+      if (!available) 'Нет в наличии',
+    ].join('. ');
+    final layout = ProductCardLayout.maybeOf(context);
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasTightWidth
+            ? constraints.maxWidth
+            : widthFor(context)
+                .clamp(constraints.minWidth, constraints.maxWidth)
+                .toDouble();
+        final metrics = _CardMetrics(
+          width,
+          scaler,
+          hasOldPrice: oldPrice != null || (layout?.hasOldPrice ?? false),
+          hasSaving: saving != null || (layout?.hasSaving ?? false),
+        );
+        final height =
+            constraints.hasTightHeight ? constraints.maxHeight : metrics.extent;
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Material(
+                  color: palette.surface,
+                  surfaceTintColor: Colors.transparent,
+                  borderRadius: AppRadii.lgAll,
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(_CardMetrics.pad),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Semantics(
+                            label: description,
+                            button: onTap != null,
+                            onTap: onTap,
+                            excludeSemantics: true,
+                            child: InkWell(
+                              onTap: onTap,
+                              borderRadius: AppRadii.smAll,
+                              child: _content(
+                                  context, palette, metrics, priceLabel, basis),
+                            ),
+                          ),
                         ),
-                      ),
+                        SizedBox(height: metrics.ctaReserve),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    title,
-                    style: AppTypography.bodySmallSemibold
-                        .copyWith(color: palette.textPrimary),
-                  ),
-                  if (metadata.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      metadata.join(' · '),
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary),
-                    ),
-                  ],
-                  if (!available) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Нет в наличии',
-                      style: AppTypography.label
-                          .copyWith(color: palette.textSecondary),
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.md),
-                  if (oldPrice != null)
-                    Text(
-                      formatTenge(oldPrice!),
-                      style: AppTypography.strikethrough
-                          .copyWith(color: palette.textSecondary),
-                    ),
-                  Text(
-                    priceLabel,
-                    style: AppTypography.title
-                        .copyWith(color: palette.textPrimary),
-                  ),
-                  if (saving != null)
-                    Text(
-                      'Выгода ${formatTenge(saving!)}',
-                      style: AppTypography.labelMedium
-                          .copyWith(color: palette.textPrimary),
-                    ),
-                  if (discount != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    _ProductFact(
-                      icon: AppIcons.fire,
-                      label: discount!,
-                      semanticLabel: 'Скидка $discount',
-                      fill: palette.brandRed,
-                      foreground: Colors.white,
-                    ),
-                  ],
-                  if (promo != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    _ProductFact(
-                      icon: AppIcons.fire,
-                      label: 'Акция $promo',
-                      fill: palette.accent,
-                      foreground: palette.textOnAccent,
-                    ),
-                  ],
-                  if (bonus != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    _ProductFact(
-                      icon: AppIcons.bonusStar,
-                      label: 'Бонусы $bonus',
-                      fill: palette.gold,
-                      foreground:
-                          Theme.of(context).brightness == Brightness.light
-                              ? Colors.white
-                              : Colors.black,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: ProductQuantityControl(
-                    quantity: quantity,
-                    unit: quantityUnit,
-                    onIncrement: available ? onIncrement : null,
-                    onDecrement: onDecrement,
                   ),
                 ),
-                if (trailingAction != null) ...[
-                  const SizedBox(width: AppSpacing.xs),
-                  trailingAction!,
-                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: metrics.hitHeight,
+                child: _CardCta(
+                  quantity: quantity,
+                  unit: quantityUnit,
+                  onIncrement: available ? onIncrement : null,
+                  onDecrement: onDecrement,
+                  pillHeight: metrics.pillHeight,
+                  hitHeight: metrics.hitHeight,
+                  countStyle: _countStyle,
+                ),
+              ),
+              if (trailingAction != null)
+                Positioned(
+                  top: _CardMetrics.pad,
+                  right: _CardMetrics.pad,
+                  child: trailingAction!,
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _content(
+    BuildContext context,
+    AppPalette palette,
+    _CardMetrics metrics,
+    String priceLabel,
+    String? basis,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: metrics.imageHeight,
+          child: _artwork(context, palette, metrics),
+        ),
+        const SizedBox(height: _CardMetrics.imageGap),
+        Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: _CardMetrics.textInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: _nameStyle.copyWith(color: palette.textPrimary),
+              ),
+              const SizedBox(height: _CardMetrics.nameGap),
+              SizedBox(
+                height: metrics.metaHeight,
+                child: _meta(palette, metrics),
+              ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: _CardMetrics.textInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (metrics.hasOldPrice)
+                SizedBox(
+                  height: metrics.oldPriceHeight,
+                  width: double.infinity,
+                  child: oldPrice == null
+                      ? null
+                      : Text(
+                          '${formatTenge(oldPrice!)}${basis == null || basis == 'шт' ? '' : '/$basis'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.strikethrough
+                              .copyWith(color: palette.textSecondary),
+                        ),
+                ),
+              Text(
+                priceLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.title.copyWith(color: palette.textPrimary),
+              ),
+              if (metrics.hasSaving)
+                SizedBox(
+                  height: metrics.savingHeight,
+                  width: double.infinity,
+                  child: saving == null
+                      ? null
+                      : Text(
+                          'Выгода ${formatTenge(saving!)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.labelMedium
+                              .copyWith(color: palette.gold),
+                        ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Volume and country as one quiet line, e.g. «0,75 л · Франция»: the volume
+  /// leads because it distinguishes otherwise identical names.
+  Widget _meta(AppPalette palette, _CardMetrics metrics) {
+    final parts = [
+      if (volume?.trim().isNotEmpty == true) volume!.trim(),
+      if (country?.trim().isNotEmpty == true) country!.trim(),
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Text(
+      parts.join(' · '),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: _metaStyle.copyWith(color: palette.textSecondary),
+    );
+  }
+
+  Widget _artwork(
+    BuildContext context,
+    AppPalette palette,
+    _CardMetrics metrics,
+  ) {
+    final art = imageUrl?.isNotEmpty == true
+        ? Image.network(
+            imageUrl!,
+            width: double.infinity,
+            height: double.infinity,
+            cacheWidth:
+                (metrics.innerWidth * MediaQuery.devicePixelRatioOf(context))
+                    .ceil(),
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => _missingArt(palette),
+          )
+        : _missingArt(palette);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRRect(
+          borderRadius: AppRadii.mdAll,
+          child: ColoredBox(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: available ? art : Opacity(opacity: .4, child: art),
+            ),
+          ),
+        ),
+        if (discount != null || promo != null || bonus != null)
+          Positioned(
+            top: AppSpacing.xs,
+            left: AppSpacing.xs,
+            right: AppSpacing.xs,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              spacing: AppSpacing.xxs,
+              children: [
+                if (discount != null)
+                  _Badge(
+                    icon: AppIcons.fire,
+                    label: discount!,
+                    fill: palette.brandRed,
+                    foreground: Colors.white,
+                  ),
+                if (promo != null)
+                  _Badge(
+                    icon: AppIcons.fire,
+                    label: promo!,
+                    fill: palette.accent,
+                    foreground: palette.textOnAccent,
+                  ),
+                if (bonus != null)
+                  _Badge(
+                    icon: AppIcons.bonusStar,
+                    label: bonus!,
+                    fill: const Color(0xFFE0AB62),
+                    foreground: Colors.black,
+                  ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        if (!available)
+          Positioned(
+            left: AppSpacing.xs,
+            right: AppSpacing.xs,
+            bottom: AppSpacing.xs,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: palette.surface.withValues(alpha: .92),
+                  borderRadius: AppRadii.xsAll,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xxs,
+                  ),
+                  child: Text(
+                    'Нет в наличии',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.base(size: 11, weight: 500)
+                        .copyWith(color: palette.textPrimary),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -253,42 +548,233 @@ class ProductCard extends StatelessWidget {
       );
 }
 
-class _ProductFact extends StatelessWidget {
-  const _ProductFact({
+/// A small status badge over the artwork: icon plus a one-line label, 11 px minimum.
+class _Badge extends StatelessWidget {
+  const _Badge({
     required this.icon,
     required this.label,
     required this.fill,
     required this.foreground,
-    this.semanticLabel,
   });
 
   final String icon;
   final String label;
   final Color fill;
   final Color foreground;
-  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
         decoration: BoxDecoration(color: fill, borderRadius: AppRadii.xsAll),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              AppIcon(icon, size: 14, color: foreground),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
+              AppIcon(icon, size: 10, color: foreground),
+              const SizedBox(width: 2),
+              Flexible(
                 child: Text(
                   label,
-                  semanticsLabel: semanticLabel,
-                  style: AppTypography.labelMedium.copyWith(color: foreground),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.base(size: 11, weight: 500)
+                      .copyWith(color: foreground),
                 ),
               ),
             ],
           ),
         ),
       );
+}
+
+/// The card's cart control: an orange pill with white glyphs, drawn [pillHeight] tall at the
+/// card's bottom edge inside a taller transparent hit area.
+///
+/// Add, decrease and increase keep their own labelled [StepTap]s (at least 44 px each way);
+/// the decrease/increase taps overlap the count's neighbourhood rather than shrinking.
+class _CardCta extends StatelessWidget {
+  const _CardCta({
+    required this.quantity,
+    required this.unit,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.pillHeight,
+    required this.hitHeight,
+    required this.countStyle,
+  });
+
+  final num quantity;
+  final String? unit;
+  final VoidCallback? onIncrement;
+  final VoidCallback? onDecrement;
+  final double pillHeight;
+  final double hitHeight;
+  final TextStyle countStyle;
+
+  static const double _inset = _CardMetrics.pad;
+  static const double _glyphZone = 36;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final disabled = onIncrement == null && onDecrement == null;
+    final fill =
+        disabled ? palette.textSecondary.withValues(alpha: .2) : palette.accent;
+    final glyph = disabled ? palette.textSecondary : palette.textOnAccent;
+    // Centres the 44 px tap boxes' glyphs on the pill instead of on the whole hit area.
+    final glyphShift = math.max(0.0, hitHeight - _inset * 2 - pillHeight);
+    Widget icon(IconData data, {required bool enabled}) => Padding(
+          padding: EdgeInsets.only(top: glyphShift),
+          child: Icon(
+            data,
+            size: 20,
+            color: enabled ? glyph : glyph.withValues(alpha: .45),
+          ),
+        );
+    final pill = Positioned(
+      left: _inset,
+      right: _inset,
+      bottom: _inset,
+      height: pillHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: fill, borderRadius: AppRadii.mdAll),
+      ),
+    );
+    if (quantity <= 0) {
+      final light = Theme.of(context).brightness == Brightness.light;
+      final enabled = onIncrement != null;
+      // Not yet in the cart: a quiet raised pill, so a grid is not a wall of orange.
+      // The solid orange stepper below then reads as a clear «in cart» state.
+      final addFill = !enabled
+          ? palette.textSecondary.withValues(alpha: .15)
+          : light
+              ? palette.background
+              : Color.alphaBlend(
+                  palette.accent.withValues(alpha: .18), palette.background);
+      final addGlyph = enabled ? palette.accent : palette.textSecondary;
+      final labelStyle = AppTypography.base(size: 13, weight: 600).copyWith(
+          color: enabled ? palette.textPrimary : palette.textSecondary);
+      return LayoutBuilder(builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: 'В корзину', style: labelStyle),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout();
+        final showLabel =
+            painter.width + 18 + 4 + 16 <= constraints.maxWidth - _inset * 2;
+        painter.dispose();
+        return Stack(
+          children: [
+            Positioned(
+              left: _inset,
+              right: _inset,
+              bottom: _inset,
+              height: pillHeight,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: addFill,
+                  borderRadius: AppRadii.mdAll,
+                  boxShadow: enabled && light
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x14000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: StepTap(
+                label: 'Добавить',
+                onTap: onIncrement,
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.only(top: glyphShift),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_rounded, size: 18, color: addGlyph),
+                      if (showLabel) ...[
+                        const SizedBox(width: 4),
+                        ExcludeSemantics(
+                          child:
+                              Text('В корзину', maxLines: 1, style: labelStyle),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      });
+    }
+    final basis = quantityUnitLabel(unit);
+    final withUnit = formatQuantity(
+      quantity.toDouble(),
+      basis == null || basis == 'шт' ? '' : basis,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final slot = constraints.maxWidth - _inset * 2 - _glyphZone * 2;
+        final painter = TextPainter(
+          text: TextSpan(text: withUnit, style: countStyle),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout();
+        final fits = painter.width <= slot;
+        painter.dispose();
+        final label = fits ? withUnit : formatQuantity(quantity.toDouble(), '');
+        return Stack(
+          children: [
+            pill,
+            Positioned(
+              left: _inset + _glyphZone,
+              right: _inset + _glyphZone,
+              bottom: _inset,
+              height: pillHeight,
+              child: Center(
+                child: Text(
+                  label,
+                  key: ValueKey(label),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: countStyle.copyWith(color: glyph),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: StepTap(
+                label: 'Уменьшить количество',
+                onTap: onDecrement,
+                child: icon(Icons.remove, enabled: onDecrement != null),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: StepTap(
+                label: 'Увеличить количество',
+                onTap: onIncrement,
+                child: icon(Icons.add, enabled: onIncrement != null),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 /// Separate stock-aware quantity actions with a readable fractional count.
@@ -309,9 +795,10 @@ class ProductQuantityControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final basis = quantityUnitLabel(unit);
     final label = formatQuantity(
       quantity.toDouble(),
-      quantityUnitLabel(unit) ?? '',
+      basis == null || basis == 'шт' ? '' : basis,
     );
     final foreground = onIncrement == null && onDecrement == null
         ? palette.textSecondary
@@ -324,7 +811,7 @@ class ProductQuantityControl extends StatelessWidget {
           textScaler: MediaQuery.textScalerOf(context),
         )..layout();
         final inline = constraints.maxWidth >=
-            AppSpacing.touchTarget * 2 + countPainter.width + AppSpacing.md;
+            AppSpacing.touchTarget * 2 + countPainter.width;
         countPainter.dispose();
         final count = Text(
           label,
@@ -340,7 +827,7 @@ class ProductQuantityControl extends StatelessWidget {
               child: Icon(
                 Icons.remove,
                 color: onDecrement == null
-                    ? palette.textSecondary
+                    ? palette.textOnAccent.withValues(alpha: 0.5)
                     : palette.textOnAccent,
                 size: 20,
               ),

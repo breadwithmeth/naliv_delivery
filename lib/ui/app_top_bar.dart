@@ -44,64 +44,85 @@ class AppTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final expandedTitle = MediaQuery.textScalerOf(context).scale(20) > 26;
+    final fill = Theme.of(context).brightness == Brightness.dark
+        ? palette.surface
+        : palette.background;
+    final back = showBack
+        ? AppIconButton(
+            asset: AppIcons.back,
+            fill: fill,
+            onTap: backEnabled
+                ? onBack ?? () => Navigator.of(context).maybePop()
+                : null,
+            tooltip: 'Назад',
+          )
+        : const SizedBox(width: 44);
+    final action = trailing ??
+        (onSearch == null
+            ? const SizedBox(width: 44)
+            : AppIconButton(
+                asset: AppIcons.search,
+                fill: fill,
+                onTap: onSearch,
+                tooltip: 'Поиск',
+              ));
+    final heading = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: expandedTitle
+              ? null
+              : subtitle == null
+                  ? 2
+                  : 1,
+          overflow:
+              expandedTitle ? TextOverflow.visible : TextOverflow.ellipsis,
+          style: AppTypography.headline.copyWith(color: palette.textPrimary),
+        ),
+        if (subtitle != null)
+          Text(
+            subtitle!,
+            textAlign: TextAlign.center,
+            maxLines: expandedTitle ? null : 1,
+            overflow:
+                expandedTitle ? TextOverflow.visible : TextOverflow.ellipsis,
+            style: AppTypography.base(size: 14, weight: 300)
+                .copyWith(color: palette.textSecondary),
+          ),
+      ],
+    );
     return Padding(
       padding: const EdgeInsets.only(top: _topGap),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: height),
-        child: Row(
-          children: [
-            if (showBack)
-              AppIconButton(
-                asset: AppIcons.back,
-                fill: palette.surface,
-                onTap: backEnabled
-                    ? onBack ?? () => Navigator.of(context).maybePop()
-                    : null,
-                tooltip: 'Назад',
+        child: expandedTitle
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [back, action],
+                  ),
+                  const SizedBox(height: 8),
+                  heading,
+                ],
               )
-            else
-              const SizedBox(width: 40),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      maxLines: subtitle == null ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.headline
-                          .copyWith(color: palette.textPrimary),
+            : Row(
+                children: [
+                  back,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: heading,
                     ),
-                    if (subtitle != null)
-                      Text(
-                        subtitle!,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            AppTypography.base(size: 14, weight: 300).copyWith(
-                          color: palette.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
+                  action,
+                ],
               ),
-            ),
-            trailing ??
-                (onSearch == null
-                    ? const SizedBox(width: 40)
-                    : AppIconButton(
-                        asset: AppIcons.search,
-                        fill: palette.surface,
-                        onTap: onSearch,
-                        tooltip: 'Поиск',
-                      )),
-          ],
-        ),
       ),
     );
   }

@@ -79,9 +79,8 @@ class _CheckoutPageState extends State<CheckoutPage>
   final _apartment = TextEditingController();
   final _promo = TextEditingController();
   final _certificate = TextEditingController();
-  double _footerHeight = 180;
-  bool _deliveryDetailsExpanded = false;
-  bool _benefitsExpanded = false;
+  double _footerHeight = 110;
+  bool _deliveryDetailsExpanded = true;
   CartProvider? _cart;
   BusinessProvider? _business;
   Map<String, dynamic>? _address;
@@ -1378,16 +1377,12 @@ class _CheckoutPageState extends State<CheckoutPage>
                   },
                   content: Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _header(),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: _footerReserve),
-                          child: _checkoutContent(),
+                      if (MediaQuery.viewInsetsOf(context).bottom == 0)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _header(),
                         ),
-                      ),
+                      Expanded(child: _checkoutContent()),
                     ],
                   ),
                   dock: _hasItems && !_cartRestoreFailed ? _bottomBar() : null,
@@ -1401,7 +1396,7 @@ class _CheckoutPageState extends State<CheckoutPage>
   }
 
   Widget _header() => AppTopBar(
-        title: 'Заказ',
+        title: 'Оформление',
         onBack: _back,
         backEnabled: !_busy,
       );
@@ -1413,8 +1408,9 @@ class _CheckoutPageState extends State<CheckoutPage>
   Widget _checkoutContent() => ListView(
         key: const ValueKey('checkout-scroll'),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, _footerReserve + 20),
         children: [
+          if (MediaQuery.viewInsetsOf(context).bottom > 0) _header(),
           if (!_hasItems && (_creationUncertain || _creationStorageUnavailable))
             _submissionMessage(),
           if (_cartRestoreFailed)
@@ -1453,9 +1449,11 @@ class _CheckoutPageState extends State<CheckoutPage>
             ],
             _fulfillment(),
             const SizedBox(height: 24),
-            _orderSummary(),
+            _checkoutHelp(),
             const SizedBox(height: 24),
             _benefits(),
+            const SizedBox(height: 24),
+            _orderSummary(),
             const SizedBox(height: 24),
             _summary(),
             if (MediaQuery.viewInsetsOf(context).bottom > 0)
@@ -1471,23 +1469,6 @@ class _CheckoutPageState extends State<CheckoutPage>
               const SizedBox(height: 16),
               _submissionMessage(),
             ],
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const ValueKey('checkout-faq'),
-                onPressed: _editingLocked
-                    ? null
-                    : () => _openHelp(FaqSection.delivery),
-                style: TextButton.styleFrom(
-                    minimumSize: const Size(44, 44),
-                    foregroundColor: context.palette.textSecondary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 12)),
-                icon: const Icon(Icons.help_outline, size: 20),
-                label: const Text('Помощь с оформлением'),
-              ),
-            ),
           ],
         ],
       );
@@ -1525,6 +1506,44 @@ class _CheckoutPageState extends State<CheckoutPage>
             : null,
       );
 
+  Widget _checkoutHelp() => AppSurface(
+        key: const ValueKey('checkout-faq'),
+        onTap: _editingLocked ? null : () => _openHelp(FaqSection.delivery),
+        fill: context.palette.accentFaint,
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: context.palette.accent.withValues(alpha: .15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.question_mark,
+                  color: context.palette.accent, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Частые вопросы по оформлению',
+                      style: AppTypography.bodySmallBold),
+                  const SizedBox(height: 4),
+                  Text(
+                      'Минимальный заказ, доставка, промокоды, бонусы и отмена',
+                      style: AppTypography.caption
+                          .copyWith(color: context.palette.textSecondary)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: context.palette.textSecondary),
+          ],
+        ),
+      );
+
   Widget _fulfillment() {
     final palette = context.palette;
     final details = [
@@ -1536,11 +1555,9 @@ class _CheckoutPageState extends State<CheckoutPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Получение заказа', style: AppTypography.titleMedium),
-        const SizedBox(height: 12),
         AppSurface(
-          radius: 18,
-          padding: const EdgeInsets.all(4),
+          radius: 36,
+          padding: const EdgeInsets.all(2),
           child: LayoutBuilder(builder: (context, constraints) {
             final stacked = constraints.maxWidth < 300 ||
                 MediaQuery.textScalerOf(context).scale(14) > 14 * 1.2;
@@ -1566,11 +1583,10 @@ class _CheckoutPageState extends State<CheckoutPage>
                         backgroundColor: _mode == entry.$2
                             ? palette.accent
                             : Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                        shape: const StadiumBorder(),
                         textStyle: AppTypography.bodyMedium,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 12),
+                            horizontal: 4, vertical: 10),
                       ),
                       child: Text(entry.$1, textAlign: TextAlign.center),
                     ),
@@ -1579,101 +1595,149 @@ class _CheckoutPageState extends State<CheckoutPage>
             ]);
           }),
         ),
-        const SizedBox(height: 12),
-        AppSurface(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _selectionTile(
-                key: const ValueKey('checkout-store'),
-                icon: Icons.storefront_outlined,
-                title: _businessId == null
-                    ? 'Выберите магазин'
-                    : _business?.selectedBusinessName ??
-                        'Магазин №$_businessId',
-                subtitle: _businessId == null
-                    ? 'Магазин сохранённой корзины не определён'
-                    : _business?.selectedBusiness?['address']?.toString() ??
-                        'Магазин для заказа',
-                actionLabel: _businessId == null
-                    ? 'Выбрать магазин'
-                    : 'Изменить магазин',
-                onTap: _editingLocked ? null : _selectStore,
+        const SizedBox(height: 20),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _selectionTile(
+              key: const ValueKey('checkout-store'),
+              icon: Icons.storefront_outlined,
+              title: _businessId == null
+                  ? 'Выберите магазин'
+                  : _business?.selectedBusinessName ?? 'Магазин №$_businessId',
+              subtitle: _businessId == null
+                  ? 'Магазин сохранённой корзины не определён'
+                  : _business?.selectedBusiness?['address']?.toString() ??
+                      'Магазин для заказа',
+              actionLabel:
+                  _businessId == null ? 'Выбрать магазин' : 'Изменить магазин',
+              onTap: _editingLocked ? null : _selectStore,
+            ),
+            if (_switchingStore) const LinearProgressIndicator(),
+            if (_cart?.hasUnresolvedBusiness == true)
+              _message(
+                'Магазин старой корзины неизвестен. Товары сохранены: их можно уменьшить или удалить в корзине. Выбор магазина требует отдельного согласия на удаление.',
+                action: TextButton(
+                  onPressed: _editingLocked ? null : () => _openCart(),
+                  style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+                  child: const Text('Открыть корзину'),
+                ),
               ),
-              if (_switchingStore) const LinearProgressIndicator(),
-              if (_cart?.hasUnresolvedBusiness == true)
-                _message(
-                  'Магазин старой корзины неизвестен. Товары сохранены: их можно уменьшить или удалить в корзине. Выбор магазина требует отдельного согласия на удаление.',
-                  action: TextButton(
-                    onPressed: _editingLocked ? null : () => _openCart(),
-                    style:
-                        TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                    child: const Text('Открыть корзину'),
-                  ),
+            if (_delivery) ...[
+              _selectionTile(
+                key: const ValueKey('checkout-address'),
+                icon: Icons.location_on_outlined,
+                title: _address == null
+                    ? 'Выберите адрес'
+                    : ApiService.extractAddressLabel(_address!) ??
+                        ApiService.formatAddressSummary(_address),
+                subtitle: _address == null
+                    ? 'Нужен перед подтверждением заказа'
+                    : 'Доставка сейчас',
+                actionLabel:
+                    _address == null ? 'Выбрать адрес' : 'Изменить адрес',
+                onTap: _editingLocked ? null : _pickAddress,
+              ),
+              if (_pickingAddress) const LinearProgressIndicator(),
+              ExpansionTile(
+                key: const ValueKey('checkout-delivery-details'),
+                maintainState: true,
+                initiallyExpanded: _deliveryDetailsExpanded,
+                minTileHeight: 44,
+                tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+                childrenPadding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+                shape: const Border(),
+                collapsedShape: const Border(),
+                iconColor: palette.textSecondary,
+                collapsedIconColor: palette.textSecondary,
+                title: Text(
+                  'Детали доставки',
+                  key: const ValueKey('checkout-delivery-details-toggle'),
+                  style: AppTypography.caption
+                      .copyWith(color: palette.textSecondary),
                 ),
-              if (_delivery) ...[
-                const Divider(height: 16, indent: 14, endIndent: 14),
-                _selectionTile(
-                  key: const ValueKey('checkout-address'),
-                  icon: Icons.location_on_outlined,
-                  title: ApiService.formatAddressSummary(_address,
-                      emptyText: 'Выберите адрес'),
-                  subtitle: _address == null
-                      ? 'Нужен перед подтверждением заказа'
-                      : 'Доставка сейчас',
-                  actionLabel:
-                      _address == null ? 'Выбрать адрес' : 'Изменить адрес',
-                  onTap: _editingLocked ? null : _pickAddress,
-                ),
-                if (_pickingAddress) const LinearProgressIndicator(),
-                ExpansionTile(
-                  key: const ValueKey('checkout-delivery-details'),
-                  maintainState: true,
-                  initiallyExpanded: _deliveryDetailsExpanded,
-                  tilePadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                  shape: const Border(),
-                  collapsedShape: const Border(),
-                  iconColor: palette.textSecondary,
-                  collapsedIconColor: palette.textSecondary,
-                  title: Text(
-                    'Детали доставки',
-                    key: const ValueKey('checkout-delivery-details-toggle'),
-                    style: AppTypography.bodyMedium,
-                  ),
-                  subtitle: Text(
-                    details.isEmpty
-                        ? 'Подъезд, этаж и квартира · необязательно'
-                        : details,
-                    style: AppTypography.caption
-                        .copyWith(color: palette.textSecondary),
-                  ),
-                  onExpansionChanged: (expanded) {
-                    setState(() => _deliveryDetailsExpanded = expanded);
-                    if (!expanded) {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                    }
-                  },
-                  children: [
-                    _addressField('Подъезд', _entrance, 'checkout-entrance'),
+                subtitle: _deliveryDetailsExpanded
+                    ? null
+                    : Text(
+                        details.isEmpty
+                            ? 'Подъезд, этаж и квартира · необязательно'
+                            : details,
+                        style: AppTypography.caption
+                            .copyWith(color: palette.textSecondary),
+                      ),
+                onExpansionChanged: (expanded) {
+                  setState(() => _deliveryDetailsExpanded = expanded);
+                  if (!expanded) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  }
+                },
+                children: [
+                  LayoutBuilder(builder: (context, constraints) {
+                    final fields = [
+                      _addressField('Подъезд', _entrance, 'checkout-entrance'),
+                      _addressField('Этаж', _floor, 'checkout-floor'),
+                      _addressField(
+                          'Квартира', _apartment, 'checkout-apartment'),
+                    ];
+                    return constraints.maxWidth < 300 ||
+                            MediaQuery.textScalerOf(context).scale(14) > 20
+                        ? Column(
+                            children: [
+                              for (final (index, field) in fields.indexed) ...[
+                                if (index > 0) const SizedBox(height: 8),
+                                field,
+                              ],
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              for (final (index, field) in fields.indexed) ...[
+                                if (index > 0) const SizedBox(width: 8),
+                                Expanded(child: field),
+                              ],
+                            ],
+                          );
+                  }),
+                  if (_address?['comment']?.toString().trim().isNotEmpty ==
+                      true) ...[
                     const SizedBox(height: 12),
-                    _addressField('Этаж', _floor, 'checkout-floor'),
-                    const SizedBox(height: 12),
-                    _addressField('Квартира', _apartment, 'checkout-apartment'),
-                    if (_address?['comment']?.toString().trim().isNotEmpty ==
-                        true) ...[
-                      const SizedBox(height: 12),
-                      Text('Комментарий: ${_address!['comment']}',
-                          style: AppTypography.bodySmall),
-                    ],
+                    Text('Комментарий: ${_address!['comment']}',
+                        style: AppTypography.bodySmall),
                   ],
+                ],
+              ),
+            ],
+          ],
+        ),
+        if (_delivery)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.local_shipping_outlined, color: palette.accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Стоимость доставки',
+                          style: AppTypography.bodySmallMedium),
+                      Text(
+                        _quoting
+                            ? 'Рассчитываем…'
+                            : _quote == null
+                                ? 'Не рассчитана'
+                                : _money(_deliveryCost),
+                        style: AppTypography.caption
+                            .copyWith(color: palette.textSecondary),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
         if (_delivery) ...[
           if (_addressError != null) ...[
             const SizedBox(height: 8),
@@ -1739,30 +1803,33 @@ class _CheckoutPageState extends State<CheckoutPage>
 
   Widget _addressField(
           String label, TextEditingController controller, String key) =>
-      TextField(
-        key: ValueKey(key),
-        controller: controller,
-        enabled: !_editingLocked && _address != null,
-        keyboardType: TextInputType.text,
-        textInputAction: key == 'checkout-apartment'
-            ? TextInputAction.done
-            : TextInputAction.next,
-        onChanged: (_) => setState(() => _addressError = null),
-        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
-        style: AppTypography.bodySmall,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: context.palette.surfaceMuted,
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: TextField(
+          key: ValueKey(key),
+          controller: controller,
+          enabled: !_editingLocked && _address != null,
+          keyboardType: TextInputType.text,
+          textInputAction: key == 'checkout-apartment'
+              ? TextInputAction.done
+              : TextInputAction.next,
+          onChanged: (_) => setState(() => _addressError = null),
+          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+          scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
+          style: AppTypography.bodySmall,
+          decoration: InputDecoration(
+            labelText: label,
+            filled: true,
+            fillColor: context.palette.surfaceMuted,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          ),
         ),
       );
 
@@ -1786,132 +1853,113 @@ class _CheckoutPageState extends State<CheckoutPage>
     final balance = _loadingBonus
         ? 'Баланс бонусов обновляется…'
         : _bonusBalance != null
-            ? 'Баланс подтверждён: ${_money(_bonusBalance!)}'
+            ? 'На балансе: ${_money(_bonusBalance!)}'
             : _bonusError != null
                 ? 'Баланс бонусов не подтверждён'
                 : null;
     return Column(
+      key: const ValueKey('checkout-benefits'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppSurface(
-          child: ExpansionTile(
-            key: const ValueKey('checkout-benefits'),
-            maintainState: true,
-            initiallyExpanded: _benefitsExpanded,
-            tilePadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            shape: const Border(),
-            collapsedShape: const Border(),
-            iconColor: palette.accent,
-            collapsedIconColor: palette.textSecondary,
-            title: Text(
-              'Бонусы и скидки',
-              key: const ValueKey('checkout-benefits-toggle'),
-              style: AppTypography.titleMedium,
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Списать бонусы',
+                      key: const ValueKey('checkout-benefits-toggle'),
+                      style: AppTypography.bodyMedium,
+                    ),
+                  ),
+                  Switch.adaptive(
+                    key: const ValueKey('checkout-bonus-toggle'),
+                    value: _useBonus,
+                    onChanged: !_editingLocked &&
+                            !_loadingBonus &&
+                            _loggedIn == true &&
+                            _maxBonusUsed > 0
+                        ? _toggleBonuses
+                        : null,
+                  ),
+                ],
+              ),
+              if (balance != null)
+                Text(balance,
+                    style: AppTypography.bodySmallBold
+                        .copyWith(color: palette.gold)),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  if (_bonusBalance != null)
+                    Text('Можно списать до ${_money(_maxBonusUsed)}',
+                        style: AppTypography.caption
+                            .copyWith(color: palette.textSecondary)),
+                  TextButton(
+                    onPressed: _editingLocked
+                        ? null
+                        : () => _openHelp(FaqSection.bonuses),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      textStyle: AppTypography.caption,
+                    ),
+                    child: const Text('Как работают бонусы'),
+                  ),
+                ],
+              ),
+              if (applied ||
+                  _validating ||
+                  _loggedIn == false ||
+                  _promo.text.trim().isNotEmpty ||
+                  _certificate.text.trim().isNotEmpty)
                 Text(
                   summary,
                   key: applied
                       ? const ValueKey('checkout-benefit-applied')
                       : null,
-                  style: AppTypography.bodySmall.copyWith(
+                  style: AppTypography.caption.copyWith(
                       color: applied ? palette.accent : palette.textSecondary),
                 ),
-                if (balance != null) ...[
-                  const SizedBox(height: 4),
-                  Text(balance,
-                      style: AppTypography.caption
-                          .copyWith(color: palette.textSecondary)),
-                ],
-                if (_loadingBonus || _validating) ...[
-                  const SizedBox(height: 8),
-                  const LinearProgressIndicator(),
-                ],
-              ],
-            ),
-            onExpansionChanged: (expanded) {
-              setState(() => _benefitsExpanded = expanded);
-              if (!expanded) {
-                FocusManager.instance.primaryFocus?.unfocus();
-              }
-            },
-            children: [
-              const Divider(height: 20),
-              Text(
-                'Бонусы, промокод и сертификат применяются по отдельности.',
-                style: AppTypography.bodySmall
-                    .copyWith(color: palette.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                  child:
-                      Text('Списать бонусы', style: AppTypography.bodyMedium),
-                ),
-                Switch.adaptive(
-                  key: const ValueKey('checkout-bonus-toggle'),
-                  value: _useBonus,
-                  onChanged: !_editingLocked &&
-                          !_loadingBonus &&
-                          _loggedIn == true &&
-                          _maxBonusUsed > 0
-                      ? _toggleBonuses
-                      : null,
-                ),
-              ]),
-              if (_bonusBalance != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Можно списать до ${_money(_maxBonusUsed)}',
-                      style: AppTypography.caption
-                          .copyWith(color: palette.textSecondary)),
-                ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: _editingLocked
-                      ? null
-                      : () => _openHelp(FaqSection.bonuses),
-                  style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 44),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 12)),
-                  child: const Text('Как работают бонусы'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _codeField('Промокод', _promo, false),
-              const SizedBox(height: 20),
-              _codeField('Сертификат', _certificate, true),
-              if (applied) ...[
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    key: const ValueKey('checkout-clear-benefit'),
-                    onPressed: _editingLocked
-                        ? null
-                        : () => setState(() {
-                              _useBonus = false;
-                              _promoData = null;
-                              _certificateData = null;
-                              _benefitRequest++;
-                            }),
-                    style:
-                        TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Убрать льготу'),
-                  ),
-                ),
+              if (_loadingBonus || _validating) ...[
+                const SizedBox(height: 8),
+                const LinearProgressIndicator(),
               ],
             ],
           ),
         ),
+        const SizedBox(height: 24),
+        _codeField('Промокод', _promo, false),
+        const SizedBox(height: 16),
+        _codeField('Сертификат', _certificate, true),
+        const SizedBox(height: 8),
+        Text(
+          'Бонусы, промокод и сертификат применяются по отдельности.',
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
+        ),
+        if (applied)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('checkout-clear-benefit'),
+              onPressed: _editingLocked
+                  ? null
+                  : () => setState(() {
+                        _useBonus = false;
+                        _promoData = null;
+                        _certificateData = null;
+                        _benefitRequest++;
+                      }),
+              style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+              icon: const Icon(Icons.close, size: 18),
+              label: const Text('Убрать льготу'),
+            ),
+          ),
         if (_bonusError != null) ...[
           const SizedBox(height: 8),
           _message(
@@ -1986,73 +2034,72 @@ class _CheckoutPageState extends State<CheckoutPage>
     ]);
   }
 
-  Widget _orderSummary() => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Состав заказа', style: AppTypography.titleMedium),
-          const SizedBox(height: 4),
-          Text('${_groups.length} позиций',
-              style: AppTypography.caption
-                  .copyWith(color: context.palette.textSecondary)),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('checkout-edit-cart'),
-              onPressed: _editingLocked ? null : () => _openCart(),
-              style: TextButton.styleFrom(
-                  minimumSize: const Size(44, 44),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 12)),
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Изменить корзину'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          AppSurface(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _orderSummary() => AppSurface(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                for (final group in _groups) ...[
-                  _item(group),
-                  if (group.freeQuantity > 0) _gift(group),
-                  const Divider(height: 24),
-                ],
-                Text('Обязательная упаковка', style: AppTypography.bodyMedium),
-                const SizedBox(height: 4),
-                if (_loadingBag) ...[
-                  Text('Проверяем наличие и цену пакета…',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: context.palette.textSecondary)),
-                  const SizedBox(height: 8),
-                  const LinearProgressIndicator(),
-                ],
-                if (_addBag)
-                  _summaryRow(
-                      'Фирменный пакет-майка · 1 шт.', _money(_bag!.price))
-                else if (_bag != null)
-                  Text('Фирменный пакет-майка уже в составе корзины.',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: context.palette.textSecondary)),
-                if (_bagError != null) ...[
-                  const SizedBox(height: 8),
-                  _message(
-                    _bagError!,
-                    key: const ValueKey('checkout-bag-error'),
-                    action: TextButton(
-                      key: const ValueKey('checkout-bag-retry'),
-                      onPressed:
-                          _editingLocked ? null : () => _loadBag(force: true),
-                      style:
-                          TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                      child: const Text('Обновить упаковку'),
-                    ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Ваш заказ', style: AppTypography.titleMedium),
+                      Text('${_groups.length} позиций',
+                          style: AppTypography.caption
+                              .copyWith(color: context.palette.textSecondary)),
+                    ],
                   ),
-                ],
+                ),
+                IconButton(
+                  key: const ValueKey('checkout-edit-cart'),
+                  tooltip: 'Изменить корзину',
+                  onPressed: _editingLocked ? null : () => _openCart(),
+                  style: IconButton.styleFrom(
+                      minimumSize: const Size.square(44),
+                      foregroundColor: context.palette.accent),
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            for (final group in _groups) ...[
+              _item(group),
+              if (group.freeQuantity > 0) _gift(group),
+              const Divider(height: 16),
+            ],
+            Text('Обязательная упаковка', style: AppTypography.bodyMedium),
+            const SizedBox(height: 4),
+            if (_loadingBag) ...[
+              Text('Проверяем наличие и цену пакета…',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(),
+            ],
+            if (_addBag)
+              _summaryRow('Фирменный пакет-майка · 1 шт.', _money(_bag!.price))
+            else if (_bag != null)
+              Text('Фирменный пакет-майка уже в составе корзины.',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+            if (_bagError != null) ...[
+              const SizedBox(height: 8),
+              _message(
+                _bagError!,
+                key: const ValueKey('checkout-bag-error'),
+                action: TextButton(
+                  key: const ValueKey('checkout-bag-retry'),
+                  onPressed:
+                      _editingLocked ? null : () => _loadBag(force: true),
+                  style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+                  child: const Text('Обновить упаковку'),
+                ),
+              ),
+            ],
+          ],
+        ),
       );
 
   Widget _item(CartDisplayGroup group) {
@@ -2065,104 +2112,128 @@ class _CheckoutPageState extends State<CheckoutPage>
             rawName: group.name,
             storedType: group.itemType,
             storedPackagingType: group.packagingType);
+    final view = snapshot == null ? null : ProductView.fromItem(snapshot);
     final unit = quantityUnitLabel(snapshot?.unit) ?? '';
+    final normalizedUnit = unit.toLowerCase().replaceAll('.', '');
+    final perPiece = const ['', 'шт', 'pcs', 'piece'].contains(normalizedUnit);
+    final secondary = {
+      if (view?.type ?? view?.category case final category?) category,
+      if (view?.country case final country?) country,
+    }.join(' · ');
     final parameters = group.baseVariants
         .map((variant) => variant['item_name']?.toString() ?? '')
         .where((label) => label.trim().isNotEmpty)
         .join(', ');
     final bottles = group.bottleBreakdownLabel;
+    final identity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          label: [name.name, ...name.attributes].join(' · '),
+          child: ExcludeSemantics(
+            child: Text(name.name,
+                style: AppTypography.bodyMedium
+                    .copyWith(color: context.palette.textPrimary)),
+          ),
+        ),
+        if (secondary.isNotEmpty)
+          Text(secondary,
+              style: AppTypography.caption
+                  .copyWith(color: context.palette.textSecondary)),
+        if (!perPiece && view != null)
+          Text(view.unitPriceLabel,
+              style: AppTypography.caption
+                  .copyWith(color: context.palette.textSecondary)),
+        if (group.totalPrice < group.subtotalBeforePromotions - 0.001)
+          Text(_money(group.subtotalBeforePromotions),
+              style: AppTypography.caption.copyWith(
+                  color: context.palette.textSecondary,
+                  decoration: TextDecoration.lineThrough)),
+        Text(_money(group.totalPrice),
+            style:
+                AppTypography.bodyBold.copyWith(color: context.palette.accent)),
+      ],
+    );
     return Padding(
       key: ValueKey('checkout-item-${group.key}'),
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _itemImage(snapshot?.image ?? group.image),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name.name,
-                      style: AppTypography.bodyMedium
-                          .copyWith(color: context.palette.textPrimary)),
-                  if (name.attributes.isNotEmpty)
-                    Text(name.attributes.join(' · '),
-                        style: AppTypography.caption
-                            .copyWith(color: context.palette.textSecondary)),
-                  if (snapshot != null)
-                    Text(ProductView.fromItem(snapshot).unitPriceLabel,
-                        style: AppTypography.caption
-                            .copyWith(color: context.palette.textSecondary)),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(
+            text: formatQuantity(group.totalQuantity, perPiece ? '' : unit),
+            style: AppTypography.bodyMedium,
+          ),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout();
+        final controlWidth = math.min(
+            constraints.maxWidth, math.max(108.0, painter.width + 100));
+        painter.dispose();
+        final quantity = SizedBox(
+          width: controlWidth,
+          child: ProductQuantityControl(
+            key: ValueKey('checkout-quantity-${group.key}'),
+            quantity: group.totalQuantity,
+            unit: perPiece ? null : unit,
+            onIncrement: _editingLocked || !group.canIncrease
+                ? null
+                : () => _cart!.incrementDisplayGroup(group),
+            onDecrement: _editingLocked
+                ? null
+                : () => _cart!.decrementDisplayGroup(group),
+          ),
+        );
+        final remove = IconButton(
+          key: ValueKey('checkout-remove-${group.key}'),
+          tooltip: 'Удалить',
+          onPressed:
+              _editingLocked ? null : () => _cart!.removeDisplayGroup(group),
+          style: IconButton.styleFrom(
+            minimumSize: const Size.square(44),
+            foregroundColor: context.palette.textSecondary,
+          ),
+          icon: const Icon(Icons.delete_outline, size: 20),
+        );
+        final compact = constraints.maxWidth - controlWidth - 106 >= 72 &&
+            MediaQuery.textScalerOf(context).scale(14) <= 17;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                _itemImage(snapshot?.image ?? group.image),
+                const SizedBox(width: 10),
+                Expanded(child: identity),
+                if (compact) ...[
+                  const SizedBox(width: 8),
+                  quantity,
+                  remove,
                 ],
-              ),
+              ],
             ),
-          ]),
-          if (parameters.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(parameters,
-                style: AppTypography.bodySmall
-                    .copyWith(color: context.palette.textSecondary)),
-          ],
-          if (bottles != null) ...[
-            const SizedBox(height: 8),
-            Text('Физическая тара: $bottles',
-                style: AppTypography.bodySmall
-                    .copyWith(color: context.palette.textSecondary)),
-            _containerCosts(group),
-          ],
-          const SizedBox(height: 10),
-          if (group.totalPrice < group.subtotalBeforePromotions - 0.001)
-            Text(_money(group.subtotalBeforePromotions),
-                style: AppTypography.caption.copyWith(
-                    color: context.palette.textSecondary,
-                    decoration: TextDecoration.lineThrough)),
-          Text(_money(group.totalPrice),
-              style: AppTypography.bodyBold
-                  .copyWith(color: context.palette.accent)),
-          const SizedBox(height: 8),
-          LayoutBuilder(builder: (context, constraints) {
-            final quantity = SizedBox(
-              width: math.min(constraints.maxWidth, 184),
-              child: ProductQuantityControl(
-                key: ValueKey('checkout-quantity-${group.key}'),
-                quantity: group.totalQuantity,
-                unit: unit,
-                onIncrement: _editingLocked || !group.canIncrease
-                    ? null
-                    : () => _cart!.incrementDisplayGroup(group),
-                onDecrement: _editingLocked
-                    ? null
-                    : () => _cart!.decrementDisplayGroup(group),
+            if (!compact)
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [quantity, remove],
               ),
-            );
-            final remove = TextButton.icon(
-              key: ValueKey('checkout-remove-${group.key}'),
-              onPressed: _editingLocked
-                  ? null
-                  : () => _cart!.removeDisplayGroup(group),
-              style: TextButton.styleFrom(
-                  minimumSize: const Size(44, 44),
-                  foregroundColor: context.palette.textSecondary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 12)),
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: const Text('Удалить'),
-            );
-            return constraints.maxWidth < 310 ||
-                    MediaQuery.textScalerOf(context).scale(14) > 20
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [quantity, const SizedBox(height: 4), remove])
-                : Row(children: [
-                    Expanded(child: quantity),
-                    const SizedBox(width: 12),
-                    remove,
-                  ]);
-          }),
-        ],
-      ),
+            if (parameters.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(parameters,
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+            ],
+            if (bottles != null) ...[
+              const SizedBox(height: 8),
+              Text('Физическая тара: $bottles',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary)),
+              _containerCosts(group),
+            ],
+          ],
+        );
+      }),
     );
   }
 
@@ -2380,35 +2451,34 @@ class _CheckoutPageState extends State<CheckoutPage>
           required String subtitle,
           required String actionLabel,
           required VoidCallback? onTap}) =>
-      AppSurface(
-        key: key,
-        onTap: onTap,
-        fill: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, color: context.palette.accent),
-          const SizedBox(width: 12),
-          Expanded(
+      Tooltip(
+        message: actionLabel,
+        child: AppSurface(
+          key: key,
+          onTap: onTap,
+          fill: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Icon(icon, color: context.palette.accent),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(title,
-                    style: AppTypography.bodySmallMedium
-                        .copyWith(color: context.palette.textPrimary)),
-                const SizedBox(height: 4),
-                Text(subtitle,
-                    style: AppTypography.caption
-                        .copyWith(color: context.palette.textSecondary)),
-                const SizedBox(height: 8),
-                Text(actionLabel,
-                    style: AppTypography.bodySmallMedium.copyWith(
-                        color: onTap == null
-                            ? context.palette.textSecondary
-                            : context.palette.accent)),
-              ])),
-          const SizedBox(width: 6),
-          const Icon(Icons.chevron_right),
-        ]),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppTypography.bodySmallMedium
+                          .copyWith(color: context.palette.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: AppTypography.caption
+                          .copyWith(color: context.palette.textSecondary)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: context.palette.textSecondary),
+          ]),
+        ),
       );
 
   Widget _message(String text, {Widget? action, Key? key}) => AppSurface(
@@ -2455,56 +2525,79 @@ class _CheckoutPageState extends State<CheckoutPage>
     return 'Далее — выбор оплаты';
   }
 
+  // The dock supplies the 16px sides and the safe-area inset below.
   Widget _bottomBar() => Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (MediaQuery.viewInsetsOf(context).bottom == 0) ...[
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 4,
-                children: [
-                  Text(
-                      _quoteReady && !_loadingBag && _bag != null
-                          ? 'Итого'
-                          : 'Предварительно',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: context.palette.textPrimary)),
-                  Text(_money(_total),
-                      key: const ValueKey('checkout-total'),
-                      style: AppTypography.headline
-                          .copyWith(color: context.palette.textPrimary)),
-                ],
+        padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+          final label = _money(_total);
+          final painter = TextPainter(
+            text: TextSpan(text: label, style: AppTypography.headline),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout();
+          final stacked = constraints.maxWidth < 296 ||
+              MediaQuery.textScalerOf(context).scale(16) > 20 ||
+              painter.width > constraints.maxWidth - 176;
+          painter.dispose();
+          final amount = Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _quoteReady && !_loadingBag && _bag != null
+                    ? 'Итого'
+                    : 'Предварительно',
+                style: AppTypography.caption
+                    .copyWith(color: context.palette.textPrimary),
               ),
-              const SizedBox(height: 4),
+              Text(label,
+                  key: const ValueKey('checkout-total'),
+                  style: AppTypography.headline
+                      .copyWith(color: context.palette.textPrimary)),
+            ],
+          );
+          final action = FilledButton(
+            key: const ValueKey('checkout-submit'),
+            onPressed: _canSubmit ? _submitOrder : null,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(164, 49),
+              shape: const StadiumBorder(),
+              textStyle: AppTypography.bodyMedium,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+            child: Text(
+              _submitting ? 'Создаём заказ…' : 'Оформить заказ',
+              textAlign: TextAlign.center,
+            ),
+          );
+          if (keyboard) return action;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (stacked) ...[
+                amount,
+                const SizedBox(height: 8),
+                action,
+              ] else
+                Row(
+                  children: [
+                    Expanded(child: amount),
+                    const SizedBox(width: 12),
+                    action,
+                  ],
+                ),
+              const SizedBox(height: 6),
               Text(
                 _submissionStatus,
                 key: const ValueKey('checkout-readiness'),
                 style: AppTypography.caption
                     .copyWith(color: context.palette.textPrimary),
               ),
-              const SizedBox(height: 12),
             ],
-            FilledButton(
-              key: const ValueKey('checkout-submit'),
-              onPressed: _canSubmit ? _submitOrder : null,
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size(44, 48),
-                  shape: const StadiumBorder(),
-                  textStyle: AppTypography.bodyMedium,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
-              child: Text(
-                _submitting ? 'Создаём заказ…' : 'Оформить заказ',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
+          );
+        }),
       );
 
   static int? _integer(dynamic value) {

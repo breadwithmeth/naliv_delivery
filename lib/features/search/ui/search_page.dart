@@ -7,7 +7,8 @@ import '../../../core/product_view.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_search_field.dart';
-import '../../../ui/app_top_bar.dart';
+import '../../../ui/app_icon.dart';
+import '../../../ui/app_icon_button.dart';
 import '../../../ui/liquid_glass_dock.dart';
 import '../../../ui/product_row.dart';
 import '../../../core/like_action.dart';
@@ -18,9 +19,7 @@ import '../../product/product_navigation.dart';
 
 /// Product search — the design's four `Поиск` states.
 ///
-/// Geometry: top bar at y = 70, the 46 px field 12 px beneath it, results 24 px below that as
-/// 114 px rows 4 px apart, and the floating cart pill at the bottom. The empty and no-result
-/// states centre their message in the list area.
+/// Search and back navigation share the top row; results scroll above the cart.
 ///
 /// Search runs on **submit**, matching the frames: `Поиск - Текст в поле поиска` shows text in
 /// the field with no results yet, and only `Удачный поиск` lists them.
@@ -189,23 +188,25 @@ class _SearchPageState extends State<SearchPage> {
           content: Column(
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                child: AppTopBar(
-                  title: 'Поиск',
-                  onBack: () => Navigator.of(context).maybePop(),
-                  showBack: true,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                child: AppSearchField(
-                  controller: _controller,
-                  autofocus: true,
-                  onSubmitted: _search,
-                  onChanged: _textChanged,
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.gutter, AppSpacing.xl, AppSpacing.gutter, 0),
+                child: Row(
+                  children: [
+                    AppIconButton(
+                      asset: AppIcons.back,
+                      onTap: () => Navigator.of(context).maybePop(),
+                      tooltip: 'Назад',
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: AppSearchField(
+                        controller: _controller,
+                        autofocus: true,
+                        onSubmitted: _search,
+                        onChanged: _textChanged,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.huge),

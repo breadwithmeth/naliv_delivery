@@ -111,9 +111,17 @@ void main() {
     await http.runWithClient(() async {
       await tester.pumpWidget(_host());
       await tester.pumpAndSettle();
+      final scrollable = find.descendant(
+          of: find.byType(CustomScrollView), matching: find.byType(Scrollable));
+      final information =
+          find.byKey(const PageStorageKey('order-detail-information'));
+      await tester.scrollUntilVisible(information, 200, scrollable: scrollable);
+      await tester.tap(find.descendant(
+          of: information, matching: find.text('Подробности заказа')));
+      await tester.pumpAndSettle();
       final earlier = find.text('01.10.2026, 12:00');
       final later = find.text('01.10.2026, 12:10');
-      await tester.scrollUntilVisible(earlier, 200);
+      await tester.scrollUntilVisible(earlier, 200, scrollable: scrollable);
       expect(later, findsOneWidget);
       expect(earlier, findsOneWidget);
       expect(

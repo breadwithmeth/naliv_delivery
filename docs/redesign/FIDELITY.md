@@ -1,8 +1,48 @@
 # Fidelity report — redesigned screens vs the Figma file
 
-## Current usability and material cutover — 2026-10-09
+## Figma composition restoration — 2026-11-02
 
-The catalogue is intentionally no longer the old three-column/featured-rail composition.
+The latest request makes the supplied Figma composition the target again. It
+supersedes the intentional two-column catalogue, expanded card metadata and
+copy-height kitchen panel described in the historical section below.
+
+- Home restores the reference header/search rhythm, 160 px kitchen panel and
+  larger cart stamp. Catalogue restores category titles, horizontal category
+  selection, the red featured rail and three compact columns at 375 px.
+- Product cards prioritize photography, compact identity and offer badges.
+  Full metadata remains in product detail and accessibility descriptions;
+  actual prices, units, stock, bonuses and configuration actions are retained.
+  Cart recommendations use a separate 160 px rail presentation.
+- Plain cart rows are compact; genuine gift/configuration rows can grow.
+  Cart and checkout put total/action side by side when they fit. Checkout keeps
+  real benefit inputs visible and moves its header into the scrollable content
+  with a keyboard, preserving reachable inputs at 320 px / 2× text.
+- Profile retains identity and the complete saved address. Address/map panels,
+  order summaries, certificate forms, bonus rows, FAQ, search and Favorites
+  restore their reference hierarchy without inventing backend data.
+- Large-text headers give titles the full width; narrow/large-text catalogue
+  uses a grid rather than an oversized featured intro. Text scaling and 44 px
+  purchase/navigation targets are preserved rather than copying tiny targets.
+
+Evidence under `.figma_cache/render/probe/`: `fidelity_before_*`,
+`fidelity_final_*`, `fidelity_comparison_*`, and `fidelity_final.json`.
+Before/Figma/after panels cover home, catalogue, all products, cart and profile.
+The 84 canonical captures cover all 42 fixture surfaces in both themes;
+19 compact/large-text/keyboard and eight wide captures extend the review.
+Canonical captures were visually reviewed separately from interaction checks.
+
+These are strict synthetic fixtures, not authenticated production acceptance.
+Web fixtures now embed exported Aperol artwork offline; the earlier baseline
+used image placeholders, so image improvement is not solely a layout change.
+Real gift rows, prices, bonus values, addresses and saved-card controls differ
+from Figma examples intentionally. Missing category art is not fabricated.
+The genuine glass renderer is retained, including its visible grain; this is
+substantial composition alignment, not pixel parity or an Apple-native claim.
+Final command and interaction evidence is recorded in `STATUS.md`.
+
+## Historical usability and material cutover — 2026-10-09
+
+That pass intentionally departed from the old three-column/featured-rail composition.
 It uses uniform sections, one complete category picker and natural card heights: two
 columns at 375 px, one at 320 px or large text, at most four on wide windows. Complete
 canonical metadata and combined offers take precedence over matching a sparse reference.
@@ -13,8 +53,8 @@ cost/readiness remains in the review and the persistent footer contains the crea
 The settled passes generated **128 captures**: 82 canonical, 30 narrow/2×, 8 keyboard
 and 8 wide, with **50** canonical diagnostic comparisons — regenerated after the
 2026-10-11 material quality pass. Metrics below are maximum-RGB-channel differences,
-excluding 48/34 logical-pixel insets. The old Figma frames are references, not
-acceptance targets for this layout or an Apple material match.
+excluding 48/34 logical-pixel insets. Figma was not the acceptance target for
+that historical layout; these numbers are not current fidelity measurements.
 
 | Changed surface | Dark mean Δ /255 | Light mean Δ /255 |
 |---|---:|---:|
@@ -58,7 +98,7 @@ no unexpected Flutter/shader/page exceptions. Command and coverage evidence is i
 `STATUS.md`, separate from visual differences.
 
 
-## Prior composition measurements — superseded by the current usability request
+## Earlier composition measurements — historical
 
 The F1–F11 client corrections and whole-screen design cutover are implemented and reviewed in
 strict fixtures. **This is not pixel-parity, authenticated-production, bank or push acceptance.**

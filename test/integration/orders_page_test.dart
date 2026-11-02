@@ -109,27 +109,41 @@ void main() {
       expect(find.text('1\u00a0234,5 ₸'), findsWidgets);
       await tester.tap(find.text('№47'));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('order-detail-pay-button')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('order-detail-pay-button')), findsNothing);
       expect(find.text('+30 бонусов'), findsNothing);
-      expect(find.text('−30,5 бонусов'), findsOneWidget);
-      expect(find.text('Возврат №RETURN-47'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('Кол-во'), 200);
+      final scrollView = find.byType(CustomScrollView);
+      final scrollable =
+          find.descendant(of: scrollView, matching: find.byType(Scrollable));
+      await tester.scrollUntilVisible(find.text('Кол-во'), 200,
+          scrollable: scrollable);
       expect(find.text('0.5 л'), findsOneWidget);
       expect(find.textContaining('5,5%'), findsOneWidget);
+      final information =
+          find.byKey(const PageStorageKey('order-detail-information'));
+      await tester.scrollUntilVisible(information, 200, scrollable: scrollable);
+      await tester.tap(find.descendant(
+          of: information, matching: find.text('Подробности заказа')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('−30,5 бонусов'), 200,
+          scrollable: scrollable);
+      expect(find.text('−30,5 бонусов'), findsOneWidget);
+      expect(find.text('Возврат №RETURN-47'), findsOneWidget);
+      expect(find.text('+30 бонусов'), findsNothing);
       expect(cart.items.single.itemId, 99);
       expect(cart.items.single.quantity, 2);
-      final scrollable = find.byType(Scrollable).first;
       tester.state<ScrollableState>(scrollable).position.jumpTo(0);
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.drag(scrollView, const Offset(0, 300));
       await tester.pumpAndSettle();
       expect(detailReads, 2);
       expect(ledgerReads, 3);
-      expect(find.byKey(const ValueKey('order-detail-pay-button')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('order-detail-pay-button')), findsNothing);
       expect(cart.items.single.itemId, 99);
       expect(cart.items.single.quantity, 2);
-      final stored = (await SharedPreferences.getInstance())
-          .getString('cart_items');
+      final stored =
+          (await SharedPreferences.getInstance()).getString('cart_items');
       expect(stored, contains('Новый товар'));
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);

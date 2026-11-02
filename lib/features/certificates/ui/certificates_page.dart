@@ -558,7 +558,9 @@ class _StatusTabs extends StatelessWidget {
                       onPressed:
                           onSelect == null ? null : () => onSelect!(status),
                       style: TextButton.styleFrom(
-                        foregroundColor: palette.textPrimary,
+                        foregroundColor: status == selected
+                            ? palette.textPrimary
+                            : palette.textSecondary,
                         backgroundColor:
                             status == selected ? palette.accentSoft : null,
                         minimumSize: const Size(44, 44),
@@ -593,6 +595,31 @@ class _CertificateRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final amount = _amount();
+    final identity = SelectableText(
+      _name(),
+      style: AppTypography.base(size: 20, weight: 700)
+          .copyWith(color: palette.accent),
+    );
+    final balance = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (amount != null) ...[
+          Text(
+            formatTenge(amount),
+            textAlign: TextAlign.end,
+            style: AppTypography.headlineMedium
+                .copyWith(color: palette.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        Text(
+          _stateLine(),
+          textAlign: TextAlign.end,
+          style: AppTypography.label.copyWith(color: _stateColor(palette)),
+        ),
+      ],
+    );
     return Container(
       constraints: const BoxConstraints(minHeight: 71),
       padding: const EdgeInsets.symmetric(
@@ -601,39 +628,30 @@ class _CertificateRow extends StatelessWidget {
         color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SelectableText(
-              _name(),
-              maxLines: 2,
-              style: AppTypography.base(size: 20, weight: 700)
-                  .copyWith(color: palette.accent),
+      child: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth < 280 ||
+            MediaQuery.textScalerOf(context).scale(16) > 20) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              identity,
+              const SizedBox(height: AppSpacing.xl),
+              Align(alignment: Alignment.centerRight, child: balance),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: AppSpacing.md),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.5),
+              child: balance,
             ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (amount != null)
-                  Text(
-                    formatTenge(amount),
-                    style: AppTypography.titleMedium
-                        .copyWith(color: palette.textPrimary),
-                  ),
-                Text(
-                  _stateLine(),
-                  style:
-                      AppTypography.label.copyWith(color: _stateColor(palette)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+          ],
+        );
+      }),
     );
   }
 

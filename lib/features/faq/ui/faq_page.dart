@@ -25,6 +25,7 @@ class _FaqPageState extends State<FaqPage> {
   final TextEditingController _searchController = TextEditingController();
 
   String _query = '';
+  bool _searchVisible = false;
 
   // Numbers are unique within a section, not across the entire repository.
   late String _openKey = _keyOf(
@@ -93,60 +94,67 @@ class _FaqPageState extends State<FaqPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: AppTopBar(title: 'FAQ'),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xxxl,
-                0,
-                AppSpacing.xxxl,
-                AppSpacing.xl,
-              ),
-              child: AppSearchField(
-                controller: _searchController,
-                hint: 'Найти вопрос или ответ',
-                onChanged: (value) => setState(() => _query = value),
-              ),
-            ),
-            Expanded(
-              child: sections.isEmpty
-                  ? const AppEmptyState(
-                      title: 'Ничего не найдено',
-                      subtitle: 'Попробуйте изменить запрос',
-                    )
-                  : SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        AppSpacing.xxxl,
-                        0,
-                        AppSpacing.xxxl,
-                        AppSpacing.huge + MediaQuery.paddingOf(context).bottom,
-                      ),
-                      child: Column(
-                        children: [
-                          for (final section in sections)
-                            _Section(
-                              headerKey: _sectionKeys.putIfAbsent(
-                                section.number,
-                                () => GlobalKey(),
-                              ),
-                              section: section,
-                              openKey: _openKey,
-                              onToggle: (entry) {
-                                final key = _keyOf(section, entry);
-                                setState(() =>
-                                    _openKey = _openKey == key ? '' : key);
-                              },
-                            ),
-                        ],
-                      ),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: AppTopBar(
+                    title: 'FAQ',
+                    onSearch: () => setState(() {
+                      _searchVisible = !_searchVisible;
+                      if (!_searchVisible) {
+                        _searchController.clear();
+                        _query = '';
+                      }
+                    }),
+                  ),
+                ),
+                if (_searchVisible)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.xl),
+                    child: AppSearchField(
+                      controller: _searchController,
+                      hint: 'Найти вопрос или ответ',
+                      onChanged: (value) => setState(() => _query = value),
                     ),
+                  ),
+                Expanded(
+                  child: sections.isEmpty
+                      ? const AppEmptyState(
+                          title: 'Ничего не найдено',
+                          subtitle: 'Попробуйте изменить запрос',
+                        )
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            AppSpacing.xxxl,
+                            0,
+                            AppSpacing.xxxl,
+                            AppSpacing.huge +
+                                MediaQuery.paddingOf(context).bottom,
+                          ),
+                          child: Column(
+                            children: [
+                              for (final section in sections)
+                                _Section(
+                                  headerKey: _sectionKeys.putIfAbsent(
+                                    section.number,
+                                    () => GlobalKey(),
+                                  ),
+                                  section: section,
+                                  openKey: _openKey,
+                                  onToggle: (entry) {
+                                    final key = _keyOf(section, entry);
+                                    setState(() =>
+                                        _openKey = _openKey == key ? '' : key);
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
           ),
         ),
       ),
@@ -176,10 +184,10 @@ class _Section extends StatelessWidget {
       children: [
         Padding(
           key: headerKey,
-          padding: const EdgeInsets.only(top: 20, bottom: 8),
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
           child: Text(
             section.title,
-            style: AppTypography.bodySmallSemibold
+            style: AppTypography.labelMedium
                 .copyWith(color: palette.textSecondary),
           ),
         ),
@@ -187,10 +195,10 @@ class _Section extends StatelessWidget {
           Column(
             children: [
               _EntryCard(
-              entry: entry,
-              isOpen: openKey == _FaqPageState._keyOf(section, entry),
-              onTap: () => onToggle(entry),
-            ),
+                entry: entry,
+                isOpen: openKey == _FaqPageState._keyOf(section, entry),
+                onTap: () => onToggle(entry),
+              ),
               Divider(height: 1, color: palette.divider),
             ],
           ),
@@ -222,43 +230,43 @@ class _EntryCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(entry.question,
-                      style: AppTypography.body
-                          .copyWith(color: palette.textPrimary)),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                AnimatedRotation(
-                  turns: isOpen ? 0.25 : 0,
-                  duration: MediaQuery.disableAnimationsOf(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 150),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: palette.textSecondary,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(entry.question,
+                        style: AppTypography.bodyMedium
+                            .copyWith(color: palette.textPrimary)),
                   ),
+                  const SizedBox(width: AppSpacing.md),
+                  AnimatedRotation(
+                    turns: isOpen ? 0.25 : 0,
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 150),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              if (isOpen) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  entry.answer,
+                  style: AppTypography.label
+                      .copyWith(color: palette.textSecondary),
                 ),
               ],
-            ),
-            if (isOpen) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                entry.answer,
-                style: AppTypography.bodyMedium
-                    .copyWith(color: palette.textSecondary),
-              ),
             ],
-          ],
+          ),
         ),
       ),
-        ),
     );
   }
 }

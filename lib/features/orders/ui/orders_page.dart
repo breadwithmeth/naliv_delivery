@@ -307,15 +307,48 @@ class _OrderCard extends StatelessWidget {
     final total = resolveOrderTotalAmount(order);
     final estimate = _pendingBonusEstimate(order);
     final timestamp = _timestamp(order);
-    final scaled = MediaQuery.textScalerOf(context).scale(16) > 20;
-    final date = Text(
-      _humanDate(timestamp),
-      maxLines: scaled ? null : 1,
-      overflow: scaled ? null : TextOverflow.ellipsis,
-      style: AppTypography.title.copyWith(color: palette.textPrimary),
+    final identity = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _humanDate(timestamp),
+          style: AppTypography.title.copyWith(color: palette.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(
+          '№${order['order_id'] ?? '—'}',
+          style: AppTypography.label.copyWith(color: palette.textSecondary),
+        ),
+      ],
     );
+    final totalSummary = _Summary(
+      label: 'Сумма',
+      value: total == null ? '—' : formatTenge(total),
+      valueColor: palette.textPrimary,
+    );
+    final bonusSummary = operations.isNotEmpty
+        ? _Summary(
+            label: 'Бонусные операции',
+            value: operations
+                .map((entry) => signedBonusLabel(entry.amount))
+                .join(' · '),
+            valueColor: palette.gold,
+          )
+        : estimate != null
+            ? _Summary(
+                label: 'Оценка · ещё не начислено',
+                value: '≈${signedBonusLabel(estimate)}',
+                valueColor: palette.gold,
+              )
+            : _Summary(
+                label: 'Бонусные операции',
+                value: 'Данные не переданы',
+                valueColor: palette.textSecondary,
+              );
     final status = Text(
       statusText,
+      textAlign: TextAlign.end,
       style: AppTypography.base(size: 12, weight: 400).copyWith(
         color: canceled
             ? palette.error
@@ -338,59 +371,59 @@ class _OrderCard extends StatelessWidget {
             color: palette.surface,
             borderRadius: BorderRadius.circular(AppRadii.lg),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (scaled)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [date, const SizedBox(height: 4), status],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [Expanded(child: date), Flexible(child: status)],
-                ),
-              Text(
-                '№${order['order_id'] ?? '—'}',
-                style: AppTypography.base(size: 12, weight: 400)
-                    .copyWith(color: palette.textSecondary),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: AppSpacing.huge,
-                runSpacing: 12,
-                children: [
-                  _Summary(
-                    label: 'Сумма',
-                    value: total == null ? '—' : formatTenge(total),
-                    valueColor: palette.textPrimary,
+          child: LayoutBuilder(builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 280 ||
+                MediaQuery.textScalerOf(context).scale(16) > 20;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (stacked)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      identity,
+                      const SizedBox(height: AppSpacing.xs),
+                      status,
+                    ],
+                  )
+                else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 3, child: identity),
+                      const SizedBox(width: AppSpacing.xl),
+                      Flexible(
+                        flex: 2,
+                        child: Align(
+                          alignment: Alignment.topRight,
+                          child: status,
+                        ),
+                      ),
+                    ],
                   ),
-                  if (operations.isNotEmpty)
-                    _Summary(
-                      label: 'Бонусные операции',
-                      value: operations
-                          .map((entry) => signedBonusLabel(entry.amount))
-                          .join(' · '),
-                      valueColor: palette.gold,
-                    )
-                  else if (estimate != null)
-                    _Summary(
-                      label: 'Оценка · ещё не начислено',
-                      value: '≈${signedBonusLabel(estimate)}',
-                      valueColor: palette.gold,
-                    )
-                  else
-                    _Summary(
-                      label: 'Бонусы',
-                      value: 'Подтверждённые операции не переданы',
-                      valueColor: palette.textSecondary,
-                    ),
-                ],
-              ),
-            ],
-          ),
+                const SizedBox(height: AppSpacing.xxl),
+                if (stacked)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      totalSummary,
+                      const SizedBox(height: AppSpacing.md),
+                      bonusSummary,
+                    ],
+                  )
+                else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(child: totalSummary),
+                      const SizedBox(width: AppSpacing.huge),
+                      Expanded(flex: 3, child: bonusSummary),
+                    ],
+                  ),
+              ],
+            );
+          }),
         ),
       ),
     );

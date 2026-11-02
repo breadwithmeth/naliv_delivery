@@ -417,6 +417,7 @@ class _CartPageState extends State<CartPage> {
                                           ProductRail(
                                             key: const ValueKey(
                                                 'cart-recommendation-strip'),
+                                            products: _recommendations,
                                             itemCount: _recommendations.length,
                                             itemBuilder: (context, index) {
                                               final item =
@@ -525,9 +526,8 @@ class _CartRow extends StatelessWidget {
         pour ? evaluated.totalOrderQuantity : evaluated.totalQuantity;
     final title = view?.title ?? group.name;
     final secondary = {
-      if (view?.category case final category?) category,
-      ...(view?.metadata ?? const <String>[])
-          .where((part) => part.toLowerCase() != view?.category?.toLowerCase()),
+      if (view?.type ?? view?.category case final category?) category,
+      if (view?.country case final country?) country,
       if (view == null && group.itemType != null) group.itemType!,
     }.where((part) => part.trim().isNotEmpty).join(' · ');
     final configuration = group.baseVariants
@@ -552,43 +552,64 @@ class _CartRow extends StatelessWidget {
         : 'За каждые ${formatQuantity(award.baseAmount.toDouble(), unit)} '
             '— ${formatQuantity(award.addAmount.toDouble(), unit)} этого товара в подарок';
 
-    final price = Text(
-      allocationIssue == null
-          ? formatTenge(evaluated.price.totalPrice)
-          : 'Расчёт недоступен',
-      style: AppTypography.bodyBold.copyWith(color: palette.accent),
-    );
-    final stepper = _CartStepper(
-      quantity: quantity,
-      unit: unit,
-      lastBatch: lastBatch,
-      pour: group.selection?.usesPourFlow == true,
-      onIncrement: onIncrement,
-      onDelete: onDelete,
+    final priceLabel = allocationIssue == null
+        ? formatTenge(evaluated.price.totalPrice)
+        : 'Расчёт недоступен';
+    final priceStyle = AppTypography.bodyBold.copyWith(color: palette.accent);
+    final normalizedUnit = unit.toLowerCase().replaceAll('.', '');
+    final unitPrice =
+        view != null && !const ['шт', 'pcs', 'piece'].contains(normalizedUnit)
+            ? view.unitPriceLabel
+            : null;
+    final price = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(priceLabel, style: priceStyle),
+        if (unitPrice != null)
+          Text(unitPrice,
+              style:
+                  AppTypography.caption.copyWith(color: palette.textSecondary)),
+      ],
     );
     final identity = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(title,
-            style:
-                AppTypography.bodyMedium.copyWith(color: palette.textPrimary)),
+        Semantics(
+          label: [
+            title,
+            ...(view?.metadata ?? const <String>[]),
+          ].join(' · '),
+          child: ExcludeSemantics(
+            child: Text(title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySmallMedium
+                    .copyWith(color: palette.textPrimary)),
+          ),
+        ),
         if (secondary.isNotEmpty)
           Text(secondary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style:
                   AppTypography.caption.copyWith(color: palette.textSecondary)),
       ],
     );
+    const imageSize = 56.0;
     final image = ClipRRect(
-      borderRadius: AppRadii.smAll,
+      borderRadius: AppRadii.mdAll,
       child: Container(
-        width: 52,
-        height: 52,
+        width: imageSize,
+        height: imageSize,
         color: Colors.white,
         child: group.image == null
             ? const Icon(Icons.inventory_2_outlined, color: Colors.black38)
             : Image.network(
                 group.image!,
+                cacheWidth:
+                    (imageSize * MediaQuery.devicePixelRatioOf(context)).ceil(),
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const Icon(
                     Icons.inventory_2_outlined,
@@ -599,15 +620,35 @@ class _CartRow extends StatelessWidget {
     return AppSurface(
       padding: const EdgeInsets.all(AppSpacing.xs),
       child: LayoutBuilder(builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        final stepperWidth = (100 +
+                _cartTextWidth(
+                  context,
+                  _cartQuantityLabel(quantity, unit),
+                  AppTypography.bodyMedium,
+                ))
+            .clamp(100.0, constraints.maxWidth);
+        final stepper = _CartStepper(
+          width: stepperWidth,
+          quantity: quantity,
+          unit: unit,
+          lastBatch: lastBatch,
+          pour: pour,
+          onIncrement: onIncrement,
+          onDelete: onDelete,
+        );
+        final priceWidth = _cartTextWidth(context, priceLabel, priceStyle);
+        // Price and stepper share the first line only when the name keeps a
+        // readable column; otherwise they sit on their own line under the name.
         final compact = !hasDetails &&
-            (unit == 'шт' || unit == 'шт.') &&
-            quantity < 100 &&
-            constraints.maxWidth >= 335 &&
-            MediaQuery.textScalerOf(context).scale(14) <= 16 &&
-            title.length <= 18 &&
-            secondary.length <= 36 &&
-            allocationIssue == null &&
-            formatTenge(evaluated.price.totalPrice).length <= 9;
+            scale <= 1.2 &&
+            constraints.maxWidth -
+                    imageSize -
+                    AppSpacing.md -
+                    priceWidth -
+                    stepperWidth -
+                    AppSpacing.xl >=
+                180;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -619,8 +660,9 @@ class _CartRow extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(child: identity),
                 if (compact) ...[
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.md),
                   price,
+                  const SizedBox(width: AppSpacing.xs),
                   stepper,
                 ],
               ],
@@ -632,16 +674,16 @@ class _CartRow extends StatelessWidget {
                   alignment: WrapAlignment.spaceBetween,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
-                  children: [price, stepper],
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                      child: price,
+                    ),
+                    stepper,
+                  ],
                 ),
-              ),
-            if (view != null && !hasDetails)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(60, 0, 4, 2),
-                child: Text(view.unitPriceLabel,
-                    style: AppTypography.caption
-                        .copyWith(color: palette.textSecondary)),
               ),
             if (configuration.isNotEmpty)
               Padding(
@@ -745,6 +787,7 @@ class _GiftLine extends StatelessWidget {
 /// Quantity controls with explicit deletion of the last unit or bottle batch.
 class _CartStepper extends StatelessWidget {
   const _CartStepper({
+    required this.width,
     required this.quantity,
     required this.unit,
     required this.lastBatch,
@@ -753,6 +796,7 @@ class _CartStepper extends StatelessWidget {
     this.onDelete,
   });
 
+  final double width;
   final num quantity;
   final String unit;
   final bool lastBatch;
@@ -762,25 +806,13 @@ class _CartStepper extends StatelessWidget {
 
   static const double _height = 44;
 
-  String get _label {
-    final normalized = unit.toLowerCase().replaceAll('.', '');
-    return formatQuantity(quantity.toDouble(),
-        const ['шт', 'pcs', 'piece'].contains(normalized) ? '' : unit);
-  }
+  String get _label => _cartQuantityLabel(quantity, unit);
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final last = lastBatch;
     final style = AppTypography.bodyMedium.copyWith(color: palette.textPrimary);
-    final painter = TextPainter(
-      text: TextSpan(text: _label, style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout();
-    final width = (96 + painter.width)
-        .clamp(100.0, MediaQuery.sizeOf(context).width - 48);
-    painter.dispose();
     const height = _height;
     return SizedBox(
       width: width,
@@ -808,8 +840,7 @@ class _CartStepper extends StatelessWidget {
             child: Center(
               child: Text(
                 _label,
-                style: AppTypography.bodyMedium
-                    .copyWith(color: palette.textPrimary),
+                style: style,
               ),
             ),
           ),
@@ -828,8 +859,8 @@ class _CartStepper extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: onIncrement == null
                         ? palette.accentFaint
-                        : palette.accentSoft,
-                    borderRadius: BorderRadius.circular(5),
+                        : palette.accent,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
                       child: Icon(Icons.add_rounded,
@@ -861,10 +892,15 @@ class _TotalsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return Padding(
-      padding: const EdgeInsets.all(16),
+      // The dock supplies the 16px sides and the safe-area inset below.
+      padding: const EdgeInsets.fromLTRB(0, AppSpacing.xxxl, 0, AppSpacing.xl),
       child: LayoutBuilder(builder: (context, constraints) {
-        final adaptive = constraints.maxWidth < 320 ||
-            MediaQuery.textScalerOf(context).scale(16) > 20;
+        final totalLabel =
+            total == null ? 'Расчёт недоступен' : formatTenge(total!);
+        final adaptive = constraints.maxWidth < 296 ||
+            MediaQuery.textScalerOf(context).scale(16) > 20 ||
+            _cartTextWidth(context, totalLabel, AppTypography.displayBold) >
+                constraints.maxWidth - 160;
         final summary = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -875,7 +911,7 @@ class _TotalsBar extends StatelessWidget {
                   AppTypography.bodySmall.copyWith(color: palette.textPrimary),
             ),
             Text(
-              total == null ? 'Расчёт недоступен' : formatTenge(total!),
+              totalLabel,
               style: AppTypography.displayBold
                   .copyWith(color: palette.textPrimary),
             ),
@@ -885,7 +921,8 @@ class _TotalsBar extends StatelessWidget {
                     'Предварительная оценка. Начисление подтверждает магазин.',
                 child: Text(
                   '+$bonuses бонусов',
-                  style: AppTypography.bodyBold.copyWith(color: palette.accent),
+                  style: AppTypography.bodySmallBold
+                      .copyWith(color: palette.accent),
                 ),
               ),
           ],
@@ -894,7 +931,7 @@ class _TotalsBar extends StatelessWidget {
           key: const ValueKey('cart-checkout-button'),
           onPressed: onCheckout,
           style: FilledButton.styleFrom(
-            minimumSize: const Size(154, 49),
+            minimumSize: const Size(148, 49),
             shape: const StadiumBorder(),
           ),
           child: const Text('Оформить'),
@@ -911,7 +948,7 @@ class _TotalsBar extends StatelessWidget {
               )
             : Row(children: [
                 Expanded(child: summary),
-                const SizedBox(width: AppSpacing.xl),
+                const SizedBox(width: AppSpacing.md),
                 checkout,
               ]);
       }),
@@ -941,4 +978,21 @@ class _SemanticTap extends StatelessWidget {
           child: child,
         ),
       );
+}
+
+String _cartQuantityLabel(num quantity, String unit) {
+  final normalized = unit.toLowerCase().replaceAll('.', '');
+  return formatQuantity(quantity.toDouble(),
+      const ['шт', 'pcs', 'piece'].contains(normalized) ? '' : unit);
+}
+
+double _cartTextWidth(BuildContext context, String text, TextStyle style) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  return width;
 }

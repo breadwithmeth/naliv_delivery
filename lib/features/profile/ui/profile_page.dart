@@ -208,11 +208,11 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       const _RowSpec(
           AppIcons.support, 'Поддержка', 'Вопросы по заказам и оплате',
           destination: AppDestination.support),
-      const _RowSpec(
-          AppIcons.faq, 'FAQ', 'Вход, карты, доставка, бонусы и возвраты',
+      const _RowSpec(AppIcons.faq, 'FAQ', 'Вход, доставка, оплата и бонусы',
           destination: AppDestination.faq),
       _RowSpec(AppIcons.addresses, 'Адреса',
           _summary(_account?.addressSummary, 'Войдите, чтобы сохранить адрес'),
+          subtitleSemantics: _account?.addressSummary,
           destination: AppDestination.addresses),
       _RowSpec(AppIcons.cards, 'Карты',
           _summary(_account?.cardsSummary, 'Войдите, чтобы управлять картами'),
@@ -221,7 +221,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
           AppIcons.analytics,
           'Сбор информации',
           _consentLoadFailed
-              ? 'Не удалось загрузить · нажмите, чтобы повторить'
+              ? 'Ошибка настройки · повторить'
               : _consent == null
                   ? 'Загрузка настройки…'
                   : _consentSaving
@@ -248,12 +248,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                     if (mounted) setState(() => _consentSaving = false);
                   }
                 }),
-      _RowSpec(
-          AppIcons.theme,
-          'Тема оформления',
-          _themeSaving
-              ? 'Сохраняем тему…'
-              : 'Переключение светлой и тёмной темы',
+      _RowSpec(AppIcons.theme, 'Тема оформления',
+          _themeSaving ? 'Сохраняем тему…' : 'Светлая или тёмная',
           // The design's switch is binary and shows the *effective* theme: following the OS into
           // dark reads as on, and toggling pins an explicit mode.
           switchValue: Theme.of(context).brightness == Brightness.dark,
@@ -306,67 +302,81 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                             MediaQuery.paddingOf(context).bottom,
                       ),
                       children: [
-                        Center(
-                          child: AnimatedContainer(
-                            duration: MediaQuery.disableAnimationsOf(context)
-                                ? Duration.zero
-                                : const Duration(milliseconds: 200),
-                            key: const ValueKey('profile-avatar'),
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: palette.accent.withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: AppIcon(AppIcons.avatar, size: 47.5),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
                         Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.xxxl),
-                          child: Column(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              AnimatedContainer(
+                                duration:
+                                    MediaQuery.disableAnimationsOf(context)
+                                        ? Duration.zero
+                                        : const Duration(milliseconds: 200),
+                                key: const ValueKey('profile-avatar'),
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: palette.accent.withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: AppIcon(AppIcons.avatar, size: 47.5),
+                                ),
+                              ),
                               if (_account != null) ...[
-                                Text(
-                                  _account!.name ?? 'Личный кабинет',
-                                  key: const ValueKey('profile-name'),
-                                  textAlign: TextAlign.center,
-                                  style: AppTypography.titleMedium
-                                      .copyWith(color: palette.textPrimary),
-                                ),
-                                if (_account!.phone != null)
-                                  Text(
-                                    _account!.phone!,
-                                    textAlign: TextAlign.center,
-                                    style: AppTypography.bodySmall
-                                        .copyWith(color: palette.textSecondary),
+                                const SizedBox(width: AppSpacing.xxxl),
+                                Flexible(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _account!.name ?? 'Личный кабинет',
+                                        key: const ValueKey('profile-name'),
+                                        style: AppTypography.titleMedium
+                                            .copyWith(
+                                                color: palette.textPrimary),
+                                      ),
+                                      if (_account!.phone != null)
+                                        Text(
+                                          _account!.phone!,
+                                          style: AppTypography.label.copyWith(
+                                              color: palette.textSecondary),
+                                        ),
+                                    ],
                                   ),
-                              ] else if (widget.onSignIn != null)
-                                FilledButton(
-                                  key: const ValueKey('profile-sign-in'),
-                                  onPressed: _signingIn ? null : _signIn,
-                                  child: Text(_signingIn
-                                      ? 'Открываем вход…'
-                                      : 'Войти или зарегистрироваться'),
                                 ),
-                              if (_accountLoading)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: AppSpacing.md),
-                                  child: LinearProgressIndicator(),
-                                ),
-                              if (_accountFailed)
-                                TextButton.icon(
-                                  onPressed: _refreshAccount,
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text(
-                                      'Не удалось обновить · повторить'),
-                                ),
+                              ],
                             ],
                           ),
                         ),
+                        if (_account == null && widget.onSignIn != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
+                                AppSpacing.md, AppSpacing.xxxl, 0),
+                            child: FilledButton(
+                              key: const ValueKey('profile-sign-in'),
+                              onPressed: _signingIn ? null : _signIn,
+                              child: Text(_signingIn
+                                  ? 'Открываем вход…'
+                                  : 'Войти или зарегистрироваться'),
+                            ),
+                          ),
+                        if (_accountLoading)
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(AppSpacing.xxxl,
+                                AppSpacing.md, AppSpacing.xxxl, 0),
+                            child: LinearProgressIndicator(),
+                          ),
+                        if (_accountFailed)
+                          TextButton.icon(
+                            onPressed: _refreshAccount,
+                            icon: const Icon(Icons.refresh),
+                            label:
+                                const Text('Не удалось обновить · повторить'),
+                          ),
                         const SizedBox(height: AppSpacing.md),
                         for (var i = 0; i < rows.length; i++) ...[
                           _ProfileRow(
@@ -432,6 +442,7 @@ class _RowSpec {
     this.icon,
     this.title,
     this.subtitle, {
+    this.subtitleSemantics,
     this.destination,
     this.switchValue,
     this.onSwitch,
@@ -440,6 +451,7 @@ class _RowSpec {
   final String icon;
   final String title;
   final String subtitle;
+  final String? subtitleSemantics;
   final AppDestination? destination;
   final bool? switchValue;
   final ValueChanged<bool>? onSwitch;
@@ -465,8 +477,8 @@ class _ProfileRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
           child: Container(
             key: rowKey,
-            constraints: const BoxConstraints(minHeight: 60),
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+            constraints: const BoxConstraints(minHeight: 58),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
             decoration:
                 BoxDecoration(borderRadius: BorderRadius.circular(AppRadii.lg)),
             child: Row(
@@ -487,6 +499,7 @@ class _ProfileRow extends StatelessWidget {
                       ),
                       Text(
                         spec.subtitle,
+                        semanticsLabel: spec.subtitleSemantics,
                         maxLines: null,
                         style: AppTypography.label
                             .copyWith(color: palette.textSecondary),

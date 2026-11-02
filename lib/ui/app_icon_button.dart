@@ -45,16 +45,26 @@ class AppIconButton extends StatelessWidget {
     final button = InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(discRadius),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: fillColor,
-          borderRadius: BorderRadius.circular(discRadius),
-          boxShadow: AppShadows.control(palette),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: AppSpacing.touchTarget,
+          minHeight: AppSpacing.touchTarget,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: glyph,
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: fillColor,
+              borderRadius: BorderRadius.circular(discRadius),
+              boxShadow: AppShadows.control(palette),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: glyph,
+          ),
+        ),
       ),
     );
     return tooltip == null ? button : Tooltip(message: tooltip!, child: button);

@@ -62,6 +62,46 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('product add action adds once, then opens the cart',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final cart = CartProvider();
+    await cart.bindBusiness(1);
+    var cartOpened = 0;
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: cart),
+          ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: ProductPage(
+            view: _products.first,
+            businessId: 1,
+            onCart: () => cartOpened++,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'В корзину'));
+    await tester.pump();
+    expect(cart.getCatalogQuantity(_products.first.source), 1);
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+
+    // A second press must do something visible: it opens the cart rather than
+    // silently re-confirming, and it never adds behind the customer's back.
+    await tester.tap(find.widgetWithText(FilledButton, 'Перейти в корзину'));
+    await tester.pumpAndSettle();
+    expect(cartOpened, 1);
+    expect(cart.getCatalogQuantity(_products.first.source), 1);
+    expect(find.text('В корзине: 1 шт'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'failed leaf request retries; successful empty response stays empty',
       (tester) async {
@@ -242,7 +282,8 @@ void main() {
       expect(find.byType(CategoryProductsPage), findsOneWidget);
       final scrollable = find.descendant(
         of: find.byKey(const ValueKey('category-products-grid')),
-        matching: find.byType(Scrollable),
+        matching: find.byWidgetPredicate((widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down),
       );
       final last = find.byKey(const ValueKey('category-product-11'));
       final lastAdd = find.descendant(
@@ -441,7 +482,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Светлое · Пиво'));
+      await tester.tap(find.byKey(const ValueKey('category-tab-101')));
       await tester.pumpAndSettle();
       expect(find.text('Светлый лагер'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('category-switch-control')));
@@ -517,7 +558,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text(categories.last.label), findsOneWidget);
+      expect(find.byKey(const ValueKey('category-tab-139')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('category-switch-control')));
       await tester.pumpAndSettle();
       final selected = find.byKey(const ValueKey('category-menu-139'));

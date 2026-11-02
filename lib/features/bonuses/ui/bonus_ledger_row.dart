@@ -15,42 +15,62 @@ class BonusLedgerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final identity = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final identity = Text(
+      entry.title,
+      style: AppTypography.bodyBold.copyWith(color: palette.textPrimary),
+    );
+    final metadata = Wrap(
+      spacing: 8,
+      runSpacing: 2,
       children: [
-        Text(entry.title,
-            style: AppTypography.bodyBold.copyWith(color: palette.textPrimary)),
-        const SizedBox(height: 3),
-        Text(_dateLabel(),
-            style: AppTypography.label.copyWith(color: palette.textSecondary)),
+        Text(
+          _dateLabel(),
+          style: AppTypography.label.copyWith(color: palette.textSecondary),
+        ),
         if (entry.reference case final reference?)
-          Text(reference,
-              style: AppTypography.label.copyWith(color: palette.textSecondary)),
+          Text(
+            reference,
+            style: AppTypography.label.copyWith(color: palette.textSecondary),
+          ),
       ],
     );
     final amount = Text(
       signedBonusLabel(entry.amount),
       textAlign: TextAlign.end,
-      style: AppTypography.body.copyWith(
+      style: AppTypography.bodyMedium.copyWith(
           color: entry.amount > 0 ? palette.gold : palette.textPrimary),
     );
     return AppSurface(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: LayoutBuilder(builder: (context, constraints) {
-        if (constraints.maxWidth < 300 ||
-            MediaQuery.textScalerOf(context).scale(14) > 19) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [identity, const SizedBox(height: 8), amount],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        final stacked = constraints.maxWidth < 280 ||
+            MediaQuery.textScalerOf(context).scale(14) > 19;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: identity),
-            const SizedBox(width: 12),
-            Flexible(child: amount),
+            if (stacked)
+              identity
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: identity),
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints:
+                        BoxConstraints(maxWidth: constraints.maxWidth * 0.48),
+                    child: amount,
+                  ),
+                ],
+              ),
+            const SizedBox(height: 2),
+            metadata,
+            if (stacked) ...[
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: amount),
+            ],
           ],
         );
       }),

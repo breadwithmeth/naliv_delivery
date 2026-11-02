@@ -17,6 +17,7 @@ abstract final class AppIcons {
 
   /// Horizontal «градусы 24» lockup — the intro slides and the splash, not the round badge.
   static const String wordmark = '$root/wordmark.svg';
+  static const String wordmarkLight = '$root/wordmark_light.svg';
   static const String phone = '$root/phone.svg';
 
   /// The store glyph: the design's own `Store_Icon_UIA` node cannot be rendered by Figma's

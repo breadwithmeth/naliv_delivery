@@ -2,16 +2,19 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/core/destinations.dart';
+import 'package:naliv_delivery/core/like_action.dart';
 import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/core/theme_controller.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
+import 'package:naliv_delivery/features/product/ui/product_page.dart';
 import 'package:naliv_delivery/features/catalog/ui/category_products_page.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/certificates/certificate_purchase_session.dart';
@@ -63,6 +66,7 @@ import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:provider/provider.dart';
 
 import 'fixture_map_tiles.dart';
+import 'fixture_product_image.dart';
 import 'configuration_items.dart';
 import 'bottling_surface_items.dart';
 import 'remaining_milestone_fixture.dart';
@@ -187,7 +191,9 @@ Item _sampleItem(int id, {String category = 'Аперитив'}) => Item.fromJso
       'item_id': id,
       'name': _sampleName,
       'price': 13170,
-      'image': '',
+      // Browser-only data URI: native fixtures keep their existing no-image
+      // state rather than attempting a real image-host request.
+      'image': kIsWeb ? fixtureProductImage : '',
       'amount': 20,
       'unit': 'шт.',
       'item_type': 'Аперитив',
@@ -1364,6 +1370,14 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           businessId: _business.selectedBusinessId ?? 1,
           initialItems: _products,
           onSearch: () => _select('search'),
+          onCart: () => _select('cart'),
+        ));
+      case 'product':
+        return _withFixtureBack(ProductPage(
+          view: _products.first,
+          businessId: _business.selectedBusinessId ?? 1,
+          onLike: () => toggleItemLike(context,
+              businessId: _business.selectedBusinessId ?? 1, itemId: 100),
           onCart: () => _select('cart'),
         ));
       case 'cart':

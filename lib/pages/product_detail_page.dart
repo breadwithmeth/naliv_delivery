@@ -1066,8 +1066,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ]),
       );
 
+  // The dock supplies the 16px sides and the safe-area inset below.
   Widget _footer({required bool enabled, required bool removal}) => Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
         child: LayoutBuilder(builder: (context, constraints) {
           final adaptive = constraints.maxWidth < 320 ||
               MediaQuery.textScalerOf(context).scale(16) > 20;
