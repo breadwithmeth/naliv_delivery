@@ -8,6 +8,7 @@ import '../../../core/theme_controller.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
+import '../../../services/auth_service.dart';
 import '../../../services/telemetry_consent_service.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
@@ -44,11 +45,16 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   bool _accountFailed = false;
   bool _signingIn = false;
   bool _loggingOut = false;
+  bool _logoutFailed = false;
+  late int _credentialRevision;
+  int _accountLoadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
+    _credentialRevision = AuthService.credentialRevision;
     WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_onSessionChanged);
     _account = widget.account;
     _refreshAccount();
     _loadConsent();
@@ -57,12 +63,25 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_onSessionChanged);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _refreshAccount();
+  }
+
+  void _onSessionChanged() {
+    final revision = AuthService.credentialRevision;
+    if (!mounted || revision == _credentialRevision) return;
+    _credentialRevision = revision;
+    _accountLoadGeneration++;
+    setState(() {
+      _account = null;
+      _accountLoading = false;
+      _accountFailed = false;
+    });
   }
 
   Future<void> _loadConsent() async {
@@ -82,17 +101,28 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   Future<void> _refreshAccount() async {
     final load = widget.loadAccount;
     if (load == null || _accountLoading) return;
+    final revision = AuthService.credentialRevision;
+    final generation = ++_accountLoadGeneration;
+    bool current() =>
+        mounted &&
+        generation == _accountLoadGeneration &&
+        revision == AuthService.credentialRevision &&
+        !AuthService.isEndingSession;
     setState(() {
       _accountLoading = true;
       _accountFailed = false;
     });
     try {
+      final session = await AuthService.captureSession();
+      if (!current()) return;
       final account = await load();
-      if (mounted) setState(() => _account = account);
+      if (current() && (session == null || session.isCurrent)) {
+        setState(() => _account = account);
+      }
     } catch (_) {
-      if (mounted) setState(() => _accountFailed = true);
+      if (current()) setState(() => _accountFailed = true);
     } finally {
-      if (mounted) setState(() => _accountLoading = false);
+      if (current()) setState(() => _accountLoading = false);
     }
   }
 
@@ -144,6 +174,14 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     setState(() => _loggingOut = true);
     try {
       await widget.onLogout!();
+      if (mounted) setState(() => _logoutFailed = false);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _logoutFailed = true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Не удалось завершить выход. Повторите попытку.'),
+        ));
+      }
     } finally {
       if (mounted) setState(() => _loggingOut = false);
     }
@@ -188,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                   ? 'Загрузка настройки…'
                   : _consentSaving
                       ? 'Сохраняем настройку…'
-                      : 'Анонимные отчёты об ошибках',
+                      : 'Отчёты об ошибках',
           switchValue: _consent,
           onSwitch: _consent == null || _consentSaving
               ? null
@@ -361,7 +399,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                             ],
                           ],
                         ],
-                        if (_account != null && widget.onLogout != null) ...[
+                        if ((_account != null || _logoutFailed) &&
+                            widget.onLogout != null) ...[
                           const SizedBox(height: AppSpacing.xl),
                           Center(
                             child: TextButton.icon(

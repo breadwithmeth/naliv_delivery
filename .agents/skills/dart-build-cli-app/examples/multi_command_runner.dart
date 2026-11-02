@@ -4,35 +4,34 @@
 
 /// Example template for a production multi-command Dart CLI application.
 ///
-/// Demonstrates structured subcommands using `CommandRunner<int>`, standard POSIX
-/// exit code constants from `package:io`, and proper `stderr` usage formatting.
+/// Demonstrates structured subcommands using `CommandRunner<int>`, conventional
+/// process exit statuses, and proper `stderr` usage formatting.
+/// Uses the project's existing args dependency and Dart's built-in I/O.
 library;
 
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
-import 'package:io/io.dart' show ExitCode;
-import 'package:stack_trace/stack_trace.dart';
 
 Future<void> main(List<String> args) async {
   final runner = ToolCommandRunner();
 
   try {
     final status = await runner.run(args);
-    exitCode = status ?? ExitCode.success.code;
+    exitCode = status ?? 0;
   } on UsageException catch (e) {
     // Usage errors (invalid flags/arguments) must write to stderr.
     stderr
       ..writeln(e.message)
       ..writeln(e.usage);
-    exitCode = ExitCode.usage.code;
+    exitCode = 64; // Conventional usage-error status.
   } catch (e, st) {
     stderr.writeln('Fatal error: $e');
     if (args.contains('-v') || args.contains('--verbose')) {
-      stderr.writeln(Trace.from(st).terse);
+      stderr.writeln(st);
     }
-    exitCode = ExitCode.software.code;
+    exitCode = 70; // Conventional software-error status.
   }
 }
 
@@ -53,9 +52,9 @@ class ToolCommandRunner extends CommandRunner<int> {
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults.flag('version')) {
-      // In production, reference packageVersion from generated lib/src/version.dart (via package:build_version).
+      // Reuse a real tool's existing version source; generation is optional.
       stdout.writeln('tool version 1.0.0');
-      return ExitCode.success.code;
+      return 0;
     }
     return super.runCommand(topLevelResults);
   }
@@ -79,8 +78,13 @@ class ProcessCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    final input = argResults!.option('input')!;
+    late final String input;
+    try {
+      input = argResults!.option('input')!;
+    } on ArgumentError {
+      throw UsageException('Missing required option --input.', usage);
+    }
     stdout.writeln('Processing $input...');
-    return ExitCode.success.code;
+    return 0;
   }
 }

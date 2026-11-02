@@ -97,6 +97,9 @@
                   notifyButton: {
                     enable: false
                   }
+                }).catch(function (error) {
+                  initPromise = null;
+                  throw error;
                 });
               }
 
@@ -500,9 +503,16 @@
   </style>
   <script id="splash-screen-script">
     var __splashRemoved = false;
+    var splashFactInterval;
+    var splashFactTransition;
+    function stopSplashFacts() {
+      clearInterval(splashFactInterval);
+      clearTimeout(splashFactTransition);
+    }
     function removeSplashFromWeb() {
       if (__splashRemoved) return;
       __splashRemoved = true;
+      stopSplashFacts();
       var el = document.getElementById("splash");
       if (el) {
         el.classList.add("removing");
@@ -530,8 +540,11 @@
           removeSplashFromWeb();
           return;
         }
+        stopSplashFacts();
         var fact = document.getElementById("sp-fact-text");
         if (fact) {
+          fact.style.opacity = "1";
+          fact.style.transform = "translateY(0)";
           fact.textContent = "Загрузка занимает дольше обычного — подождите или обновите страницу.";
         }
       }, 60000);
@@ -657,13 +670,13 @@
       ];
       var i = 0;
       var el = document.getElementById("sp-fact-text");
-      if (!el) return;
-      setInterval(function () {
+      if (!el || __splashRemoved) return;
+      splashFactInterval = setInterval(function () {
         i = (i + 1) % facts.length;
         el.style.opacity = "0";
         el.style.transform = "translateY(6px)";
         el.style.transition = "opacity 0.3s, transform 0.3s";
-        setTimeout(function () {
+        splashFactTransition = setTimeout(function () {
           el.textContent = facts[i];
           el.style.opacity = "1";
           el.style.transform = "translateY(0)";

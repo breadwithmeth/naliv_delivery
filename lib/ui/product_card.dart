@@ -9,15 +9,15 @@ import '../design/typography.dart';
 import 'app_icon.dart';
 import 'surfaces.dart';
 
-/// A product card with proportional artwork, complete identity and unit pricing.
+/// A naturally sized product card with complete identity, pricing and offers.
 ///
-/// Grid and rail consumers pass their real width and products to [heightFor].
 /// Names and known attributes wrap without truncation or text-scale overrides.
 class ProductCard extends StatelessWidget {
   const ProductCard({
     required this.title,
     required this.price,
     this.oldPrice,
+    this.saving,
     this.metadata = const [],
     this.unitPriceLabel,
     this.quantityUnit,
@@ -30,19 +30,21 @@ class ProductCard extends StatelessWidget {
     this.onTap,
     this.onIncrement,
     this.onDecrement,
+    this.trailingAction,
     super.key,
   });
 
   final String title;
   final num price;
   final num? oldPrice;
+  final num? saving;
   final List<String> metadata;
   final String? unitPriceLabel;
   final String? quantityUnit;
   final String? imageUrl;
   final String? discount;
 
-  /// The gift promotion label, after a price discount in badge priority.
+  /// The active gift promotion label.
   final String? promo;
   final String? bonus;
   final num quantity;
@@ -50,100 +52,19 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
+  final Widget? trailingAction;
 
-  /// Returns the artwork-led width of a horizontal product rail.
+  /// Returns a readable width for a horizontal product rail.
   static double widthFor(BuildContext context) {
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    return 144 + (scale - 1).clamp(0, double.infinity) * 100;
+    return 176 + (scale - 1).clamp(0, double.infinity) * 100;
   }
 
-  static double _textHeight(
-    BuildContext context,
-    String text,
-    TextStyle style,
-    double width,
-  ) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout(maxWidth: width);
-    final height = painter.height.ceilToDouble();
-    painter.dispose();
-    return height;
-  }
-
-  static double _heightForContent(
-    BuildContext context, {
-    required double width,
-    required String title,
-    required String metadata,
-    required String price,
-    String? oldPrice,
-    bool unavailable = false,
-  }) {
-    final innerWidth =
-        (width - AppSpacing.md).clamp(1, double.infinity).toDouble();
-    return innerWidth +
-        AppSpacing.md +
-        AppSpacing.sm +
-        _textHeight(context, title, AppTypography.bodySmallMedium, innerWidth) +
-        (metadata.isEmpty
-            ? 0
-            : AppSpacing.xxs +
-                _textHeight(context, metadata, AppTypography.label, innerWidth)) +
-        (unavailable
-            ? _textHeight(context, 'Нет в наличии', AppTypography.label, innerWidth)
-            : 0) +
-        AppSpacing.xs +
-        (oldPrice == null
-            ? 0
-            : _textHeight(context, oldPrice, AppTypography.strikethrough, innerWidth)) +
-        _textHeight(context, price, AppTypography.title, innerWidth) +
-        AppSpacing.sm +
-        AppSpacing.touchTarget +
-        (MediaQuery.textScalerOf(context).scale(16) * 1.3).ceilToDouble() +
-        AppSpacing.xxs;
-  }
-
-  /// Reserves artwork and all visible text at the consumer's actual card width.
-  static double heightFor(
-    BuildContext context, {
-    double? width,
-    Iterable<ProductView> products = const [],
-    bool hasOldPrice = false,
-  }) {
-    final cardWidth = width ?? widthFor(context);
-    var height = 0.0;
-    for (final product in products) {
-      final itemHeight = _heightForContent(
-        context,
-        width: cardWidth,
-        title: product.title,
-        metadata: product.metadata.join(' · '),
-        price: product.unitPriceLabel,
-        oldPrice: product.oldPrice == null ? null : formatTenge(product.oldPrice!),
-        unavailable: !product.available,
-      );
-      if (itemHeight > height) height = itemHeight;
-    }
-    return height > 0
-        ? height
-        : _heightForContent(
-            context,
-            width: cardWidth,
-            title: 'Название товара',
-            metadata: 'Страна · объём',
-            price: '1000 ₸/шт',
-            oldPrice: hasOldPrice ? '1000 ₸' : null,
-          );
-  }
-
-  /// Keeps the reference three columns at 375 px, adapting only when needed.
+  /// Keeps two columns at phone widths and one for narrow or enlarged content.
   static int columnsFor(BuildContext context, double availableWidth,
       {double spacing = AppSpacing.md}) {
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final minimumWidth = 106 + (scale - 1).clamp(0, double.infinity) * 100;
+    final minimumWidth = 160 + (scale - 1).clamp(0, double.infinity) * 140;
     return ((availableWidth + spacing) / (minimumWidth + spacing))
         .floor()
         .clamp(1, 4)
@@ -156,6 +77,7 @@ class ProductCard extends StatelessWidget {
     VoidCallback? onTap,
     VoidCallback? onIncrement,
     VoidCallback? onDecrement,
+    Widget? trailingAction,
     Key? key,
   }) =>
       ProductCard(
@@ -166,6 +88,7 @@ class ProductCard extends StatelessWidget {
         quantityUnit: view.unit,
         price: view.price,
         oldPrice: view.oldPrice,
+        saving: view.saving,
         discount: view.discount,
         promo: view.promo,
         bonus: view.bonus,
@@ -175,150 +98,196 @@ class ProductCard extends StatelessWidget {
         onTap: onTap,
         onIncrement: onIncrement,
         onDecrement: onDecrement,
+        trailingAction: trailingAction,
       );
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final identity = metadata.join(' · ');
     final priceLabel = unitPriceLabel ?? formatTenge(price);
-    final control = ProductQuantityControl(
-      quantity: quantity,
-      unit: quantityUnit,
-      onIncrement: available ? onIncrement : null,
-      onDecrement: onDecrement,
-    );
-    final badges = <Widget>[
-      if (discount != null)
-        AppPromoChip(
-          icon: AppIcons.fire,
-          label: discount!,
-          fill: palette.brandRed,
-        ),
-      if (promo != null)
-        AppPromoChip(
-          icon: AppIcons.fire,
-          label: promo!,
-          fill: palette.accent,
-          foreground: palette.textOnAccent,
-        ),
-      if (bonus != null)
-        AppPromoChip(
-          icon: AppIcons.bonusStar,
-          label: bonus!,
-          fill: palette.gold,
-          foreground: Colors.black,
-        ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.hasTightWidth
-            ? constraints.maxWidth
-            : widthFor(context).clamp(0, constraints.maxWidth).toDouble();
-        return SizedBox(
-          width: width,
-          height: _heightForContent(
-            context,
-            width: width,
-            title: title,
-            metadata: identity,
-            price: priceLabel,
-            oldPrice: oldPrice == null ? null : formatTenge(oldPrice!),
-            unavailable: !available,
-          ),
-          child: AppSurface(
-            padding: const EdgeInsets.all(AppSpacing.xs),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                InkWell(
-                  onTap: onTap,
-                  borderRadius: AppRadii.smAll,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1,
-                        child: ClipRRect(
-                          borderRadius: AppRadii.smAll,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ColoredBox(
-                                color: Colors.white,
-                                child: imageUrl?.isNotEmpty == true
-                                    ? Image.network(
-                                        imageUrl!,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (_, __, ___) =>
-                                            _missingArt(palette),
-                                      )
-                                    : _missingArt(palette),
-                              ),
-                              Positioned(
-                                left: AppSpacing.xs,
-                                right: AppSpacing.xs,
-                                top: AppSpacing.xs,
-                                child: Wrap(
-                                  spacing: AppSpacing.xs,
-                                  runSpacing: AppSpacing.xxs,
-                                  children: badges.take(2).toList(growable: false),
-                                ),
-                              ),
-                            ],
-                          ),
+    return SizedBox(
+      width: widthFor(context),
+      child: AppSurface(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InkWell(
+              onTap: onTap,
+              borderRadius: AppRadii.smAll,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) => SizedBox(
+                      height: (constraints.maxWidth * .8).clamp(96, 152),
+                      child: ClipRRect(
+                        borderRadius: AppRadii.smAll,
+                        child: ColoredBox(
+                          color: Colors.white,
+                          child: imageUrl?.isNotEmpty == true
+                              ? Image.network(
+                                  imageUrl!,
+                                  cacheWidth: (constraints.maxWidth *
+                                          MediaQuery.devicePixelRatioOf(
+                                              context))
+                                      .ceil(),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) =>
+                                      _missingArt(palette),
+                                )
+                              : _missingArt(palette),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        title,
-                        style: AppTypography.bodySmallMedium
-                            .copyWith(color: palette.textPrimary),
-                      ),
-                      if (identity.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.xxs),
-                        Text(
-                          identity,
-                          style: AppTypography.label
-                              .copyWith(color: palette.textSecondary),
-                        ),
-                      ],
-                      if (!available)
-                        Text(
-                          'Нет в наличии',
-                          style: AppTypography.label
-                              .copyWith(color: palette.textSecondary),
-                        ),
-                    ],
+                    ),
                   ),
-                ),
-                const Spacer(),
-                const SizedBox(height: AppSpacing.xs),
-                if (oldPrice != null)
+                  const SizedBox(height: AppSpacing.md),
                   Text(
-                    formatTenge(oldPrice!),
-                    style: AppTypography.strikethrough
-                        .copyWith(color: palette.textSecondary),
+                    title,
+                    style: AppTypography.bodySmallSemibold
+                        .copyWith(color: palette.textPrimary),
                   ),
-                Text(
-                  priceLabel,
-                  style: AppTypography.title.copyWith(color: palette.textPrimary),
+                  if (metadata.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      metadata.join(' · '),
+                      style: AppTypography.label
+                          .copyWith(color: palette.textSecondary),
+                    ),
+                  ],
+                  if (!available) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Нет в наличии',
+                      style: AppTypography.label
+                          .copyWith(color: palette.textSecondary),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.md),
+                  if (oldPrice != null)
+                    Text(
+                      formatTenge(oldPrice!),
+                      style: AppTypography.strikethrough
+                          .copyWith(color: palette.textSecondary),
+                    ),
+                  Text(
+                    priceLabel,
+                    style: AppTypography.title
+                        .copyWith(color: palette.textPrimary),
+                  ),
+                  if (saving != null)
+                    Text(
+                      'Выгода ${formatTenge(saving!)}',
+                      style: AppTypography.labelMedium
+                          .copyWith(color: palette.textPrimary),
+                    ),
+                  if (discount != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    _ProductFact(
+                      icon: AppIcons.fire,
+                      label: discount!,
+                      semanticLabel: 'Скидка $discount',
+                      fill: palette.brandRed,
+                      foreground: Colors.white,
+                    ),
+                  ],
+                  if (promo != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    _ProductFact(
+                      icon: AppIcons.fire,
+                      label: 'Акция $promo',
+                      fill: palette.accent,
+                      foreground: palette.textOnAccent,
+                    ),
+                  ],
+                  if (bonus != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    _ProductFact(
+                      icon: AppIcons.bonusStar,
+                      label: 'Бонусы $bonus',
+                      fill: palette.gold,
+                      foreground:
+                          Theme.of(context).brightness == Brightness.light
+                              ? Colors.white
+                              : Colors.black,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: ProductQuantityControl(
+                    quantity: quantity,
+                    unit: quantityUnit,
+                    onIncrement: available ? onIncrement : null,
+                    onDecrement: onDecrement,
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                control,
+                if (trailingAction != null) ...[
+                  const SizedBox(width: AppSpacing.xs),
+                  trailingAction!,
+                ],
               ],
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _missingArt(AppPalette palette) => ColoredBox(
-        color: Colors.white,
+  Widget _missingArt(AppPalette palette) => Semantics(
+        image: true,
+        label: 'Нет фото',
         child: Center(
-            child: Icon(Icons.image_outlined,
-                color: palette.textSecondary, size: 32)),
+          child: Icon(
+            Icons.image_outlined,
+            color: palette.textSecondary,
+            size: 32,
+          ),
+        ),
+      );
+}
+
+class _ProductFact extends StatelessWidget {
+  const _ProductFact({
+    required this.icon,
+    required this.label,
+    required this.fill,
+    required this.foreground,
+    this.semanticLabel,
+  });
+
+  final String icon;
+  final String label;
+  final Color fill;
+  final Color foreground;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(color: fill, borderRadius: AppRadii.xsAll),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppIcon(icon, size: 14, color: foreground),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  label,
+                  semanticsLabel: semanticLabel,
+                  style: AppTypography.labelMedium.copyWith(color: foreground),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
 }
 
@@ -344,7 +313,7 @@ class ProductQuantityControl extends StatelessWidget {
       quantity.toDouble(),
       quantityUnitLabel(unit) ?? '',
     );
-    final foreground = onIncrement == null
+    final foreground = onIncrement == null && onDecrement == null
         ? palette.textSecondary
         : palette.textOnAccent;
     return LayoutBuilder(

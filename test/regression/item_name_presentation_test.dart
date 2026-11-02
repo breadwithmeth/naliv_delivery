@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
-import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/model/category_items.dart';
 import 'package:naliv_delivery/utils/item_name_presentation.dart';
 
 void main() {
@@ -77,8 +77,7 @@ void main() {
       expect(can.packagingType, 'Ж/Б');
       expect(bottle.volume, '0,44 л');
       expect(bottle.alcoholLabel, '4,6%');
-      expect(bottle.metadata,
-          ['Пиво', 'Бутылка', '0,44 л', '4,6%']);
+      expect(bottle.metadata, ['Пиво', 'Бутылка', '0,44 л', '4,6%']);
       expect(can.metadata, ['Пиво', 'Ж/Б', '0,44 л', '4,6%']);
       expect(bottle.material, isNull);
       expect(bottle.source.name, 'Пиво бут Garage Hard Lemon 0.44 л 4,6%');

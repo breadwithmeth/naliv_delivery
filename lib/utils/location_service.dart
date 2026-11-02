@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 /// Сервис для работы с геолокацией
 class LocationService {
@@ -51,19 +50,6 @@ class LocationService {
     return _permission!;
   }
 
-  /// Запрашивает разрешение через permission_handler (для более детального контроля)
-  Future<PermissionStatus> requestLocationPermissionDetailed() async {
-    // Проверяем текущий статус
-    PermissionStatus status = await Permission.location.status;
-
-    if (status.isDenied) {
-      // Запрашиваем разрешение
-      status = await Permission.location.request();
-    }
-
-    return status;
-  }
-
   /// Проверяет и запрашивает все необходимые разрешения
   Future<LocationPermissionResult> checkAndRequestPermissions() async {
     try {
@@ -75,6 +61,7 @@ class LocationService {
           message:
               'Геолокация сейчас выключена. Если хотите, можно включить её в настройках устройства. Без неё тоже можно продолжить.',
           permissionStatus: LocationPermission.denied,
+          serviceEnabled: false,
         );
       }
 
@@ -133,14 +120,12 @@ class LocationService {
   Future<Position?> getCurrentPosition({
     LocationAccuracy accuracy = LocationAccuracy.high,
     Duration? timeLimit,
+    LocationPermissionResult? permissionResult,
   }) async {
     try {
-      // Проверяем разрешения
-      LocationPermissionResult permissionResult =
-          await checkAndRequestPermissions();
-      if (!permissionResult.success) {
-        debugPrint(
-            'Не удалось получить разрешение: ${permissionResult.message}');
+      final permission = permissionResult ?? await checkAndRequestPermissions();
+      if (!permission.success) {
+        debugPrint('Не удалось получить разрешение: ${permission.message}');
         return null;
       }
 
@@ -208,12 +193,14 @@ class LocationPermissionResult {
   final String message;
   final LocationPermission permissionStatus;
   final bool needsSettingsRedirect;
+  final bool serviceEnabled;
 
   LocationPermissionResult({
     required this.success,
     required this.message,
     required this.permissionStatus,
     this.needsSettingsRedirect = false,
+    this.serviceEnabled = true,
   });
 
   @override

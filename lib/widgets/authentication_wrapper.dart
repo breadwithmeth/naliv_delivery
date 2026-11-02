@@ -52,12 +52,20 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   bool _requiresProfileSetup = false;
   bool _initialDestinationQueued = false;
   Future<void>? _checkingAuth;
+  String? _checkingAuthToken;
+  int? _checkingCredentialRevision;
+  late int _credentialRevision;
+  AuthSession? _authenticatedSession;
+  bool _observedEndingSession = false;
+  int _authRequest = 0;
   int _homeRequest = 0;
   bool _selectingStore = false;
 
   @override
   void initState() {
     super.initState();
+    _credentialRevision = AuthService.credentialRevision;
+    _observedEndingSession = AuthService.isEndingSession;
     WidgetsBinding.instance.addObserver(this);
     AuthService.sessionRevision.addListener(_sessionChanged);
     _checkAuth();
@@ -77,6 +85,18 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
 
   void _sessionChanged() {
     if (!mounted) return;
+    final revision = AuthService.credentialRevision;
+    final ending = AuthService.isEndingSession;
+    final locallyEnded = _observedEndingSession && !ending;
+    _observedEndingSession = ending;
+    if (revision == _credentialRevision) {
+      if (locallyEnded) _refreshOnReturn();
+      return;
+    }
+    _credentialRevision = revision;
+    _authRequest++;
+    _checkingAuth = null;
+    _authenticatedSession = null;
     _homeRequest++;
     setState(() {
       _userInfo = null;
@@ -99,29 +119,72 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   /// captive network — keeps [_isLoading] true and the app never leaves its loader.
   static const Duration _authCheckTimeout = Duration(seconds: 10);
 
-  Future<void> _checkAuth() =>
-      _checkingAuth ??= _readAuth().whenComplete(() => _checkingAuth = null);
+  Future<void> _checkAuth() async {
+    final revision = AuthService.credentialRevision;
+    final session = await AuthService.captureSession();
+    final token = session?.token;
+    if (!mounted ||
+        AuthService.isEndingSession ||
+        revision != AuthService.credentialRevision) {
+      return;
+    }
+    if (_checkingAuth != null &&
+        _checkingAuthToken == token &&
+        _checkingCredentialRevision == revision) {
+      return _checkingAuth;
+    }
+    final request = ++_authRequest;
+    _checkingAuthToken = token;
+    _checkingCredentialRevision = revision;
+    final checking = _readAuth(request, token, revision, session);
+    _checkingAuth = checking;
+    try {
+      await checking;
+    } finally {
+      // An older session must not release the current session's in-flight read.
+      if (request == _authRequest) _checkingAuth = null;
+    }
+  }
 
-  Future<void> _readAuth() async {
+  Future<void> _readAuth(
+      int request, String? token, int revision, AuthSession? session) async {
     Map<String, dynamic>? userInfo;
     try {
-      userInfo = await ApiService.getFullInfo().timeout(_authCheckTimeout);
+      userInfo = token == null
+          ? null
+          : await ApiService.getFullInfo(credentialToken: token)
+              .timeout(_authCheckTimeout);
     } on TimeoutException {
       debugPrint('Auth check timed out; continuing as a guest');
     } catch (e) {
       debugPrint('Error checking authentication: $e');
     }
 
-    if (!mounted) return;
+    final currentToken = await ApiService.getAuthToken();
+    if (!mounted ||
+        request != _authRequest ||
+        revision != AuthService.credentialRevision ||
+        token != currentToken ||
+        AuthService.isEndingSession) {
+      return;
+    }
 
     // An unavailable account read is not proof of an invalid token.
     if (userInfo != null) {
       await AuthService.refreshIdentity(verifiedInfo: userInfo);
-    } else if (await ApiService.getAuthToken() == null) {
-      AuthService.bindAuthenticatedIdentity(null);
+    } else if (token == null) {
+      await AuthService.bindAuthenticatedIdentity(null);
     }
-    if (!mounted) return;
+    final refreshedToken = await ApiService.getAuthToken();
+    if (!mounted ||
+        request != _authRequest ||
+        revision != AuthService.credentialRevision ||
+        token != refreshedToken ||
+        AuthService.isEndingSession) {
+      return;
+    }
     setState(() {
+      _authenticatedSession = userInfo == null ? null : session;
       _userInfo = userInfo;
       _isAuthenticated = userInfo != null;
       _requiresProfileSetup = ProfileSetupPage.isRequiredFor(userInfo);
@@ -131,12 +194,19 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     // The home screen is public — the design ships a signed-out variant of it — so it is loaded
     // whether or not there is a session. Loading it only for signed-in users left everyone else
     // staring at the loader, because [build] shows [AppLoadingScreen] while [_homeData] is null.
-    if (mounted) await _loadHome();
-    if (mounted && _homeData != null) {
+    if (mounted && revision == AuthService.credentialRevision) {
+      await _loadHome();
+    }
+    if (mounted &&
+        request == _authRequest &&
+        revision == AuthService.credentialRevision &&
+        _homeData != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          NotificationService.instance.resumePendingNavigation(
-              openDestination: _navigate);
+        if (mounted &&
+            request == _authRequest &&
+            revision == AuthService.credentialRevision) {
+          NotificationService.instance
+              .resumePendingNavigation(openDestination: _navigate);
         }
       });
     }
@@ -144,11 +214,15 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
 
   Future<void> _handleProfileSetupCompleted(
       Map<String, dynamic>? refreshedUserInfo) async {
-    final userInfo = refreshedUserInfo ?? await ApiService.getFullInfo();
+    final session = _authenticatedSession;
+    if (session == null || !session.isCurrent) return;
+    final userInfo = refreshedUserInfo ??
+        await ApiService.getFullInfo(credentialToken: session.token);
+    if (!mounted || !session.isCurrent) return;
     if (userInfo != null) {
       await AuthService.refreshIdentity(verifiedInfo: userInfo);
     }
-    if (!mounted) return;
+    if (!mounted || !session.isCurrent) return;
     setState(() {
       _userInfo = userInfo;
       _isAuthenticated = userInfo != null;
@@ -222,13 +296,21 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   Future<void> _loadHome() async {
     if (!mounted) return;
     final request = ++_homeRequest;
+    final revision = AuthService.credentialRevision;
+    bool current() =>
+        mounted &&
+        request == _homeRequest &&
+        revision == AuthService.credentialRevision &&
+        !AuthService.isEndingSession;
     setState(() => _homeError = null);
     try {
       final selected = context.read<BusinessProvider>();
       final cart = context.read<CartProvider>();
       await cart.ensureLoaded();
+      if (!current()) return;
       if (!_businessLoaded) {
         await selected.loadSavedBusiness();
+        if (!current()) return;
         _businessLoaded = true;
       }
       final cartStore = cart.hasActiveItems ? cart.businessId : null;
@@ -237,26 +319,27 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
             (cart.hasUnresolvedBusiness ? null : selected.selectedBusinessId),
         allowDefaultBusiness: !cart.hasUnresolvedBusiness,
         onBusinessSelected: (business) async {
-          if (!mounted || request != _homeRequest) return false;
+          if (!current()) return false;
           final id = BusinessProvider.idOf(business);
-          if (id == null ||
-              (cart.hasActiveItems && cart.businessId != id)) {
+          if (id == null || (cart.hasActiveItems && cart.businessId != id)) {
             return false;
           }
           final previous = selected.selectedBusiness;
           if (!await selected.setSelectedBusiness(business)) return false;
+          if (!current()) return false;
           if (!await cart.bindBusiness(id)) {
             await selected.setSelectedBusiness(previous);
             return false;
           }
+          if (!current()) return false;
           return true;
         },
       ).load().timeout(_homeLoadTimeout);
-      if (!mounted || request != _homeRequest) return;
+      if (!current()) return;
       setState(() => _homeData = data);
     } catch (e) {
       debugPrint('HomeDataSource failed: $e');
-      if (!mounted || request != _homeRequest) return;
+      if (!current()) return;
       setState(() => _homeError = 'Не удалось загрузить главную страницу');
     }
   }
@@ -426,10 +509,14 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
 
   Future<ProfileAccount?> _loadProfileAccount() async {
     if (!_isAuthenticated) return null;
-    final info = await ApiService.getFullInfo().timeout(_authCheckTimeout);
+    final session = await AuthService.captureSession();
+    if (session == null || !session.isCurrent) return null;
+    final info = await ApiService.getFullInfo(credentialToken: session.token)
+        .timeout(_authCheckTimeout);
+    if (!mounted || !session.isCurrent) return null;
     if (info == null) throw StateError('Could not load account');
     final account = ProfileAccount.fromJson(info);
-    if (mounted) setState(() => _userInfo = info);
+    setState(() => _userInfo = info);
     return account;
   }
 

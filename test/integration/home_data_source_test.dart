@@ -19,10 +19,16 @@ void main() {
           })}.signature',
     });
     final calls = <Uri>[];
+    final unexpected = <String>[];
+    addTearDown(() => expect(unexpected, isEmpty));
     final home = await http.runWithClient(
       () => const HomeDataSource(businessId: 2).load(),
       () => MockClient((request) async {
         calls.add(request.url);
+        if (request.method != 'GET') {
+          unexpected.add('${request.method} ${request.url}');
+          throw StateError(unexpected.last);
+        }
         final path = request.url.path;
         Object data;
         if (path.endsWith('/businesses')) {
@@ -51,7 +57,8 @@ void main() {
         } else if (path.contains('bonuses')) {
           data = {'totalBonuses': 164};
         } else {
-          return http.Response('{}', 404);
+          unexpected.add('${request.method} ${request.url}');
+          throw StateError(unexpected.last);
         }
         return http.Response(jsonEncode({'success': true, 'data': data}), 200,
             headers: {'content-type': 'application/json; charset=utf-8'});
@@ -73,6 +80,8 @@ void main() {
       () async {
     SharedPreferences.setMockInitialValues({'auth_token': 42});
     final store = Completer<http.Response>();
+    final unexpected = <String>[];
+    addTearDown(() => expect(unexpected, isEmpty));
     await http.runWithClient(() async {
       final result = expectLater(
         const HomeDataSource().load(),
@@ -99,6 +108,16 @@ void main() {
                 return http.Response(
                     '{"success":true,"data":{"supercategories":[]}}', 200);
               }
+              if (request.method == 'GET' &&
+                  request.url.path == '/api/promotions/active' &&
+                  request.url.queryParameters['business_id'] == '1' &&
+                  request.url.queryParameters['limit'] == '50' &&
+                  request.url.queryParameters['offset'] == '0' &&
+                  request.url.queryParameters.length == 3) {
+                return http.Response(
+                    '{"success":true,"data":{"promotions":[]}}', 200);
+              }
+              unexpected.add('${request.method} ${request.url}');
               throw StateError(
                   'Unexpected request: ${request.method} ${request.url}');
             }));

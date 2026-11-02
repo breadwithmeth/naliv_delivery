@@ -47,7 +47,10 @@ class ChatApiService {
   String? get sessionId => _sessionId;
   bool get isSocketConnected => _socketConnected;
   bool get hasSession =>
-      !_disposed && _identityBound && _sessionId != null && _sessionToken != null;
+      !_disposed &&
+      _identityBound &&
+      _sessionId != null &&
+      _sessionToken != null;
 
   static String? _identifier(Object? value) {
     if (value is! String && value is! num) return null;
@@ -87,7 +90,10 @@ class ChatApiService {
   static Future<void> clearPrivateSessions() async {
     suspendAllSessions();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_prefsSessionKey);
+    if (prefs.containsKey(_prefsSessionKey) &&
+        !await prefs.remove(_prefsSessionKey)) {
+      throw StateError('Could not remove private chat session');
+    }
   }
 
   // A push can select an existing owned conversation, never a bearer token or a
@@ -156,7 +162,9 @@ class ChatApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final widget = data is Map ? data['widget'] : null;
-        if (widget is Map<String, dynamic>) return WidgetConfig.fromJson(widget);
+        if (widget is Map<String, dynamic>) {
+          return WidgetConfig.fromJson(widget);
+        }
       }
     } catch (e) {
       debugPrint('[ChatApi] Ошибка загрузки конфига: $e');
@@ -216,12 +224,14 @@ class ChatApiService {
     }
   }
 
-  Future<bool> recreateSession({String? name, String? email, String? phone}) async {
+  Future<bool> recreateSession(
+      {String? name, String? email, String? phone}) async {
     await _clearSession();
     return ensureSession(name: name, email: email, phone: phone);
   }
 
-  Future<bool> updateProfile({String? name, String? email, String? phone}) async {
+  Future<bool> updateProfile(
+      {String? name, String? email, String? phone}) async {
     if (!hasSession) return false;
     final generation = _generation;
     try {
@@ -232,7 +242,8 @@ class ChatApiService {
       if (body.isEmpty) return false;
       final response = await _client
           .patch(
-            Uri.parse('$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/profile'),
+            Uri.parse(
+                '$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/profile'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $_sessionToken',
@@ -253,7 +264,8 @@ class ChatApiService {
     try {
       final response = await _client
           .post(
-            Uri.parse('$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/messages'),
+            Uri.parse(
+                '$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/messages'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $_sessionToken',
@@ -287,7 +299,8 @@ class ChatApiService {
     }
   }
 
-  Future<FetchResult> fetchHistory({int limit = 100, bool afterLatest = false}) async {
+  Future<FetchResult> fetchHistory(
+      {int limit = 100, bool afterLatest = false}) async {
     if (!hasSession) return const FetchResult.failure('Нет активной сессии');
     final generation = _generation;
     _historyLoads++;
@@ -296,20 +309,20 @@ class ChatApiService {
       if (afterLatest && _lastMessageId != null) {
         params['afterId'] = _lastMessageId.toString();
       }
-      final response = await _client
-          .get(
-            Uri.parse('$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/messages')
-                .replace(queryParameters: params),
-            headers: {'Authorization': 'Bearer $_sessionToken'},
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await _client.get(
+        Uri.parse(
+                '$_baseUrl/api/widget/$_publicKey/sessions/$_sessionId/messages')
+            .replace(queryParameters: params),
+        headers: {'Authorization': 'Bearer $_sessionToken'},
+      ).timeout(const Duration(seconds: 10));
       if (!_isCurrent(generation)) {
         return const FetchResult.failure('Учётная запись изменилась');
       }
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final list = data is Map ? data['messages'] : null;
-        if (list is! List || list.any((value) => value is! Map<String, dynamic>)) {
+        if (list is! List ||
+            list.any((value) => value is! Map<String, dynamic>)) {
           return const FetchResult.failure('Некорректный ответ сервера');
         }
         final messages = <ChatMessage>[];
@@ -399,7 +412,8 @@ class ChatApiService {
           .enableForceNew()
           .build(),
     );
-    bool current() => _isCurrent(generation) && _foreground && _socket == socket;
+    bool current() =>
+        _isCurrent(generation) && _foreground && _socket == socket;
     socket.onConnect((_) {
       if (!current()) return;
       _socketConnected = true;
@@ -436,11 +450,13 @@ class ChatApiService {
     if (!_isCurrent(generation)) return;
     final identity = _identity;
     final id = _sessionId;
-    await prefs.setString(_prefsSessionKey, jsonEncode({
-      'identity': identity,
-      'id': id,
-      'token': _sessionToken,
-    }));
+    await prefs.setString(
+        _prefsSessionKey,
+        jsonEncode({
+          'identity': identity,
+          'id': id,
+          'token': _sessionToken,
+        }));
     if (!_isCurrent(generation)) {
       final stored = _readPersistedSession(prefs);
       if (stored?['identity'] == identity && stored?['id'] == id) {
@@ -479,7 +495,8 @@ class ChatApiService {
     _endSession();
     final prefs = await SharedPreferences.getInstance();
     final stored = _readPersistedSession(prefs);
-    if (stored?['identity'] == _identity && stored?['id']?.toString() == oldId) {
+    if (stored?['identity'] == _identity &&
+        stored?['id']?.toString() == oldId) {
       await prefs.remove(_prefsSessionKey);
     }
   }

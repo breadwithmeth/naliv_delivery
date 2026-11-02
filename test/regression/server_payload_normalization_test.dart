@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
-import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/model/category_items.dart';
 
 void main() {
   group('server payload normalization', () {

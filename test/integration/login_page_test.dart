@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/native_push_fixture.dart';
 
 Future<void> _pumpLogin(WidgetTester tester, ThemeData theme) async {
   await tester.binding.setSurfaceSize(const Size(375, 812));
@@ -36,6 +39,135 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
+
+  testWidgets(
+      'successful login returns while optional provider login is pending',
+      (tester) async {
+    final native = NativePushFixture()..install();
+    final pending = Completer<void>();
+    native.login = (_) => pending.future;
+    final rejected = <String>[];
+    final token = 'e30.${base64Url.encode(utf8.encode(jsonEncode({
+              'sub': 'user-login'
+            }))).replaceAll('=', '')}.fixture';
+    SharedPreferences.setMockInitialValues({
+      'onesignal_device_id': 'fixture-device',
+    });
+    addTearDown(() {
+      native.uninstall();
+      expect(native.unexpected, isEmpty);
+      expect(rejected, isEmpty);
+    });
+    final client = MockClient((request) async {
+      if (request.url.origin == 'https://njt25.naliv.kz' &&
+          request.url.queryParameters.isEmpty &&
+          request.url.fragment.isEmpty) {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/auth/send-code' &&
+            request.headers['authorization'] == null &&
+            request.body == jsonEncode({'phone_number': '+77000000000'})) {
+          return http.Response('{"success":true}', 200);
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/auth/verify-code' &&
+            request.headers['authorization'] == null &&
+            request.body ==
+                jsonEncode({
+                  'phone_number': '+77000000000',
+                  'onetime_code': '123456',
+                })) {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': {'token': token}
+            }),
+            202,
+          );
+        }
+        if (request.method == 'GET' &&
+            request.url.path == '/api/auth/full-info' &&
+            request.headers['authorization'] == 'Bearer $token') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': {
+                'user': {
+                  'id': 'user-login',
+                  'name': 'Тестовый Получатель',
+                  'date_of_birth': '1990-01-01',
+                },
+              },
+            }),
+            200,
+            headers: const {
+              'content-type': 'application/json; charset=utf-8',
+            },
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/users/onesignal-subscription' &&
+            request.headers['authorization'] == 'Bearer $token') {
+          final body = jsonDecode(request.body);
+          if (body is Map &&
+              body.length == 7 &&
+              body['subscriptionId'] == 'fixture-subscription' &&
+              body['externalId'] == 'user-login' &&
+              body['deviceId'] == 'fixture-device' &&
+              body['deviceType'] == 'android' &&
+              body['permissionGranted'] == true &&
+              body['optedIn'] == true) {
+            return http.Response('{"success":true}', 200);
+          }
+        }
+      }
+      rejected.add('${request.method} ${request.url} ${request.body}');
+      throw StateError(rejected.last);
+    });
+    await http.runWithClient(() async {
+      var authenticated = false;
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark(),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                authenticated = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) => const LoginPage(
+                          startWithPhoneForm: true,
+                          completionMode:
+                              LoginCompletionMode.returnAuthenticated,
+                        ),
+                      ),
+                    ) ==
+                    true;
+              },
+              child: const Text('Войти для продолжения'),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Войти для продолжения'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const ValueKey('auth-phone-input')), '+77000000000');
+      await tester.tap(find.byKey(const ValueKey('request-code-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const ValueKey('auth-code-input')), '123456');
+      for (var turn = 0; turn < 8; turn++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      final completedBeforePush = authenticated;
+      pending.complete();
+      await tester.pumpAndSettle();
+      await _disposeLogin(tester);
+
+      expect(completedBeforePush, isTrue);
+      expect(authenticated, isTrue);
+    }, () => client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('explicit sign-in opens the phone form and back returns home',
       (tester) async {

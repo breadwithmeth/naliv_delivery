@@ -25,6 +25,10 @@ abstract final class AppIcons {
   static const String store = '$root/shop.svg';
   static const String location = '$root/location.svg';
   static const String shop = '$root/shop.svg';
+
+  /// The white storefront alone. [shop] carries its own orange tile, so tinting it
+  /// (`AppIcon.color` uses `srcIn`) flattens the glyph into a blank rounded square.
+  static const String shopGlyph = '$root/shop_glyph.svg';
   static const String star = '$root/star.svg';
   static const String heart = '$root/heart.svg';
   static const String bell = '$root/bell.svg';

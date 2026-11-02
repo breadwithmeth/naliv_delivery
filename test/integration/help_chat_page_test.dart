@@ -271,8 +271,9 @@ void main() {
           'messages': [_message(11, 'Подтверждённый ответ поддержки')],
         });
     final rejectedAuth = <String>[];
-    final token =
-        'e30.${base64Url.encode(utf8.encode(jsonEncode({'sub': 'user-a'}))).replaceAll('=', '')}.fixture';
+    final token = 'e30.${base64Url.encode(utf8.encode(jsonEncode({
+              'sub': 'user-a'
+            }))).replaceAll('=', '')}.fixture';
     final authClient = MockClient((request) async {
       if (request.url.origin == 'https://njt25.naliv.kz' &&
           request.url.queryParameters.isEmpty &&
@@ -318,7 +319,7 @@ void main() {
       final navigatorKey = GlobalKey<NavigatorState>();
       final draft = TextEditingController(text: 'Сохранённый текст экрана');
       addTearDown(draft.dispose);
-      final notifications = NotificationService.forTesting(
+      final notifications = NotificationService(
         navigatorKey: navigatorKey,
         resolveIdentity: ApiService.getCurrentUserExternalId,
         chatServiceFactory: () =>
@@ -328,7 +329,8 @@ void main() {
         navigatorKey: navigatorKey,
         theme: AppTheme.dark(),
         home: Scaffold(
-          body: TextField(key: const ValueKey('route-draft'), controller: draft),
+          body:
+              TextField(key: const ValueKey('route-draft'), controller: draft),
         ),
       ));
       const payload = <String, dynamic>{
@@ -343,7 +345,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
           find.byKey(const ValueKey('auth-phone-input')), '+77000000000');
-      await tester.ensureVisible(find.byKey(const ValueKey('request-code-button')));
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('request-code-button')));
       await tester.tap(find.byKey(const ValueKey('request-code-button')));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -382,7 +385,7 @@ void main() {
           ],
         });
     final navigatorKey = GlobalKey<NavigatorState>();
-    final notifications = NotificationService.forTesting(
+    final notifications = NotificationService(
       navigatorKey: navigatorKey,
       resolveIdentity: () async => 'user-a',
       chatServiceFactory: () =>
@@ -407,7 +410,8 @@ void main() {
     await notifications.handleNotificationData(payload);
     await tester.pumpAndSettle();
     expect(find.text('Ответ только из истории'), findsOneWidget);
-    expect(find.text('Нельзя показывать текст push вместо истории'), findsNothing);
+    expect(
+        find.text('Нельзя показывать текст push вместо истории'), findsNothing);
     final reads = fixture.historyCursors.length;
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
@@ -428,6 +432,139 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
+  testWidgets('delayed account A profile never patches account B conversation',
+      (tester) async {
+    String token(String identity) =>
+        'e30.${base64Url.encode(utf8.encode(jsonEncode({
+                  'sub': identity
+                }))).replaceAll('=', '')}.fixture';
+    SharedPreferences.setMockInitialValues({
+      'auth_token': token('user-a'),
+      'chat_widget_session': jsonEncode({
+        'identity': 'user-a',
+        'id': 'session-a',
+        'token': 'capability-a',
+      }),
+    });
+    await AuthService.notifySessionChanged();
+    await AuthService.bindAuthenticatedIdentity('user-a');
+    var identity = 'user-a';
+    final rejected = <String>[];
+    final patches = <({String path, String? authorization, String body})>[];
+    final delayedInfo = Completer<http.Response>();
+    var profileReads = 0;
+    final authClient = MockClient((request) async {
+      if (request.method == 'GET' &&
+          request.url.origin == 'https://njt25.naliv.kz' &&
+          request.url.path == '/api/auth/full-info' &&
+          request.url.queryParameters.isEmpty &&
+          request.headers['authorization'] == 'Bearer ${token('user-a')}') {
+        profileReads++;
+        return delayedInfo.future;
+      }
+      rejected.add('${request.method} ${request.url}');
+      throw StateError(rejected.last);
+    });
+    final chatClient = MockClient((request) async {
+      if (request.url.origin == 'https://bm.drawbridge.kz') {
+        if (request.method == 'GET' &&
+            request.url.path == '$_widgetPath/config' &&
+            request.url.queryParameters.isEmpty &&
+            request.headers['authorization'] == null) {
+          return _json({
+            'widget': {'name': 'Поддержка'}
+          });
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '$_widgetPath/sessions' &&
+            request.url.queryParameters.isEmpty &&
+            request.body == '{}') {
+          return _json({
+            'session': {'id': 'session-b', 'token': 'capability-b'},
+          }, 201);
+        }
+        for (final owner in ['a', 'b']) {
+          if (request.headers['authorization'] != 'Bearer capability-$owner') {
+            continue;
+          }
+          if (request.method == 'GET' &&
+              request.url.path ==
+                  '$_widgetPath/sessions/session-$owner/messages' &&
+              request.url.queryParameters['limit'] == '100' &&
+              request.url.queryParameters.keys
+                  .every((key) => {'limit', 'afterId'}.contains(key))) {
+            return _json({'messages': []});
+          }
+          if (owner == 'a' &&
+              request.method == 'POST' &&
+              request.url.path == '$_widgetPath/sessions/session-a/messages' &&
+              request.url.queryParameters.isEmpty &&
+              request.body == jsonEncode({'content': 'Вопрос от A'})) {
+            return _json({
+              'message': _message(51, 'Вопрос от A', operator: false),
+            }, 201);
+          }
+          if (request.method == 'PATCH' &&
+              request.url.path ==
+                  '$_widgetPath/sessions/session-$owner/profile' &&
+              request.url.queryParameters.isEmpty) {
+            patches.add((
+              path: request.url.path,
+              authorization: request.headers['authorization'],
+              body: request.body,
+            ));
+            return _json({'success': true});
+          }
+        }
+      }
+      rejected.add('${request.method} ${request.url} ${request.body}');
+      throw StateError(rejected.last);
+    });
+    addTearDown(() {
+      authClient.close();
+      expect(rejected, isEmpty);
+    });
+    await http.runWithClient(() async {
+      final service = ChatApiService(client: chatClient, enableSocket: false);
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark(),
+        home: HelpChatPage(
+          entryPoint: 'profile',
+          chatService: service,
+          resolveIdentity: () async => identity,
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(_input), 'Вопрос от A');
+      await tester.pump();
+      await tester.tap(find.byKey(_send));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('support-message-51')), findsOneWidget);
+      expect(profileReads, 1);
+
+      identity = 'user-b';
+      await AuthService.saveToken(token(identity));
+      await AuthService.bindAuthenticatedIdentity(identity);
+      await tester.pumpAndSettle();
+      expect(service.identity, 'user-b');
+      expect(service.sessionId, 'session-b');
+      delayedInfo.complete(_json({
+        'success': true,
+        'data': {
+          'user': {
+            'id': 'user-a',
+            'name': 'Частное имя A',
+            'phone_number': '+77001110000',
+          },
+        },
+      }));
+      await tester.pumpAndSettle();
+
+      expect(patches, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => authClient);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
   testWidgets('account switch hides private history and refuses an old push',
       (tester) async {
     SharedPreferences.setMockInitialValues({
@@ -444,7 +581,7 @@ void main() {
         });
     var identity = 'user-a';
     final navigatorKey = GlobalKey<NavigatorState>();
-    final notifications = NotificationService.forTesting(
+    final notifications = NotificationService(
       navigatorKey: navigatorKey,
       resolveIdentity: () async => identity,
       chatServiceFactory: () =>
@@ -470,8 +607,10 @@ void main() {
     await AuthService.bindAuthenticatedIdentity(identity);
     await tester.pumpAndSettle();
     expect(find.text('Частная переписка A'), findsNothing);
-    expect(tester.widget<TextField>(find.byKey(_input)).controller!.text, isEmpty);
-    expect(await ChatApiService.ownsSession('fixture-session', identity), isFalse);
+    expect(
+        tester.widget<TextField>(find.byKey(_input)).controller!.text, isEmpty);
+    expect(
+        await ChatApiService.ownsSession('fixture-session', identity), isFalse);
     await notifications.handleNotificationData(payload);
     await tester.pumpAndSettle();
     expect(find.text('Частная переписка A'), findsNothing);
@@ -485,7 +624,7 @@ void main() {
       (tester) async {
     final navigatorKey = GlobalKey<NavigatorState>();
     final rejected = <String>[];
-    final notifications = NotificationService.forTesting(
+    final notifications = NotificationService(
       navigatorKey: navigatorKey,
       resolveIdentity: () async {
         rejected.add('Unexpected authentication lookup');

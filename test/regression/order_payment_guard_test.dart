@@ -441,7 +441,8 @@ void main() {
       expect(await store.getAll(), before);
     });
   }
-  test('accepted Kaspi link survives reload and terminal completion discards it',
+  test(
+      'accepted Kaspi link survives reload and terminal completion discards it',
       () async {
     const id = 'kaspi-link-reload';
     const link = 'https://fixture-bank.example/pay/kept-attempt';
@@ -461,7 +462,8 @@ void main() {
       throw StateError('Retained attempt must not charge again: $request');
     });
     await http.runWithClient(() async {
-      expect((await ApiService.payOrder(id, 'bank-card'))['requestSent'], isFalse);
+      expect(
+          (await ApiService.payOrder(id, 'bank-card'))['requestSent'], isFalse);
     }, () => client);
     await OrderPaymentGuard.reconcileOrder({
       'order_id': id,
@@ -475,4 +477,100 @@ void main() {
     expect(await OrderPaymentGuard.reserve(id), OrderPaymentState.completed);
   });
 
+  test('owned pending link cannot leak or be cleared by another account',
+      () async {
+    const id = 'owned-pending-account-boundary';
+    const link = 'https://fixture-bank.example/account-a-only';
+    expect(await OrderPaymentGuard.reserve(id, accountId: 'account-a'),
+        OrderPaymentState.ready);
+    try {
+      expect(
+          await OrderPaymentGuard.retainKaspiLink(id, link,
+              accountId: 'account-a'),
+          isTrue);
+    } finally {
+      OrderPaymentGuard.release(id);
+    }
+    SharedPreferences.resetStatic();
+    expect(await OrderPaymentGuard.readKaspiLink(id, accountId: 'account-b'),
+        isNull);
+    expect(
+        await OrderPaymentGuard.settle(id, OrderPaymentOutcome.refused,
+            accountId: 'account-b'),
+        OrderPaymentState.unconfirmed);
+    expect(await OrderPaymentGuard.reserve(id, accountId: 'account-b'),
+        OrderPaymentState.unconfirmed);
+    expect(await OrderPaymentGuard.readKaspiLink(id, accountId: 'account-a'),
+        link);
+    expect(
+        await OrderPaymentGuard.settle(id, OrderPaymentOutcome.completed,
+            accountId: 'account-a'),
+        OrderPaymentState.completed);
+  });
+
+  test(
+      'legacy unresolved attempt cannot be claimed by a newly verified account',
+      () async {
+    const id = 'legacy-unowned-account-boundary';
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      OrderPaymentGuard.preferenceKey(id): 'unconfirmed',
+    });
+    expect(await OrderPaymentGuard.reserve(id, accountId: 'new-account'),
+        OrderPaymentState.unconfirmed);
+    await OrderPaymentGuard.reconcileOrder({
+      'order_id': id,
+      'payment_status': 'failed',
+    },
+        readRevision: OrderPaymentGuard.beginOrderRead(),
+        accountId: 'new-account');
+    expect(await OrderPaymentGuard.read(id), OrderPaymentState.unconfirmed);
+  });
+
+  test('corrupt owned marker is never treated as a ready payment', () async {
+    const id = 'corrupt-owned-account-boundary';
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      OrderPaymentGuard.preferenceKey(id): '{"accountId":"account-a"}',
+    });
+    expect(await OrderPaymentGuard.reserve(id, accountId: 'account-a'),
+        OrderPaymentState.storageUnavailable);
+    expect(await OrderPaymentGuard.readKaspiLink(id, accountId: 'account-a'),
+        isNull);
+  });
+
+  test(
+      'fresh verified status recovers a legacy intent without a second payment',
+      () async {
+    const id = 'legacy-verified-read-recovery';
+    const link = 'https://fixture-bank.example/legacy-owned-link';
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      OrderPaymentGuard.preferenceKey(id): jsonEncode({
+        'state': 'unconfirmed',
+        'kaspiLink': link,
+      }),
+    });
+    await OrderPaymentGuard.reconcileOrder({
+      'order_id': id,
+      'payment_status': 'pending',
+    },
+        readRevision: OrderPaymentGuard.beginOrderRead(),
+        accountId: 'verified-owner',
+        verifiedRead: true);
+    expect(
+        await OrderPaymentGuard.readKaspiLink(id, accountId: 'verified-owner'),
+        link);
+    expect(await OrderPaymentGuard.readKaspiLink(id, accountId: 'other-owner'),
+        isNull);
+    await OrderPaymentGuard.reconcileOrder({
+      'order_id': id,
+      'payment_status': 'completed',
+    },
+        readRevision: OrderPaymentGuard.beginOrderRead(),
+        accountId: 'verified-owner',
+        verifiedRead: true);
+    expect(await OrderPaymentGuard.read(id, accountId: 'verified-owner'),
+        OrderPaymentState.completed);
+  });
 }

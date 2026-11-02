@@ -53,6 +53,7 @@ class AppTopBar extends StatelessWidget {
             if (showBack)
               AppIconButton(
                 asset: AppIcons.back,
+                fill: palette.surface,
                 onTap: backEnabled
                     ? onBack ?? () => Navigator.of(context).maybePop()
                     : null,
@@ -95,6 +96,7 @@ class AppTopBar extends StatelessWidget {
                     ? const SizedBox(width: 40)
                     : AppIconButton(
                         asset: AppIcons.search,
+                        fill: palette.surface,
                         onTap: onSearch,
                         tooltip: 'Поиск',
                       )),

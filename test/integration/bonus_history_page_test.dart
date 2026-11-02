@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/bonuses/ui/bonus_history_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,12 +68,9 @@ void main() {
       return _account(balance);
     });
     await http.runWithClient(() async {
-      await _pump(
-          tester,
-          cart,
-          BonusHistoryPage(onHowItWorks: () async {
-            balance = 200.75;
-          }));
+      await _pump(tester, cart, BonusHistoryPage(onHowItWorks: () async {
+        balance = 200.75;
+      }));
       expect(find.text('164,5 бонусов', findRichText: true), findsOneWidget);
       expect(find.text('+1\u00a0900,25 бонусов'), findsOneWidget);
       expect(find.text('−2\u00a0100,75 бонусов'), findsOneWidget);
@@ -113,6 +112,84 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('account switch hides retained bonus data before refresh settles',
+      (tester) async {
+    final cart = CartProvider();
+    final replacement = Completer<http.Response>();
+    final client = MockClient((request) {
+      if (request.method != 'GET' || request.url.path != '/api/bonuses') {
+        throw StateError('Unexpected request: $request');
+      }
+      return request.headers['Authorization'] == 'Bearer fixture-only'
+          ? Future.value(_account(164.5))
+          : replacement.future;
+    });
+    await http.runWithClient(() async {
+      try {
+        await _pump(tester, cart, const BonusHistoryPage());
+        expect(find.text('164,5 бонусов', findRichText: true), findsOneWidget);
+        await AuthService.saveToken('replacement');
+        await tester.pump();
+        expect(find.text('164,5 бонусов', findRichText: true), findsNothing);
+        expect(find.text('Возврат №1C-RETURN-7'), findsNothing);
+        replacement.complete(_account(200.75));
+        await tester.pumpAndSettle();
+        expect(find.text('200,75 бонусов', findRichText: true), findsOneWidget);
+      } finally {
+        if (!replacement.isCompleted) replacement.complete(_account(200.75));
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      }
+    }, () => client);
+    client.close();
+    cart.dispose();
+    await AuthService.bindAuthenticatedIdentity(null);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('old bonus read cannot block or overwrite a replacement session',
+      (tester) async {
+    final cart = CartProvider();
+    final previous = Completer<http.Response>();
+    final client = MockClient((request) {
+      if (request.method != 'GET' || request.url.path != '/api/bonuses') {
+        throw StateError('Unexpected request: $request');
+      }
+      return request.headers['Authorization'] == 'Bearer fixture-only'
+          ? previous.future
+          : Future.value(_account(200.75));
+    });
+    await http.runWithClient(() async {
+      try {
+        await tester.binding.setSurfaceSize(const Size(375, 812));
+        await tester.pumpWidget(ChangeNotifierProvider.value(
+          value: cart,
+          child: MaterialApp(
+            theme: AppTheme.dark(),
+            home: const BonusHistoryPage(),
+          ),
+        ));
+        await tester.pump();
+        await AuthService.saveToken('replacement');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('200,75 бонусов', findRichText: true), findsOneWidget);
+        previous.complete(_account(164.5));
+        await tester.pumpAndSettle();
+        expect(find.text('200,75 бонусов', findRichText: true), findsOneWidget);
+        expect(find.text('164,5 бонусов', findRichText: true), findsNothing);
+      } finally {
+        if (!previous.isCompleted) previous.complete(_account(164.5));
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      }
+    }, () => client);
+    client.close();
+    cart.dispose();
+    await AuthService.bindAuthenticatedIdentity(null);
     await tester.binding.setSurfaceSize(null);
   });
 }

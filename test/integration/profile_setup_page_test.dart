@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _name = ValueKey('profile-setup-name');
@@ -41,9 +42,171 @@ Future<void> _pumpProfile(
   await tester.pump();
 }
 
+class _ProfileSessionFixture {
+  final unexpected = <String>[];
+  final updates = <({String? authorization, Object? body})>[];
+  final reads = <String?>[];
+  Future<http.Response>? update;
+  Future<http.Response>? fullInfo;
+
+  late final client = MockClient((request) async {
+    if (request.url.origin == 'https://njt25.naliv.kz' &&
+        request.url.queryParameters.isEmpty &&
+        request.url.fragment.isEmpty &&
+        {
+          'Bearer profile-owner-a',
+          'Bearer profile-owner-b',
+        }.contains(request.headers['authorization'])) {
+      if (request.method == 'PATCH' &&
+          request.url.path == '/api/users/profile') {
+        final body = jsonDecode(request.body);
+        if (body is Map &&
+            body.length == 5 &&
+            body['name'] == 'Alice Draft' &&
+            body['first_name'] == 'Alice' &&
+            body['last_name'] == 'Draft' &&
+            body['date_of_birth'] == '1990-01-02' &&
+            body['sex'] == 0) {
+          updates.add((
+            authorization: request.headers['authorization'],
+            body: body,
+          ));
+          return update ??
+              _json({'success': false, 'message': 'fixture-refused'},
+                  status: 409);
+        }
+      }
+      if (request.method == 'GET' &&
+          request.url.path == '/api/auth/full-info' &&
+          request.body.isEmpty) {
+        reads.add(request.headers['authorization']);
+        return fullInfo ??
+            _json({
+              'success': true,
+              'data': {
+                'user': {
+                  'id': 'user-b',
+                  'name': 'Bob',
+                  'date_of_birth': '1991-01-02',
+                },
+              },
+            });
+      }
+    }
+    unexpected.add('${request.method} ${request.url} ${request.body}');
+    throw StateError(unexpected.last);
+  });
+
+  void dispose() {
+    client.close();
+    expect(unexpected, isEmpty);
+  }
+}
+
+Future<void> _submitSessionDraft(WidgetTester tester) async {
+  await tester.ensureVisible(find.byKey(_save));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(_save));
+  for (var turn = 0; turn < 8; turn++) {
+    await tester.pump();
+  }
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'});
+  });
+
+  testWidgets(
+      'account A profile draft cannot submit with account B credentials',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final fixture = _ProfileSessionFixture();
+    addTearDown(fixture.dispose);
+    await AuthService.saveToken('profile-owner-a');
+    var completions = 0;
+    await http.runWithClient(() async {
+      await _pumpProfile(
+        tester,
+        theme: AppTheme.dark(),
+        user: {'name': 'Alice Draft', 'date_of_birth': '1990-01-02'},
+        onCompleted: (_) async => completions++,
+      );
+      await AuthService.saveToken('profile-owner-b');
+      await tester.pump();
+      await _submitSessionDraft(tester);
+      await tester.pumpAndSettle();
+
+      expect(fixture.updates, isEmpty);
+      expect(completions, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => fixture.client);
+  });
+
+  testWidgets('late profile update cannot refetch or complete another session',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final fixture = _ProfileSessionFixture();
+    addTearDown(fixture.dispose);
+    final update = Completer<http.Response>();
+    fixture.update = update.future;
+    await AuthService.saveToken('profile-owner-a');
+    var completions = 0;
+    await http.runWithClient(() async {
+      await _pumpProfile(
+        tester,
+        theme: AppTheme.dark(),
+        user: {'name': 'Alice Draft', 'date_of_birth': '1990-01-02'},
+        onCompleted: (_) async => completions++,
+      );
+      await _submitSessionDraft(tester);
+      expect(fixture.updates, hasLength(1));
+      expect(fixture.updates.single.authorization, 'Bearer profile-owner-a');
+      await AuthService.saveToken('profile-owner-b');
+      update.complete(_json({'success': true}));
+      await tester.pumpAndSettle();
+
+      expect(fixture.reads, isEmpty);
+      expect(completions, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => fixture.client);
+  });
+
+  testWidgets('late profile refetch cannot complete account B login',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final fixture = _ProfileSessionFixture();
+    addTearDown(fixture.dispose);
+    final info = Completer<http.Response>();
+    fixture.update = Future.value(_json({'success': true}));
+    fixture.fullInfo = info.future;
+    await AuthService.saveToken('profile-owner-a');
+    var completions = 0;
+    await http.runWithClient(() async {
+      await _pumpProfile(
+        tester,
+        theme: AppTheme.dark(),
+        user: {'name': 'Alice Draft', 'date_of_birth': '1990-01-02'},
+        onCompleted: (_) async => completions++,
+      );
+      await _submitSessionDraft(tester);
+      expect(fixture.reads, ['Bearer profile-owner-a']);
+      await AuthService.saveToken('profile-owner-b');
+      info.complete(_json({
+        'success': true,
+        'data': {
+          'user': {
+            'id': 'user-a',
+            'name': 'Alice Draft',
+            'date_of_birth': '1990-01-02',
+          },
+        },
+      }));
+      await tester.pumpAndSettle();
+
+      expect(completions, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => fixture.client);
   });
 
   test(

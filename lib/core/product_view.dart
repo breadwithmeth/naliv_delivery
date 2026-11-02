@@ -22,6 +22,7 @@ class ProductView {
   const ProductView({
     required this.itemId,
     required this.source,
+    required this.catalogKey,
     required this.title,
     required this.price,
     this.country,
@@ -53,6 +54,9 @@ class ProductView {
   /// The model the cart API operates on (`incrementCatalogItem`, `getCatalogQuantity`, …).
   /// Carried so a card can act without re-parsing the item.
   final Item source;
+
+  /// The default configuration key, computed once with the presentation model.
+  final String catalogKey;
 
   /// Display title: the raw name with type/packaging/country/volume tokens stripped.
   final String title;
@@ -142,7 +146,15 @@ class ProductView {
     final sellable = !outOfStock &&
         selection.containerIssue == null &&
         selection.quantityIssue == null;
-    final points = outOfStock ? 0 : _bonusPoints(item, discounted);
+    final bonusEligible = !BonusRules.isBonusExcludedText(
+      name: item.name,
+      description: item.description,
+      categoryName: item.category?.name,
+      code: item.code,
+    );
+    final points = outOfStock || !bonusEligible
+        ? 0
+        : BonusRules.calculateEarnedBonuses(discounted);
     final savingAmount = hasDiscount ? basePrice - discounted : 0.0;
     final percent = hasDiscount && basePrice > 0
         ? ((basePrice - discounted) / basePrice * 100).round()
@@ -151,6 +163,7 @@ class ProductView {
     return ProductView(
       itemId: item.itemId,
       source: item,
+      catalogKey: selection.defaultDisplayKey,
       title: presentation.name,
       country: presentation.countryName,
       volume: presentation.volumeLabel,
@@ -164,12 +177,7 @@ class ProductView {
       weightLabel: presentation.weightLabel,
       metadata: presentation.attributes,
       discountedUnitPrice: discounted,
-      bonusEligible: !BonusRules.isBonusExcludedText(
-        name: item.name,
-        description: item.description,
-        categoryName: item.category?.name,
-        code: item.code,
-      ),
+      bonusEligible: bonusEligible,
       price: discounted,
       oldPrice: hasDiscount ? basePrice : null,
       saving: hasDiscount && savingAmount >= 1 ? savingAmount : null,
@@ -181,18 +189,5 @@ class ProductView {
       available: sellable,
       lowStock: amount != null && amount > 0 && amount <= 5,
     );
-  }
-
-  /// 3 % of the discounted price, zero for tobacco (`BonusRules`).
-  static int _bonusPoints(Item item, double discountedPrice) {
-    if (BonusRules.isBonusExcludedText(
-      name: item.name,
-      description: item.description,
-      categoryName: item.category?.name,
-      code: item.code,
-    )) {
-      return 0;
-    }
-    return BonusRules.calculateEarnedBonuses(discountedPrice);
   }
 }

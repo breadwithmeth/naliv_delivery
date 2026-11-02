@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:naliv_delivery/core/money.dart';
+import 'package:naliv_delivery/core/json_payload.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/typography.dart';
 import 'package:naliv_delivery/features/checkout/ui/payment_success_page.dart';
@@ -12,6 +13,7 @@ import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
 import 'package:naliv_delivery/ui/surfaces.dart';
 import 'package:naliv_delivery/ui/kaspi_payment.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/order_payment_guard.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart';
@@ -59,14 +61,55 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   String? _kaspiPaymentLink;
   Map<String, dynamic>? _refreshedOrder;
   bool _completionPresented = false;
-  bool get _orderClosed =>
-      isOrderClosed(_refreshedOrder ?? widget.orderData);
+  bool get _orderClosed => isOrderClosed(_refreshedOrder ?? widget.orderData);
+  int _ownerRevision = AuthService.credentialRevision;
+  final String? _ownerAccount = AuthService.currentIdentity;
+  bool _invalidated = false;
+  Route<void>? _progressRoute;
+  bool get _ownerCurrent =>
+      mounted &&
+      !_invalidated &&
+      _ownerRevision == AuthService.credentialRevision &&
+      !AuthService.isEndingSession;
+
+  void _credentialsChanged() {
+    if (!mounted) return;
+    if (_invalidated &&
+        _ownerAccount != null &&
+        AuthService.currentIdentity == _ownerAccount &&
+        !_flow.reauthenticationRequired &&
+        !AuthService.isEndingSession) {
+      setState(() {
+        _ownerRevision = AuthService.credentialRevision;
+        _invalidated = false;
+      });
+      _readPaymentGuard(initial: true);
+      return;
+    }
+    if (_ownerRevision == AuthService.credentialRevision) return;
+    _closePaymentProgress();
+    setState(() {
+      _invalidated = true;
+      _selectedCardId = null;
+      _selectedPaymentMethod = null;
+      _kaspiPaymentLink = null;
+      _refreshedOrder = null;
+      _cardFeedback = null;
+      _readingPaymentGuard = false;
+    });
+  }
+
+  void _closePaymentProgress() {
+    final route = _progressRoute;
+    _progressRoute = null;
+    if (route?.isActive == true) route!.navigator?.removeRoute(route);
+  }
 
   @override
   void initState() {
     super.initState();
     _flow = CardFlow(
-      readCards: () => ApiService.getUserCards(source: 'halyk'),
+      readCards: CardFlow.readAuthenticatedCards,
       openForm: (uri, window) => openHostedCardForm(context, uri, window,
           openCardForm: widget.openCardForm),
       requiresWindow: kIsWeb && widget.openCardForm == null,
@@ -76,12 +119,16 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       closeWindow: closeReservedWebWindow,
     )..addListener(_cardsChanged);
     WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_credentialsChanged);
     _flow.refresh();
     _readPaymentGuard(initial: true);
   }
 
   void _cardsChanged() {
     if (!mounted) return;
+    if (_invalidated && !_flow.reauthenticationRequired) {
+      _credentialsChanged();
+    }
     setState(() {
       if (!_flow.loading && _flow.error == null) _syncSelectedPaymentMethod();
     });
@@ -90,6 +137,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_credentialsChanged);
     _flow.removeListener(_cardsChanged);
     _flow.dispose();
     super.dispose();
@@ -97,19 +145,23 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && _ownerCurrent) {
       _readPaymentGuard();
       _flow.refresh();
     }
   }
 
   Future<void> _readPaymentGuard({bool initial = false}) async {
-    if (!mounted || _isPaying || (_readingPaymentGuard && !initial)) return;
+    if (!_ownerCurrent || _isPaying || (_readingPaymentGuard && !initial)) {
+      return;
+    }
     setState(() => _readingPaymentGuard = true);
+    final session = await AuthService.captureSession();
+    if (session == null || !session.isCurrent || !_ownerCurrent) return;
     final id = _orderId();
     var state = id == null
         ? OrderPaymentState.storageUnavailable
-        : await OrderPaymentGuard.read(id);
+        : await OrderPaymentGuard.read(id, accountId: _ownerAccount);
     var serverCompleted = false;
     var statusUnavailable = false;
     try {
@@ -119,30 +171,37 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
             knownOutcome == OrderPaymentOutcome.pending) {
           final knownOrder = Map<String, dynamic>.from(widget.orderData);
           await OrderPaymentGuard.reconcileOrder(knownOrder,
-              readRevision: OrderPaymentGuard.beginOrderRead());
-          state = await OrderPaymentGuard.read(id);
+              readRevision: OrderPaymentGuard.beginOrderRead(),
+              accountId: _ownerAccount);
+          state = await OrderPaymentGuard.read(id, accountId: _ownerAccount);
         }
       }
-      if (id != null && state == OrderPaymentState.unconfirmed &&
+      if (id != null &&
+          state == OrderPaymentState.unconfirmed &&
           !_orderClosed) {
-        _kaspiPaymentLink ??= await OrderPaymentGuard.readKaspiLink(id);
+        final retainedLink =
+            await OrderPaymentGuard.readKaspiLink(id, accountId: _ownerAccount);
+        if (!_ownerCurrent || !session.isCurrent) return;
+        _kaspiPaymentLink ??= retainedLink;
         if (_kaspiPaymentLink != null) {
           _selectedPaymentMethod = _PaymentMethodType.kaspi;
           _selectedCardId = null;
         }
         if (!initial || _kaspiPaymentLink != null) {
           if (_kaspiPaymentLink != null) {
-            final outcome = await _refreshKaspiStatus(id);
+            final outcome = await _refreshKaspiStatus(id, session);
             serverCompleted = outcome == OrderPaymentOutcome.completed;
             statusUnavailable = outcome == OrderPaymentOutcome.unknown;
           } else {
             final numericId = int.tryParse(id);
             Map<String, dynamic>? order;
             if (numericId != null) {
-              order = await ApiService.getOrderDetails(numericId)
+              order = await ApiService.getOrderDetails(numericId,
+                      credentialToken: session.token)
                   .timeout(const Duration(seconds: 12));
             } else {
-              final orders = await ApiService.getMyOrdersHistoryList()
+              final orders = await ApiService.getMyOrdersHistoryList(
+                      credentialToken: session.token)
                   .timeout(const Duration(seconds: 12));
               for (final candidate in orders) {
                 if (paymentOrderId(candidate) == id) {
@@ -152,16 +211,16 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
               }
             }
             statusUnavailable = order == null;
-            if (order != null && mounted) {
+            if (order != null && _ownerCurrent && session.isCurrent) {
               _refreshedOrder = order;
               serverCompleted =
                   orderPaymentOutcome(order) == OrderPaymentOutcome.completed;
             }
           }
-          state = await OrderPaymentGuard.read(id);
+          state = await OrderPaymentGuard.read(id, accountId: _ownerAccount);
         }
       }
-      if (!mounted) return;
+      if (!_ownerCurrent || !session.isCurrent) return;
       _applyPaymentState(state);
       if (statusUnavailable) {
         _setCardFeedback(
@@ -169,12 +228,15 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           _CardFeedbackTone.error,
         );
       }
-      if (!initial && serverCompleted && !_orderClosed && id != null &&
+      if (!initial &&
+          serverCompleted &&
+          !_orderClosed &&
+          id != null &&
           state == OrderPaymentState.completed) {
         await _finishSuccessfulPayment(id);
       }
     } catch (_) {
-      if (!mounted) return;
+      if (!_ownerCurrent || !session.isCurrent) return;
       _applyPaymentState(state);
       _setCardFeedback(
         'Не удалось проверить оплату на сервере. Повторное списание заблокировано; попробуйте обновить статус.',
@@ -186,7 +248,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   void _applyPaymentState(OrderPaymentState state) {
-    if (!mounted) return;
+    if (!_ownerCurrent) return;
     setState(() {
       final wasLocked = _paymentState != OrderPaymentState.ready;
       _paymentState = state;
@@ -229,8 +291,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   void _syncSelectedPaymentMethod() {
     if (_selectedPaymentMethod == _PaymentMethodType.kaspi) return;
     if (_selectedPaymentMethod == _PaymentMethodType.card &&
-        _flow.cards.any((card) =>
-            card.canCharge && card.chargeId == _selectedCardId)) {
+        _flow.cards.any(
+            (card) => card.canCharge && card.chargeId == _selectedCardId)) {
       return;
     }
     for (final card in _flow.cards) {
@@ -245,7 +307,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   Future<void> _pay({_PaymentMethodType? paymentMethod}) async {
-    if (_isPaying ||
+    if (!_ownerCurrent ||
+        _flow.reauthenticationRequired ||
+        _isPaying ||
         _orderClosed ||
         _readingPaymentGuard ||
         _paymentState != OrderPaymentState.ready ||
@@ -301,11 +365,17 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         _isPaying = true;
       });
     }
+    final session = await AuthService.captureSession();
+    if (session == null || !session.isCurrent || !_ownerCurrent) {
+      if (mounted) setState(() => _isPaying = false);
+      closeReservedWebWindow(kaspiWindowHandle);
+      return;
+    }
 
     var progressDialogShown = false;
     void closeProgressDialog() {
       if (!progressDialogShown || !mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
+      _closePaymentProgress();
       progressDialogShown = false;
     }
 
@@ -317,11 +387,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     var kaspiPaymentOpened = false;
     try {
       if (selectedMethod == _PaymentMethodType.card) {
-        final result = await ApiService.payOrder(orderId, _selectedCardId!);
+        final result = await ApiService.payOrder(orderId, _selectedCardId!,
+            credentialToken: session.token);
 
         closeProgressDialog();
+        if (!_ownerCurrent || !session.isCurrent) return;
 
-        final paymentData = ApiService.mapFromDynamic(result['data']);
+        final paymentData = payloadMap(result['data']);
         final stateName = result['paymentGuardState'];
         final state = OrderPaymentState.values.firstWhere(
           (state) => state.name == stateName,
@@ -351,11 +423,12 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         orderId,
         kaspiWindowHandle,
         closeProgressDialog,
+        session,
       );
       closeProgressDialog();
     } catch (e) {
       closeProgressDialog();
-      if (mounted) {
+      if (_ownerCurrent && session.isCurrent) {
         await _showPaymentFailureNotice('Произошла ошибка: $e',
             kaspi: selectedMethod == _PaymentMethodType.kaspi);
       }
@@ -365,6 +438,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         setState(() {
           _isPaying = false;
         });
+      }
+      if (_ownerCurrent && !session.isCurrent) {
+        unawaited(_readPaymentGuard());
       }
       if (selectedMethod == _PaymentMethodType.kaspi && !kaspiPaymentOpened) {
         closeReservedWebWindow(kaspiWindowHandle);
@@ -376,17 +452,24 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     String orderId,
     Object? webKaspiWindowHandle,
     VoidCallback closeProgressDialog,
+    AuthSession session,
   ) async {
-    final reservation = await OrderPaymentGuard.reserve(orderId);
+    final reservation =
+        await OrderPaymentGuard.reserve(orderId, accountId: _ownerAccount);
     if (reservation != OrderPaymentState.ready) {
       _applyPaymentState(reservation);
       return false;
     }
     _applyPaymentState(OrderPaymentState.unconfirmed);
     try {
-      final result = await ApiService.createKaspiQrPayment(orderId, method: 'link')
-          .timeout(const Duration(seconds: 12));
-      final paymentData = ApiService.mapFromDynamic(result['data']);
+      if (!_ownerCurrent || !session.isCurrent) {
+        await OrderPaymentGuard.settle(orderId, OrderPaymentOutcome.refused,
+            accountId: _ownerAccount);
+        return false;
+      }
+      final result = await ApiService.createKaspiQrPayment(orderId,
+          method: 'link', credentialToken: session.token);
+      final paymentData = payloadMap(result['data']);
       final createOutcome = result.containsKey('requestSent')
           ? orderPaymentResultOutcome(result)
           : orderPaymentOutcome(paymentData);
@@ -399,7 +482,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       }
       if (result['success'] != true ||
           createOutcome == OrderPaymentOutcome.refused) {
-        if (mounted) {
+        if (_ownerCurrent && session.isCurrent) {
           closeProgressDialog();
           await _showPaymentFailureNotice(_paymentErrorMessage(result['error']),
               kaspi: true);
@@ -409,6 +492,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
       if (createOutcome == OrderPaymentOutcome.completed) {
         await _settleKaspiPayment(orderId, OrderPaymentOutcome.completed);
+        if (!_ownerCurrent || !session.isCurrent) return false;
         closeProgressDialog();
         await _finishSuccessfulPayment(orderId);
         return false;
@@ -417,7 +501,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       final paymentLink = _nonEmptyString(paymentData['paymentLink']);
 
       if (paymentLink == null) {
-        if (mounted) {
+        if (_ownerCurrent && session.isCurrent) {
           closeProgressDialog();
           await _showPaymentFailureNotice(
               'Kaspi.kz не вернул ссылку для оплаты.',
@@ -426,10 +510,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         return false;
       }
 
-      _kaspiPaymentLink = paymentLink;
-      final retained =
-          await OrderPaymentGuard.retainKaspiLink(orderId, paymentLink);
-      if (!mounted) return false;
+      if (_ownerCurrent && session.isCurrent) _kaspiPaymentLink = paymentLink;
+      final retained = await OrderPaymentGuard.retainKaspiLink(
+          orderId, paymentLink,
+          accountId: _ownerAccount);
+      if (!_ownerCurrent || !session.isCurrent) return false;
       if (!retained) {
         _setCardFeedback(
           'Ссылка получена, но не сохранена на устройстве. Её можно открыть повторно сейчас; после перезапуска проверьте заказ перед оплатой.',
@@ -439,8 +524,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
       var opened = false;
       try {
-        opened =
-            await _openKaspiPaymentLink(paymentLink, webKaspiWindowHandle);
+        opened = await _openKaspiPaymentLink(paymentLink, webKaspiWindowHandle);
       } catch (_) {}
       if (!opened) {
         if (mounted) {
@@ -457,8 +541,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         _CardFeedbackTone.info,
       );
 
-      final statusResult = await _pollKaspiPaymentStatus(orderId, paymentData);
-      if (!mounted) return true;
+      final statusResult =
+          await _pollKaspiPaymentStatus(orderId, paymentData, session);
+      if (!_ownerCurrent || !session.isCurrent) return true;
 
       if (statusResult == null || statusResult['success'] != true) {
         closeProgressDialog();
@@ -503,37 +588,50 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   Future<void> _settleKaspiPayment(
       String orderId, OrderPaymentOutcome outcome) async {
-    _applyPaymentState(await OrderPaymentGuard.settle(orderId, outcome));
+    _applyPaymentState(await OrderPaymentGuard.settle(orderId, outcome,
+        accountId: _ownerAccount));
   }
 
   OrderPaymentOutcome _kaspiReadOutcome(Map<String, dynamic> result) {
-    if (result['success'] != true || result['outcomeUnknown'] == true ||
+    if (result['success'] != true ||
+        result['outcomeUnknown'] == true ||
         result['requestSent'] == false) {
       return OrderPaymentOutcome.unknown;
     }
-    return orderPaymentOutcome(ApiService.mapFromDynamic(result['data']));
+    return orderPaymentOutcome(payloadMap(result['data']));
   }
 
-  Future<OrderPaymentOutcome> _refreshKaspiStatus(String orderId) async {
+  Future<OrderPaymentOutcome> _refreshKaspiStatus(
+      String orderId, AuthSession session) async {
     final revision = OrderPaymentGuard.beginOrderRead();
-    final result = await ApiService.getKaspiQrPaymentStatus(orderId)
+    final result = await ApiService.getKaspiQrPaymentStatus(orderId,
+            credentialToken: session.token)
         .timeout(const Duration(seconds: 12));
+    if (!_ownerCurrent || !session.isCurrent) {
+      return OrderPaymentOutcome.unknown;
+    }
     final outcome = _kaspiReadOutcome(result);
     if (outcome == OrderPaymentOutcome.unknown) return outcome;
     final order = <String, dynamic>{
-      ...ApiService.mapFromDynamic(result['data']),
+      ...payloadMap(result['data']),
       'order_id': orderId,
     };
-    await OrderPaymentGuard.reconcileOrder(order, readRevision: revision);
+    await OrderPaymentGuard.reconcileOrder(order,
+        readRevision: revision, accountId: _ownerAccount, verifiedRead: true);
     return outcome;
   }
 
   Future<void> _reopenKaspiPayment() async {
     final id = _orderId();
     final link = _kaspiPaymentLink;
-    if (_isPaying || _readingPaymentGuard || _orderClosed ||
+    if (!_ownerCurrent ||
+        _flow.reauthenticationRequired ||
+        _isPaying ||
+        _readingPaymentGuard ||
+        _orderClosed ||
         _paymentState != OrderPaymentState.unconfirmed ||
-        id == null || link == null) {
+        id == null ||
+        link == null) {
       return;
     }
     final window = _reserveWebKaspiPaymentWindow();
@@ -541,9 +639,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     setState(() => _isPaying = true);
     var opened = false;
     try {
-      final state = await OrderPaymentGuard.read(id);
+      final state = await OrderPaymentGuard.read(id, accountId: _ownerAccount);
       _applyPaymentState(state);
-      if (state != OrderPaymentState.unconfirmed || !mounted) return;
+      if (state != OrderPaymentState.unconfirmed || !_ownerCurrent) return;
       opened = await _openKaspiPaymentLink(link, window);
       _setCardFeedback(
         opened
@@ -565,9 +663,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   Future<Map<String, dynamic>?> _pollKaspiPaymentStatus(
     String orderId,
     Map<String, dynamic> paymentData,
+    AuthSession session,
   ) async {
-    final behaviorOptions =
-        ApiService.mapFromDynamic(paymentData['behaviorOptions']);
+    final behaviorOptions = payloadMap(paymentData['behaviorOptions']);
     final intervalSeconds = _positiveInt(
       behaviorOptions['StatusPollingInterval'],
       fallback: 5,
@@ -581,14 +679,16 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     Map<String, dynamic>? latestResult;
     while (DateTime.now().difference(startedAt).inSeconds < timeoutSeconds) {
       await Future.delayed(Duration(seconds: intervalSeconds));
-      if (!mounted) return latestResult;
+      if (!_ownerCurrent || !session.isCurrent) return latestResult;
 
       try {
-        latestResult = await ApiService.getKaspiQrPaymentStatus(orderId)
+        latestResult = await ApiService.getKaspiQrPaymentStatus(orderId,
+                credentialToken: session.token)
             .timeout(const Duration(seconds: 12));
       } on TimeoutException {
         continue;
       }
+      if (!_ownerCurrent || !session.isCurrent) return null;
       if (latestResult['success'] != true) {
         continue;
       }
@@ -623,8 +723,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     Object? webWindowHandle,
   ) async {
     final uri = Uri.tryParse(link);
-    if (uri == null || !uri.hasScheme || uri.scheme == 'javascript' ||
-        uri.scheme == 'data' || uri.scheme == 'file' ||
+    if (uri == null ||
+        !uri.hasScheme ||
+        uri.scheme == 'javascript' ||
+        uri.scheme == 'data' ||
+        uri.scheme == 'file' ||
         uri.userInfo.isNotEmpty) {
       return false;
     }
@@ -640,10 +743,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-
   void _showPaymentProgressDialog(_PaymentMethodType paymentMethod) {
     final isKaspi = paymentMethod == _PaymentMethodType.kaspi;
-    showDialog<void>(
+    final route = DialogRoute<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => PopScope(
@@ -660,10 +762,12 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         ),
       ),
     );
+    _progressRoute = route;
+    unawaited(Navigator.of(context, rootNavigator: true).push(route));
   }
 
   Future<void> _finishSuccessfulPayment(String orderId) async {
-    if (!mounted || _completionPresented) return;
+    if (!_ownerCurrent || _completionPresented) return;
     _completionPresented = true;
 
     await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
@@ -718,13 +822,15 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   String _getOrderAmount() {
-    final amount = resolveServerChargedAmount(_refreshedOrder ?? widget.orderData)
-        ?? widget.displayAmount;
+    final amount =
+        resolveServerChargedAmount(_refreshedOrder ?? widget.orderData) ??
+            widget.displayAmount;
     return amount == null ? 'Сумма не указана' : formatTenge(amount);
   }
 
   Future<void> _showNotice(String title, String message,
       {bool kaspi = false}) async {
+    if (!_ownerCurrent) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog.fullscreen(
@@ -740,6 +846,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   Future<void> _showPaymentFailureNotice(String message,
       {bool kaspi = false}) async {
+    if (!_ownerCurrent) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog.fullscreen(
@@ -766,7 +873,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   void _setCardFeedback(String message, _CardFeedbackTone tone) {
-    if (!mounted) return;
+    if (!_ownerCurrent) return;
     setState(() {
       _cardFeedback = _CardFeedback(message: message, tone: tone);
     });
@@ -774,14 +881,37 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   @override
   Widget build(BuildContext context) {
+    if (!_ownerCurrent) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Оплата заказа')),
+        body: _flow.reauthenticationRequired
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: CardReadFeedback(flow: _flow),
+                ),
+              )
+            : const AppErrorState(
+                message: 'Аккаунт изменился. Данные предыдущего заказа скрыты. '
+                    'Найдите свой заказ в истории; повторная оплата не отправлена.',
+                onRetry: null,
+              ),
+      );
+    }
     final palette = context.palette;
-    final selectionBusy = _isPaying || _orderClosed ||
-        _readingPaymentGuard || _paymentState != OrderPaymentState.ready ||
-        _flow.preparing || _flow.awaiting;
-    final cannotPay = selectionBusy || _flow.loading ||
+    final selectionBusy = _isPaying ||
+        _flow.reauthenticationRequired ||
+        _orderClosed ||
+        _readingPaymentGuard ||
+        _paymentState != OrderPaymentState.ready ||
+        _flow.preparing ||
+        _flow.awaiting;
+    final cannotPay = selectionBusy ||
+        _flow.loading ||
         _selectedPaymentMethod == null ||
         (_selectedPaymentMethod == _PaymentMethodType.card &&
-            (_selectedCardId == null || _flow.error != null ||
+            (_selectedCardId == null ||
+                _flow.error != null ||
                 !_flow.cards.any((card) =>
                     card.canCharge && card.chargeId == _selectedCardId)));
     return Scaffold(
@@ -795,9 +925,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 608),
-            child: AppGlassPanel(
+            child: AppSurface(
               radius: 32,
               padding: const EdgeInsets.all(12),
+              clip: true,
               child: SizedBox(
                 width: double.infinity,
                 child: _paymentFooter(cannotPay),
@@ -821,180 +952,228 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                   ),
                 ),
                 Expanded(
-                  child: Builder(builder: (context) => RefreshIndicator(
-                    onRefresh: () async {
-                      await _flow.refresh();
-                      await _readPaymentGuard();
-                    },
-                    child: CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-                          sliver: SliverToBoxAdapter(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Сумма к оплате',
-                                    style: AppTypography.body.copyWith(
-                                        color: palette.textSecondary)),
-                                const SizedBox(height: 8),
-                                Text(_getOrderAmount(),
-                                    key: const ValueKey('payment-payable-amount'),
-                                    style: AppTypography.displayBold),
-                                if (widget.amountNotice case final notice?) ...[
-                                  const SizedBox(height: 12),
-                                  Semantics(
-                                    liveRegion: true,
-                                    child: AppSurface(
-                                      key: const ValueKey('payment-amount-notice'),
-                                      padding: const EdgeInsets.all(12),
-                                      fill: palette.error.withValues(alpha: .12),
-                                      child: Text(notice,
-                                          style: AppTypography.bodySmall),
-                                    ),
-                                  ),
-                                ],
-                                if (_cardFeedback case final feedback?) ...[
-                                  const SizedBox(height: 24),
-                                  Semantics(
-                                    liveRegion: true,
-                                    child: AppSurface(
-                                      padding: const EdgeInsets.all(16),
-                                      fill: (feedback.tone == _CardFeedbackTone.error
-                                          ? palette.error : palette.accent)
-                                          .withValues(alpha: .12),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          if (_selectedPaymentMethod ==
-                                              _PaymentMethodType.kaspi) ...[
-                                            const KaspiLogo(),
-                                            const SizedBox(height: 12),
-                                          ],
-                                          Text(feedback.message,
-                                              style: AppTypography.body),
+                  child: Builder(
+                      builder: (context) => RefreshIndicator(
+                            onRefresh: () async {
+                              await _flow.refresh();
+                              await _readPaymentGuard();
+                            },
+                            child: CustomScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              slivers: [
+                                SliverPadding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                                  sliver: SliverToBoxAdapter(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Сумма к оплате',
+                                            style: AppTypography.body.copyWith(
+                                                color: palette.textSecondary)),
+                                        const SizedBox(height: 8),
+                                        Text(_getOrderAmount(),
+                                            key: const ValueKey(
+                                                'payment-payable-amount'),
+                                            style: AppTypography.displayBold),
+                                        if (widget.amountNotice
+                                            case final notice?) ...[
+                                          const SizedBox(height: 12),
+                                          Semantics(
+                                            liveRegion: true,
+                                            child: AppSurface(
+                                              key: const ValueKey(
+                                                  'payment-amount-notice'),
+                                              padding: const EdgeInsets.all(12),
+                                              fill: palette.error
+                                                  .withValues(alpha: .12),
+                                              child: Text(notice,
+                                                  style:
+                                                      AppTypography.bodySmall),
+                                            ),
+                                          ),
                                         ],
-                                      ),
+                                        if (_cardFeedback
+                                            case final feedback?) ...[
+                                          const SizedBox(height: 24),
+                                          Semantics(
+                                            liveRegion: true,
+                                            child: AppSurface(
+                                              padding: const EdgeInsets.all(16),
+                                              fill: (feedback.tone ==
+                                                          _CardFeedbackTone
+                                                              .error
+                                                      ? palette.error
+                                                      : palette.accent)
+                                                  .withValues(alpha: .12),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  if (_selectedPaymentMethod ==
+                                                      _PaymentMethodType
+                                                          .kaspi) ...[
+                                                    const KaspiLogo(),
+                                                    const SizedBox(height: 12),
+                                                  ],
+                                                  Text(feedback.message,
+                                                      style:
+                                                          AppTypography.body),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                        if (_paymentState !=
+                                                OrderPaymentState.ready ||
+                                            _orderClosed) ...[
+                                          const SizedBox(height: 12),
+                                          if (_paymentState !=
+                                                  OrderPaymentState
+                                                      .storageUnavailable ||
+                                              _orderClosed)
+                                            OutlinedButton(
+                                              key: const ValueKey(
+                                                  'payment-pending-orders'),
+                                              onPressed: _readingPaymentGuard ||
+                                                      _isPaying
+                                                  ? null
+                                                  : _openOrders,
+                                              child: const Text(
+                                                  'Проверить мои заказы'),
+                                            ),
+                                          OutlinedButton(
+                                            key: const ValueKey(
+                                                'payment-state-refresh'),
+                                            onPressed: _readingPaymentGuard ||
+                                                    _isPaying
+                                                ? null
+                                                : _readPaymentGuard,
+                                            child: Text(_readingPaymentGuard
+                                                ? 'Проверяем состояние…'
+                                                : 'Проверить состояние оплаты'),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 24),
+                                        if (_flow.message != null) ...[
+                                          CardFlowFeedback(flow: _flow),
+                                          const SizedBox(height: 12),
+                                        ],
+                                        _kaspiRow(selectionBusy),
+                                        const SizedBox(height: 24),
+                                        Text('Сохранённые карты',
+                                            style: AppTypography.title),
+                                        const SizedBox(height: 16),
+                                        const CardFaqPanel(),
+                                        const SizedBox(height: 24),
+                                        if (_flow.loading)
+                                          const SizedBox(
+                                              height: 80, child: AppLoading()),
+                                        if (_flow.error != null ||
+                                            _flow.partialWarning != null)
+                                          CardReadFeedback(
+                                            flow: _flow,
+                                            allowSignIn: !_isPaying &&
+                                                !_paymentUnconfirmed,
+                                          )
+                                        else if (!_flow.loading &&
+                                            _flow.cards.isEmpty)
+                                          const AppEmptyState(
+                                            title: 'Добавленных карт нет',
+                                            subtitle:
+                                                'Можно оплатить через Kaspi.kz или добавить карту в форме банка',
+                                          ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                                if (_paymentState != OrderPaymentState.ready ||
-                                    _orderClosed) ...[
-                                  const SizedBox(height: 12),
-                                  if (_paymentState !=
-                                      OrderPaymentState.storageUnavailable ||
-                                      _orderClosed)
-                                    OutlinedButton(
-                                      key: const ValueKey('payment-pending-orders'),
-                                      onPressed: _readingPaymentGuard || _isPaying
-                                          ? null : _openOrders,
-                                      child: const Text('Проверить мои заказы'),
-                                    ),
-                                  OutlinedButton(
-                                    key: const ValueKey('payment-state-refresh'),
-                                    onPressed: _readingPaymentGuard || _isPaying
-                                        ? null : _readPaymentGuard,
-                                    child: Text(_readingPaymentGuard
-                                        ? 'Проверяем состояние…'
-                                        : 'Проверить состояние оплаты'),
-                                  ),
-                                ],
-                                const SizedBox(height: 24),
-                                if (_flow.message != null) ...[
-                                  CardFlowFeedback(flow: _flow),
-                                  const SizedBox(height: 12),
-                                ],
-                                _kaspiRow(selectionBusy),
-                                const SizedBox(height: 24),
-                                Text('Сохранённые карты',
-                                    style: AppTypography.title),
-                                const SizedBox(height: 16),
-                                const CardFaqPanel(),
-                                const SizedBox(height: 24),
-                                if (_flow.loading)
-                                  const SizedBox(height: 80, child: AppLoading()),
-                                if (_flow.error != null ||
-                                    _flow.partialWarning != null)
-                                  CardReadFeedback(
-                                    flow: _flow,
-                                    allowSignIn:
-                                        !_isPaying && !_paymentUnconfirmed,
-                                  )
-                                else if (!_flow.loading && _flow.cards.isEmpty)
-                                  const AppEmptyState(
-                                    title: 'Добавленных карт нет',
-                                    subtitle:
-                                        'Можно оплатить через Kaspi.kz или добавить карту в форме банка',
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (_flow.cards.isNotEmpty)
-                          SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            sliver: SliverList.builder(
-                              itemCount: _flow.cards.length,
-                              itemBuilder: (_, index) {
-                                final card = _flow.cards[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: SavedCardRow(
-                                    key: ValueKey('payment-card-${card.rowKey}'),
-                                    card: card,
-                                    selected: card.canCharge &&
-                                        _selectedPaymentMethod == _PaymentMethodType.card &&
-                                        _selectedCardId == card.chargeId,
-                                    onSelected: selectionBusy || _flow.loading ||
-                                            _flow.error != null || !card.canCharge
-                                        ? null
-                                        : () => setState(() {
-                                            _selectedPaymentMethod = _PaymentMethodType.card;
-                                            _selectedCardId = card.chargeId;
-                                          }),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                          sliver: SliverToBoxAdapter(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                OutlinedButton.icon(
-                                  key: const ValueKey('add-card-button'),
-                                  onPressed: !_isPaying && !_orderClosed &&
-                                          _flow.canAdd
-                                      ? _flow.addCard : null,
-                                  icon: const Icon(Icons.add),
-                                  label: Text(_flow.preparing
-                                      ? 'Открываем банк…'
-                                      : _flow.addState == CardAddState.launchFailed
-                                          ? 'Открыть форму снова'
-                                          : 'Добавить новую карту'),
                                 ),
-                                if (!_flow.awaiting)
-                                  TextButton(
-                                    key: const ValueKey('refresh-card-list'),
-                                    onPressed: _flow.loading || _flow.preparing ||
-                                            _isPaying
-                                        ? null : _flow.refresh,
-                                    child: const Text('Обновить список'),
+                                if (_flow.cards.isNotEmpty)
+                                  SliverPadding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    sliver: SliverList.builder(
+                                      itemCount: _flow.cards.length,
+                                      itemBuilder: (_, index) {
+                                        final card = _flow.cards[index];
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 12),
+                                          child: SavedCardRow(
+                                            key: ValueKey(
+                                                'payment-card-${card.rowKey}'),
+                                            card: card,
+                                            selected: card.canCharge &&
+                                                _selectedPaymentMethod ==
+                                                    _PaymentMethodType.card &&
+                                                _selectedCardId ==
+                                                    card.chargeId,
+                                            onSelected: selectionBusy ||
+                                                    _flow.loading ||
+                                                    _flow.error != null ||
+                                                    !card.canCharge
+                                                ? null
+                                                : () => setState(() {
+                                                      _selectedPaymentMethod =
+                                                          _PaymentMethodType
+                                                              .card;
+                                                      _selectedCardId =
+                                                          card.chargeId;
+                                                    }),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
+                                SliverPadding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                                  sliver: SliverToBoxAdapter(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          key:
+                                              const ValueKey('add-card-button'),
+                                          onPressed: !_isPaying &&
+                                                  !_orderClosed &&
+                                                  _flow.canAdd
+                                              ? _flow.addCard
+                                              : null,
+                                          icon: const Icon(Icons.add),
+                                          label: Text(_flow.preparing
+                                              ? 'Открываем банк…'
+                                              : _flow.addState ==
+                                                      CardAddState.launchFailed
+                                                  ? 'Открыть форму снова'
+                                                  : 'Добавить новую карту'),
+                                        ),
+                                        if (!_flow.awaiting)
+                                          TextButton(
+                                            key: const ValueKey(
+                                                'refresh-card-list'),
+                                            onPressed: _flow.loading ||
+                                                    _flow.preparing ||
+                                                    _isPaying
+                                                ? null
+                                                : _flow.refresh,
+                                            child:
+                                                const Text('Обновить список'),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                SliverToBoxAdapter(
+                                  child: SizedBox(
+                                      height:
+                                          MediaQuery.paddingOf(context).bottom +
+                                              16),
+                                ),
                               ],
                             ),
-                          ),
-                        ),
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                              height: MediaQuery.paddingOf(context).bottom + 16),
-                        ),
-                      ],
-                    ),
-                  )),
+                          )),
                 ),
               ],
             ),
@@ -1008,7 +1187,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     if (_kaspiPaymentLink != null && _paymentUnconfirmed && !_orderClosed) {
       return FilledButton(
         key: const ValueKey('reopen-kaspi-payment'),
-        onPressed: _isPaying || _readingPaymentGuard ? null : _reopenKaspiPayment,
+        onPressed:
+            _isPaying || _readingPaymentGuard ? null : _reopenKaspiPayment,
         child: const Text('Открыть оплату'),
       );
     }
@@ -1020,11 +1200,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       );
     }
     if (_paymentState != OrderPaymentState.ready ||
-        _readingPaymentGuard || _orderClosed) {
+        _readingPaymentGuard ||
+        _orderClosed) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Text(
-          _orderClosed ? 'Заказ закрыт'
+          _orderClosed
+              ? 'Заказ закрыт'
               : _paymentState == OrderPaymentState.completed
                   ? 'Заказ уже оплачен'
                   : _paymentState == OrderPaymentState.storageUnavailable
@@ -1151,17 +1333,18 @@ class _PaymentNoticePage extends StatelessWidget {
                 heightFactor: 1,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 608),
-                  child: AppGlassPanel(
+                  child: AppSurface(
                     radius: 32,
                     padding: const EdgeInsets.all(12),
+                    clip: true,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         FilledButton(
                           onPressed: onClose,
-                          child: Text(failed
-                              ? 'Изменить способ оплаты' : 'Понятно'),
+                          child: Text(
+                              failed ? 'Изменить способ оплаты' : 'Понятно'),
                         ),
                         if (failed)
                           TextButton(
@@ -1192,68 +1375,78 @@ class _PaymentNoticePage extends StatelessWidget {
                     child: AppTopBar(title: '', onBack: onClose),
                   ),
                 Expanded(
-                  child: Builder(builder: (context) => CustomScrollView(
-                    slivers: [
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(16, 24, 16,
-                              MediaQuery.paddingOf(context).bottom + 24),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (kaspi) ...[
-                                const KaspiLogo(),
-                                const SizedBox(height: 32),
-                              ],
-                              if (loading)
-                                SizedBox(
-                                  width: 80,
-                                  height: 80,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 8,
-                                    strokeCap: StrokeCap.round,
-                                    color: palette.accent,
-                                    backgroundColor: palette.textSecondary,
-                                  ),
-                                )
-                              else
-                                Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: failed ? palette.error :
-                                        palette.accentFaint,
-                                  ),
-                                  child: Icon(
-                                    failed ? Icons.close : Icons.schedule,
-                                    size: 48,
-                                    color: failed ? Colors.white :
-                                        palette.accent,
+                  child: Builder(
+                      builder: (context) => CustomScrollView(
+                            slivers: [
+                              SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                      16,
+                                      24,
+                                      16,
+                                      MediaQuery.paddingOf(context).bottom +
+                                          24),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (kaspi) ...[
+                                        const KaspiLogo(),
+                                        const SizedBox(height: 32),
+                                      ],
+                                      if (loading)
+                                        SizedBox(
+                                          width: 80,
+                                          height: 80,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 8,
+                                            strokeCap: StrokeCap.round,
+                                            color: palette.accent,
+                                            backgroundColor:
+                                                palette.textSecondary,
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          width: 80,
+                                          height: 80,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: failed
+                                                ? palette.error
+                                                : palette.accentFaint,
+                                          ),
+                                          child: Icon(
+                                            failed
+                                                ? Icons.close
+                                                : Icons.schedule,
+                                            size: 48,
+                                            color: failed
+                                                ? Colors.white
+                                                : palette.accent,
+                                          ),
+                                        ),
+                                      const SizedBox(height: 28),
+                                      Text(title,
+                                          style: AppTypography.headline,
+                                          textAlign: TextAlign.center),
+                                      if (message != null) ...[
+                                        const SizedBox(height: 16),
+                                        Text(message!,
+                                            style: AppTypography.body.copyWith(
+                                                color: palette.textSecondary),
+                                            textAlign: TextAlign.center),
+                                      ],
+                                      if (failed) ...[
+                                        const SizedBox(height: 28),
+                                        const CardFaqPanel(),
+                                      ],
+                                    ],
                                   ),
                                 ),
-                              const SizedBox(height: 28),
-                              Text(title,
-                                  style: AppTypography.headline,
-                                  textAlign: TextAlign.center),
-                              if (message != null) ...[
-                                const SizedBox(height: 16),
-                                Text(message!,
-                                    style: AppTypography.body.copyWith(
-                                        color: palette.textSecondary),
-                                    textAlign: TextAlign.center),
-                              ],
-                              if (failed) ...[
-                                const SizedBox(height: 28),
-                                const CardFaqPanel(),
-                              ],
+                              ),
                             ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )),
+                          )),
                 ),
               ],
             ),

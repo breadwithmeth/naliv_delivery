@@ -7,6 +7,40 @@
       "**/.last_build_id",
       "**/.git/**",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/!(.well-known|onesignal|flutter_service_worker.js){,/**}",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/{,index.html,manifest.json,version.json,flutter_bootstrap.js,flutter.js,main.dart.js,flutter_service_worker.js}",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/**/!(*.*)",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/onesignal/**",
+        "headers": [
+          {"key": "Content-Type", "value": "application/javascript"},
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/.well-known/**",
+        "headers": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      }
     ]
   },
   "flutter": {

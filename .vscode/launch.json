@@ -15,10 +15,7 @@
       "name": "Flutter (Chrome)",
       "request": "launch",
       "type": "dart",
-            "deviceId": "chrome",
-            "toolArgs": [
-                "--dart-define=FIREBASE_WEB_VAPID_KEY=BMnRqiXgW2dV9cbrqtbb6Iq4uIwFQVKbxyyvmkAr5Zh83F-STXA9YUSXJL-RUZENYx38i-k7Fnz9LD50J3NC8Qc"
-            ]
+            "deviceId": "chrome"
     },
         {
             "name": "naliv_delivery",

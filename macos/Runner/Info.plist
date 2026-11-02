@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Приложение использует геолокацию для выбора ближайшего магазина и адреса доставки.</string>
 </dict>
 </plist>

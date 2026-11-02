@@ -1,122 +1,69 @@
-# Signal Handling, Terminal Teardown, and Stream Resilience
+# Signals, terminal teardown and stream errors
 
-Guidance on cross-platform signal listeners, restoring terminal modes, tearing down network resources, and handling broken pipes in Dart CLI applications.
+## Cross-platform cancellation
 
----
-
-## 1. Cross-Platform Signal Handling
-
-Standard POSIX signals (`SIGINT`, `SIGTERM`) require platform-specific guards because Windows does not implement POSIX `SIGTERM`.
-
-### The Windows `SIGTERM` Guard Rule:
-Calling `ProcessSignal.sigterm.watch()` on Windows throws an unhandled `UnsupportedError`. Multi-platform signal handlers must always guard `sigterm`:
+On Windows, watch supported signals such as `ProcessSignal.sigint`; guard
+`ProcessSignal.sigterm.watch()` with `!Platform.isWindows`. If async is already a
+dependency, the following combines them; otherwise reuse existing cancellation
+plumbing rather than adding a package for this helper.
 
 ```dart
-import 'dart:async';
 import 'dart:io';
 import 'package:async/async.dart';
 
-/// Listens for process termination signals across Windows, macOS, and Linux.
-Stream<ProcessSignal> watchTerminationSignals() {
-  if (Platform.isWindows) {
-    return ProcessSignal.sigint.watch();
-  }
-  return StreamGroup.merge([
-    ProcessSignal.sigint.watch(),
-    ProcessSignal.sigterm.watch(),
-  ]);
-}
+Stream<ProcessSignal> watchTerminationSignals() => StreamGroup.merge([
+  ProcessSignal.sigint.watch(),
+  if (!Platform.isWindows) ProcessSignal.sigterm.watch(),
+]);
 ```
 
----
+A watched signal no longer necessarily causes default process termination. Its
+listener should request cancellation of the running operation, stop accepting
+work and let `finally` release owned resources. Set the desired process status
+(for example 130 for user interruption); avoid `exit()` as a substitute for
+teardown. Cancel signal subscriptions when the operation ends.
 
-## 2. Terminal Mode & Cursor Restoration
+## Preserve terminal state
 
-If your CLI mutates the terminal state (e.g., interactive menus, password input prompts, progress spinners):
+Only change `stdin.echoMode`/`stdin.lineMode` when `stdin.hasTerminal` is true.
+Save their **original values** before changing either; restore both in `finally`
+and on controlled cancellation. Do not blindly restore both to `true`.
+In raw mode, Ctrl+C can arrive as input byte 3 rather than a SIGINT event; handle
+that input through the same cancellation path.
 
-### A. Raw Mode Teardown (`echoMode` & `lineMode`):
-If setting `stdin.echoMode = false` or `stdin.lineMode = false`, install a signal handler to restore them upon user cancellation (`Ctrl+C` / `SIGINT`). Otherwise, the host shell remains in raw mode and user keystrokes become invisible after exit.
-
-```dart
-import 'dart:io';
-
-void enableInteractiveMode() {
-  // Defensive guard: only configure terminal modes if standard input is an interactive TTY.
-  if (!stdin.hasTerminal) return;
-  stdin.echoMode = false;
-  stdin.lineMode = false;
-
-  // Ensure terminal state is synchronously restored on Ctrl+C.
-  final sub = ProcessSignal.sigint.watch().listen((_) {
-    restoreTerminal();
-    // Exiting with 128 + SIGINT (2) = 130 is the standard POSIX protocol
-    // for asynchronous signal handlers to communicate signal interruption to the host shell.
-    exit(130);
-  });
-
-  try {
-    // Run interactive loop...
-  } finally {
-    sub.cancel();
-    restoreTerminal();
-  }
-}
-
-void restoreTerminal() {
-  if (stdin.hasTerminal) {
-    stdin.lineMode = true;
-    stdin.echoMode = true;
-  }
-}
-```
-
-### B. Cursor Visibility (Spinners & Progress Bars):
-If emitting ANSI escape code to hide the cursor (`\x1B[?25l`), always restore cursor visibility (`\x1B[?25h`) inside `finally` blocks and signal handlers:
+Only emit cursor escape sequences when the output stream supports them. If the
+tool hides the cursor, show it again during cleanup and flush pending writes.
 
 ```dart
-void showCursor() {
-  if (useAnsi) {
-    stdout.write('\x1B[?25h');
-  }
-}
-
-/// Canonical ANSI support check respecting NO_COLOR standards.
 bool get useAnsi =>
     stdout.hasTerminal &&
     stdout.supportsAnsiEscapes &&
     !Platform.environment.containsKey('NO_COLOR');
 ```
 
----
+This check applies to stdout; inspect stderr separately if formatting diagnostics.
 
-## 3. Server Socket & Child Process Teardown
+## Servers and children
 
-* **Listening Sockets**: If the CLI starts an `HttpServer` or TCP `ServerSocket`, listen for termination signals to close the socket immediately (`server.close(force: true)`) so the OS releases port bindings without waiting for kernel socket timeouts.
-* **Child Processes**: When spawning long-running child processes, register a termination listener to forward signals (`childProcess.kill(ProcessSignal.sigterm)`) before the parent exits to prevent orphaned background processes.
+Close the actual owned resource using its API: `HttpServer.close(force: true)`
+can terminate active connections, whereas `ServerSocket.close()` has no `force`
+parameter. Await closure. Forward cancellation to owned child processes using
+platform-supported process termination, then await their exit. Windows process
+termination semantics differ from POSIX signal delivery; do not assume signal
+forwarding is identical or kills an entire descendant tree.
 
----
+## Broken pipes are asynchronous
 
-## 4. Broken Pipe (`EPIPE` / `SocketException`) Handling
+`IOSink.writeln` is buffered. A synchronous `try` around that call does not catch
+all output errors. Observe the sink's `done` future from the start and handle
+errors from `flush`/`close` according to sink ownership. Use the existing streaming
+pipeline's cancellation mechanism to stop producing when the consumer closes.
 
-When piping CLI output to downstream commands that terminate early (e.g., `my_cli | head -n 5` or `my_cli | grep -q foo`), the downstream process closes the pipe. Subsequent writes to `stdout` throw `SocketException: Broken pipe (errno = 32)`.
+If the CLI contract treats a closed downstream pipe as normal completion,
+recognize the actual platform error narrowly and set the corresponding status.
+Do not swallow every `SocketException`, match arbitrary message fragments, or
+call `exit(0)` from a write helper: those patterns hide unrelated failures and
+skip cleanup. Retain diagnostic failure behavior for other I/O errors.
 
-Intercept broken pipe exceptions without printing noisy crash traces to `stderr`:
-
-```dart
-import 'dart:io';
-
-Future<void> safeWriteln(String line) async {
-  try {
-    stdout.writeln(line);
-  } on SocketException catch (e) {
-    // EPIPE / Broken pipe: downstream closed standard input.
-    if (e.osError?.errorCode == 32 || e.message.contains('Broken pipe')) {
-      await stdout.close().catchError((_) {});
-      // In a bulk streaming context, calling exit(0) immediately stops the
-      // producer loop when downstream has closed its pipe.
-      exit(0);
-    }
-    rethrow;
-  }
-}
-```
+See the [IOSink API](https://api.dart.dev/dart-io/IOSink-class.html) and
+[ProcessSignal API](https://api.dart.dev/dart-io/ProcessSignal-class.html).

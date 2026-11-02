@@ -434,12 +434,25 @@ class _HelpChatPageState extends State<HelpChatPage>
 
   Future<void> _syncUserProfile() async {
     // Profile mutation belongs to an explicitly sent enquiry, never opening a page.
+    final generation = _pageGeneration;
+    final conversation = _chatService.sessionId;
+    final identity = _chatService.identity;
+    bool ownsConversation() =>
+        mounted &&
+        generation == _pageGeneration &&
+        conversation != null &&
+        conversation == _chatService.sessionId &&
+        identity == _chatService.identity;
     try {
-      final info = await ApiService.getFullInfo();
-      if (!mounted) return;
-      final externalId = await ApiService.getCurrentUserExternalId();
-      if (!mounted) return;
-      if (externalId != _chatService.identity) return;
+      final session = await AuthService.captureSession();
+      if (session == null || !session.isCurrent || !ownsConversation()) return;
+      final info = await ApiService.getFullInfo(credentialToken: session.token);
+      if (!session.isCurrent || !ownsConversation()) return;
+      final externalId =
+          await ApiService.getCurrentUserExternalId(verifiedInfo: info);
+      if (!session.isCurrent || !ownsConversation() || externalId != identity) {
+        return;
+      }
       final user = order_ui.asOrderMap(info?['user']);
       final name =
           (info?['name'] ?? user?['name'] ?? user?['login'])?.toString().trim();
@@ -705,7 +718,8 @@ class _HelpChatPageState extends State<HelpChatPage>
           height: 48,
           decoration: BoxDecoration(
             color: palette.accent.withValues(
-              alpha: Theme.of(context).brightness == Brightness.dark ? 0.45 : 0.38,
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.45 : 0.38,
             ),
             shape: BoxShape.circle,
             border: Border.all(color: palette.accent.withValues(alpha: 0.50)),
@@ -888,7 +902,8 @@ class _HelpChatPageState extends State<HelpChatPage>
                     ? null
                     : ValueKey('support-message-${message.id}'),
                 constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: AppRadii.lgAll,
@@ -927,9 +942,10 @@ class _HelpChatPageState extends State<HelpChatPage>
             ),
             const SizedBox(height: 8),
           ],
-          AppGlassPanel(
+          AppSurface(
             key: const ValueKey('support-composer'),
             radius: AppRadii.pill,
+            clip: true,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -1003,7 +1019,6 @@ class _HelpChatPageState extends State<HelpChatPage>
   }
 }
 
-
 class _BubbleTail extends CustomPainter {
   const _BubbleTail(this.color, this.user);
 
@@ -1016,12 +1031,15 @@ class _BubbleTail extends CustomPainter {
     if (user) {
       path
         ..moveTo(0, 0)
-        ..quadraticBezierTo(size.width * 0.55, size.height, size.width, size.height)
-        ..quadraticBezierTo(size.width * 0.55, size.height * 0.4, size.width, 0);
+        ..quadraticBezierTo(
+            size.width * 0.55, size.height, size.width, size.height)
+        ..quadraticBezierTo(
+            size.width * 0.55, size.height * 0.4, size.width, 0);
     } else {
       path
         ..moveTo(0, 0)
-        ..quadraticBezierTo(size.width * 0.45, size.height * 0.4, 0, size.height)
+        ..quadraticBezierTo(
+            size.width * 0.45, size.height * 0.4, 0, size.height)
         ..quadraticBezierTo(size.width * 0.45, size.height, size.width, 0);
     }
     canvas.drawPath(path..close(), Paint()..color = color);
@@ -1031,13 +1049,13 @@ class _BubbleTail extends CustomPainter {
   bool shouldRepaint(_BubbleTail oldDelegate) =>
       color != oldDelegate.color || user != oldDelegate.user;
 }
+
 String? _orderKey(Map<String, dynamic>? order) {
   final key = (order?['order_id'] ?? order?['order_uuid'] ?? order?['id'])
       ?.toString()
       .trim();
   return key == null || key.isEmpty || key.toLowerCase() == 'null' ? null : key;
 }
-
 
 class _SupportOrderPicker extends StatefulWidget {
   const _SupportOrderPicker({this.selectedOrder});

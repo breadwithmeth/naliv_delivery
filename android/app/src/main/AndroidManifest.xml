@@ -1,6 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="kz.gradusy24.app">
-	<application android:label="Градусы24" android:name="${applicationName}" android:icon="@mipmap/launcher_icon" android:usesCleartextTraffic="false">
-		<activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:screenOrientation="portrait" android:theme="@style/LaunchTheme" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize" android:showWhenLocked="true" android:turnScreenOn="true">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application android:label="Градусы24" android:name="${applicationName}" android:icon="@mipmap/launcher_icon" android:usesCleartextTraffic="false" android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules">
+		<activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:taskAffinity="" android:screenOrientation="portrait" android:theme="@style/LaunchTheme" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
 			<!--
 			Specifies an Android theme to apply to this Activity as soon as
 			the Android process has started. This theme is visible to the user
@@ -12,8 +12,8 @@
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
-			<!-- Intent filter for handling notification clicks -->
-			<intent-filter android:autoVerify="true">
+			<!-- Custom-scheme links (notification taps). Link verification only exists for https, so no autoVerify here. -->
+			<intent-filter>
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
@@ -31,28 +31,23 @@
 		This is used by the Flutter tool to generate GeneratedPluginRegistrant.java
 		-->
 		<meta-data android:name="flutterEmbedding" android:value="2" />
-		<!-- Add service -->
-		<service android:name="com.pravera.flutter_foreground_task.service.ForegroundService" android:foregroundServiceType="location" android:exported="false" />
+
 	</application>
-	<!-- Permissions -->
+	<!-- Permissions. INTERNET is also declared by the debug and profile manifests for the tooling. -->
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.VIBRATE" />
-	<!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
-	<!-- <uses-permission android:name="android.permission.USE_EXACT_ALARM" /> -->
-	<!-- <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" /> -->
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-	<!-- <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" /> -->
-	<!-- foregroundServiceType: dataSync -->
-	<!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" /> -->
-	<!-- foregroundServiceType: remoteMessaging -->
-	<!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" /> -->
 	<queries>
-  <!-- If your application checks for inAppBrowserView launch mode support -->
-  <intent>
-    <action android:name="android.support.customtabs.action.CustomTabsService" />
-  </intent>
-</queries>
+		<!-- In-app browser (url_launcher) support check. -->
+		<intent>
+			<action android:name="android.support.customtabs.action.CustomTabsService" />
+		</intent>
+		<!-- Text selection "process text" actions (Flutter's ProcessTextPlugin). -->
+		<intent>
+			<action android:name="android.intent.action.PROCESS_TEXT" />
+			<data android:mimeType="text/plain" />
+		</intent>
+	</queries>
 </manifest>

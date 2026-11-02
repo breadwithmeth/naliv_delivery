@@ -5,7 +5,7 @@ import 'package:naliv_delivery/core/quantity.dart';
 import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
 import 'package:naliv_delivery/services/repeat_order_service.dart';
-import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/model/category_items.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/smart_cart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,7 +21,8 @@ void main() {
     expect(formatQuantity(0, 'кг'), '0 кг');
   });
 
-  test('typed fractional stock survives selection, persistence, order and repeat',
+  test(
+      'typed fractional stock survives selection, persistence, order and repeat',
       () async {
     final response = CategoryItemsResponse.fromJson({
       'success': true,

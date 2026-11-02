@@ -1,141 +1,36 @@
 ---
 name: dart-collect-coverage
-description: Collect coverage using the coverage packge and create an LCOV report
+description: Use when collecting or inspecting LCOV for this Flutter app, investigating uncovered behavior, or checking whether coverage evidence is current.
 metadata:
   model: models/gemini-3.1-pro-preview
-  last_modified: Fri, 24 Apr 2026 15:14:32 GMT
+  last_modified: "2026-11-02"
 ---
-# Implementing Dart and Flutter Test Coverage
+# Collect coverage through the existing harness
 
-## Contents
-- [Testing Fundamentals](#testing-fundamentals)
-- [Coverage Directives](#coverage-directives)
-- [Workflow: Configuring and Generating Coverage Reports](#workflow-configuring-and-generating-coverage-reports)
-- [Workflow: Advanced Manual Coverage Collection](#workflow-advanced-manual-coverage-collection)
-- [Examples](#examples)
+Flutter already emits LCOV. Do not install `coverage`, Mockito or a separate test runner merely to collect this checkout's coverage.
 
-## Testing Fundamentals
+## Collect
 
-Structure your test suites using the standard Dart testing paradigms. Use `package:test` for Dart projects and `flutter_test` for Flutter projects.
+Stop external Flutter runs and let any active harness operation finish. Never bypass a busy harness lock. From the repository root:
 
-- **Unit Tests:** Verify individual functions, methods, or classes.
-- **Component/Widget Tests:** Verify component behavior, layout, and interaction using mock objects (`package:mockito`).
-- **Integration Tests:** Verify entire app flows on simulated or real devices.
-
-## Coverage Directives
-
-Exclude specific lines, blocks, or entire files from coverage metrics using inline comments. Pass the `--check-ignore` flag during formatting to enforce these directives.
-
-- Ignore a single line: `// coverage:ignore-line`
-- Ignore a block of code: `// coverage:ignore-start` and `// coverage:ignore-end`
-- Ignore an entire file: `// coverage:ignore-file`
-
-## Workflow: Configuring and Generating Coverage Reports
-
-Follow this sequential workflow to add the coverage package, execute tests, and generate an LCOV report.
-
-**Task Progress Checklist:**
-- [ ] 1. Add `coverage` as a `dev_dependency`.
-- [ ] 2. Execute the automated coverage script.
-- [ ] 3. Validate the LCOV output.
-
-### 1. Add Dependencies
-Add the `coverage` package as a `dev_dependency` to your project. Do not add it to standard dependencies.
-
-If working in a standard Dart project:
-```bash
-dart pub add dev:coverage
+```sh
+dart run tool/design_harness.dart check --full
 ```
 
-If working in a Flutter project:
-```bash
-flutter pub add dev:coverage
-```
+This runs retained Flutter tests with `--coverage --concurrency=1 --timeout=90s`, then analyzes `lib test integration_test tool`, serially. Default-concurrency coverage previously exhausted memory here; do not run competing test/build processes. Add `--native` when the existing Windows shopping journey is required; its execution is separate from the retained host-test LCOV run.
 
-### 2. Collect Coverage and Generate LCOV
-Use the bundled `test_with_coverage` script. This script automatically runs all tests, collects the JSON coverage data from the Dart VM, and formats it into an LCOV report.
+## Inspect the evidence
 
-```bash
-dart run coverage:test_with_coverage
-```
-*Note: If working within a Dart workspace (monorepo), specify the test directories explicitly (e.g., `dart run coverage:test_with_coverage -- pkgs/foo/test pkgs/bar/test`).*
+- Confirm the test step completed successfully before treating a report as complete. The harness is fail-fast; coverage can exist even if later analysis fails. Report each step's actual result.
+- Check that `coverage/lcov.info` is newly generated and nonempty, with expected source-file (`SF:`), line-hit (`DA:`) and `end_of_record` entries. A previous run's report is not proof of this run.
+- Harness logs and run status are under `.figma_cache/harness/runs/`.
+- This workflow does not promise `coverage/coverage.json`; missing raw JSON is not a failure. Do not claim native/device or production coverage from host-test LCOV.
 
-### 3. Feedback Loop: Validate Output
-**Run validator -> review errors -> fix:**
-1. Verify that the `coverage/` directory was created in the project root.
-2. Ensure `coverage/coverage.json` (raw data) and `coverage/lcov.info` (formatted report) exist.
-3. If coverage is missing for specific files, ensure they are imported and executed by your test files, or add `// coverage:ignore-file` if they are intentionally excluded.
+## Investigate gaps
 
-## Workflow: Advanced Manual Coverage Collection
+1. Distinguish a source file absent from `SF:` records from a recorded file with zero-hit lines. Inspect path variants before concluding the file is missing.
+2. Check retained test discovery, imports and execution of the relevant production behavior. Compilation failures or timeouts are not coverage gaps to conceal.
+3. Add meaningful focused behavior tests with existing `flutter_test` assertions and strict fixtures. Run the affected file through `check <actual test file>`, then regenerate coverage with `check --full`; the focused check alone does not request coverage.
+4. Keep unknown fixture requests recorded and rejected, and production account operations read-only. Do not weaken assertions or insert `coverage:ignore-file`, `coverage:ignore-line` or ignore blocks to hide untested business logic.
 
-If you require granular control over the VM service, isolate pausing, or need branch/function-level coverage, use the manual collection workflow.
-
-**Task Progress Checklist:**
-- [ ] 1. Run tests with VM service enabled.
-- [ ] 2. Collect raw JSON coverage.
-- [ ] 3. Format JSON to LCOV.
-
-### 1. Run Tests with VM Service
-Execute tests while pausing isolates on exit and exposing the VM service on a specific port (e.g., 8181).
-
-```bash
-dart run --pause-isolates-on-exit --disable-service-auth-codes --enable-vm-service=8181 test &
-```
-
-### 2. Collect Raw Coverage
-Extract the coverage data from the running VM service and output it to a JSON file.
-
-```bash
-dart run coverage:collect_coverage --wait-paused --uri=http://127.0.0.1:8181/ -o coverage/coverage.json --resume-isolates
-```
-*Optional: Append `--function-coverage` and `--branch-coverage` to gather deeper metrics (requires Dart VM 2.17.0+).*
-
-### 3. Format to LCOV
-Convert the raw JSON data into the standard LCOV format.
-
-```bash
-dart run coverage:format_coverage --packages=.dart_tool/package_config.json --lcov -i coverage/coverage.json -o coverage/lcov.info --check-ignore
-```
-
-## Examples
-
-### Example: `pubspec.yaml` Configuration
-Ensure your `pubspec.yaml` reflects the `coverage` package strictly under `dev_dependencies`.
-
-```yaml
-name: my_dart_app
-environment:
-  sdk: ^3.0.0
-
-dependencies:
-  path: ^1.8.0
-
-dev_dependencies:
-  test: ^1.24.0
-  coverage: ^1.15.0
-```
-
-### Example: Applying Ignore Directives
-Use ignore directives to prevent generated code or untestable edge cases from lowering coverage scores.
-
-```dart
-// coverage:ignore-file
-import 'package:meta/meta.dart';
-
-class SystemConfig {
-  final String env;
-
-  SystemConfig(this.env);
-
-  // coverage:ignore-start
-  void legacyInit() {
-    print('Deprecated initialization');
-  }
-  // coverage:ignore-end
-
-  bool isProduction() {
-    if (env == 'prod') return true;
-    return false; // coverage:ignore-line
-  }
-}
-```
+A justified exclusion is an explicit, reviewed coverage-policy change, not a routine missing-file remedy. Manual VM-service collection belongs to a separately demonstrated tooling need; it is not required for this app's existing LCOV workflow.

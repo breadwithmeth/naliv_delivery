@@ -6,11 +6,12 @@ import '../../../ui/app_states.dart';
 import 'package:provider/provider.dart';
 
 import '../../../design/theme.dart';
-import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/liquid_glass_dock.dart';
 import '../../../utils/api.dart';
+import '../../../services/auth_service.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../pages/order_detail_page.dart';
@@ -36,16 +37,21 @@ class _BonusHistoryPageState extends State<BonusHistoryPage>
   BonusAccount? _account;
   bool _loading = false;
   bool _failed = false;
+  int _credentialRevision = AuthService.credentialRevision;
+  int _requestRevision = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_sessionChanged);
     _load();
   }
 
   @override
   void dispose() {
+    AuthService.sessionRevision.removeListener(_sessionChanged);
+    _requestRevision++;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -55,20 +61,47 @@ class _BonusHistoryPageState extends State<BonusHistoryPage>
     if (state == AppLifecycleState.resumed) _load();
   }
 
+  void _sessionChanged() {
+    final revision = AuthService.credentialRevision;
+    if (!mounted || revision == _credentialRevision) return;
+    _credentialRevision = revision;
+    _requestRevision++;
+    setState(() {
+      _account = null;
+      _loading = false;
+      _failed = false;
+    });
+    unawaited(_load());
+  }
+
   Future<void> _load() async {
     if (_loading) return;
+    final request = ++_requestRevision;
     setState(() {
       _loading = true;
       _failed = false;
     });
     try {
-      final account =
-          BonusAccount.fromResponse(await ApiService.getUserBonuses());
-      if (mounted) setState(() => _account = account);
+      final session = await AuthService.captureSession();
+      if (!mounted || request != _requestRevision) return;
+      if (session == null) {
+        setState(() => _failed = true);
+        return;
+      }
+      final response = await ApiService.getUserBonuses(
+        credentialToken: session.token,
+      );
+      if (!mounted || request != _requestRevision || !session.isCurrent) return;
+      final account = BonusAccount.fromResponse(response);
+      setState(() => _account = account);
     } catch (_) {
-      if (mounted) setState(() => _failed = true);
+      if (mounted && request == _requestRevision) {
+        setState(() => _failed = true);
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && request == _requestRevision) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -105,130 +138,119 @@ class _BonusHistoryPageState extends State<BonusHistoryPage>
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: Stack(
-              children: [
-                Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: AppTopBar(
-                        title: 'Баланс бонусов по времени',
-                        onBack: () => Navigator.of(context).maybePop(),
-                      ),
+            child: LiquidGlassDock(
+              content: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: AppTopBar(
+                      title: 'Баланс бонусов по времени',
+                      onBack: () => Navigator.of(context).maybePop(),
                     ),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _load,
-                        child: CustomScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          slivers: [
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                              sliver: SliverToBoxAdapter(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        AppIcon(AppIcons.bonusStar,
-                                            size: 22, color: palette.accent),
-                                        const SizedBox(width: 6),
-                                        Text('Баланс',
-                                            style: AppTypography.headline
-                                                .copyWith(
-                                                    color: palette.textPrimary)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _BalanceCard(
-                                      balance: account?.balance,
-                                      onHowItWorks: _openHowItWorks,
-                                    ),
-                                    if (_loading)
-                                      const Padding(
-                                        padding: EdgeInsets.only(top: 8),
-                                        child: LinearProgressIndicator(),
-                                      ),
-                                    if (_failed)
-                                      AppErrorState(
-                                        message: account == null
-                                            ? 'Не удалось загрузить баланс и историю'
-                                            : 'Не удалось обновить бонусы. Показаны ранее полученные данные.',
-                                        onRetry: _load,
-                                        topOffset: 16,
-                                      ),
-                                    if (account?.history.isNotEmpty == true) ...[
-                                      const SizedBox(height: 28),
-                                      Text('История',
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                            sliver: SliverToBoxAdapter(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      AppIcon(AppIcons.bonusStar,
+                                          size: 22, color: palette.accent),
+                                      const SizedBox(width: 6),
+                                      Text('Баланс',
                                           style: AppTypography.headline
                                               .copyWith(
                                                   color: palette.textPrimary)),
-                                      const SizedBox(height: 16),
                                     ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                            if (account != null && account.history.isEmpty)
-                              const SliverToBoxAdapter(
-                                child: AppEmptyState(
-                                  title: 'История пуста',
-                                  muted: true,
-                                  topOffset: 136,
-                                ),
-                              ),
-                            if (account != null)
-                              SliverPadding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                sliver: SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      final entry = account.history[index];
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 8),
-                                        child: BonusLedgerRow(
-                                          entry: entry,
-                                          onTap: int.tryParse(
-                                                      entry.orderId ?? '') ==
-                                                  null
-                                              ? null
-                                              : () => _openOrder(entry),
-                                        ),
-                                      );
-                                    },
-                                    childCount: account.history.length,
                                   ),
-                                ),
-                              ),
-                            SliverToBoxAdapter(
-                              child: SizedBox(
-                                height: AppCartButton.clearanceFor(context) +
-                                    MediaQuery.paddingOf(context).bottom,
+                                  const SizedBox(height: 16),
+                                  _BalanceCard(
+                                    balance: account?.balance,
+                                    onHowItWorks: _openHowItWorks,
+                                  ),
+                                  if (_loading)
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 8),
+                                      child: LinearProgressIndicator(),
+                                    ),
+                                  if (_failed)
+                                    AppErrorState(
+                                      message: account == null
+                                          ? 'Не удалось загрузить баланс и историю'
+                                          : 'Не удалось обновить бонусы. Показаны ранее полученные данные.',
+                                      onRetry: _load,
+                                      topOffset: 16,
+                                    ),
+                                  if (account?.history.isNotEmpty == true) ...[
+                                    const SizedBox(height: 28),
+                                    Text('История',
+                                        style: AppTypography.headline.copyWith(
+                                            color: palette.textPrimary)),
+                                    const SizedBox(height: 16),
+                                  ],
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (widget.onCart != null)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom:
-                        MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-                    child: Center(
-                      child: AppCartButton(
-                        itemCount: count,
-                        total: count == 0 ? null : cart.getTotalPrice().round(),
-                        onTap: widget.onCart,
+                          ),
+                          if (account != null && account.history.isEmpty)
+                            const SliverToBoxAdapter(
+                              child: AppEmptyState(
+                                title: 'История пуста',
+                                muted: true,
+                                topOffset: 136,
+                              ),
+                            ),
+                          if (account != null)
+                            SliverPadding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final entry = account.history[index];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: BonusLedgerRow(
+                                        entry: entry,
+                                        onTap:
+                                            int.tryParse(entry.orderId ?? '') ==
+                                                    null
+                                                ? null
+                                                : () => _openOrder(entry),
+                                      ),
+                                    );
+                                  },
+                                  childCount: account.history.length,
+                                ),
+                              ),
+                            ),
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: AppCartButton.clearanceFor(context) +
+                                  MediaQuery.paddingOf(context).bottom,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
+              dock: widget.onCart == null
+                  ? null
+                  : AppCartButton(
+                      itemCount: count,
+                      total: count == 0 ? null : cart.getTotalPrice().round(),
+                      onTap: widget.onCart,
+                    ),
             ),
           ),
         ),

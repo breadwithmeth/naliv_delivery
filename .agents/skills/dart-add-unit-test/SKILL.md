@@ -1,122 +1,48 @@
 ---
 name: dart-add-unit-test
-description: Write and organize unit tests for functions, methods, and classes using `package:test`. Use when creating new logic or fixing bugs to ensure code remains correct and regression-free.
+description: Use when adding Dart or Flutter unit regressions for changed logic, reported bugs, malformed data, or boundary conditions.
 metadata:
   model: models/gemini-3.1-pro-preview
-  last_modified: Mon, 03 Aug 2026 21:51:24 GMT
+  last_modified: "2026-11-02"
 ---
-# Testing Dart and Flutter Applications
+# Add a behavior regression
 
-## Contents
-- [Structuring Test Files](#structuring-test-files)
-- [Writing Tests](#writing-tests)
-- [Executing Tests](#executing-tests)
-- [Test Implementation Workflow](#test-implementation-workflow)
-- [Examples](#examples)
+Follow the nearest existing test before introducing another pattern. This Flutter checkout uses `package:flutter_test/flutter_test.dart` and its `expect` matchers; no new test or mocking dependency is needed.
 
-## Structuring Test Files
-Organize test files to mirror the `lib` directory structure to maintain predictability.
+## Write the test
 
-* Place all test code within the `test` directory at the root of the package.
-* Append `_test.dart` to the end of all test file names (e.g., `lib/src/utils.dart` should be tested in `test/src/utils_test.dart`).
-* If writing integration tests, place them in an `integration_test` directory at the root of the package.
+1. Read the target behavior, reported failure and nearby tests. Name the observable production change that should make the regression fail.
+2. Extend the relevant suite: `test/regression/` for boundaries, `test/integration/` for multi-component widget/transport flows. Reuse `test/support/` and `test/fixtures/`; reserve root `integration_test/` for the existing native journey. Use `_test.dart` filenames, not a mandatory mirror of `lib/`.
+3. Arrange deterministic data with `setUp` and clean owned clients, providers, timers and subscriptions with `addTearDown`/`tearDown`. Reset preferences through existing test helpers.
+4. Exercise real production logic and assert exact results, persisted state or emitted requests. Cover the reported boundary rather than merely checking non-nullness or that execution completes. Await futures and asynchronous error assertions.
+5. For a bugfix, observe the focused regression fail for the reported reason before the minimal implementation fix. A regression for already-correct behavior may pass immediately; do not manufacture a failure.
 
-## Writing Tests
-Utilize `package:test` as the standard testing library for Dart applications.
-
-* Import `package:test/test.dart` (or `package:flutter_test/flutter_test.dart` for Flutter).
-* Group related tests using the `group()` function to provide shared context.
-* Define individual test cases using the `test()` function.
-* Validate outcomes using the `expect()` function alongside matchers (e.g., `equals()`, `isTrue`, `throwsA()`).
-* Write asynchronous tests using standard `async`/`await` syntax. The test runner automatically waits for the `Future` to complete.
-* Manage test setup and teardown using `setUp()` and `tearDown()` callbacks.
-* If testing code that relies on dependency injection, use `package:mockito` alongside `package:test` to generate mock objects, configure fixed scenarios, and verify interactions.
-
-## Executing Tests
-Select the appropriate test runner based on the project type and test location.
-
-* If working on a pure Dart project, execute tests using the `dart test` command.
-* If working on a Flutter project, execute tests using the `flutter test` command.
-* If running integration tests, explicitly specify the directory path, as the default runner ignores it: `dart test integration_test` or `flutter test integration_test`.
-
-## Test Implementation Workflow
-
-Follow this sequential workflow when implementing new test suites. Copy the checklist to track your progress.
-
-### Task Progress
-- [ ] 1. Create the test file in the `test/` directory, ensuring the `_test.dart` suffix.
-- [ ] 2. Import `package:test/test.dart` and the target library.
-- [ ] 3. Define a `main()` function.
-- [ ] 4. Initialize shared resources or mocks using `setUp()`.
-- [ ] 5. Write `test()` cases grouped by functionality using `group()`.
-- [ ] 6. Execute the test suite using the appropriate CLI command.
-- [ ] 7. **Feedback Loop**: Run test -> Review stack trace for failures -> Fix implementation or assertions -> Re-run until passing.
-
-## Examples
-
-### Standard Unit Test Suite
-Demonstrates grouping, setup, synchronous, and asynchronous testing.
+Existing pattern (`test/regression/quantity_test.dart`):
 
 ```dart
-import 'package:test/test.dart';
-import 'package:my_package/calculator.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:naliv_delivery/core/quantity.dart';
 
 void main() {
-  group('Calculator', () {
-    late Calculator calc;
-
-    setUp(() {
-      calc = Calculator();
-    });
-
-    test('adds two numbers correctly', () {
-      expect(calc.add(2, 3), equals(5));
-    });
-
-    test('handles asynchronous operations', () async {
-      final result = await calc.fetchRemoteValue();
-      expect(result, isNotNull);
-      expect(result, greaterThan(0));
-    });
+  test('fractional measures retain capacity precision', () {
+    expect(formatQuantity(0.475, 'л'), '0.475 л');
   });
 }
 ```
 
-### Mocking with Mockito
-Demonstrates configuring a mock object for dependency injection testing.
+## Keep HTTP strict
 
-```dart
-import 'package:test/test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-import 'package:my_package/api_client.dart';
-import 'package:my_package/data_service.dart';
+Reuse `http/testing.dart` `MockClient`, the established injection seam or `http.runWithClient`. Match the expected method, URI/query and relevant body/headers. Record unknown requests before rejecting them; assert the recorded list is empty outside the service's catch boundary, preferably in teardown. An exception inside a handler can be swallowed by production code.
 
-// Generate the mock using build_runner: dart run build_runner build
-@GenerateNiceMocks([MockSpec<ApiClient>()])
-import 'data_service_test.mocks.dart';
+Do not use blanket success responses, NiceMocks to hide missing stubs, live credentials or production mutations. Mockito/code generation is not the default. Preserve intended assertions when failures expose a real bug; do not weaken them to obtain green output.
 
-void main() {
-  group('DataService', () {
-    late MockApiClient mockApiClient;
-    late DataService dataService;
+## Run serially
 
-    setUp(() {
-      mockApiClient = MockApiClient();
-      dataService = DataService(apiClient: mockApiClient);
-    });
+Stop external Flutter runs; use the existing harness, not a second runner:
 
-    test('returns parsed data on successful API call', () async {
-      // Configure the mock
-      when(mockApiClient.get('/data')).thenAnswer((_) async => '{"id": 1}');
-
-      // Execute the system under test
-      final result = await dataService.fetchData();
-
-      // Verify outcomes and interactions
-      expect(result.id, equals(1));
-      verify(mockApiClient.get('/data')).called(1);
-    });
-  });
-}
+```sh
+dart run tool/design_harness.dart check test/regression/quantity_test.dart
+dart run tool/design_harness.dart check --full
 ```
+
+Replace the focused path with the actual affected file. The full check collects LCOV and analyzes `lib test integration_test tool`; add `--native` for the existing Windows journey at native integration. The harness uses test concurrency 1. Report actual checks, failures and platform limits; never claim unrun verification.

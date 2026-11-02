@@ -103,6 +103,60 @@ class OrderPaymentGuard {
 
   static int beginOrderRead() => _revision;
 
+  static Object? _value(Object? raw) {
+    if (raw is String && raw.startsWith('{')) {
+      final data = jsonDecode(raw);
+      if (data is Map && data.containsKey('accountId')) {
+        if (data['accountId'] is! String ||
+            (data['accountId'] as String).isEmpty ||
+            data['value'] is! String) {
+          throw const FormatException('Corrupt payment owner');
+        }
+        return data['value'];
+      }
+    }
+    return raw;
+  }
+
+  static Future<bool> _ownerMatches(String orderId, String? accountId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final raw = prefs.get(preferenceKey(orderId));
+      if (raw == null) return true;
+      if (raw is String && raw.startsWith('{')) {
+        final data = jsonDecode(raw);
+        if (data is Map && data.containsKey('accountId')) {
+          return data['accountId'] is String && data['accountId'] == accountId;
+        }
+      }
+      return accountId == null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<String?> _legacyIntent(String orderId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final raw = prefs.get(preferenceKey(orderId));
+      if (raw == 'unconfirmed') return raw as String;
+      if (raw is String && raw.startsWith('{')) {
+        final data = jsonDecode(raw);
+        if (data is Map &&
+            !data.containsKey('accountId') &&
+            data['state'] == 'unconfirmed' &&
+            data['kaspiLink'] is String) {
+          return raw;
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
   static Future<OrderPaymentState> _readStored(String orderId) async {
     if (_unpersistedCompletions.contains(orderId.trim())) {
       return OrderPaymentState.completed;
@@ -110,7 +164,7 @@ class OrderPaymentGuard {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload();
-      final value = prefs.get(preferenceKey(orderId));
+      final value = _value(prefs.get(preferenceKey(orderId)));
       if (value == null) return OrderPaymentState.ready;
       if (value == 'completed') return OrderPaymentState.completed;
       // Unknown stored values cannot make an unresolved order payable.
@@ -120,19 +174,25 @@ class OrderPaymentGuard {
     }
   }
 
-  static Future<OrderPaymentState> read(String orderId) async {
+  static Future<OrderPaymentState> read(String orderId,
+      {String? accountId}) async {
     final state = await _readStored(orderId);
     return _busy.contains(orderId.trim()) && state == OrderPaymentState.ready
         ? OrderPaymentState.unconfirmed
         : state;
   }
 
-  static Future<String?> readKaspiLink(String orderId) async {
-    if (await read(orderId) != OrderPaymentState.unconfirmed) return null;
+  static Future<String?> readKaspiLink(String orderId,
+      {String? accountId}) async {
+    if (await read(orderId, accountId: accountId) !=
+            OrderPaymentState.unconfirmed ||
+        !await _ownerMatches(orderId, accountId)) {
+      return null;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload();
-      final raw = prefs.get(preferenceKey(orderId));
+      final raw = _value(prefs.get(preferenceKey(orderId)));
       if (raw is! String || !raw.startsWith('{')) return null;
       final stored = jsonDecode(raw);
       if (stored is! Map || stored['state'] != 'unconfirmed') return null;
@@ -143,20 +203,29 @@ class OrderPaymentGuard {
     }
   }
 
-  static Future<bool> retainKaspiLink(String orderId, String link) async {
+  static Future<bool> retainKaspiLink(String orderId, String link,
+      {String? accountId}) async {
     if (!_busy.contains(orderId.trim()) ||
+        !await _ownerMatches(orderId, accountId) ||
         await _readStored(orderId) != OrderPaymentState.unconfirmed) {
       return false;
     }
-    return _store(orderId, jsonEncode({
-      'state': 'unconfirmed',
-      'kaspiLink': link,
-    }));
+    return _store(
+        orderId,
+        jsonEncode({
+          'state': 'unconfirmed',
+          'kaspiLink': link,
+        }),
+        accountId: accountId);
   }
 
-  static Future<bool> _store(String orderId, String? value) async {
+  static Future<bool> _store(String orderId, String? value,
+      {String? accountId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (value != null && accountId != null) {
+        value = jsonEncode({'accountId': accountId, 'value': value});
+      }
       final key = preferenceKey(orderId);
       final saved = value == null
           ? await prefs.remove(key)
@@ -173,7 +242,8 @@ class OrderPaymentGuard {
   }
 
   // A ready result owns the reservation until release(), including settlement.
-  static Future<OrderPaymentState> reserve(String orderId) async {
+  static Future<OrderPaymentState> reserve(String orderId,
+      {String? accountId}) async {
     orderId = orderId.trim();
     if (!_busy.add(orderId)) return OrderPaymentState.unconfirmed;
     var reserved = false;
@@ -181,7 +251,7 @@ class OrderPaymentGuard {
       final state = await _readStored(orderId);
       if (state != OrderPaymentState.ready) return state;
       _attemptRevisions[orderId] = ++_revision;
-      if (!await _store(orderId, 'unconfirmed')) {
+      if (!await _store(orderId, 'unconfirmed', accountId: accountId)) {
         return OrderPaymentState.storageUnavailable;
       }
       reserved = true;
@@ -194,10 +264,14 @@ class OrderPaymentGuard {
   static void release(String orderId) => _busy.remove(orderId.trim());
 
   static Future<OrderPaymentState> settle(
-      String orderId, OrderPaymentOutcome outcome) async {
+      String orderId, OrderPaymentOutcome outcome,
+      {String? accountId}) async {
+    if (!await _ownerMatches(orderId, accountId)) {
+      return _readStored(orderId);
+    }
     if (outcome == OrderPaymentOutcome.completed) {
       _unpersistedCompletions.add(orderId.trim());
-      if (await _store(orderId, 'completed')) {
+      if (await _store(orderId, 'completed', accountId: accountId)) {
         _unpersistedCompletions.remove(orderId.trim());
       }
       return OrderPaymentState.completed;
@@ -217,27 +291,45 @@ class OrderPaymentGuard {
     Map<String, dynamic> order, {
     required int readRevision,
     String? orderId,
+    String? accountId,
+    bool verifiedRead = false,
   }) async {
     final id = paymentOrderId(order) ?? orderId;
     if (id == null) return;
     final outcome = orderPaymentOutcome(order);
-    var state = await read(id);
+    var state = await read(id, accountId: accountId);
     final stale = (_attemptRevisions[id] ?? 0) > readRevision;
-    if (!stale && _busy.add(id)) {
+    final matches = await _ownerMatches(id, accountId);
+    final canBindLegacy = verifiedRead &&
+        accountId != null &&
+        outcome != OrderPaymentOutcome.unknown;
+    if (!stale && (matches || canBindLegacy) && _busy.add(id)) {
       try {
+        if ((_attemptRevisions[id] ?? 0) > readRevision) {
+          order[localStateKey] = (await read(id, accountId: accountId)).name;
+          return;
+        }
+        if (!await _ownerMatches(id, accountId)) {
+          final legacy = canBindLegacy ? await _legacyIntent(id) : null;
+          if (legacy == null ||
+              !await _store(id, legacy, accountId: accountId)) {
+            order[localStateKey] = state.name;
+            return;
+          }
+        }
         // Re-read inside the reservation before changing a persisted decision.
         state = await _readStored(id);
         if (state != OrderPaymentState.completed ||
             (outcome == OrderPaymentOutcome.completed &&
                 _unpersistedCompletions.contains(id))) {
           if (outcome == OrderPaymentOutcome.completed) {
-            state = await settle(id, outcome);
+            state = await settle(id, outcome, accountId: accountId);
           } else if (outcome == OrderPaymentOutcome.refused &&
               state == OrderPaymentState.unconfirmed) {
-            state = await settle(id, outcome);
+            state = await settle(id, outcome, accountId: accountId);
           } else if (outcome == OrderPaymentOutcome.pending &&
               state != OrderPaymentState.unconfirmed) {
-            state = await _store(id, 'unconfirmed')
+            state = await _store(id, 'unconfirmed', accountId: accountId)
                 ? OrderPaymentState.unconfirmed
                 : OrderPaymentState.storageUnavailable;
           }

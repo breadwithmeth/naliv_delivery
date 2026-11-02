@@ -4,13 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'order_payment_guard.dart';
 import '../services/auth_service.dart';
+import '../model/category_items.dart';
+import '../core/json_payload.dart';
 
 /// Класс для работы с API
 class ApiService {
   static const String baseUrl = 'https://njt25.naliv.kz/api';
   //static const String baseUrl = 'http://192.168.100.4:3009/api';
   // static const String baseUrl = 'http://localhost:3009/api';
-  static const JsonEncoder _prettyJsonEncoder = JsonEncoder.withIndent('  ');
 
   // Ключ для хранения токена аутентификации
   static const String _authTokenKey = 'auth_token';
@@ -44,136 +45,22 @@ class ApiService {
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
       );
 
-      return _asMap(payload);
+      return nullablePayloadMap(payload);
     } catch (e) {
       debugPrint('Error decoding auth token payload: $e');
       return null;
     }
   }
 
-  static Future<void> _storeAuthToken(
-      SharedPreferences prefs, String token) async {
-    final previous = prefs.getString(_authTokenKey);
-    if (!await prefs.setString(_authTokenKey, token)) {
-      throw StateError('Не удалось сохранить авторизацию.');
-    }
-    if (previous != token) await AuthService.notifySessionChanged();
-
-    final expiry = _decodeTokenExpiry(token);
-    if (expiry == null) {
-      await prefs.remove(_authTokenExpiryKey);
-      return;
-    }
-
-    await prefs.setString(_authTokenExpiryKey, expiry.toIso8601String());
-  }
-
-  static Future<void> _clearStoredAuth(SharedPreferences prefs) async {
-    final hadToken = prefs.containsKey(_authTokenKey);
-    if (!await prefs.remove(_authTokenKey)) {
-      throw StateError('Не удалось завершить авторизацию.');
-    }
-    if (hadToken) await AuthService.notifySessionChanged();
-    await prefs.remove(_authTokenExpiryKey);
-  }
-
-  static Map<String, dynamic>? _asMap(dynamic value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return value.map(
-        (key, entryValue) => MapEntry(key.toString(), entryValue),
-      );
-    }
-    return null;
-  }
-
-  static List<dynamic> _asList(dynamic value) {
-    if (value is List) {
-      return value;
-    }
-    if (value is Map) {
-      return <dynamic>[value];
-    }
-    return const <dynamic>[];
-  }
-
-  static Map<String, dynamic> mapFromDynamic(dynamic value) {
-    return _asMap(value) ?? <String, dynamic>{};
-  }
-
-  static List<Map<String, dynamic>> mapListFromDynamic(dynamic value) {
-    return _asList(value)
-        .map(_asMap)
-        .whereType<Map<String, dynamic>>()
-        .toList(growable: false);
-  }
-
-  static String? _parseString(dynamic value, {bool allowEmpty = false}) {
-    if (value == null) return null;
-
-    final normalized = value.toString().trim();
-    if (!allowEmpty &&
-        (normalized.isEmpty || normalized.toLowerCase() == 'null')) {
-      return null;
-    }
-
-    return normalized;
-  }
-
-  static bool _parseBool(dynamic value, {bool defaultValue = false}) {
-    if (value == null) return defaultValue;
-    if (value is bool) return value;
-    if (value is num) return value != 0;
-
-    switch ((_parseString(value) ?? '').toLowerCase()) {
-      case 'true':
-      case '1':
-      case 'yes':
-      case 'y':
-      case 'on':
-        return true;
-      case 'false':
-      case '0':
-      case 'no':
-      case 'n':
-      case 'off':
-        return false;
-      default:
-        return defaultValue;
-    }
-  }
-
-  static List<int> _parseIntList(dynamic value) {
-    return _asList(value)
-        .map((entry) => _parseInt(entry, defaultValue: -1))
-        .where((entry) => entry >= 0)
-        .toList(growable: false);
-  }
-
   static Map<String, dynamic> _normalizeCategoryNode(Map<String, dynamic> raw) {
     final normalized = Map<String, dynamic>.from(raw);
-    normalized['categories'] = mapListFromDynamic(raw['categories'])
+    normalized['categories'] = payloadMaps(raw['categories'])
         .map(_normalizeCategoryNode)
         .toList(growable: false);
-    normalized['subcategories'] = mapListFromDynamic(raw['subcategories'])
+    normalized['subcategories'] = payloadMaps(raw['subcategories'])
         .map(_normalizeCategoryNode)
         .toList(growable: false);
     return normalized;
-  }
-
-  /// Безопасное преобразование в double
-  static double? _parseDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
-
-    final normalized = _parseString(value);
-    if (normalized == null) return null;
-
-    return double.tryParse(
-      normalized.replaceAll(' ', '').replaceAll(',', '.'),
-    );
   }
 
   /// Получить понравившиеся пользователю товары
@@ -182,10 +69,10 @@ class ApiService {
     required int businessId,
     int page = 1,
     int limit = 20,
+    String? credentialToken,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(_authTokenKey);
+      final token = credentialToken ?? await getAuthToken();
       if (token == null) {
         debugPrint('API getLikedItems: no auth token');
         return null;
@@ -202,11 +89,10 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -228,10 +114,12 @@ class ApiService {
 
   /// Поставить / снять лайк для товара
   /// POST /api/users/liked-items/toggle { item_id: number }
-  static Future<bool?> toggleLikeItem(int itemId) async {
+  static Future<bool?> toggleLikeItem(
+    int itemId, {
+    String? credentialToken,
+  }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(_authTokenKey);
+      final token = credentialToken ?? await getAuthToken();
       if (token == null) {
         debugPrint('API toggleLikeItem: no auth token');
         return null;
@@ -272,21 +160,6 @@ class ApiService {
     }
   }
 
-  /// Безопасное преобразование в int
-  static int _parseInt(dynamic value, {int defaultValue = 0}) {
-    if (value == null) return defaultValue;
-    if (value is bool) return value ? 1 : 0;
-    if (value is num) return value.toInt();
-
-    final normalized = _parseString(value);
-    if (normalized == null) return defaultValue;
-
-    final compact = normalized.replaceAll(' ', '').replaceAll(',', '.');
-    return int.tryParse(compact) ??
-        double.tryParse(compact)?.toInt() ??
-        defaultValue;
-  }
-
   static Map<String, dynamic> _responseMap(http.Response response) {
     final body = response.body.trim();
     if (body.isEmpty) {
@@ -294,7 +167,7 @@ class ApiService {
     }
 
     final decoded = json.decode(body);
-    return _asMap(decoded) ?? <String, dynamic>{'data': decoded};
+    return nullablePayloadMap(decoded) ?? <String, dynamic>{'data': decoded};
   }
 
   static Future<Map<String, dynamic>?> getBusinesses({
@@ -314,10 +187,9 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -350,7 +222,6 @@ class ApiService {
       final uri = Uri.parse('$baseUrl/users/cities');
 
       final headers = <String, String>{
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
 
@@ -358,7 +229,9 @@ class ApiService {
         headers['Authorization'] = 'Bearer $token';
       }
 
-      final response = await http.get(uri, headers: headers);
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -412,10 +285,9 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -479,21 +351,14 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
         // Декодируем JSON ответ
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-        if (kDebugMode) {
-          debugPrint('Reverse geocode request: lat=$lat, lon=$lon');
-          debugPrint(
-              'Reverse geocode raw response:\n${_prettyJsonEncoder.convert(jsonResponse)}');
-        }
 
         // Проверяем успешность запроса
         if (jsonResponse['success'] == true) {
@@ -1111,23 +976,29 @@ class ApiService {
   static Future<Map<String, dynamic>?> verifyAuthCode(
       String phoneNumber, String oneTimeCode) async {
     final uri = Uri.parse('$baseUrl/auth/verify-code');
+    final revision = AuthService.credentialRevision;
     try {
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phone_number': phoneNumber,
-          'onetime_code': oneTimeCode,
-        }),
-      );
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'phone_number': phoneNumber,
+              'onetime_code': oneTimeCode,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (revision != AuthService.credentialRevision ||
+          AuthService.isEndingSession) {
+        return null;
+      }
       if (response.statusCode == 202) {
         // Сохраняем токен при успешной верификации
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'] as Map<String, dynamic>;
           if (data.containsKey('token') && data['token'] is String) {
-            final prefs = await SharedPreferences.getInstance();
-            await _storeAuthToken(prefs, data['token'] as String);
+            await AuthService.saveToken(data['token'] as String);
           }
           return jsonResponse['data'] as Map<String, dynamic>;
         } else {
@@ -1143,11 +1014,14 @@ class ApiService {
   }
 
   /// Получить полную информацию о пользователе
-  static Future<Map<String, dynamic>?> getFullInfo() async {
-    // Получаем сохраненный токен для авторизации
-    final token = await getAuthToken();
-    if (token == null) {
-      debugPrint('No auth token found');
+  static Future<Map<String, dynamic>?> getFullInfo({
+    String? credentialToken,
+  }) async {
+    final revision = AuthService.credentialRevision;
+    final token = credentialToken ?? await getAuthToken();
+    if (token == null ||
+        revision != AuthService.credentialRevision ||
+        AuthService.isEndingSession) {
       return null;
     }
     final uri = Uri.parse('$baseUrl/auth/full-info');
@@ -1155,10 +1029,10 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
+      if (!await _ownsCredential(revision, token)) return null;
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
@@ -1168,8 +1042,8 @@ class ApiService {
         }
       } else {
         if ((response.statusCode == 401 || response.statusCode == 403) &&
-            await getAuthToken() == token) {
-          await _clearStoredAuth(await SharedPreferences.getInstance());
+            await _ownsCredential(revision, token)) {
+          await AuthService.clearToken();
         }
         debugPrint('HTTP getFullInfo error: ${response.statusCode}');
       }
@@ -1177,6 +1051,17 @@ class ApiService {
       debugPrint('Network getFullInfo error: $e');
     }
     return null;
+  }
+
+  static Future<bool> _ownsCredential(int revision, String token) async {
+    if (revision != AuthService.credentialRevision ||
+        AuthService.isEndingSession) {
+      return false;
+    }
+    final current = await getAuthToken();
+    return revision == AuthService.credentialRevision &&
+        !AuthService.isEndingSession &&
+        token == current;
   }
 
   /// Обновить профиль текущего пользователя.
@@ -1187,8 +1072,9 @@ class ApiService {
     int sex = 0,
     String? firstName,
     String? lastName,
+    String? credentialToken,
   }) async {
-    final token = await getAuthToken();
+    final token = credentialToken ?? await getAuthToken();
     if (token == null || token.isEmpty) {
       debugPrint('API updateUserProfile: auth token not found');
       return const UserProfileUpdateResult(
@@ -1197,8 +1083,8 @@ class ApiService {
       );
     }
 
-    final normalizedName = _parseString(name);
-    final normalizedDateOfBirth = _parseString(dateOfBirth);
+    final normalizedName = payloadString(name);
+    final normalizedDateOfBirth = payloadString(dateOfBirth);
     if (normalizedName == null || normalizedDateOfBirth == null) {
       return const UserProfileUpdateResult(
         success: false,
@@ -1208,27 +1094,29 @@ class ApiService {
 
     final body = <String, dynamic>{
       'name': normalizedName,
-      'first_name': _parseString(firstName) ?? normalizedName,
+      'first_name': payloadString(firstName) ?? normalizedName,
       'date_of_birth': normalizedDateOfBirth,
       'sex': sex,
     };
 
-    final normalizedLastName = _parseString(lastName);
+    final normalizedLastName = payloadString(lastName);
     if (normalizedLastName != null) {
       body['last_name'] = normalizedLastName;
     }
 
     final uri = Uri.parse('$baseUrl/users/profile');
     try {
-      final response = await http.patch(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      );
+      final response = await http
+          .patch(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
 
       final jsonResponse = _responseMap(response);
       final isSuccessStatus =
@@ -1238,21 +1126,22 @@ class ApiService {
       if (success) {
         return UserProfileUpdateResult(
           success: true,
-          message: _parseString(jsonResponse['message']) ?? 'Профиль сохранён.',
-          data: mapFromDynamic(jsonResponse['data']),
+          message:
+              payloadString(jsonResponse['message']) ?? 'Профиль сохранён.',
+          data: payloadMap(jsonResponse['data']),
           statusCode: response.statusCode,
         );
       }
 
-      final error = mapFromDynamic(jsonResponse['error']);
-      final message = _parseString(error['message']) ??
-          _parseString(jsonResponse['message']) ??
+      final error = payloadMap(jsonResponse['error']);
+      final message = payloadString(error['message']) ??
+          payloadString(jsonResponse['message']) ??
           'Не удалось сохранить профиль.';
       debugPrint('API updateUserProfile error: $message');
       return UserProfileUpdateResult(
         success: false,
         message: message,
-        data: mapFromDynamic(jsonResponse['data']),
+        data: payloadMap(jsonResponse['data']),
         statusCode: response.statusCode,
       );
     } catch (e) {
@@ -1267,8 +1156,14 @@ class ApiService {
 
   /// Получить сохраненный токен аутентификации
   static Future<String?> getAuthToken() async {
+    if (AuthService.isEndingSession) return null;
+    final revision = AuthService.credentialRevision;
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_authTokenKey);
+    final token = await AuthService.getToken();
+    if (AuthService.isEndingSession ||
+        revision != AuthService.credentialRevision) {
+      return null;
+    }
     if (token == null || token.isEmpty) {
       return null;
     }
@@ -1277,19 +1172,20 @@ class ApiService {
     var expiry =
         storedExpiry != null ? DateTime.tryParse(storedExpiry)?.toUtc() : null;
 
-    if (expiry == null) {
-      expiry = _decodeTokenExpiry(token);
-      if (expiry != null) {
-        await prefs.setString(_authTokenExpiryKey, expiry.toIso8601String());
-      }
-    }
+    expiry ??= _decodeTokenExpiry(token);
 
     if (expiry != null && !DateTime.now().toUtc().isBefore(expiry)) {
-      await _clearStoredAuth(prefs);
+      if (revision == AuthService.credentialRevision &&
+          token == prefs.getString(_authTokenKey)) {
+        await AuthService.clearToken();
+      }
       return null;
     }
 
-    return token;
+    return revision == AuthService.credentialRevision &&
+            !AuthService.isEndingSession
+        ? token
+        : null;
   }
 
   static Future<String?> getCurrentUserExternalId({
@@ -1314,7 +1210,7 @@ class ApiService {
     }
 
     final fullInfo = verifiedInfo ?? await getFullInfo();
-    final user = _asMap(fullInfo?['user']);
+    final user = nullablePayloadMap(fullInfo?['user']);
     return _firstString(user, const [
           'id',
           'user_id',
@@ -1334,9 +1230,10 @@ class ApiService {
   }
 
   static Future<bool> upsertOneSignalSubscription(
-    Map<String, dynamic> payload,
-  ) async {
-    final token = await getAuthToken();
+    Map<String, dynamic> payload, {
+    required String? authToken,
+  }) async {
+    final token = authToken;
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -1345,11 +1242,13 @@ class ApiService {
 
     final uri = Uri.parse('$baseUrl/users/onesignal-subscription');
     try {
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: jsonEncode(payload),
-      );
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (response.body.trim().isEmpty) {
@@ -1357,7 +1256,7 @@ class ApiService {
         }
 
         final decoded = json.decode(response.body);
-        final jsonResponse = _asMap(decoded);
+        final jsonResponse = nullablePayloadMap(decoded);
         if (jsonResponse == null) {
           return true;
         }
@@ -1381,9 +1280,12 @@ class ApiService {
     }
   }
 
-  static Future<bool> deleteOneSignalSubscription(String subscriptionId) async {
-    final token = await getAuthToken();
-    if (token == null || token.isEmpty) {
+  static Future<bool> deleteOneSignalSubscription(
+    String subscriptionId, {
+    required String authToken,
+  }) async {
+    final token = authToken;
+    if (token.isEmpty) {
       debugPrint('API deleteOneSignalSubscription: no auth token');
       return false;
     }
@@ -1401,7 +1303,7 @@ class ApiService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return true;
@@ -1426,7 +1328,7 @@ class ApiService {
     }
 
     for (final key in keys) {
-      final value = _parseString(source[key]);
+      final value = payloadString(source[key]);
       if (value != null) {
         return value;
       }
@@ -1447,45 +1349,85 @@ class ApiService {
   /// [body] - тело запроса в формате JSON
   /// Возвращает карту с результатом операции
   static Future<Map<String, dynamic>> createUserOrder(
-    Map<String, dynamic> body,
-  ) async {
-    final token = await getAuthToken();
-    if (token == null) {
-      debugPrint('API createUserOrder: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
-    }
-    final uri = Uri.parse('$baseUrl/orders/create-order-no-payment');
-    try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(body),
+    Map<String, dynamic> body, {
+    required String credentialToken,
+  }) =>
+      _postFinancial(
+        '/orders/create-order-no-payment',
+        body,
+        credentialToken,
+        acceptedStatus: 201,
       );
 
-      final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-      if (response.statusCode == 201) {
-        // Успешный ответ, возвращаем все тело ответа,
-        // так как оно может содержать и data, и message
-        return jsonResponse;
-      } else {
-        debugPrint(
-            'HTTP Error: ${response.statusCode} - ${response.reasonPhrase}');
-        debugPrint('Error body: ${response.body}');
-        // Возвращаем ответ с ошибкой, чтобы UI мог ее обработать
-        return {
-          'success': false,
-          'error': jsonResponse['error'] ?? 'Ошибка сервера',
-          'statusCode': response.statusCode
-        };
-      }
-    } catch (e) {
-      debugPrint('Network Error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
+  static Future<Map<String, dynamic>> _postFinancial(
+    String path,
+    Map<String, dynamic> body,
+    String token, {
+    int? acceptedStatus,
+  }) async {
+    if (token.isEmpty) {
+      return {
+        'success': false,
+        'requestSent': false,
+        'outcomeUnknown': false,
+        'error': 'Требуется авторизация',
+      };
+    }
+    final String encoded;
+    try {
+      encoded = jsonEncode(body);
+    } catch (_) {
+      return {
+        'success': false,
+        'requestSent': false,
+        'outcomeUnknown': false,
+        'error': 'Не удалось подготовить запрос',
+      };
+    }
+    int? statusCode;
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: encoded,
+          )
+          .timeout(const Duration(seconds: 20));
+      statusCode = response.statusCode;
+      final envelope = _responseMap(response);
+      final successfulStatus = acceptedStatus == null
+          ? statusCode >= 200 && statusCode < 300
+          : statusCode == acceptedStatus;
+      final accepted = successfulStatus && envelope['success'] == true;
+      final uncertain = statusCode == 408 ||
+          statusCode >= 500 ||
+          (statusCode >= 200 &&
+              statusCode < 300 &&
+              !accepted &&
+              envelope['success'] != false);
+      return {
+        ...envelope,
+        'success': accepted,
+        'requestSent': true,
+        'statusCode': statusCode,
+        'outcomeUnknown': uncertain,
+        if (!accepted)
+          'error': envelope['error'] ??
+              envelope['message'] ??
+              'Не удалось подтвердить результат операции',
+      };
+    } catch (_) {
+      return {
+        'success': false,
+        'requestSent': true,
+        if (statusCode != null) 'statusCode': statusCode,
+        'outcomeUnknown': true,
+        'error': 'Не удалось подтвердить результат операции',
+      };
     }
   }
 
@@ -1519,7 +1461,6 @@ class ApiService {
 
       debugPrint(
           'HTTP validatePromoCode error: ${response.statusCode} - ${response.reasonPhrase}');
-      debugPrint('Error body: ${response.body}');
       return {
         'success': false,
         'error': jsonResponse['error'] ??
@@ -1537,8 +1478,9 @@ class ApiService {
     String? status,
     int limit = 50,
     int offset = 0,
+    String? credentialToken,
   }) async {
-    final token = await getAuthToken();
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getCertificates: auth token not found');
       return {'success': false, 'error': 'Требуется авторизация'};
@@ -1548,7 +1490,7 @@ class ApiService {
       'limit': limit.toString(),
       'offset': offset.toString(),
     };
-    final normalizedStatus = _parseString(status);
+    final normalizedStatus = payloadString(status);
     if (normalizedStatus != null) {
       query['status'] = normalizedStatus;
     }
@@ -1561,18 +1503,16 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       final jsonResponse = _responseMap(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonResponse;
       }
 
       debugPrint('HTTP getCertificates error: ${response.statusCode}');
-      debugPrint('Error body: ${response.body}');
       return {
         'success': false,
         'error': jsonResponse['error'] ??
@@ -1600,7 +1540,7 @@ class ApiService {
     final body = <String, dynamic>{
       'order_subtotal': orderSubtotal,
     };
-    final normalizedCode = _parseString(code);
+    final normalizedCode = payloadString(code);
     if (certificateId != null) {
       body['certificate_id'] = certificateId;
     } else if (normalizedCode != null) {
@@ -1626,7 +1566,6 @@ class ApiService {
       }
 
       debugPrint('HTTP validateCertificate error: ${response.statusCode}');
-      debugPrint('Error body: ${response.body}');
       return {
         'success': false,
         'error': jsonResponse['error'] ??
@@ -1640,14 +1579,17 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> claimCertificate(String code) async {
-    final token = await getAuthToken();
+  static Future<Map<String, dynamic>> claimCertificate(
+    String code, {
+    String? credentialToken,
+  }) async {
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API claimCertificate: auth token not found');
       return {'success': false, 'error': 'Требуется авторизация'};
     }
 
-    final normalizedCode = _parseString(code);
+    final normalizedCode = payloadString(code);
     if (normalizedCode == null) {
       return {'success': false, 'error': 'Введите код сертификата'};
     }
@@ -1669,7 +1611,6 @@ class ApiService {
       }
 
       debugPrint('HTTP claimCertificate error: ${response.statusCode}');
-      debugPrint('Error body: ${response.body}');
       return {
         'success': false,
         'error': jsonResponse['error'] ??
@@ -1686,21 +1627,26 @@ class ApiService {
   static Future<Map<String, dynamic>> purchaseCertificate({
     required double amount,
     required String paymentType,
+    required String credentialToken,
     String? halykCardId,
     int? recipientUserId,
     String? recipientLogin,
     String? message,
   }) async {
-    final token = await getAuthToken();
-    if (token == null) {
-      debugPrint('API purchaseCertificate: auth token not found');
-      return {'success': false, 'error': 'Требуется авторизация'};
-    }
-
-    final normalizedPaymentType = _parseString(paymentType) ?? 'page';
-    final normalizedCardId = _parseString(halykCardId);
-    if (normalizedPaymentType == 'card' && normalizedCardId == null) {
-      return {'success': false, 'error': 'Выберите карту для оплаты'};
+    final token = credentialToken;
+    final normalizedPaymentType = payloadString(paymentType) ?? 'page';
+    final normalizedCardId = payloadString(halykCardId);
+    if (!amount.isFinite ||
+        amount <= 0 ||
+        (normalizedPaymentType == 'card' && normalizedCardId == null)) {
+      return {
+        'success': false,
+        'requestSent': false,
+        'outcomeUnknown': false,
+        'error': !amount.isFinite || amount <= 0
+            ? 'Укажите сумму сертификата'
+            : 'Выберите карту для оплаты',
+      };
     }
 
     final amountValue = amount.roundToDouble() == amount
@@ -1711,52 +1657,25 @@ class ApiService {
       'payment_type': normalizedPaymentType,
       if (normalizedCardId != null) 'halyk_card_id': normalizedCardId,
       if (recipientUserId != null) 'recipient_user_id': recipientUserId,
-      if (_parseString(recipientLogin) != null)
-        'recipient_login': _parseString(recipientLogin),
-      if (_parseString(message) != null) 'message': _parseString(message),
+      if (payloadString(recipientLogin) != null)
+        'recipient_login': payloadString(recipientLogin),
+      if (payloadString(message) != null) 'message': payloadString(message),
     };
 
-    final uri = Uri.parse('$baseUrl/certificates/purchase');
-    try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(body),
-      );
-      final jsonResponse = _responseMap(response);
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonResponse;
-      }
-
-      debugPrint('HTTP purchaseCertificate error: ${response.statusCode}');
-      debugPrint('Error body: ${response.body}');
-      return {
-        'success': false,
-        'error': jsonResponse['error'] ??
-            jsonResponse['message'] ??
-            'Не удалось купить сертификат',
-        'statusCode': response.statusCode,
-      };
-    } catch (e) {
-      debugPrint('Network purchaseCertificate error: $e');
-      return {'success': false, 'error': 'Ошибка сети или разбора ответа'};
-    }
+    return _postFinancial('/certificates/purchase', body, token);
   }
 
   static Future<Map<String, dynamic>> getCertificatePurchaseStatus(
-    String purchaseId,
-  ) async {
-    final token = await getAuthToken();
+    String purchaseId, {
+    String? credentialToken,
+  }) async {
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getCertificatePurchaseStatus: auth token not found');
       return {'success': false, 'error': 'Требуется авторизация'};
     }
 
-    final normalizedPurchaseId = _parseString(purchaseId);
+    final normalizedPurchaseId = payloadString(purchaseId);
     if (normalizedPurchaseId == null) {
       return {'success': false, 'error': 'Не найден номер покупки'};
     }
@@ -1768,11 +1687,10 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       final jsonResponse = _responseMap(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonResponse;
@@ -1780,7 +1698,6 @@ class ApiService {
 
       debugPrint(
           'HTTP getCertificatePurchaseStatus error: ${response.statusCode}');
-      debugPrint('Error body: ${response.body}');
       return {
         'success': false,
         'error': jsonResponse['error'] ??
@@ -1818,10 +1735,9 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: const {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         debugPrint('HTTP searchItems error: ${response.statusCode}');
         return null;
@@ -1835,24 +1751,24 @@ class ApiService {
 
       // Ожидаем структуру вида:
       // { success, data: { items: [...], pagination?: {...} } }
-      final success = _parseBool(raw['success']);
-      final data = mapFromDynamic(raw['data']);
+      final success = payloadBool(raw['success']);
+      final data = payloadMap(raw['data']);
 
       // 1) Items -> List<CategoryItem>
-      final items = mapListFromDynamic(data['items'])
+      final items = payloadMaps(data['items'])
           .map(CategoryItem.fromJson)
           .toList(growable: false);
 
       // 2) Pagination -> PaginationInfo
       PaginationInfo pagination;
-      final paginationData = _asMap(data['pagination']);
+      final paginationData = nullablePayloadMap(data['pagination']);
       if (paginationData != null) {
         pagination = PaginationInfo.fromJson(paginationData);
       } else {
         // fallback, если бэкенд не вернул pagination
-        final total = ApiService._parseInt(data['total']) == 0
+        final total = payloadInt(data['total']) == 0
             ? items.length
-            : ApiService._parseInt(data['total']);
+            : payloadInt(data['total']);
         final totalPages = (total / limit).ceil().clamp(1, 999999);
         pagination = PaginationInfo(
           page: page,
@@ -1952,10 +1868,9 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -2005,10 +1920,9 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
@@ -2058,10 +1972,9 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       // Проверяем статус ответа
       if (response.statusCode == 200) {
@@ -2127,13 +2040,13 @@ class ApiService {
     try {
       final response = await http.get(
         uri,
-        headers: {'Content-Type': 'application/json'},
-      );
+        headers: const {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
-          final data = mapFromDynamic(jsonResponse['data']);
-          return mapListFromDynamic(data['supercategories'])
+          final data = payloadMap(jsonResponse['data']);
+          return payloadMaps(data['supercategories'])
               .map(_normalizeCategoryNode)
               .toList(growable: false);
         }
@@ -2149,8 +2062,11 @@ class ApiService {
 
   // The saved-card endpoint, not full-info summaries, supplies chargeable IDs.
   // Keep raw rows so one malformed record does not discard every valid card.
-  static Future<List<dynamic>> getUserCards({String? source}) async {
-    final token = await getAuthToken();
+  static Future<List<dynamic>> getUserCards({
+    String? source,
+    String? credentialToken,
+  }) async {
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       throw const SavedCardReadException(SavedCardReadFailure.authentication);
     }
@@ -2162,11 +2078,10 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 401) {
         throw const SavedCardReadException(SavedCardReadFailure.authentication);
       }
@@ -2194,8 +2109,10 @@ class ApiService {
     }
   }
 
-  static Future<AddCardLinkResult> generateAddCardLinkResult() async {
-    final token = await getAuthToken();
+  static Future<AddCardLinkResult> generateAddCardLinkResult({
+    String? credentialToken,
+  }) async {
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API generateAddCardLink: auth token not found');
       return const AddCardLinkResult(
@@ -2213,7 +2130,7 @@ class ApiService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 401) {
         return const AddCardLinkResult(
@@ -2276,8 +2193,10 @@ class ApiService {
   }
 
   /// Получить информацию о бонусах пользователя
-  static Future<Map<String, dynamic>?> getUserBonuses() async {
-    final token = await getAuthToken();
+  static Future<Map<String, dynamic>?> getUserBonuses({
+    String? credentialToken,
+  }) async {
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getUserBonuses: no auth token');
       return null;
@@ -2287,10 +2206,9 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$baseUrl/bonuses'),
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -2309,8 +2227,10 @@ class ApiService {
   /// Возвращает результат операции оплаты
   static Future<Map<String, dynamic>> payOrder(
     String orderId,
-    String cardId,
-  ) async {
+    String cardId, {
+    String? credentialToken,
+  }) async {
+    final accountId = AuthService.currentIdentity;
     orderId = orderId.trim();
     if (orderId.isEmpty || orderId.toLowerCase() == 'null') {
       return {
@@ -2322,7 +2242,7 @@ class ApiService {
     }
     String? token;
     try {
-      token = await getAuthToken();
+      token = credentialToken ?? await getAuthToken();
     } catch (_) {
       return {
         'success': false,
@@ -2340,7 +2260,10 @@ class ApiService {
         'error': 'Требуется авторизация. Оплата не отправлена.',
       };
     }
-    final reservation = await OrderPaymentGuard.reserve(orderId);
+    final reservation = await OrderPaymentGuard.reserve(
+      orderId,
+      accountId: accountId,
+    );
     if (reservation != OrderPaymentState.ready) {
       return {
         'success': false,
@@ -2358,15 +2281,17 @@ class ApiService {
     Map<String, dynamic> result;
     try {
       try {
-        final response = await http.post(
-          Uri.parse('$baseUrl/orders/$orderId/pay'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: json.encode({'payment_type': 'card', 'card_id': cardId}),
-        );
+        final response = await http
+            .post(
+              Uri.parse('$baseUrl/orders/$orderId/pay'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Bearer $token',
+              },
+              body: json.encode({'payment_type': 'card', 'card_id': cardId}),
+            )
+            .timeout(const Duration(seconds: 20));
         final decoded = json.decode(response.body);
         if (decoded is! Map) {
           throw const FormatException('Invalid payment result');
@@ -2389,7 +2314,11 @@ class ApiService {
         };
       }
       final outcome = orderPaymentResultOutcome(result);
-      final state = await OrderPaymentGuard.settle(orderId, outcome);
+      final state = await OrderPaymentGuard.settle(
+        orderId,
+        outcome,
+        accountId: accountId,
+      );
       return {
         ...result,
         'requestSent': true,
@@ -2411,8 +2340,9 @@ class ApiService {
   static Future<Map<String, dynamic>> createKaspiQrPayment(
     String orderId, {
     String method = 'link',
+    String? credentialToken,
   }) async {
-    final token = await getAuthToken();
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API createKaspiQrPayment: auth token not found');
       return {
@@ -2424,15 +2354,17 @@ class ApiService {
 
     final uri = Uri.parse('$baseUrl/orders/$orderId/kaspi-qr/pay');
     try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({'method': method}),
-      );
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: json.encode({'method': method}),
+          )
+          .timeout(const Duration(seconds: 20));
 
       final jsonResponse = _decodeResponseMap(response.body);
       if (jsonResponse.isEmpty) {
@@ -2455,7 +2387,6 @@ class ApiService {
 
       debugPrint(
           'HTTP createKaspiQrPayment error: ${response.statusCode} - ${response.reasonPhrase}');
-      debugPrint('Error body: ${response.body}');
       return {
         ...jsonResponse,
         'requestSent': true,
@@ -2480,9 +2411,10 @@ class ApiService {
 
   /// Проверить статус оплаты заказа через Kaspi QR.
   static Future<Map<String, dynamic>> getKaspiQrPaymentStatus(
-    String orderId,
-  ) async {
-    final token = await getAuthToken();
+    String orderId, {
+    String? credentialToken,
+  }) async {
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getKaspiQrPaymentStatus: auth token not found');
       return {
@@ -2497,11 +2429,10 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       final jsonResponse = _decodeResponseMap(response.body);
       if (jsonResponse.isEmpty) {
@@ -2524,7 +2455,6 @@ class ApiService {
 
       debugPrint(
           'HTTP getKaspiQrPaymentStatus error: ${response.statusCode} - ${response.reasonPhrase}');
-      debugPrint('Error body: ${response.body}');
       return {
         ...jsonResponse,
         'requestSent': true,
@@ -2553,12 +2483,17 @@ class ApiService {
     }
 
     final decoded = json.decode(responseBody);
-    return mapFromDynamic(decoded);
+    return payloadMap(decoded);
   }
 
-  static Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
+  static Future<Map<String, dynamic>?> getOrderDetails(
+    int orderId, {
+    String? credentialToken,
+  }) async {
+    final credentialRevision = AuthService.credentialRevision;
+    final accountId = AuthService.currentIdentity;
     final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
-    final token = await getAuthToken();
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getOrderDetails: no auth token');
       return null;
@@ -2569,11 +2504,11 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
+      if (!await _ownsCredential(credentialRevision, token)) return null;
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -2585,6 +2520,8 @@ class ApiService {
             if (order.isNotEmpty) {
               await OrderPaymentGuard.reconcileOrder(order,
                   readRevision: paymentReadRevision,
+                  accountId: accountId,
+                  verifiedRead: true,
                   orderId: orderId.toString());
             }
             return order;
@@ -2611,6 +2548,8 @@ class ApiService {
     String? deliveryType,
   }) async {
     final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
+    final credentialRevision = AuthService.credentialRevision;
+    final accountId = AuthService.currentIdentity;
     final token = await getAuthToken();
     if (token == null) {
       debugPrint('API getMyActiveOrders: no auth token');
@@ -2636,16 +2575,17 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
+      if (!await _ownsCredential(credentialRevision, token)) return null;
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           await _reconcileOrderList(jsonResponse, paymentReadRevision,
+              accountId: accountId,
               preferredKeys: const ['active_orders', 'orders']);
           return jsonResponse;
         } else {
@@ -2679,9 +2619,12 @@ class ApiService {
     String? deliveryType,
     int page = 1,
     int? pageSize,
+    String? credentialToken,
   }) async {
+    final credentialRevision = AuthService.credentialRevision;
+    final accountId = AuthService.currentIdentity;
     final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
-    final token = await getAuthToken();
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getMyOrdersHistory: no auth token');
       return null;
@@ -2707,16 +2650,17 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
+      if (!await _ownsCredential(credentialRevision, token)) return null;
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
           await _reconcileOrderList(jsonResponse, paymentReadRevision,
+              accountId: accountId,
               preferredKeys: const [
                 'orders',
                 'history_orders',
@@ -2742,12 +2686,14 @@ class ApiService {
     String? deliveryType,
     int page = 1,
     int? pageSize,
+    String? credentialToken,
   }) async {
     final response = await getMyOrdersHistory(
       businessId: businessId,
       deliveryType: deliveryType,
       page: page,
       pageSize: pageSize,
+      credentialToken: credentialToken,
     );
     return _extractOrderList(
       response,
@@ -2764,10 +2710,16 @@ class ApiService {
     Map<String, dynamic> response,
     int readRevision, {
     required List<String> preferredKeys,
+    String? accountId,
   }) async {
     for (final order
         in _extractOrderList(response, preferredKeys: preferredKeys)) {
-      await OrderPaymentGuard.reconcileOrder(order, readRevision: readRevision);
+      await OrderPaymentGuard.reconcileOrder(
+        order,
+        readRevision: readRevision,
+        accountId: accountId,
+        verifiedRead: true,
+      );
     }
   }
 
@@ -2855,7 +2807,6 @@ class ApiService {
       final response = await http.get(
         uri,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
       );
@@ -2925,549 +2876,4 @@ class UserProfileUpdateResult {
     this.data,
     this.statusCode,
   });
-}
-
-/// Модель для ответа API товаров категории
-class CategoryItemsResponse {
-  final bool success;
-  final CategoryItemsData data;
-  final String? message;
-
-  CategoryItemsResponse({
-    required this.success,
-    required this.data,
-    this.message,
-  });
-
-  factory CategoryItemsResponse.fromJson(Map<String, dynamic> json) {
-    return CategoryItemsResponse(
-      success: ApiService._parseBool(json['success']),
-      data: CategoryItemsData.fromJson(ApiService.mapFromDynamic(json['data'])),
-      message: ApiService._parseString(json['message']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'data': data.toJson(),
-      if (message != null) 'message': message,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryItemsResponse(success: $success, items: ${data.items.length})';
-  }
-}
-
-/// Модель для данных товаров категории
-class CategoryItemsData {
-  final CategoryInfo category;
-  final BusinessInfo business;
-  final List<CategoryItem> items;
-  final PaginationInfo pagination;
-  final List<int> categoriesIncluded;
-  final int subcategoriesCount;
-
-  CategoryItemsData({
-    required this.category,
-    required this.business,
-    required this.items,
-    required this.pagination,
-    required this.categoriesIncluded,
-    required this.subcategoriesCount,
-  });
-
-  factory CategoryItemsData.fromJson(Map<String, dynamic> json) {
-    return CategoryItemsData(
-      category:
-          CategoryInfo.fromJson(ApiService.mapFromDynamic(json['category'])),
-      business:
-          BusinessInfo.fromJson(ApiService.mapFromDynamic(json['business'])),
-      items: ApiService.mapListFromDynamic(json['items'])
-          .map(CategoryItem.fromJson)
-          .toList(growable: false),
-      pagination: PaginationInfo.fromJson(
-          ApiService.mapFromDynamic(json['pagination'])),
-      categoriesIncluded: ApiService._parseIntList(json['categories_included']),
-      subcategoriesCount: ApiService._parseInt(json['subcategories_count']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'category': category.toJson(),
-      'business': business.toJson(),
-      'items': items.map((item) => item.toJson()).toList(),
-      'pagination': pagination.toJson(),
-      'categories_included': categoriesIncluded,
-      'subcategories_count': subcategoriesCount,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryItemsData(category: ${category.name}, items: ${items.length}, subcategories: $subcategoriesCount)';
-  }
-}
-
-/// Модель для информации о категории
-class CategoryInfo {
-  final int categoryId;
-  final String name;
-  final String? photo;
-  final String? img;
-
-  CategoryInfo({
-    required this.categoryId,
-    required this.name,
-    this.photo,
-    this.img,
-  });
-
-  factory CategoryInfo.fromJson(Map<String, dynamic> json) {
-    return CategoryInfo(
-      categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
-      name: ApiService._parseString(json['name']) ?? '',
-      photo: ApiService._parseString(json['photo']),
-      img: ApiService._parseString(json['img']) ??
-          ApiService._parseString(json['image']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'category_id': categoryId,
-      'name': name,
-      if (photo != null) 'photo': photo,
-      if (img != null) 'img': img,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryInfo(id: $categoryId, name: $name)';
-  }
-}
-
-/// Модель для информации о бизнесе
-class BusinessInfo {
-  final int businessId;
-  final String name;
-  final String? address;
-
-  BusinessInfo({
-    required this.businessId,
-    required this.name,
-    this.address,
-  });
-
-  factory BusinessInfo.fromJson(Map<String, dynamic> json) {
-    return BusinessInfo(
-      businessId: ApiService._parseInt(json['business_id'] ?? json['id']),
-      name: ApiService._parseString(json['name']) ?? '',
-      address: ApiService._parseString(json['address']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'business_id': businessId,
-      'name': name,
-      if (address != null) 'address': address,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'BusinessInfo(id: $businessId, name: $name)';
-  }
-}
-
-/// Модель для товара в категории
-class CategoryItem {
-  final int itemId;
-  final String name;
-  final String? description;
-  final double price;
-  final String? img;
-  final String? code;
-  final ItemCategory category;
-  final int visible;
-  final String? unit;
-  final double? quantity;
-  final double? stepQuantity;
-  final List<CategoryItemOption>? options;
-  final List<CategoryItemPromotion>? promotions;
-  final double? amount;
-  final Map<String, dynamic> identityData;
-
-  CategoryItem({
-    required this.itemId,
-    required this.name,
-    this.description,
-    required this.price,
-    this.img,
-    this.code,
-    required this.category,
-    required this.visible,
-    this.unit,
-    this.quantity,
-    this.stepQuantity,
-    this.options,
-    this.promotions,
-    this.amount,
-    this.identityData = const {},
-  });
-
-  factory CategoryItem.fromJson(Map<String, dynamic> json) {
-    final categoryData = ApiService._asMap(json['category']) ??
-        <String, dynamic>{
-          'category_id': json['category_id'] ?? json['categoryId'],
-          'name': ApiService._parseString(
-                  json['category_name'] ?? json['category']) ??
-              '',
-          'parent_category': json['parent_category'] ?? json['parent_id'],
-        };
-    final options = ApiService.mapListFromDynamic(json['options'])
-        .map(CategoryItemOption.fromJson)
-        .toList(growable: false);
-    final promotions = ApiService.mapListFromDynamic(json['promotions'])
-        .map(CategoryItemPromotion.fromJson)
-        .toList(growable: false);
-
-    return CategoryItem(
-      itemId: ApiService._parseInt(json['item_id'] ?? json['id']),
-      name: ApiService._parseString(json['name']) ?? '',
-      description: ApiService._parseString(json['description']),
-      price: ApiService._parseDouble(json['price']) ?? 0.0,
-      img: ApiService._parseString(json['img']) ??
-          ApiService._parseString(json['image']),
-      code: ApiService._parseString(json['code']),
-      category: ItemCategory.fromJson(categoryData),
-      visible: ApiService._parseInt(json['visible'], defaultValue: 1),
-      unit: ApiService._parseString(
-          json['unit'] ?? json['unit_name'] ?? json['measure']),
-      quantity: ApiService._parseDouble(json['quantity']) ??
-          ApiService._parseDouble(json['parent_item_amount']),
-      stepQuantity: ApiService._parseDouble(json['quantity_step']) ??
-          ApiService._parseDouble(json['step_quantity']) ??
-          ApiService._parseDouble(json['parent_item_amount']),
-      options: options.isEmpty ? null : options,
-      promotions: promotions.isEmpty ? null : promotions,
-      amount: ApiService._parseDouble(json['amount']),
-      identityData: {
-        for (final key in const [
-          'item_type',
-          'packaging_type',
-          'material',
-          'country_name',
-          'volume_liters',
-          'weight_kilograms',
-          'alcohol_percent',
-        ])
-          if (json.containsKey(key)) key: json[key],
-      },
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'item_id': itemId,
-      'name': name,
-      if (description != null) 'description': description,
-      'price': price,
-      if (img != null) 'img': img,
-      if (code != null) 'code': code,
-      'category': category.toJson(),
-      'visible': visible,
-      if (unit != null) 'unit': unit,
-      if (quantity != null) 'quantity': quantity,
-      if (stepQuantity != null) 'quantity_step': stepQuantity,
-      if (amount != null) 'amount': amount,
-      if (options != null)
-        'options': options!.map((option) => option.toJson()).toList(),
-      if (promotions != null)
-        'promotions': promotions!.map((promo) => promo.toJson()).toList(),
-      ...identityData,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryItem(id: $itemId, name: $name, price: $price)';
-  }
-
-  /// Проверяет, виден ли товар
-  bool get isVisible => visible == 1;
-
-  /// Проверяет, есть ли опции у товара
-  bool get hasOptions => options != null && options!.isNotEmpty;
-
-  /// Проверяет, есть ли акции на товар
-  bool get hasPromotions => promotions != null && promotions!.isNotEmpty;
-}
-
-/// Модель для категории товара
-class ItemCategory {
-  final int categoryId;
-  final String name;
-  final int? parentCategory;
-
-  ItemCategory({
-    required this.categoryId,
-    required this.name,
-    this.parentCategory,
-  });
-
-  factory ItemCategory.fromJson(Map<String, dynamic> json) {
-    return ItemCategory(
-      categoryId: ApiService._parseInt(json['category_id'] ?? json['id']),
-      name: ApiService._parseString(json['name']) ?? '',
-      parentCategory: json['parent_category'] != null ||
-              json['parent_id'] != null
-          ? ApiService._parseInt(json['parent_category'] ?? json['parent_id'])
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'category_id': categoryId,
-      'name': name,
-      if (parentCategory != null) 'parent_category': parentCategory,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'ItemCategory(id: $categoryId, name: $name)';
-  }
-
-  /// Проверяет, является ли категория подкатегорией
-  bool get isSubcategory => parentCategory != null;
-}
-
-/// Модель для информации о пагинации
-class PaginationInfo {
-  final int page;
-  final int limit;
-  final int total;
-  final int totalPages;
-
-  PaginationInfo({
-    required this.page,
-    required this.limit,
-    required this.total,
-    required this.totalPages,
-  });
-
-  factory PaginationInfo.fromJson(Map<String, dynamic> json) {
-    return PaginationInfo(
-      page: ApiService._parseInt(json['page'], defaultValue: 1),
-      limit: ApiService._parseInt(json['limit'], defaultValue: 20),
-      total: ApiService._parseInt(json['total']),
-      totalPages: ApiService._parseInt(
-        json['totalPages'] ?? json['total_pages'],
-        defaultValue: 1,
-      ),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'page': page,
-      'limit': limit,
-      'total': total,
-      'totalPages': totalPages,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'PaginationInfo(page: $page/$totalPages, total: $total)';
-  }
-
-  /// Проверяет, есть ли следующая страница
-  bool get hasNextPage => page < totalPages;
-
-  /// Проверяет, есть ли предыдущая страница
-  bool get hasPreviousPage => page > 1;
-
-  /// Получает номер следующей страницы
-  int? get nextPage => hasNextPage ? page + 1 : null;
-
-  /// Получает номер предыдущей страницы
-  int? get previousPage => hasPreviousPage ? page - 1 : null;
-}
-
-/// Модель для опции товара в категории
-class CategoryItemOption {
-  final int optionId;
-  final String name;
-  final bool required;
-  final String selection; // "single" | "multiple"
-  final List<CategoryItemVariant> variants;
-
-  CategoryItemOption({
-    required this.optionId,
-    required this.name,
-    required this.required,
-    required this.selection,
-    required this.variants,
-  });
-
-  factory CategoryItemOption.fromJson(Map<String, dynamic> json) {
-    return CategoryItemOption(
-      optionId: ApiService._parseInt(json['option_id']),
-      name: ApiService._parseString(json['name']) ?? '',
-      required: ApiService._parseBool(json['required']),
-      selection: ApiService._parseString(json['selection']) ?? 'single',
-      variants: ApiService.mapListFromDynamic(json['variants'])
-          .map(CategoryItemVariant.fromJson)
-          .toList(growable: false),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'option_id': optionId,
-      'name': name,
-      'required': required,
-      'selection': selection,
-      'variants': variants.map((variant) => variant.toJson()).toList(),
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryItemOption(id: $optionId, name: $name, required: $required, variants: ${variants.length})';
-  }
-}
-
-/// Модель для варианта опции товара в категории
-class CategoryItemVariant {
-  final int relationId;
-  final int itemId;
-  final String priceType; // "add" | "replace"
-  final String? itemName; // может быть null, если не указано
-  final double price;
-  final double parentItemAmount;
-
-  CategoryItemVariant({
-    required this.relationId,
-    required this.itemId,
-    required this.priceType,
-    required this.itemName,
-    required this.price,
-    required this.parentItemAmount,
-  });
-
-  factory CategoryItemVariant.fromJson(Map<String, dynamic> json) {
-    return CategoryItemVariant(
-      relationId: ApiService._parseInt(json['relation_id']),
-      itemId: ApiService._parseInt(json['item_id']),
-      priceType: ApiService._parseString(json['price_type']) ?? 'add',
-      itemName: ApiService._parseString(json['item_name'] ?? json['name']),
-      price: ApiService._parseDouble(json['price']) ?? 0.0,
-      parentItemAmount:
-          ApiService._parseDouble(json['parent_item_amount']) ?? 0.0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'relation_id': relationId,
-      'item_id': itemId,
-      'price_type': priceType,
-      'price': price,
-      'parent_item_amount': parentItemAmount,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryItemVariant(relationId: $relationId, itemId: $itemId, priceType: $priceType, price: $price)';
-  }
-}
-
-/// Модель для акции товара в категории
-class CategoryItemPromotion {
-  final int detailId;
-  final String type; // "SUBTRACT" | "DISCOUNT"
-  final int? baseAmount;
-  final int? addAmount;
-  final double? discount;
-  final String name;
-
-  /// Validity window the server nests under `promotion`; without it a catalogue entry could keep
-  /// advertising a promotion that already ended.
-  final DateTime? startDate;
-  final DateTime? endDate;
-
-  CategoryItemPromotion({
-    required this.detailId,
-    required this.type,
-    this.baseAmount,
-    this.addAmount,
-    this.discount,
-    required this.name,
-    this.startDate,
-    this.endDate,
-  });
-
-  factory CategoryItemPromotion.fromJson(Map<String, dynamic> json) {
-    final promotionMeta = ApiService.mapFromDynamic(json['promotion']);
-
-    return CategoryItemPromotion(
-      detailId: ApiService._parseInt(
-        json['detail_id'] ?? json['promotion_id'] ?? promotionMeta['detail_id'],
-      ),
-      type:
-          ApiService._parseString(json['type'] ?? promotionMeta['type']) ?? '',
-      baseAmount: json['base_amount'] != null || json['baseAmount'] != null
-          ? ApiService._parseInt(json['base_amount'] ?? json['baseAmount'])
-          : null,
-      addAmount: json['add_amount'] != null || json['addAmount'] != null
-          ? ApiService._parseInt(json['add_amount'] ?? json['addAmount'])
-          : null,
-      discount:
-          ApiService._parseDouble(json['discount'] ?? json['discount_value']),
-      name:
-          ApiService._parseString(json['name'] ?? promotionMeta['name']) ?? '',
-      startDate: DateTime.tryParse(ApiService._parseString(
-              json['start_date'] ?? promotionMeta['start_promotion_date']) ??
-          ''),
-      endDate: DateTime.tryParse(ApiService._parseString(
-              json['end_date'] ?? promotionMeta['end_promotion_date']) ??
-          ''),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'detail_id': detailId,
-      'type': type,
-      if (baseAmount != null) 'base_amount': baseAmount,
-      if (addAmount != null) 'add_amount': addAmount,
-      if (discount != null) 'discount': discount,
-      'name': name,
-      if (startDate != null) 'start_date': startDate!.toIso8601String(),
-      if (endDate != null) 'end_date': endDate!.toIso8601String(),
-    };
-  }
-
-  @override
-  String toString() {
-    return 'CategoryItemPromotion(id: $detailId, type: $type, name: $name)';
-  }
-
-  /// Форматированное описание акции
-  String get formattedDescription {
-    if (type == 'SUBTRACT' && baseAmount != null && addAmount != null) {
-      return '$baseAmount+$addAmount';
-    }
-    return name;
-  }
 }

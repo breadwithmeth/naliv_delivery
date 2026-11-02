@@ -9,6 +9,7 @@ import '../features/bonuses/ui/bonus_ledger_row.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../services/auth_service.dart';
 import '../services/repeat_order_service.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
@@ -45,17 +46,21 @@ class _OrderDetailPageState extends State<OrderDetailPage>
   int _loadGeneration = 0;
   BonusAccount? _bonuses;
   bool _bonusFailed = false;
+  int _credentialRevision = AuthService.credentialRevision;
+  bool _sourceAllowed = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_credentialsChanged);
     _loadOrder();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_credentialsChanged);
     super.dispose();
   }
 
@@ -68,9 +73,26 @@ class _OrderDetailPageState extends State<OrderDetailPage>
   void didUpdateWidget(covariant OrderDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.order != widget.order) {
+      _sourceAllowed = true;
       _details = null;
       _loadOrder();
     }
+  }
+
+  void _credentialsChanged() {
+    final revision = AuthService.credentialRevision;
+    if (_credentialRevision == revision || !mounted) return;
+    _credentialRevision = revision;
+    _loadGeneration++;
+    setState(() {
+      _sourceAllowed = false;
+      _details = null;
+      _bonuses = null;
+      _notice = null;
+      _loading = false;
+      _bonusFailed = false;
+    });
+    _loadOrder();
   }
 
   Future<void> _loadOrder() async {
@@ -81,30 +103,45 @@ class _OrderDetailPageState extends State<OrderDetailPage>
       _loading = true;
       _notice = null;
     });
+    final session = await AuthService.captureSession();
+    if (!mounted || generation != _loadGeneration) return;
+    if (session == null) {
+      setState(() {
+        _details = _OrderDetails({});
+        _loading = false;
+        _bonuses = null;
+      });
+      return;
+    }
 
-    final bonusRead = _readBonuses();
+    final bonusRead = _readBonuses(session);
     Map<String, dynamic>? loaded;
     if (orderId != null) {
       try {
-        loaded = await ApiService.getOrderDetails(orderId);
+        loaded = await ApiService.getOrderDetails(orderId,
+            credentialToken: session.token);
       } catch (_) {
         // The frozen API normally returns null on failure; injected transports can throw.
       }
     }
-    final known = _details?.order ?? base;
+    if (!mounted || !session.isCurrent || generation != _loadGeneration) return;
+    final known =
+        _sourceAllowed ? (_details?.order ?? base) : const <String, dynamic>{};
     final merged = _mergeOrder(known, loaded);
     final paymentId = paymentOrderId(merged);
     if (paymentId != null) {
-      merged[OrderPaymentGuard.localStateKey] =
-          (await OrderPaymentGuard.read(paymentId)).name;
+      merged[OrderPaymentGuard.localStateKey] = (await OrderPaymentGuard.read(
+              paymentId,
+              accountId: AuthService.currentIdentity))
+          .name;
     }
     final bonuses = await bonusRead;
-    if (!mounted || generation != _loadGeneration) return;
+    if (!mounted || !session.isCurrent || generation != _loadGeneration) return;
     setState(() {
       _details = _OrderDetails(merged);
       _loading = false;
       _bonusFailed = bonuses == null;
-      if (bonuses != null) _bonuses = bonuses;
+      _bonuses = bonuses;
       if (orderId == null) {
         _notice = 'Подробности недоступны: номер заказа не передан.';
       } else if (loaded == null || loaded.isEmpty) {
@@ -114,9 +151,10 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     });
   }
 
-  Future<BonusAccount?> _readBonuses() async {
+  Future<BonusAccount?> _readBonuses(AuthSession session) async {
     try {
-      return BonusAccount.fromResponse(await ApiService.getUserBonuses());
+      return BonusAccount.fromResponse(
+          await ApiService.getUserBonuses(credentialToken: session.token));
     } catch (_) {
       return null;
     }
@@ -132,14 +170,21 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     }
     setState(() => _repeating = true);
     try {
+      final session = await AuthService.captureSession();
+      if (session == null || !mounted || !_sourceAllowed) return;
       final source = _details!.order;
-      if (!await _confirmReplaceCart(source) || !mounted) return;
+      if (!await _confirmReplaceCart(source) ||
+          !mounted ||
+          !session.isCurrent) {
+        return;
+      }
       final result = await RepeatOrderService.repeatOrderIntoCart(
         sourceOrder: source,
         cartProvider: context.read<CartProvider>(),
         businessProvider: context.read<BusinessProvider>(),
+        isCurrent: () => session.isCurrent,
       );
-      if (!mounted) return;
+      if (!mounted || !session.isCurrent) return;
       if (result.hasSkippedItems) {
         await _showMessage(
           'Часть позиций пропущена',
@@ -147,7 +192,15 @@ class _OrderDetailPageState extends State<OrderDetailPage>
               'Проверьте состав и актуальные цены перед оформлением.',
         );
       }
-      if (!mounted) return;
+      if (!mounted || !session.isCurrent) return;
+      if (!result.canProceedToCheckout) {
+        await _showMessage(
+          'Корзина восстановлена',
+          'Товары уже восстановлены в корзину, но адрес доставки не восстановлен. '
+              'Выберите адрес заново перед оформлением.',
+        );
+        return;
+      }
       await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => CheckoutPage(
           initialDeliveryType: result.deliveryType,
@@ -216,6 +269,13 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     }
     setState(() => _openingPayment = true);
     try {
+      final session = await AuthService.captureSession();
+      if (session == null ||
+          !session.isCurrent ||
+          !mounted ||
+          !identical(_details, details)) {
+        return;
+      }
       final amount =
           order_ui.resolveOrderTotalAmount(details.order)?.toDouble();
       await Navigator.of(context).push(MaterialPageRoute<void>(
@@ -272,7 +332,9 @@ class _OrderDetailPageState extends State<OrderDetailPage>
   @override
   Widget build(BuildContext context) {
     final details = _details;
-    final id = details?.id ?? _text(widget.order['order_id']) ?? '—';
+    final id = details?.id ??
+        (_sourceAllowed ? _text(widget.order['order_id']) : null) ??
+        '—';
     return Scaffold(
       extendBody: true,
       body: SafeArea(
@@ -322,94 +384,94 @@ class _OrderDetailPageState extends State<OrderDetailPage>
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-        if (_loading)
-          const SliverToBoxAdapter(child: LinearProgressIndicator()),
-        if (_notice != null)
+          if (_loading)
+            const SliverToBoxAdapter(child: LinearProgressIndicator()),
+          if (_notice != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: _noticeCard(),
+              ),
+            ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: _noticeCard(),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              child: _identityFields(details),
             ),
           ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-            child: _identityFields(details),
-          ),
-        ),
-        if (details.items.isEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
+          if (details.items.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _muted('Состав заказа не передан'),
+              ),
+            )
+          else
+            SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _muted('Состав заказа не передан'),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: _OrderItemRow(item: details.items[index]),
+                  ),
+                  childCount: details.items.length,
+                ),
+              ),
             ),
-          )
-        else
+          if (details.isPreview)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _muted(
+                    'Полный состав не передан. Показаны доступные товары.'),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _bonusSection(details),
+                  const SizedBox(height: 16),
+                  ExpansionTile(
+                    key: const PageStorageKey('order-detail-information'),
+                    tilePadding: EdgeInsets.zero,
+                    title: Text('Подробности заказа',
+                        style: AppTypography.title
+                            .copyWith(color: context.palette.textPrimary)),
+                    children: [
+                      _costSection(details),
+                      const SizedBox(height: 16),
+                      _informationSection(details),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _sectionTitle('История статусов'),
+                  if (details.history.isEmpty)
+                    _muted('История статусов не передана'),
+                ],
+              ),
+            ),
+          ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: _OrderItemRow(item: details.items[index]),
-                ),
-                childCount: details.items.length,
+                (context, index) => _historyRow(details.history[index]),
+                childCount: details.history.length,
               ),
             ),
           ),
-        if (details.isPreview)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: _muted(
-                  'Полный состав не передан. Показаны доступные товары.'),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              child: _supportSection(details),
             ),
           ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _bonusSection(details),
-                const SizedBox(height: 16),
-                ExpansionTile(
-                  key: const PageStorageKey('order-detail-information'),
-                  tilePadding: EdgeInsets.zero,
-                  title: Text('Подробности заказа',
-                      style: AppTypography.title
-                          .copyWith(color: context.palette.textPrimary)),
-                  children: [
-                    _costSection(details),
-                    const SizedBox(height: 16),
-                    _informationSection(details),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _sectionTitle('История статусов'),
-                if (details.history.isEmpty)
-                  _muted('История статусов не передана'),
-              ],
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _historyRow(details.history[index]),
-              childCount: details.history.length,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-            child: _supportSection(details),
-          ),
-        ),
-        SliverToBoxAdapter(child: SizedBox(height: bottomClearance + 16)),
-      ],
+          SliverToBoxAdapter(child: SizedBox(height: bottomClearance + 16)),
+        ],
       ),
     );
   }
@@ -693,9 +755,7 @@ class _OrderDetailPageState extends State<OrderDetailPage>
         ],
         _muted('Итого'),
         Text(
-          details.total == null
-              ? 'Не передано'
-              : formatTenge(details.total!),
+          details.total == null ? 'Не передано' : formatTenge(details.total!),
           style: AppTypography.displayBold
               .copyWith(color: context.palette.textPrimary),
         ),
@@ -727,61 +787,58 @@ class _OrderDetailPageState extends State<OrderDetailPage>
         heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 616),
-          child: AppGlassPanel(
+          child: AppSurface(
             radius: 24,
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_paymentUnresolved(details.order)) ...[
-                    _muted('Не удалось подтвердить состояние оплаты. '
-                        'Обновите заказ прежде чем оплачивать или повторять его.'),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      key: const ValueKey('order-detail-check-payment'),
-                      onPressed: pending ? null : _loadOrder,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Проверить состояние оплаты'),
+            clip: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_paymentUnresolved(details.order)) ...[
+                  _muted('Не удалось подтвердить состояние оплаты. '
+                      'Обновите заказ прежде чем оплачивать или повторять его.'),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    key: const ValueKey('order-detail-check-payment'),
+                    onPressed: pending ? null : _loadOrder,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Проверить состояние оплаты'),
+                  ),
+                ] else ...[
+                  if (order_ui.canPayOrder(details.order)) ...[
+                    FilledButton.icon(
+                      key: const ValueKey('order-detail-pay-button'),
+                      onPressed: pending ? null : _openPayment,
+                      icon: const Icon(Icons.lock_outline_rounded, size: 20),
+                      label: Text(
+                          _openingPayment
+                              ? 'Открываем оплату…'
+                              : 'Оплатить заказ',
+                          textAlign: TextAlign.center),
                     ),
-                  ] else ...[
-                    if (order_ui.canPayOrder(details.order)) ...[
-                      FilledButton.icon(
-                        key: const ValueKey('order-detail-pay-button'),
-                        onPressed: pending ? null : _openPayment,
-                        icon: const Icon(Icons.lock_outline_rounded, size: 20),
-                        label: Text(
-                            _openingPayment
-                                ? 'Открываем оплату…'
-                                : 'Оплатить заказ',
-                            textAlign: TextAlign.center),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    LayoutBuilder(builder: (context, constraints) {
-                      if (constraints.maxWidth < 310 ||
-                          MediaQuery.textScalerOf(context).scale(16) > 21) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            summary,
-                            const SizedBox(height: 12),
-                            repeat
-                          ],
-                        );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(child: summary),
-                          const SizedBox(width: 16),
-                          SizedBox(width: 177, child: repeat),
-                        ],
-                      );
-                    }),
+                    const SizedBox(height: 12),
                   ],
+                  LayoutBuilder(builder: (context, constraints) {
+                    if (constraints.maxWidth < 310 ||
+                        MediaQuery.textScalerOf(context).scale(16) > 21) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [summary, const SizedBox(height: 12), repeat],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(child: summary),
+                        const SizedBox(width: 16),
+                        SizedBox(width: 177, child: repeat),
+                      ],
+                    );
+                  }),
                 ],
-              ),
+              ],
+            ),
           ),
         ),
       ),
@@ -845,8 +902,8 @@ class _OrderItemRow extends StatelessWidget {
       children: [
         Text(
           identity.name.isEmpty ? 'Название не передано' : identity.name,
-          style: AppTypography.body
-              .copyWith(color: context.palette.textPrimary),
+          style:
+              AppTypography.body.copyWith(color: context.palette.textPrimary),
         ),
         if (metadata.isNotEmpty)
           Text(
@@ -865,8 +922,7 @@ class _OrderItemRow extends StatelessWidget {
         Text(
           total == null ? 'Не передана' : formatTenge(total),
           textAlign: TextAlign.end,
-          style: AppTypography.bodyBold
-              .copyWith(color: context.palette.accent),
+          style: AppTypography.bodyBold.copyWith(color: context.palette.accent),
         ),
       ],
     );
@@ -877,9 +933,11 @@ class _OrderItemRow extends StatelessWidget {
             style: AppTypography.label
                 .copyWith(color: context.palette.textSecondary)),
         Text(
-          quantity == null ? '—' : formatQuantity(quantity.toDouble(), unit ?? ''),
-          style: AppTypography.body
-              .copyWith(color: context.palette.textPrimary),
+          quantity == null
+              ? '—'
+              : formatQuantity(quantity.toDouble(), unit ?? ''),
+          style:
+              AppTypography.body.copyWith(color: context.palette.textPrimary),
         ),
       ],
     );

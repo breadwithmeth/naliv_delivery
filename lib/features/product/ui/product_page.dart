@@ -11,6 +11,7 @@ import '../../../model/cart_item.dart';
 import '../../../model/item.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
+import '../../../ui/liquid_glass_dock.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/liked_items_provider.dart';
@@ -48,30 +49,31 @@ class ProductPage extends StatefulWidget {
 class _ProductPageState extends State<ProductPage> {
   bool _added = false;
   bool _expanded = false;
+  double _actionBarHeight = 129;
   bool _canIncrement(CartProvider cart, double quantity) {
     if (!widget.view.available || cart.hasUnresolvedBusiness) return false;
     final next = quantity + widget.view.source.effectiveStepQuantity;
     final reserved = cart.activeDisplayGroups
         .where((group) => group.itemId == widget.view.itemId)
         .fold<double>(0, (sum, group) => sum + group.totalOrderQuantity);
-    final current = quantity +
-        subtractPromotionFreeQuantity(quantity, _activePromotions);
-    final required = next + subtractPromotionFreeQuantity(next, _activePromotions);
+    final current =
+        quantity + subtractPromotionFreeQuantity(quantity, _activePromotions);
+    final required =
+        next + subtractPromotionFreeQuantity(next, _activePromotions);
     final stock = widget.view.source.amount;
     return stock == null || reserved - current + required <= stock + 0.0000001;
   }
 
   static const double _heroHeight = 320;
-  static const double _actionBarHeight = 129;
 
   Future<void> _addToCart() async {
     final cart = context.read<CartProvider>();
-    final quantity = cart.getCatalogQuantity(widget.view.source);
+    final quantity = cart.getCatalogQuantityForKey(widget.view.catalogKey);
     if (quantity <= 0) {
       if (!_canIncrement(cart, quantity)) return;
       cart.incrementCatalogItem(widget.view.source);
     }
-    if (cart.getCatalogQuantity(widget.view.source) <= 0) return;
+    if (cart.getCatalogQuantityForKey(widget.view.catalogKey) <= 0) return;
     setState(() => _added = true);
     await Future<void>.delayed(const Duration(seconds: 2));
     if (mounted) setState(() => _added = false);
@@ -156,22 +158,24 @@ class _ProductPageState extends State<ProductPage> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final cart = context.watch<CartProvider>();
+    final cartState = context.select<CartProvider, (double, bool)>((cart) {
+      final quantity = cart.getCatalogQuantityForKey(widget.view.catalogKey);
+      return (quantity, _canIncrement(cart, quantity));
+    });
     final liked = widget.businessId == null
         ? widget.liked
-        : context
-            .watch<LikedItemsProvider>()
-            .isLiked(widget.businessId!, widget.view.itemId);
-    final quantity = cart.getCatalogQuantity(widget.view.source);
+        : context.select<LikedItemsProvider, bool>(
+            (likes) => likes.isLiked(widget.businessId!, widget.view.itemId));
+    final quantity = cartState.$1;
+    final canIncrement = cartState.$2;
     final topInset = MediaQuery.paddingOf(context).top;
     final total = CartItem.calculatePrice([
       CartItem(
         itemId: widget.view.itemId,
         name: widget.view.source.name,
         price: widget.view.source.price,
-        quantity: quantity > 0
-            ? quantity
-            : widget.view.source.effectiveStepQuantity,
+        quantity:
+            quantity > 0 ? quantity : widget.view.source.effectiveStepQuantity,
         stepQuantity: widget.view.source.effectiveStepQuantity,
         selectedVariants: const [],
         promotions: _activePromotions,
@@ -189,127 +193,128 @@ class _ProductPageState extends State<ProductPage> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.only(
-              bottom: _actionBarHeight +
-                  MediaQuery.paddingOf(context).bottom +
-                  AppSpacing.huge +
-                  (MediaQuery.textScalerOf(context).scale(16) > 20 ? 120 : 0),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: LiquidGlassDock(
+            content: Stack(
               children: [
-                _Hero(imageUrl: widget.view.imageUrl, height: _heroHeight),
-                const SizedBox(height: AppSpacing.xxxl),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: Row(
+                SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    bottom: _actionBarHeight +
+                        MediaQuery.paddingOf(context).bottom +
+                        AppSpacing.xl * 2,
+                  ),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _TitleBlock(view: widget.view)),
-                      if (widget.view.discount != null || points > 0)
-                        _Badges(
-                          discount: widget.view.discount,
-                          bonus: points > 0 ? '+$points' : null,
+                      _Hero(
+                          imageUrl: widget.view.imageUrl, height: _heroHeight),
+                      const SizedBox(height: AppSpacing.xxxl),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xxxl),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _TitleBlock(view: widget.view)),
+                            if (widget.view.discount != null || points > 0)
+                              _Badges(
+                                discount: widget.view.discount,
+                                bonus: points > 0 ? '+$points' : null,
+                              ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: AppSpacing.huge),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xxxl),
+                        child: _PriceStack(view: widget.view),
+                      ),
+                      const SizedBox(height: AppSpacing.huge),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xxxl),
+                        child: _QuantityControl(
+                          quantity: quantity,
+                          unit: widget.view.unit,
+                          onIncrement: canIncrement
+                              ? () => context
+                                  .read<CartProvider>()
+                                  .incrementCatalogItem(widget.view.source)
+                              : null,
+                          onDecrement: quantity > 0
+                              ? () => context
+                                  .read<CartProvider>()
+                                  .decrementCatalogItem(widget.view.source)
+                              : null,
+                        ),
+                      ),
+                      if (_promotionCard(quantity) case final promoCard?) ...[
+                        const SizedBox(height: AppSpacing.huge),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xxxl),
+                          child: promoCard,
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.huge),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xxxl),
+                        child: _Description(
+                          text: widget.view.source.description ?? '',
+                          expanded: _expanded,
+                          onToggle: () =>
+                              setState(() => _expanded = !_expanded),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.huge),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: _PriceStack(view: widget.view),
-                ),
-                const SizedBox(height: AppSpacing.huge),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: _QuantityControl(
-                    quantity: quantity,
-                    unit: widget.view.unit,
-                    onIncrement: _canIncrement(cart, quantity)
-                        ? () => context
-                            .read<CartProvider>()
-                            .incrementCatalogItem(widget.view.source)
-                        : null,
-                    onDecrement: quantity > 0
-                        ? () => context
-                            .read<CartProvider>()
-                            .decrementCatalogItem(widget.view.source)
-                        : null,
-                  ),
-                ),
-                if (_promotionCard(quantity) case final promoCard?) ...[
-                  const SizedBox(height: AppSpacing.huge),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                    child: promoCard,
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.huge),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: _Description(
-                    text: widget.view.source.description ?? '',
-                    expanded: _expanded,
-                    onToggle: () => setState(() => _expanded = !_expanded),
+                // Fixed header: the frames keep it at y = 70 while the hero scrolls away.
+                Positioned(
+                  left: AppSpacing.xxxl,
+                  right: AppSpacing.xxxl,
+                  top: topInset + 22,
+                  child: SizedBox(
+                    height: 57,
+                    child: Row(
+                      children: [
+                        AppIconButton(
+                          asset: AppIcons.back,
+                          onTap: () => Navigator.of(context).maybePop(),
+                          tooltip: 'Назад',
+                        ),
+                        const Spacer(),
+                        AppIconButton(
+                          // The design keeps the outline heart in both states and only tints the
+                          // disc, so no filled glyph is needed here.
+                          asset: AppIcons.heart,
+                          onTap: widget.onLike,
+                          tooltip: 'В избранное',
+                          size: AppSpacing.touchTarget,
+                          glyphSize: 24,
+                          fill: liked
+                              ? palette.brandRed.withValues(alpha: 0.5)
+                              : palette.surface.withValues(alpha: 0.75),
+                          color: liked ? Colors.white : palette.textPrimary,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          // Fixed header: the frames keep it at y = 70 while the hero scrolls away.
-          Positioned(
-            left: AppSpacing.xxxl,
-            right: AppSpacing.xxxl,
-            top: topInset + 22,
-            child: SizedBox(
-              height: 57,
-              child: Row(
-                children: [
-                  AppIconButton(
-                    asset: AppIcons.back,
-                    onTap: () => Navigator.of(context).maybePop(),
-                    tooltip: 'Назад',
-                  ),
-                  const Spacer(),
-                  AppIconButton(
-                    // The design keeps the outline heart in both states and only tints the
-                    // disc, so no filled glyph is needed here.
-                    asset: AppIcons.heart,
-                    onTap: widget.onLike,
-                    tooltip: 'В избранное',
-                    size: AppSpacing.touchTarget,
-                    glyphSize: 24,
-                    fill: liked
-                        ? palette.brandRed.withValues(alpha: 0.5)
-                        : palette.surface.withValues(alpha: 0.75),
-                    color: liked ? Colors.white : palette.textPrimary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _ActionBar(
+            dock: _ActionBar(
               total: total,
               added: _added,
-              onAdd: quantity > 0 || _canIncrement(cart, quantity)
-                  ? _addToCart
-                  : null,
+              onAdd: quantity > 0 || canIncrement ? _addToCart : null,
               onCart: widget.onCart,
             ),
-          ),
-        ],
+            onDockHeightChanged: (height) {
+              if ((height - _actionBarHeight).abs() > 0.5) {
+                setState(() => _actionBarHeight = height);
+              }
+            },
           ),
         ),
       ),
@@ -333,12 +338,15 @@ class _Hero extends StatelessWidget {
         color: Colors.white,
         padding: const EdgeInsets.fromLTRB(48, 88, 48, 16),
         child: imageUrl == null
-            ? const Icon(Icons.inventory_2_outlined, color: Colors.black38, size: 56)
+            ? const Icon(Icons.inventory_2_outlined,
+                color: Colors.black38, size: 56)
             : Image.network(
                 imageUrl!,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const Icon(
-                    Icons.inventory_2_outlined, color: Colors.black38, size: 56),
+                    Icons.inventory_2_outlined,
+                    color: Colors.black38,
+                    size: 56),
               ),
       ),
     );
@@ -360,7 +368,8 @@ class _TitleBlock extends StatelessWidget {
         if (view.category != null)
           Text(
             view.category!,
-            style: AppTypography.bodySmall.copyWith(color: palette.textSecondary),
+            style:
+                AppTypography.bodySmall.copyWith(color: palette.textSecondary),
           ),
         const SizedBox(height: AppSpacing.xs),
         Text(
@@ -371,9 +380,12 @@ class _TitleBlock extends StatelessWidget {
         if (view.metadata.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(
-            view.metadata.where((part) =>
-                part.toLowerCase() != view.category?.toLowerCase()).join(' · '),
-            style: AppTypography.bodySmall.copyWith(color: palette.textSecondary),
+            view.metadata
+                .where((part) =>
+                    part.toLowerCase() != view.category?.toLowerCase())
+                .join(' · '),
+            style:
+                AppTypography.bodySmall.copyWith(color: palette.textSecondary),
           ),
         ],
       ],
@@ -395,19 +407,21 @@ class _Badges extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (discount != null)
-          AppPromoChip(icon: AppIcons.fire, label: discount!, fill: palette.brandRed),
+          AppPromoChip(
+              icon: AppIcons.fire, label: discount!, fill: palette.brandRed),
         if (discount != null && bonus != null) const SizedBox(height: 8),
         if (bonus != null)
           Tooltip(
             message: 'Предварительная оценка бонусов',
             child: AppPromoChip(
-                icon: AppIcons.bonusStar, label: bonus!, fill: palette.gold,
+                icon: AppIcons.bonusStar,
+                label: bonus!,
+                fill: palette.gold,
                 foreground: Colors.black),
           ),
       ],
     );
   }
-
 }
 
 class _PriceStack extends StatelessWidget {
@@ -479,8 +493,8 @@ class _QuantityControl extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.xs),
           child: Row(
             children: [
-              _square(palette, onDecrement,
-                  const Icon(Icons.remove_rounded), 'Уменьшить'),
+              _square(palette, onDecrement, const Icon(Icons.remove_rounded),
+                  'Уменьшить'),
               Expanded(
                 child: Text(
                   _label,
@@ -489,8 +503,8 @@ class _QuantityControl extends StatelessWidget {
                       .copyWith(color: palette.textPrimary),
                 ),
               ),
-              _square(palette, onIncrement,
-                  const Icon(Icons.add_rounded), 'Увеличить'),
+              _square(palette, onIncrement, const Icon(Icons.add_rounded),
+                  'Увеличить'),
             ],
           ),
         ),
@@ -515,7 +529,6 @@ class _QuantityControl extends StatelessWidget {
     );
   }
 }
-
 
 /// «Описание» with the frame's clamp-and-toggle behaviour.
 class _Description extends StatelessWidget {
@@ -590,7 +603,7 @@ class _Description extends StatelessWidget {
   }
 }
 
-/// Glass action bar: total plus «В корзину», switching to the success pill once added.
+/// Sharp action foreground; the parent supplies the refractive material.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.total,
@@ -607,77 +620,73 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return AppGlassPanel(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
-      child: SafeArea(
-        top: false,
-        child: LayoutBuilder(builder: (context, constraints) {
-          final adaptive = constraints.maxWidth < 320 ||
-              MediaQuery.textScalerOf(context).scale(16) > 20;
-          final summary = Text(
-            formatTenge(total),
-            style: AppTypography.base(size: 24, weight: 700)
-                .copyWith(color: palette.textPrimary),
-          );
-          final action = FilledButton(
-            onPressed: onAdd,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(175, 49),
-              shape: const StadiumBorder(),
-            ),
-            child: Text(onAdd == null ? 'Нет в наличии' : 'В корзину'),
-          );
-          if (added) {
-            return Semantics(
-              liveRegion: true,
-              child: AppGlassPanel(
-                radius: AppRadii.pill,
-                tint: palette.success.withValues(alpha: 0.75),
-                child: InkWell(
-                  onTap: onCart,
-                  borderRadius: AppRadii.pillAll,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl, vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const AppIcon(AppIcons.check,
-                            size: 26, color: Colors.white),
-                        const SizedBox(width: AppSpacing.xl),
-                        Flexible(
-                          child: Text(
-                            'Добавлено в корзину',
-                            textAlign: TextAlign.center,
-                            style: AppTypography.title
-                                .copyWith(color: Colors.white),
-                          ),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final adaptive = constraints.maxWidth < 320 ||
+            MediaQuery.textScalerOf(context).scale(16) > 20;
+        final summary = Text(
+          formatTenge(total),
+          style: AppTypography.base(size: 24, weight: 700)
+              .copyWith(color: palette.textPrimary),
+        );
+        final action = FilledButton(
+          onPressed: onAdd,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(175, 49),
+            shape: const StadiumBorder(),
+          ),
+          child: Text(onAdd == null ? 'Нет в наличии' : 'В корзину'),
+        );
+        if (added) {
+          return Semantics(
+            liveRegion: true,
+            child: AppSurface(
+              radius: AppRadii.pill,
+              fill: palette.success,
+              child: InkWell(
+                onTap: onCart,
+                borderRadius: AppRadii.pillAll,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl, vertical: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const AppIcon(AppIcons.check,
+                          size: 26, color: Colors.black),
+                      const SizedBox(width: AppSpacing.xl),
+                      Flexible(
+                        child: Text(
+                          'Добавлено в корзину',
+                          textAlign: TextAlign.center,
+                          style:
+                              AppTypography.title.copyWith(color: Colors.black),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            );
-          }
-          return adaptive
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    summary,
-                    const SizedBox(height: AppSpacing.md),
-                    action,
-                  ],
-                )
-              : Row(children: [
-                  Expanded(child: summary),
-                  const SizedBox(width: AppSpacing.md),
+            ),
+          );
+        }
+        return adaptive
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  summary,
+                  const SizedBox(height: AppSpacing.md),
                   action,
-                ]);
-        }),
-      ),
+                ],
+              )
+            : Row(children: [
+                Expanded(child: summary),
+                const SizedBox(width: AppSpacing.md),
+                action,
+              ]);
+      }),
     );
   }
 }

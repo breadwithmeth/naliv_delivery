@@ -4,14 +4,63 @@
 
 The user's reported defects supersede the previous `DONE` quality conclusions. Historical tests, synthetic captures and releases remain recorded in `STATUS.md`; they do not establish readable typography, correct real card loading, correct bottling prices or Kaspi presentation compliance. This plan covers every active route, not just the redesigned landing page.
 
-**Current cutover — 2026-10-09:** [Issues first, whole-screen design second](ISSUES_THEN_DESIGN_PLAN.md)
-governs F1–F11 and D1–D5. The reachable client corrections and full-frame screen-family changes
-are implemented; current integration/runtime evidence is in `STATUS.md`, diagnostics in `FIDELITY.md`.
-Real bank/card-account, loyalty policy, 1C reversal and push-provider/device acceptance remain
-explicit external prerequisites. Prior G1–G9 deliberate departures, artwork caps and forced
-two-column rules below are historical, not the current design target. Completed cleanup and
-the user-confirmed rule charging every physical container remain intact.
+**Current cutover — 2026-10-09:** client corrections F1–F11 are retained. Catalogue,
+category selection, information-complete cards and confirmation hierarchy are rebuilt;
+genuine native/shader material now covers the whole cart control. Strict Windows and
+release-web interactions, calibrated adaptive/keyboard captures and settled integration
+checks passed. Current exercised evidence and unexecuted Apple checks are in `STATUS.md`.
+Active routes/controls are mapped below. The selected material contract is actual native
+Apple `UIGlassEffect` on iOS 26+ and genuine live-backdrop shader refraction elsewhere;
+non-Apple output is not claimed Apple-native/pixel-identical. Xcode 26/Apple runtime
+acceptance is a separate, explicit verification boundary.
+Real bank/card-account, loyalty policy, 1C reversal and push-provider/device acceptance
+remain external prerequisites. Earlier artwork/grid rules below are historical, not
+constraints overriding required app information or the new usability request.
 
+### Current design milestone — controls, sources and states
+
+| Surface | Visible controls and destination/action | Data and states retained |
+|---|---|---|
+| Catalogue overview (`SupercategoryPage`) | Back to home; search to wrapper search; one section header to that leaf; card to actual product/configuration; stock-aware add/stepper; floating cart to wrapper cart | Selected-business `CatalogDataSource`; lazy section reads/full first-page prefetch; loading, missing supercategory, empty leaf, error/retry, stock/configuration availability |
+| Category products (`CategoryProductsPage`) | Back/overview; one full-label category picker and complete selected sheet; sibling replacement; product/detail/quantity; search and cart | Branch/leaf IDs and contextual duplicate labels; prefetched continuity; page-more loading/error/retry; fractional stock/quantity and real source items |
+| Shared product card | Full name and all known identity metadata; current/old price, saving, promotion and bonus; photo/missing-photo; detail and >=44 px quantity/configuration targets | `ProductView`/`presentItem`, no inferred country/ABV/material; two columns at 375, one for narrow/large text; home/cart rails and promotions share the new sizing |
+| Confirmation (`CheckoutPage`) | Delivery/pickup; address/store change; optional delivery details; order quantity/remove/edit; benefit disclosure with existing bonus/code/certificate controls; quiet FAQ; persistent confirm/recovery | Existing cart/store/address and draft controllers; independent quote/bag/bonus loads; precise cost breakdown including mandatory bag/physical containers; existing exclusivity, invalidation/readiness and durable unknown-create/payment guards |
+| Floating glass/cart | Same cart tap/count/total semantics; expanded material covers the badge and total; content can scroll entirely above it | Native capability on iOS 26+; shader samples the live underlay on other supported renderers, while controls stay sharp in a separate foreground; material loading/error states are explicit, not another blur called Liquid Glass |
+
+Composition: consistent category sections instead of the oversized first-category sidebar;
+one category-switch mechanism instead of chips plus a menu; wider information-complete
+cards; fulfilment -> order review -> optional benefits -> one readable price breakdown.
+Decorative chrome does not need a fake glass treatment. Genuine floating material must be
+proved against a moving/textured backdrop and both themes, then active-route interactions
+and large-text clearance must be reviewed.
+
+Implemented material contract: `LiquidGlassDock` keeps the sampled scene separate from
+sharp, hit-testable foreground controls. `shaders/liquid_glass.frag` uses a curved shell,
+Snell refraction (IOR 1.45) concentrated in the rim over a nearly flat interior, a
+per-pixel-rotated 21-tap golden-angle frost, mild dispersion, Fresnel plus a crisp top
+streak, and dithering; there is no screenshot timer or CPU pixel readback. A theme base
+tint plus adaptive shadow-lift/highlight-crush keep sharp text readable without flattening
+the scene into fog. The 2026-10-11 quality pass removed the earlier fog, saturation boost
+and tap-moiré after rendered dock review. Windows runtime checkerboard captures in
+`.figma_cache/harness/optical/` show the bent rim, unchanged scene outside the dock, a
+response to moved scenery and working foreground taps in both themes.
+Ordinary chrome uses `AppSurface`/`AppSectionAction`; the old blur/rim glass API is removed.
+
+On iOS 26+, `NativeLiquidGlassBackdrop` uses `UIVisualEffectView` with `UIGlassEffect`,
+not `UIBlurEffect`. Capability false selects the shader on older iOS; missing registration
+or native failures remain errors. Native source is wired into Runner, but **Windows does
+not prove Xcode compilation, UIKit sampling, native corner/theme updates or disposal**.
+Apple acceptance requires macOS, Xcode 26+ and an iOS 26+ runtime:
+
+```sh
+flutter build ios --simulator --debug --no-codesign -t tool/dev_surface.dart
+flutter run -d <iOS-26-or-newer-simulator-UDID> -t tool/dev_surface.dart
+```
+
+Exercise scrolling imagery, both themes, corner/tint updates, foreground taps and repeated
+mount/disposal; also exercise older supported iOS to prove the shader path. Native press
+reactions are not claimed: the UIKit background is pointer-transparent. Platform views
+cannot be sampled by the Flutter shader; do not put them in its optical underlay.
 
 The dedicated plans below were defined before implementation. Dependencies ordered the work; independent card/domain repairs ran alongside shared presentation work. Integration owned builds, formatters, analysis and tests after shared edits settled. Problem/evidence paragraphs describe the original audit, not the current implemented tree. Current commands, route observations and limits are recorded in `STATUS.md`; diagnostic measurements are in `FIDELITY.md`.
 
@@ -27,9 +76,9 @@ The dedicated plans below were defined before implementation. Dependencies order
 | G6 Coherent remaining active surfaces | Rebuilt; 41-surface dark/light and adaptive review | G1/G3/G4; native/backend limits recorded separately |
 | G7 Proven dead code/resources cleanup | Removed; tests/analysis/release packaging passed | G5; live legacy styling/FAQ migrations |
 | G8 Kaspi.kz presentation | Official Figma assets/rules applied; link-flow states reviewed in strict fixtures | `docs/kaspi.txt` supplies authoritative design; real-bank lifecycle remains a verification limit |
-| G9 End-to-end integration and truthful release evidence | Historical G1–G9 evidence below; current F1–F11/D1–D5 commands and limits are in `STATUS.md` | No app-wide production acceptance inferred from fixtures |
+| G9 End-to-end integration and truthful release evidence | Historical G1–G9 evidence below; current usability/native-shader cutover commands and limits are in `STATUS.md` | No app-wide production acceptance inferred from fixtures |
 
-## Catalog/card balance correction
+## Prior catalog/card balance correction — superseded by the current cutover
 
 The user rejected the oversized, unbalanced item cards after the readability remediation. Earlier 297-test/82-capture acceptance does not establish the balance of these cards.
 

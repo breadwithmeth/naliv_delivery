@@ -1,14 +1,18 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/like_action.dart';
 import '../../../core/product_view.dart';
+import '../../../services/auth_service.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/liquid_glass_dock.dart';
 import '../../../ui/product_row.dart';
 import '../../../utils/cart_provider.dart';
+import '../../../utils/liked_items_provider.dart';
 import '../../catalog/catalog_data_source.dart';
 import '../../product/product_navigation.dart';
 
@@ -39,6 +43,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
   final _scroll = ScrollController();
   final _removed = <int>{};
   List<ProductView>? _items;
+  List<ProductView> _visible = const [];
+  LikedItemsProvider? _likes;
+  int _generation = 0;
+  int _credentialRevision = AuthService.credentialRevision;
   bool _hasMore = false;
   bool _loadingMore = false;
   bool _failed = false;
@@ -48,13 +56,56 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   void initState() {
     super.initState();
+    AuthService.sessionRevision.addListener(_sessionChanged);
     _load(reset: true);
     _scroll.addListener(_onScroll);
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final likes = context.read<LikedItemsProvider>();
+    if (identical(_likes, likes)) return;
+    _likes?.removeListener(_likesChanged);
+    _likes = likes;
+    likes.addListener(_likesChanged);
+    _projectVisible();
+  }
+
+  @override
+  void didUpdateWidget(covariant FavoritesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.businessId != widget.businessId) _load(reset: true);
+  }
+
+  void _sessionChanged() {
+    if (_credentialRevision == AuthService.credentialRevision) return;
+    _credentialRevision = AuthService.credentialRevision;
+    _load(reset: true);
+  }
+
+  void _projectVisible() {
+    _visible = [
+      for (final item in _items ?? const <ProductView>[])
+        if (!_removed.contains(item.itemId) &&
+            _likes?.confirmedLike(widget.businessId, item.itemId) != false)
+          item,
+    ];
+  }
+
+  void _likesChanged() {
+    final previous = _visible;
+    _projectVisible();
+    if (listEquals(previous, _visible)) return;
+    setState(() {});
+    _checkForMore();
+  }
+
+  @override
   void dispose() {
     _scroll.dispose();
+    _likes?.removeListener(_likesChanged);
+    AuthService.sessionRevision.removeListener(_sessionChanged);
     super.dispose();
   }
 
@@ -74,9 +125,12 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   Future<void> _load({bool reset = false}) async {
     if (reset) {
+      _generation++;
       setState(() {
         _page = 1;
         _items = null;
+        _visible = const [];
+        _loadingMore = false;
         _hasMore = false;
         _failed = false;
         _moreFailed = false;
@@ -89,19 +143,41 @@ class _FavoritesPageState extends State<FavoritesPage> {
         _moreFailed = false;
       });
     }
+    final generation = _generation;
     try {
+      final session = await AuthService.captureSession();
+      if (!mounted || generation != _generation) return;
+      if (session == null) {
+        setState(() {
+          _items = const [];
+          _visible = const [];
+          _hasMore = false;
+          _loadingMore = false;
+        });
+        return;
+      }
       final result = await CatalogDataSource(businessId: widget.businessId)
-          .likedItems(page: _page);
-      if (!mounted) return;
+          .likedItems(page: _page, credentialToken: session.token);
+      if (!mounted || !session.isCurrent || generation != _generation) return;
+      _likes?.recordLikedPage(
+          widget.businessId, result.items.map((item) => item.itemId));
       setState(() {
-        _items = [...?_items, ...result.items];
+        final known = <int>{
+          for (final item in _items ?? <ProductView>[]) item.itemId
+        };
+        _items = [
+          ...?_items,
+          for (final item in result.items)
+            if (known.add(item.itemId)) item,
+        ];
+        _projectVisible();
         _hasMore = result.hasMore;
         _loadingMore = false;
         _page++;
       });
       _checkForMore();
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
         if (_items == null) {
           _failed = true;
@@ -114,62 +190,55 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   Future<void> _unlike(ProductView item) async {
-    setState(() => _removed.add(item.itemId));
-    final changed = await toggleItemLike(
+    if (!_removed.add(item.itemId)) return;
+    final generation = _generation;
+    setState(_projectVisible);
+    await toggleItemLike(
       context,
       businessId: widget.businessId,
       itemId: item.itemId,
     );
-    // The toggle returns the confirmed new state: false means removal succeeded.
-    if (changed != false && mounted) {
-      setState(() => _removed.remove(item.itemId));
-    } else {
-      _checkForMore();
-    }
+    if (!mounted || generation != _generation) return;
+    setState(() {
+      _removed.remove(item.itemId);
+      _projectVisible();
+    });
+    _checkForMore();
   }
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
-    final count = cart.displayItemCount;
-    final visible = (_items ?? const <ProductView>[])
-        .where((item) => !_removed.contains(item.itemId))
-        .toList();
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(
-                    title: 'Избранное',
-                    onBack: () => Navigator.of(context).maybePop(),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.huge),
-                Expanded(
-                  child: _body(visible),
-                ),
-              ],
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice(),
-                  onTap: widget.onCart,
+        child: LiquidGlassDock(
+          content: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                child: AppTopBar(
+                  title: 'Избранное',
+                  onBack: () => Navigator.of(context).maybePop(),
                 ),
               ),
+              const SizedBox(height: AppSpacing.huge),
+              Expanded(
+                child: _body(_visible),
+              ),
+            ],
+          ),
+          dock: Selector<CartProvider, (int, double?)>(
+            selector: (_, cart) => (
+              cart.displayItemCount,
+              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
             ),
-          ],
+            builder: (_, summary, __) => AppCartButton(
+              itemCount: summary.$1,
+              total: summary.$2,
+              onTap: widget.onCart,
+            ),
+          ),
         ),
       ),
     );
@@ -215,35 +284,34 @@ class _FavoritesPageState extends State<FavoritesPage> {
                       style: TextButton.styleFrom(
                         minimumSize: const Size(0, AppSpacing.touchTarget),
                       ),
-                      child: Text(_moreFailed
-                          ? 'Повторить загрузку'
-                          : 'Показать ещё'),
+                      child: Text(
+                          _moreFailed ? 'Повторить загрузку' : 'Показать ещё'),
                     ),
             ),
           );
         }
         final item = visible[index];
-        final row = ProductRow.fromView(
-          item,
-          liked: true,
-          quantity:
-              context.watch<CartProvider>().getCatalogQuantity(item.source),
-          onTap: () => openProduct(
-            context,
+        return Selector<CartProvider, double>(
+          selector: (_, cart) => cart.getCatalogQuantityForKey(item.catalogKey),
+          builder: (context, quantity, _) => ProductRow.fromView(
             item,
             liked: true,
+            quantity: quantity,
+            onTap: () => openProduct(
+              context,
+              item,
+              liked: true,
+              onLike: () => _unlike(item),
+              onCart: widget.onCart,
+              businessId: widget.businessId,
+            ),
             onLike: () => _unlike(item),
-            onCart: widget.onCart,
-            businessId: widget.businessId,
+            onIncrement: () =>
+                context.read<CartProvider>().incrementCatalogItem(item.source),
+            onDecrement: () =>
+                context.read<CartProvider>().decrementCatalogItem(item.source),
           ),
-          onLike: () => _unlike(item),
-          onIncrement: () =>
-              context.read<CartProvider>().incrementCatalogItem(item.source),
-          onDecrement: () =>
-              context.read<CartProvider>().decrementCatalogItem(item.source),
         );
-        // Availability disables only adding; identity and the unlike action stay readable.
-        return row;
       },
     );
   }

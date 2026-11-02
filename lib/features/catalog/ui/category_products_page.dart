@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/product_view.dart';
+import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
+import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/liquid_glass_dock.dart';
 import '../../../ui/product_card.dart';
+import '../../../ui/product_grid.dart';
 import '../../../utils/cart_provider.dart';
 import '../../product/product_navigation.dart';
 import '../catalog_data_source.dart';
 
 import '../catalog_view_data.dart';
-import 'category_strip.dart';
+import 'category_switcher.dart';
+
 /// A complete leaf category with prefetched items and scroll-driven pagination.
 ///
 /// Columns adapt to viewport width and inherited text scaling. The floating
@@ -162,137 +167,132 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = context.watch<CartProvider>();
-    final count = tabs.displayItemCount;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                  child: AppTopBar(
-                    title: widget.title,
-                    onBack: () => Navigator.of(context).maybePop(),
-                    onSearch: widget.onSearch,
-                  ),
-                ),
-                if (widget.categories.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  CategoryStrip(
-                    categories: widget.categories,
-                    selectedCategoryId: widget.categoryId,
-                    onCategory: _openCategory,
-                    onAll: () => Navigator.of(context).maybePop(),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xl),
-                Expanded(child: _body()),
-              ],
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: count,
-                  total: count == 0 ? null : tabs.getTotalPrice(),
-                  onTap: widget.onCart,
+        child: LiquidGlassDock(
+          content: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                child: AppTopBar(
+                  title: 'Товары',
+                  onBack: () => Navigator.of(context).maybePop(),
+                  onSearch: widget.onSearch,
                 ),
               ),
+              const SizedBox(height: AppSpacing.xl),
+              Expanded(child: _body()),
+            ],
+          ),
+          dock: Selector<CartProvider, (int, double?)>(
+            selector: (_, cart) => (
+              cart.displayItemCount,
+              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
             ),
-          ],
+            builder: (_, summary, __) => AppCartButton(
+              itemCount: summary.$1,
+              total: summary.$2,
+              onTap: widget.onCart,
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _body() {
+    final items = _items;
+    var selectedLabel = widget.title;
+    for (final category in widget.categories) {
+      if (category.id == widget.categoryId) {
+        selectedLabel = category.label;
+        break;
+      }
+    }
+    Widget? footer;
     if (_failed) {
-      return AppErrorState(
+      footer = AppErrorState(
         message: 'Не удалось загрузить товары',
         onRetry: _load,
       );
-    }
-    final items = _items;
-    if (items == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (items.isEmpty && !_hasMore) {
-      // No designed empty state exists for an empty category; kept plain on purpose.
-      return const AppEmptyState(title: 'В этой категории пока нет товаров');
+    } else if (items == null) {
+      footer = const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (items.isEmpty && !_hasMore) {
+      footer = const AppEmptyState(title: 'В этой категории пока нет товаров');
+    } else if (_hasMore) {
+      footer = Center(
+        child: _loadingMore
+            ? const Padding(
+                padding: EdgeInsets.all(AppSpacing.huge),
+                child: CircularProgressIndicator(),
+              )
+            : TextButton(
+                onPressed: _loadMore,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(
+                      AppSpacing.touchTarget, AppSpacing.touchTarget),
+                ),
+                child: Text(
+                  _moreFailed ? 'Повторить загрузку' : 'Показать ещё',
+                ),
+              ),
+      );
     }
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 840),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final usableWidth = constraints.maxWidth - AppSpacing.gutter * 2;
-            final columns = ProductCard.columnsFor(context, usableWidth);
-            final cardWidth =
-                (usableWidth - AppSpacing.md * (columns - 1)) / columns;
-            return GridView.builder(
-              key: const ValueKey('category-products-grid'),
-              controller: _scroll,
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.gutter,
-                0,
-                AppSpacing.gutter,
-                AppCartButton.clearanceFor(context) +
-                    MediaQuery.paddingOf(context).bottom,
-              ),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisSpacing: AppSpacing.xl,
-                crossAxisSpacing: AppSpacing.md,
-                mainAxisExtent: ProductCard.heightFor(
-                  context,
-                  width: cardWidth,
-                  products: items,
+        child: ProductGrid(
+          key: const ValueKey('category-products-grid'),
+          controller: _scroll,
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.gutter,
+            0,
+            AppSpacing.gutter,
+            AppCartButton.clearanceFor(context) +
+                MediaQuery.paddingOf(context).bottom,
+          ),
+          header: widget.categories.isEmpty
+              ? Text(
+                  selectedLabel,
+                  style: AppTypography.displayBold
+                      .copyWith(color: context.palette.textPrimary),
+                )
+              : CategorySwitcher(
+                  categories: widget.categories,
+                  selectedCategoryId: widget.categoryId,
+                  selectedLabel: selectedLabel,
+                  onCategory: _openCategory,
+                  onOverview: () => Navigator.of(context).maybePop(),
                 ),
-              ),
-              itemCount: items.length + (_hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == items.length) {
-                  return Center(
-                    child: _loadingMore
-                        ? const CircularProgressIndicator()
-                        : TextButton(
-                            onPressed: _loadMore,
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(0, AppSpacing.touchTarget),
-                            ),
-                            child: Text(_moreFailed
-                                ? 'Повторить загрузку'
-                                : 'Показать ещё'),
-                          ),
-                  );
-                }
-                final item = items[index];
-                return ProductCard.fromView(
+          footer: footer,
+          itemCount: items?.length ?? 0,
+          itemBuilder: (context, index) {
+            final item = items![index];
+            return Selector<CartProvider, double>(
+              selector: (_, cart) =>
+                  cart.getCatalogQuantityForKey(item.catalogKey),
+              builder: (context, quantity, _) => ProductCard.fromView(
+                item,
+                key: ValueKey('category-product-$index'),
+                onTap: () => openProduct(
+                  context,
                   item,
-                  key: ValueKey('category-product-$index'),
-                  onTap: () => openProduct(
-                    context,
-                    item,
-                    businessId: widget.businessId,
-                    onCart: widget.onCart,
-                  ),
-                  quantity: context
-                      .watch<CartProvider>()
-                      .getCatalogQuantity(item.source),
-                  onIncrement: () => context
-                      .read<CartProvider>()
-                      .incrementCatalogItem(item.source),
-                  onDecrement: () => context
-                      .read<CartProvider>()
-                      .decrementCatalogItem(item.source),
-                );
-              },
+                  businessId: widget.businessId,
+                  onCart: widget.onCart,
+                ),
+                quantity: quantity,
+                onIncrement: () => context
+                    .read<CartProvider>()
+                    .incrementCatalogItem(item.source),
+                onDecrement: () => context
+                    .read<CartProvider>()
+                    .decrementCatalogItem(item.source),
+              ),
             );
           },
         ),

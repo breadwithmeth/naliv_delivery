@@ -72,6 +72,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
   bool _locating = false;
   bool _openingDetails = false;
   int _requestId = 0;
+  int _selectionRevision = 0;
   Timer? _reverseDebounce;
   late String _entrance;
   late String _floor;
@@ -89,12 +90,13 @@ class _MapAddressPageState extends State<MapAddressPage> {
   }
 
   Future<void> _initialize() async {
+    final revision = _selectionRevision;
     try {
       _selectedCity = await OnboardingService.getSelectedCity();
-      if (!mounted) return;
+      if (!mounted || revision != _selectionRevision) return;
       await _reverse(_center);
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || revision != _selectionRevision) return;
       setState(() {
         _resolving = false;
         _resolveError =
@@ -159,6 +161,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
 
   void _mapMoved(LatLng point) {
     _reverseDebounce?.cancel();
+    ++_selectionRevision;
     ++_requestId;
     setState(() {
       _center = point;
@@ -172,11 +175,12 @@ class _MapAddressPageState extends State<MapAddressPage> {
   }
 
   Future<void> _openSearch() async {
+    final revision = ++_selectionRevision;
     final selected = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(
           builder: (_) => AddressSearchPage(selectedCity: _selectedCity)),
     );
-    if (!mounted || selected == null) return;
+    if (!mounted || revision != _selectionRevision || selected == null) return;
     final coordinates = AddressStorageService.coordinates(selected);
     final raw = selected['rawAddress'];
     final label = selected['label']?.toString().trim();
@@ -197,15 +201,15 @@ class _MapAddressPageState extends State<MapAddressPage> {
   }
 
   Future<AddressLocateResult> _locateDevice() async {
-    if (!await _locationService.isLocationServiceEnabled()) {
+    final permission = await _locationService.checkAndRequestPermissions();
+    if (!permission.serviceEnabled) {
       return AddressLocateResult.unavailable(
         message: _locationService.isIosBrowserLocationFlow
             ? _locationService.browserLocationSettingsInstructions()
-            : 'Геолокация выключена. Включите её в настройках устройства или найдите адрес вручную.',
+            : permission.message,
         needsLocationSettings: !_locationService.isIosBrowserLocationFlow,
       );
     }
-    final permission = await _locationService.checkAndRequestPermissions();
     if (!permission.success) {
       return AddressLocateResult.unavailable(
         message: permission.message,
@@ -213,7 +217,9 @@ class _MapAddressPageState extends State<MapAddressPage> {
       );
     }
     final position = await _locationService.getCurrentPosition(
-        timeLimit: const Duration(seconds: 10));
+      permissionResult: permission,
+      timeLimit: const Duration(seconds: 10),
+    );
     if (position == null) {
       return const AddressLocateResult.unavailable(
           message:
@@ -225,10 +231,11 @@ class _MapAddressPageState extends State<MapAddressPage> {
 
   Future<void> _locate() async {
     if (_locating) return;
+    final revision = _selectionRevision;
     setState(() => _locating = true);
     try {
       final result = await (widget.locate?.call() ?? _locateDevice());
-      if (!mounted) return;
+      if (!mounted || revision != _selectionRevision) return;
       final point = result.point;
       if (point != null &&
           point.latitude.isFinite &&
@@ -258,7 +265,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
                     final opened = result.needsLocationSettings
                         ? await _locationService.openLocationSettings()
                         : await _locationService.openAppSettings();
-                    if (!opened && mounted) {
+                    if (!opened && mounted && revision == _selectionRevision) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text(
                             'Не удалось открыть настройки. Откройте их на устройстве вручную.'),
@@ -272,7 +279,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
         );
       }
     } catch (_) {
-      if (mounted) {
+      if (mounted && revision == _selectionRevision) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content:
               Text('Местоположение недоступно. Используйте поиск или карту.'),
@@ -294,6 +301,7 @@ class _MapAddressPageState extends State<MapAddressPage> {
         !ApiService.isKazakhstanAddress(resolved)) {
       return;
     }
+    ++_selectionRevision;
     final point = _center;
     if (widget.collectDetails) {
       setState(() => _openingDetails = true);
@@ -325,6 +333,8 @@ class _MapAddressPageState extends State<MapAddressPage> {
       'entrance': _entrance,
       'floor': _floor,
       'apartment': _apartment,
+      if (widget.initialAddress?.containsKey('comment') ?? false)
+        'comment': widget.initialAddress!['comment'],
       'point': {'lat': point.latitude, 'lon': point.longitude},
       'source': 'map_selection',
       'timestamp': DateTime.now().toIso8601String(),
@@ -382,29 +392,30 @@ class _MapAddressPageState extends State<MapAddressPage> {
                         tooltip: 'Назад'),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: InkWell(
-                      key: const Key('address_map_search'),
-                      onTap: _openSearch,
-                      borderRadius: AppRadii.pillAll,
-                      child: AppGlassPanel(
-                      radius: AppRadii.pill,
-                      tint: palette.surface.withValues(alpha: .94),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      child: Row(children: [
-                        Icon(Icons.search,
-                            color: palette.textSecondary, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                            child: Text(
-                          _selectedCity == null
-                              ? 'Поиск адреса'
-                              : '$_selectedCity, улица или дом',
-                          style: AppTypography.bodyLight
-                              .copyWith(color: palette.textSecondary),
-                        )),
-                      ]),
-                    )),
+                      child: InkWell(
+                          key: const Key('address_map_search'),
+                          onTap: _openSearch,
+                          borderRadius: AppRadii.pillAll,
+                          child: AppSurface(
+                            radius: AppRadii.pill,
+                            fill: palette.surface,
+                            clip: true,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            child: Row(children: [
+                              Icon(Icons.search,
+                                  color: palette.textSecondary, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                  child: Text(
+                                _selectedCity == null
+                                    ? 'Поиск адреса'
+                                    : '$_selectedCity, улица или дом',
+                                style: AppTypography.bodyLight
+                                    .copyWith(color: palette.textSecondary),
+                              )),
+                            ]),
+                          )),
                     ),
                   ]),
                   const Spacer(),
@@ -415,33 +426,34 @@ class _MapAddressPageState extends State<MapAddressPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              AppGlassPanel(
+                              AppSurface(
                                 radius: 24,
                                 width: 44,
                                 height: 44,
-                                child:
-                              IconButton.filled(
-                                key: const Key('address_locate'),
-                                tooltip: 'Определить моё местоположение',
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  foregroundColor: palette.textPrimary,
-                                  minimumSize: const Size(44, 44),
+                                clip: true,
+                                child: IconButton.filled(
+                                  key: const Key('address_locate'),
+                                  tooltip: 'Определить моё местоположение',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: palette.textPrimary,
+                                    minimumSize: const Size(44, 44),
+                                  ),
+                                  onPressed: _locating ? null : _locate,
+                                  icon: _locating
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2))
+                                      : const Icon(Icons.my_location),
                                 ),
-                                onPressed: _locating ? null : _locate,
-                                icon: _locating
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2))
-                                    : const Icon(Icons.my_location),
-                              ),
                               ),
                               const SizedBox(height: 12),
-                              AppGlassPanel(
+                              AppSurface(
                                 radius: 16,
-                                tint: palette.surface.withValues(alpha: .94),
+                                fill: palette.surface,
+                                clip: true,
                                 padding: const EdgeInsets.all(12),
                                 child: Column(
                                     crossAxisAlignment:
@@ -620,8 +632,8 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Выбранный адрес',
-                                    style: AppTypography.label
-                                        .copyWith(color: palette.textSecondary)),
+                                    style: AppTypography.label.copyWith(
+                                        color: palette.textSecondary)),
                                 const SizedBox(height: 6),
                                 Text(_label,
                                     style: AppTypography.title
@@ -670,9 +682,10 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: AppGlassPanel(
+            child: AppSurface(
               radius: 32,
               padding: const EdgeInsets.all(8),
+              clip: true,
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(

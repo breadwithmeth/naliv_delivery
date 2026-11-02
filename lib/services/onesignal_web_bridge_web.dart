@@ -16,6 +16,7 @@ class OneSignalWebBridge {
   static Future<T?> _call<T>(
     String method, [
     List<Object?> args = const <Object?>[],
+    bool bounded = true,
   ]) async {
     final bridge = _bridge;
     if (bridge == null) return null;
@@ -27,9 +28,8 @@ class OneSignalWebBridge {
       );
       if (result == null) return null;
 
-      final value = await (result as JSPromise<JSAny?>).toDart.timeout(
-            _timeout,
-          );
+      final pending = (result as JSPromise<JSAny?>).toDart;
+      final value = await (bounded ? pending.timeout(_timeout) : pending);
       return value.dartify() as T?;
     } catch (_) {
       return null;
@@ -87,9 +87,10 @@ class OneSignalWebBridge {
   }
 
   static Future<bool> login(String externalId) async =>
-      (await _call<bool>('login', <Object?>[externalId])) ?? false;
+      (await _call<bool>('login', <Object?>[externalId], false)) ?? false;
 
-  static Future<bool> logout() async => (await _call<bool>('logout')) ?? false;
+  static Future<bool> logout() async =>
+      (await _call<bool>('logout', const <Object?>[], false)) ?? false;
 
   static Future<bool> addTag(String key, String value) async =>
       (await _call<bool>('addTag', <Object?>[key, value])) ?? false;

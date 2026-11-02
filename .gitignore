@@ -50,6 +50,15 @@ key.properties
 /android/app/profile
 /android/app/release
 
+# Machine-local caches and diagnostic output (tracked copies need separate cleanup).
+/ios/build/
+/android/build/
+/coverage/
+/.firebase/
+/.tmp-appdata/
+/.VSCodeCounter/
+/flutter_*.png
+
 # Figma handoff (local secrets + design cache)
 .figma-token
 .figma-design

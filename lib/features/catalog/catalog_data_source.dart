@@ -26,21 +26,32 @@ class CatalogDataSource {
   }
 
   /// Free-text product search, using the same response shape as a category listing.
-  Future<List<ProductView>> search(String query, {int limit = 40}) async {
+  Future<({List<ProductView> items, int page, bool hasNextPage})> search(
+    String query, {
+    int page = 1,
+    int limit = 40,
+  }) async {
     final trimmed = query.trim();
-    if (trimmed.isEmpty) return const [];
+    if (trimmed.isEmpty) {
+      return (items: const <ProductView>[], page: page, hasNextPage: false);
+    }
     final response = await ApiService.searchItemsTyped(
       trimmed,
       businessId: businessId,
+      page: page,
       limit: limit,
     );
     if (response == null || !response.success) {
       throw StateError('Не удалось выполнить поиск');
     }
-    return [
-      for (final entry in response.data.items)
-        ProductView.fromItem(Item.fromCategoryItem(entry)),
-    ];
+    return (
+      items: [
+        for (final entry in response.data.items)
+          ProductView.fromItem(Item.fromCategoryItem(entry)),
+      ],
+      page: response.data.pagination.page,
+      hasNextPage: response.data.pagination.hasNextPage,
+    );
   }
 
   /// The user's liked items. ApiService already unwraps the response's `data`.
@@ -49,11 +60,13 @@ class CatalogDataSource {
   Future<({List<ProductView> items, bool hasMore})> likedItems({
     int page = 1,
     int limit = 20,
+    String? credentialToken,
   }) async {
     final raw = await ApiService.getLikedItems(
       businessId: businessId,
       page: page,
       limit: limit,
+      credentialToken: credentialToken,
     );
     if (raw == null) throw StateError('Не удалось загрузить избранное');
     final entries = raw['items'];
@@ -157,8 +170,7 @@ class CatalogDataSource {
           name: categoryName,
           parentId: parentId,
           parentName: parentName,
-          needsParentContext:
-              (nameCounts[categoryName.toLowerCase()] ?? 0) > 1,
+          needsParentContext: (nameCounts[categoryName.toLowerCase()] ?? 0) > 1,
           description: _string(entry['description']),
           imageUrl: _string(entry['img']),
           children: children,

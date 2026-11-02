@@ -1,201 +1,31 @@
-# Firebase Push Notifications Setup
+# Push notifications: OneSignal and Android FCM
 
-## 🚀 Что реализовано
+The application uses **OneSignal**, not a direct FlutterFire Messaging client. Firebase Hosting is a separate deployment concern. Android delivery still uses FCM underneath OneSignal; configure its provider credentials in the OneSignal dashboard, never in the Flutter/browser bundle.
 
-1. **Firebase Cloud Messaging (FCM)** - интеграция для push-уведомлений
-2. **Локальные уведомления** - отображение уведомлений даже когда приложение закрыто
-3. **Автоматическая отправка токенов** - FCM токены автоматически отправляются на сервер
-4. **Обработка различных типов уведомлений** - заказы, акции, доставка
-5. **Настройки уведомлений** - пользователь может управлять типами уведомлений
-6. **Навигация по уведомлениям** - клик по уведомлению открывает нужную страницу
+## Current integration
 
-## 📱 Файлы проекта
+- Native initialization and subscription/account synchronization: `lib/services/notification_service.dart`.
+- Android application ID: `kz.gradusy24.app`.
+- Web initialization: `web/index.html`, `lib/services/onesignal_web_bridge_web.dart` and the existing `/onesignal/` workers.
+- Notification preferences: `lib/pages/notification_settings_page.dart`.
+- Notification taps use OneSignal `additionalData` and the existing destination/authentication flow. Native incoming URI routing is a separate, unresolved contract; verified domain association alone does not implement it.
+- Current service identifiers are `subscriptionId`, `oneSignalId` and `pushToken`. The old `fcmToken`, topic subscription and client-side server-key tester examples did not describe the current implementation and have been removed.
 
-### Основные файлы:
-- `lib/services/notification_service.dart` - основной сервис для работы с уведомлениями
-- `lib/pages/notification_settings_page.dart` - страница настроек уведомлений
-- `lib/utils/notification_tester.dart` - утилита для тестирования уведомлений
-- `lib/utils/api.dart` - добавлены методы для работы с FCM токенами
+## Android provider prerequisites
 
-### Конфигурационные файлы:
-- `android/app/src/main/AndroidManifest.xml` - настройки Android
-- `android/app/src/main/res/values/colors.xml` - цвета уведомлений
-- `android/app/src/main/res/drawable/ic_notification.xml` - иконка уведомлений
-- `ios/Runner/Info.plist` - настройки iOS (уже настроен)
+1. Confirm the existing OneSignal application selected by `_mobileOneSignalAppId` in the service.
+2. In OneSignal, configure the Android Firebase/FCM v1 provider for the actual Firebase project backing this application. Service-account credentials belong only in the provider/dashboard or trusted server.
+3. Keep the existing Android application ID and release-signing continuity. Do not register a replacement package just to match an old JSON file.
+4. On an authorized signed test device, grant notification permission when requested, verify subscription/account binding, then check foreground, background and cold-start notification taps through the existing publisher.
 
-## 🔧 Настройка Firebase Console
+`android/app/google-services.json` is stale registration material for a different package. The Google Services Gradle plugin is not applied and this JSON is not an active input to the inspected build. OneSignal includes native Firebase components transitively; that does not make the stale local JSON authoritative. Preserve provider registrations until their owner approves retirement or replacement. Do not add a second messaging stack to make an unused file appear necessary.
 
-### 1. Создание проекта Firebase
-1. Перейдите в [Firebase Console](https://console.firebase.google.com/)
-2. Создайте новый проект или выберите существующий
-3. Добавьте Android и iOS приложения в проект
+## Web and Apple
 
-### 2. Настройка Android приложения
-1. Добавьте Android app с package name: `naliv_delivery`
-2. Скачайте `google-services.json` 
-3. Поместите файл в `android/app/`
+- Web deployment and worker/cache requirements: [Coolify/static hosting](coolify_static_site.md).
+- Existing Apple identities, APNs and extension acceptance: [iOS push setup](ios_firebase_setup.md).
+- Never put a Firebase server key, FCM service account or APNs private key in Dart, JavaScript, static hosting output, logs or screenshots.
 
-### 3. Настройка iOS приложения
-1. Добавьте iOS app с Bundle ID из проекта
-2. Скачайте `GoogleService-Info.plist`
-3. Поместите файл в `ios/Runner/`
+Repository fixtures reject unknown requests and use synthetic notification data. They do not prove dashboard credentials, subscription delivery, APNs/FCM acceptance or signed-device notification behavior. Production/account verification remains read-only; do not send test pushes to a personal account without explicit authorization.
 
-### 4. Включение Cloud Messaging
-1. В Firebase Console перейдите в "Cloud Messaging"
-2. Настройте Server Key (для тестирования)
-
-## 🛠 Серверная часть
-
-### API эндпоинты для FCM токенов:
-
-```typescript
-// POST /api/users/fcm-token - сохранить FCM токен
-{
-  "fcm_token": "string"
-}
-
-// DELETE /api/users/fcm-token - удалить FCM токен
-```
-
-### Пример отправки уведомления с сервера:
-
-```javascript
-const admin = require('firebase-admin');
-
-// Инициализация
-const serviceAccount = require('./path/to/serviceAccountKey.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-// Отправка уведомления
-const message = {
-  notification: {
-    title: 'Статус заказа изменен',
-    body: 'Ваш заказ #12345 готов к выдаче'
-  },
-  data: {
-    type: 'order_status_change',
-    order_id: '12345',
-    status: 'ready'
-  },
-  token: 'user_fcm_token_here'
-};
-
-admin.messaging().send(message)
-  .then((response) => {
-    console.log('Successfully sent message:', response);
-  })
-  .catch((error) => {
-    console.log('Error sending message:', error);
-  });
-```
-
-## 🎯 Типы уведомлений
-
-### 1. Уведомления о заказах
-```json
-{
-  "type": "order_status_change",
-  "order_id": "12345",
-  "status": "ready",
-  "business_id": "1"
-}
-```
-
-### 2. Уведомления о акциях
-```json
-{
-  "type": "promotion",
-  "business_id": "1",
-  "promotion_id": "123"
-}
-```
-
-### 3. Уведомления о доставке
-```json
-{
-  "type": "delivery_update",
-  "order_id": "12345",
-  "estimated_time": "10 мин"
-}
-```
-
-## 🧪 Тестирование
-
-### 1. Получение FCM токена
-```dart
-final token = NotificationService.instance.fcmToken;
-print('FCM Token: $token');
-```
-
-### 2. Отправка тестового уведомления
-```dart
-import 'package:naliv_delivery/utils/notification_tester.dart';
-
-// Замените YOUR_SERVER_KEY на реальный ключ из Firebase Console
-await NotificationTester.sendOrderStatusNotification(
-  token: token!,
-  orderId: '12345',
-  status: 'ready',
-);
-```
-
-### 3. Проверка через Firebase Console
-1. Перейдите в "Cloud Messaging" → "Send your first message"
-2. Введите заголовок и текст
-3. Выберите приложение
-4. Отправьте тестовое сообщение
-
-## 📋 Чек-лист проверки
-
-- [ ] Firebase проект создан
-- [ ] `google-services.json` добавлен в Android
-- [ ] `GoogleService-Info.plist` добавлен в iOS (если нужен)
-- [ ] Приложение запускается без ошибок
-- [ ] FCM токен генерируется и отображается в логах
-- [ ] Уведомления приходят в foreground режиме
-- [ ] Уведомления приходят в background режиме
-- [ ] Клики по уведомлениям обрабатываются
-- [ ] Сервер может сохранять FCM токены
-
-## 🔍 Отладка
-
-### Логи для проверки:
-- `🔔 Инициализация сервиса уведомлений...`
-- `📱 FCM Token: [токен]`
-- `📨 Получено сообщение на переднем плане`
-- `🔔 Нажато на уведомление`
-
-### Частые проблемы:
-1. **Токен не генерируется** - проверьте файлы конфигурации Firebase
-2. **Уведомления не приходят** - проверьте Server Key и токен
-3. **Навигация не работает** - проверьте обработчики в `NotificationService`
-
-## 🎮 Использование
-
-### Доступ к сервису:
-```dart
-final notificationService = NotificationService.instance;
-```
-
-### Подписка на топики:
-```dart
-await notificationService.subscribeToTopic('orders');
-await notificationService.subscribeToTopic('promotions');
-```
-
-### Очистка уведомлений:
-```dart
-await notificationService.clearAllNotifications();
-```
-
-### Страница настроек:
-```dart
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => const NotificationSettingsPage(),
-  ),
-);
-```
+Provider reference: [OneSignal Android FCM credentials](https://documentation.onesignal.com/docs/android-firebase-credentials).

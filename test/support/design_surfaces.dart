@@ -30,6 +30,7 @@ import 'package:naliv_delivery/utils/smart_cart.dart';
 import 'package:naliv_delivery/utils/promotion_engine.dart';
 import 'package:naliv_delivery/widgets/app_loading_screen.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+import 'package:naliv_delivery/widgets/cart_persistence_notice.dart';
 import 'package:naliv_delivery/features/home/home_view_data.dart';
 import 'package:naliv_delivery/features/home/ui/home_page.dart';
 import 'package:naliv_delivery/features/profile/ui/profile_page.dart';
@@ -48,6 +49,9 @@ import 'package:naliv_delivery/pages/promotion_items_page.dart';
 import 'package:naliv_delivery/pages/order_detail_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/services/push_provider.dart';
 import 'package:naliv_delivery/utils/api.dart' show ApiService;
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
@@ -63,49 +67,6 @@ import 'configuration_items.dart';
 import 'bottling_surface_items.dart';
 import 'remaining_milestone_fixture.dart';
 
-const surfaceIds = <String>[
-  'home',
-  'catalog',
-  'all_products',
-  'cart',
-  'profile',
-  'profile_guest',
-  'promotion',
-  'orders',
-  'order_detail',
-  'support',
-  'certificates',
-  'onboarding',
-  'addresses',
-  'address_map',
-  'address_details',
-  'cards',
-  'payment_method',
-  'payment_kaspi',
-  'checkout_delivery',
-  'checkout_pickup',
-  'checkout_error',
-  'certificate_purchase',
-  'product_options',
-  'product_pour',
-  'payment_success',
-  'product_pour_real',
-  'product_pour_gift',
-  'product_pour_three_plus_one',
-  'product_pour_fractional',
-  'product_replacement',
-  'search',
-  'favorites',
-  'bonus_history',
-  'bonus_explainer',
-  'faq',
-  'notifications',
-  'intro',
-  'sign_in',
-  'profile_setup',
-  'startup',
-  'active_route',
-];
 const designSurfaceSize = Size(375, 812);
 const designSurfaceInsets = EdgeInsets.only(top: 48, bottom: 34);
 
@@ -232,6 +193,11 @@ Item _sampleItem(int id, {String category = 'Аперитив'}) => Item.fromJso
       'item_type': 'Аперитив',
       'country_name': 'Италия',
       'volume_liters': .5,
+      // Synthetic structured attributes exercise wrapping, not live SKU facts.
+      'packaging_type': 'Бутылка',
+      'material': 'Стекло',
+      'alcohol_percent': 11,
+      'weight_kilograms': .75,
       'category': {'category_id': 10, 'name': category},
     });
 
@@ -239,7 +205,6 @@ final List<ProductView> _products = [
   for (var id = 100; id < 109; id++)
     ProductView.fromItem(_sampleItem(id, category: 'Белое')),
 ];
-
 
 void _seedCart(CartProvider cart) {
   for (final (id, quantity) in [(100, 1.0), (101, 6.0), (102, 1.0)]) {
@@ -492,7 +457,7 @@ class SurfaceFixtureClient extends MockClient {
         url.path == '/api/users/liked-items' &&
         const {'1', '2'}.contains(url.queryParameters['business_id']) &&
         url.queryParameters['page'] == '1' &&
-        url.queryParameters['limit'] == '20' &&
+        const {'20', '500'}.contains(url.queryParameters['limit']) &&
         url.queryParameters.length == 3) {
       return _json({
         'success': true,
@@ -892,15 +857,7 @@ class SurfaceFixtureClient extends MockClient {
         'data': {
           'items': [
             if (const {'10', '11', '12'}.contains(url.pathSegments[2]))
-              for (var id = 100; id < 109; id++)
-                {
-                  'item_id': id,
-                  'name': _sampleName,
-                  'price': 13170,
-                  'amount': 20,
-                  'measure': 'шт.',
-                  'category': {'category_id': 10, 'name': 'Аперитив'},
-                },
+              for (var id = 100; id < 109; id++) _sampleItem(id).toJson(),
           ],
         },
       });
@@ -1033,10 +990,13 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       widget.surface == 'profile_guest' ? null : _fixtureAccount;
   final _tiles = FixtureTileProvider();
   bool _quoteFailureConfigured = false;
+  late final VoidCallback _restorePushProvider;
 
   @override
   void initState() {
     super.initState();
+    _restorePushProvider =
+        NotificationService.installProvider(InMemoryPushProvider());
     SurfaceFixtureClient.configureCards(widget.surface == 'payment_kaspi'
         ? CardFixtureScenario.empty
         : widget.cardScenario);
@@ -1143,6 +1103,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
   @override
   void dispose() {
     SurfaceFixtureClient.useCartForOrders(null);
+    _restorePushProvider();
     _cart.dispose();
     _business.dispose();
     _theme.dispose();
@@ -1205,7 +1166,10 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
                 viewInsets: widget.viewInsets,
                 textScaler: widget.textScaler,
               ),
-              child: child!,
+              child: CartPersistenceNotice(
+                navigatorKey: _navigatorKey,
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
             home: FutureBuilder<void>(
               future: _businessReady,
@@ -1349,9 +1313,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         return HomePage(
           data: _homeData,
           cartItemCount: _cart.displayItemCount,
-          cartTotal: _cart.displayItemCount == 0
-              ? null
-              : _cart.getTotalPrice(),
+          cartTotal: _cart.displayItemCount == 0 ? null : _cart.getTotalPrice(),
           onProfile: () => _select('profile_guest'),
           onCallCenter: () => _openFixtureSupport(context),
           onLiked: () => _select('favorites'),
@@ -1417,7 +1379,11 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         return _withFixtureBack(ProfilePage(
           account: _profileAccount,
           loadAccount: _loadFixtureAccount,
-          onLogout: () async => _select('home'),
+          onLogout: () async {
+            await AuthService.clearToken();
+            _profileAccount = null;
+            _select('home');
+          },
           onNavigate: (destination) =>
               _openProfileDestination(context, destination),
         ));
@@ -1426,6 +1392,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           loadAccount: _loadFixtureAccount,
           onSignIn: () async => _select('sign_in'),
           onLogout: () async {
+            await AuthService.clearToken();
             _profileAccount = null;
             _select('home');
           },

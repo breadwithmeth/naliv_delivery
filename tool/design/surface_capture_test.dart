@@ -6,14 +6,14 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:naliv_delivery/ui/liquid_glass_dock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test/support/design_surfaces.dart';
 
-const _surfaceArg = String.fromEnvironment('SURFACE', defaultValue: 'all');
-const _themeArg = String.fromEnvironment('SURFACE_THEME', defaultValue: 'dark');
+import '../verify_surface.dart' show SurfaceRunOptions, surfaceCapturePath;
 
-Future<void> _loadDesignFont() async {
+Future<void> _loadCaptureAssets() async {
   final bytes =
       File('assets/fonts/TikTokSans/TikTokSans-Variable.ttf').readAsBytesSync();
   final loader = FontLoader('TikTokSans');
@@ -22,32 +22,31 @@ Future<void> _loadDesignFont() async {
   final icons = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   await icons.load();
+  // Use the same cached material future as mounted docks, outside the fake clock.
+  await LiquidGlassDock.warmUp();
 }
 
 void main() {
-  if (_surfaceArg != 'all' && !surfaceIds.contains(_surfaceArg)) {
-    throw ArgumentError.value(
-        _surfaceArg, 'SURFACE', 'Expected all or ${surfaceIds.join(', ')}');
-  }
-  if (!{'dark', 'light', 'both'}.contains(_themeArg)) {
-    throw ArgumentError.value(
-        _themeArg, 'SURFACE_THEME', 'Expected dark, light, or both');
-  }
+  final options = SurfaceRunOptions.fromEnvironment();
+  final size = Size(options.width, SurfaceRunOptions.height);
 
-  setUpAll(_loadDesignFont);
+  setUpAll(_loadCaptureAssets);
 
-  for (final surface in _surfaceArg == 'all' ? surfaceIds : [_surfaceArg]) {
-    for (final theme in _themeArg == 'both' ? ['dark', 'light'] : [_themeArg]) {
-      testWidgets('captures fixture $surface ($theme) at 750×1624',
+  for (final surface in options.surfaces) {
+    for (final theme in options.themes) {
+      testWidgets(
+          'captures fixture $surface ($theme) at ${options.pixelWidth}×${options.pixelHeight}',
           (tester) async {
         // Only synthetic credentials, account, cart and consent are read by this fixture.
         // Capture lives under tool/ so it is not auto-discovered by flutter test.
         // ignore: invalid_use_of_visible_for_testing_member
         SharedPreferences.setMockInitialValues(surfaceFixturePreferences);
         SurfaceFixtureClient.resetUnexpectedRequests();
-        await tester.binding.setSurfaceSize(designSurfaceSize);
-        tester.view.devicePixelRatio = 2;
-        tester.view.physicalSize = const Size(750, 1624);
+        await tester.binding.setSurfaceSize(size);
+        tester.view.devicePixelRatio = SurfaceRunOptions.devicePixelRatio;
+        tester.view.physicalSize = Size(
+            size.width * SurfaceRunOptions.devicePixelRatio,
+            size.height * SurfaceRunOptions.devicePixelRatio);
         addTearDown(() async {
           await tester.binding.setSurfaceSize(null);
           tester.view.reset();
@@ -60,6 +59,9 @@ void main() {
             child: DesignSurfaceApp(
               surface: surface,
               brightness: theme == 'dark' ? Brightness.dark : Brightness.light,
+              size: size,
+              textScaler: TextScaler.linear(options.textScale),
+              viewInsets: EdgeInsets.only(bottom: options.keyboard),
             ),
           ));
           // Avoid pumpAndSettle: home SVG/banner animation never settles. Allow the
@@ -79,8 +81,11 @@ void main() {
         final boundary = boundaryKey.currentContext!.findRenderObject()!
             as RenderRepaintBoundary;
         final bytes = await tester.runAsync(() async {
-          final image = await boundary.toImage(pixelRatio: 2);
+          final image = await boundary.toImage(
+              pixelRatio: SurfaceRunOptions.devicePixelRatio);
           try {
+            expect(image.width, options.pixelWidth);
+            expect(image.height, options.pixelHeight);
             final data = await image.toByteData(format: ui.ImageByteFormat.png);
             return data!.buffer.asUint8List();
           } finally {
@@ -88,7 +93,7 @@ void main() {
           }
         });
         final output =
-            File('.figma_cache/render/current_${surface}_$theme.png');
+            File(surfaceCapturePath(surface, theme, options: options));
         output.parent.createSync(recursive: true);
         output.writeAsBytesSync(bytes!);
         debugPrint('Fixture capture: ${output.path}');

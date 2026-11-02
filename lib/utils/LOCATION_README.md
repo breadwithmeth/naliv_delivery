@@ -18,8 +18,6 @@
 ```yaml
 dependencies:
   geolocator: ^12.0.0
-  permission_handler: ^11.3.0
-  location: ^5.0.3
 ```
 
 ## Разрешения
@@ -33,8 +31,6 @@ dependencies:
 ### iOS (`ios/Runner/Info.plist`)
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>Приложение использует данные GPS для определения ближайших магазинов</string>
-<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 <string>Приложение использует данные GPS для определения ближайших магазинов</string>
 ```
 

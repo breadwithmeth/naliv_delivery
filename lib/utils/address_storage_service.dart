@@ -9,11 +9,25 @@ class AddressBookSnapshot {
     required this.localAddresses,
     required this.hiddenIds,
     required this.selectedAddress,
+    this.unreadableEntries = 0,
   });
 
   final List<Map<String, dynamic>> localAddresses;
   final Set<String> hiddenIds;
   final Map<String, dynamic>? selectedAddress;
+  final int unreadableEntries;
+}
+
+class _StoredAddresses {
+  const _StoredAddresses(this.addresses, this.unreadable);
+
+  final List<Map<String, dynamic>> addresses;
+  final List<String> unreadable;
+
+  List<String> encode() => [
+        ...addresses.map(jsonEncode),
+        ...unreadable,
+      ];
 }
 
 class AddressStorageService {
@@ -70,21 +84,37 @@ class AddressStorageService {
     return _book(prefs);
   }
 
-  static AddressBookSnapshot _book(SharedPreferences prefs) =>
-      AddressBookSnapshot(
-        localAddresses: _decodeList(prefs.getStringList(_localKey) ?? []),
-        hiddenIds: (prefs.getStringList(_hiddenKey) ?? []).toSet(),
-        selectedAddress: _decodeSelected(prefs),
-      );
+  static AddressBookSnapshot _book(SharedPreferences prefs) {
+    final local = _decodeList(prefs.getStringList(_localKey) ?? []);
+    final history = _decodeList(prefs.getStringList(_addressHistoryKey) ?? []);
+    return AddressBookSnapshot(
+      localAddresses: local.addresses,
+      hiddenIds: (prefs.getStringList(_hiddenKey) ?? []).toSet(),
+      selectedAddress: _decodeSelected(prefs),
+      unreadableEntries: local.unreadable.length + history.unreadable.length,
+    );
+  }
 
-  static List<Map<String, dynamic>> _decodeList(List<String> values) =>
-      values.map((raw) {
+  static _StoredAddresses _decodeList(List<String> values) {
+    final addresses = <Map<String, dynamic>>[];
+    final unreadable = <String>[];
+    for (final raw in values) {
+      try {
         final value = jsonDecode(raw);
-        if (value is! Map) {
-          throw const FormatException('Некорректный сохранённый адрес');
+        final normalized = value is Map
+            ? deliveryAddress(Map<String, dynamic>.from(value))
+            : null;
+        if (normalized == null) {
+          unreadable.add(raw);
+        } else {
+          addresses.add(normalized);
         }
-        return Map<String, dynamic>.from(value);
-      }).toList();
+      } catch (_) {
+        unreadable.add(raw);
+      }
+    }
+    return _StoredAddresses(addresses, unreadable);
+  }
 
   static String identity(Map<String, dynamic> address) {
     final id = address['id'] ?? address['address_id'] ?? address['uuid'];
@@ -163,12 +193,12 @@ class AddressStorageService {
         final selected = deliveryAddress(address);
         if (selected == null) return false;
         final prefs = await SharedPreferences.getInstance();
-        final book = _book(prefs);
-        if (book.hiddenIds.contains(identity(address))) return false;
+        final hidden = prefs.getStringList(_hiddenKey) ?? [];
+        if (hidden.contains(identity(address))) return false;
         final history = _historyWith(prefs, selected);
         final success = await _commit(prefs, {
           _selectedAddressKey: jsonEncode(selected),
-          _addressHistoryKey: history.map(jsonEncode).toList(),
+          _addressHistoryKey: history.encode(),
         });
         if (success) _selectedAddressController.add(selected);
         return success;
@@ -180,9 +210,9 @@ class AddressStorageService {
         final normalized = deliveryAddress(address);
         if (normalized == null) return false;
         final prefs = await SharedPreferences.getInstance();
-        final book = _book(prefs);
-        final local = List<Map<String, dynamic>>.of(book.localAddresses);
-        final hidden = Set<String>.of(book.hiddenIds);
+        final storedLocal = _decodeList(prefs.getStringList(_localKey) ?? []);
+        final local = storedLocal.addresses;
+        final hidden = (prefs.getStringList(_hiddenKey) ?? []).toSet();
         final priorLocal = replacing == null
             ? -1
             : local.indexWhere((item) => identity(item) == identity(replacing));
@@ -203,16 +233,14 @@ class AddressStorageService {
           if (replacing != null) hidden.add(identity(replacing));
         }
         final changes = <String, Object?>{
-          _localKey: local.map(jsonEncode).toList(),
+          _localKey: storedLocal.encode(),
           _hiddenKey: hidden.toList(),
         };
-        final updateSelected = sameAddress(book.selectedAddress, replacing);
+        final updateSelected = sameAddress(_decodeSelected(prefs), replacing);
         if (updateSelected) {
           changes[_selectedAddressKey] = jsonEncode(saved);
           changes[_addressHistoryKey] =
-              _historyWith(prefs, saved, removing: replacing)
-                  .map(jsonEncode)
-                  .toList();
+              _historyWith(prefs, saved, removing: replacing).encode();
         }
         final success = await _commit(prefs, changes);
         if (success && updateSelected) _selectedAddressController.add(saved);
@@ -222,22 +250,21 @@ class AddressStorageService {
   static Future<bool> removeBookAddress(Map<String, dynamic> address) =>
       _serialize(() async {
         final prefs = await SharedPreferences.getInstance();
-        final book = _book(prefs);
         final id = identity(address);
-        final local =
-            book.localAddresses.where((item) => identity(item) != id).toList();
-        final isLocal = local.length != book.localAddresses.length;
-        final hidden = Set<String>.of(book.hiddenIds);
+        final local = _decodeList(prefs.getStringList(_localKey) ?? []);
+        final priorLength = local.addresses.length;
+        local.addresses.removeWhere((item) => identity(item) == id);
+        final isLocal = local.addresses.length != priorLength;
+        final hidden = (prefs.getStringList(_hiddenKey) ?? []).toSet();
         if (!isLocal) hidden.add(id);
-        final clearSelected = sameAddress(book.selectedAddress, address);
+        final clearSelected = sameAddress(_decodeSelected(prefs), address);
         final history =
-            _decodeList(prefs.getStringList(_addressHistoryKey) ?? [])
-                .where((item) => !sameAddress(item, address))
-                .toList();
+            _decodeList(prefs.getStringList(_addressHistoryKey) ?? []);
+        history.addresses.removeWhere((item) => sameAddress(item, address));
         final success = await _commit(prefs, {
-          _localKey: local.map(jsonEncode).toList(),
+          _localKey: local.encode(),
           _hiddenKey: hidden.toList(),
-          _addressHistoryKey: history.map(jsonEncode).toList(),
+          _addressHistoryKey: history.encode(),
           if (clearSelected) _selectedAddressKey: null,
         });
         if (success && clearSelected) _selectedAddressController.add(null);
@@ -255,33 +282,30 @@ class AddressStorageService {
     final pending = _pendingWrite;
     if (pending != null) await pending;
     final prefs = await SharedPreferences.getInstance();
-    try {
-      return _decodeList(prefs.getStringList(_addressHistoryKey) ?? []);
-    } catch (error) {
-      debugPrint('Не удалось прочитать историю адресов: $error');
-      return [];
-    }
+    return _decodeList(prefs.getStringList(_addressHistoryKey) ?? []).addresses;
   }
 
-  static List<Map<String, dynamic>> _historyWith(
+  static _StoredAddresses _historyWith(
       SharedPreferences prefs, Map<String, dynamic> address,
       {Map<String, dynamic>? removing}) {
     final history = _decodeList(prefs.getStringList(_addressHistoryKey) ?? []);
-    history.removeWhere(
+    history.addresses.removeWhere(
         (item) => sameAddress(item, address) || sameAddress(item, removing));
-    history.insert(0, {
+    history.addresses.insert(0, {
       ...address,
       'name': address['address'] ?? address['name'],
     });
-    return history.take(10).toList();
+    if (history.addresses.length > 10) {
+      history.addresses.removeRange(10, history.addresses.length);
+    }
+    return history;
   }
 
   static Future<bool> addToAddressHistory(Map<String, dynamic> address) =>
       _serialize(() async {
         final prefs = await SharedPreferences.getInstance();
         return _commit(prefs, {
-          _addressHistoryKey:
-              _historyWith(prefs, address).map(jsonEncode).toList(),
+          _addressHistoryKey: _historyWith(prefs, address).encode(),
         });
       });
 

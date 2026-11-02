@@ -1,18 +1,8 @@
-.git
-.dart_tool
-.firebase
-.idea
-.vscode
-.VSCodeCounter
-build/*
+# Only the static release and nginx configuration belong in the build context.
+**
+!Dockerfile
+!.dockerignore
+!nginx.conf
+!build/
 !build/web/
 !build/web/**
-android/build
-ios/build
-linux/flutter/ephemeral
-macos/Flutter/ephemeral
-windows/flutter/ephemeral
-
-.flutter-plugins
-.flutter-plugins-dependencies
-pubspec_overrides.yaml

@@ -6,8 +6,8 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../pages/card_flow.dart';
 import '../../../pages/card_widgets.dart';
+import '../../../pages/help_chat_page.dart';
 import '../../../ui/surfaces.dart';
-import '../../../utils/api.dart';
 import '../../../utils/web_window.dart';
 import '../certificate_purchase_session.dart';
 
@@ -81,7 +81,7 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
     _message = TextEditingController(text: _session.message);
     _session.addListener(_changed);
     _cards = CardFlow(
-      readCards: () => ApiService.getUserCards(source: 'halyk'),
+      readCards: CardFlow.readAuthenticatedCards,
       openForm: (uri, window) => openHostedCardForm(context, uri, window,
           openCardForm: widget.openCardForm),
       requiresWindow: kIsWeb && widget.openCardForm == null,
@@ -145,8 +145,8 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
       !_cards.preparing &&
       !_cards.awaiting &&
       _cards.error == null &&
-      _cards.cards.any((card) =>
-          card.canCharge && card.chargeId == _session.selectedCardId);
+      _cards.cards.any(
+          (card) => card.canCharge && card.chargeId == _session.selectedCardId);
 
   void _close() {
     if (_session.busy) return;
@@ -162,6 +162,21 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    if (_session.invalidated) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Аккаунт изменился. Данные предыдущей покупки скрыты.'),
+            TextButton(
+              key: const ValueKey('certificate-purchase-close'),
+              onPressed: _session.busy ? null : _close,
+              child: const Text('Вернуться к сертификатам'),
+            ),
+          ]),
+        ),
+      );
+    }
     final editable = _session.canPurchase;
     final selectedAmount = CertificatePurchaseSession.parseAmount(_amount.text);
     return PopScope(
@@ -349,7 +364,8 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
-        if (!_cards.loading && _cards.error == null &&
+        if (!_cards.loading &&
+            _cards.error == null &&
             _cards.partialWarning == null &&
             _cards.cards.isEmpty)
           Text(
@@ -367,13 +383,16 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
               child: SavedCardRow(
                 key: ValueKey('certificate-card-${card.rowKey}'),
                 card: card,
-                selected: card.canCharge &&
-                    card.chargeId == _session.selectedCardId,
-                onSelected: card.canCharge && editable &&
-                        _cards.error == null && !_cards.loading &&
-                        !_cards.preparing && !_cards.awaiting
-                    ? () => setState(
-                        () => _session.selectedCardId = card.chargeId)
+                selected:
+                    card.canCharge && card.chargeId == _session.selectedCardId,
+                onSelected: card.canCharge &&
+                        editable &&
+                        _cards.error == null &&
+                        !_cards.loading &&
+                        !_cards.preparing &&
+                        !_cards.awaiting
+                    ? () =>
+                        setState(() => _session.selectedCardId = card.chargeId)
                     : null,
               ),
             ),
@@ -447,6 +466,17 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
               onPressed: _close,
               child: const Text('Вернуться к сертификатам'),
             ),
+          TextButton(
+            key: const ValueKey('certificate-purchase-support'),
+            onPressed: _session.busy
+                ? null
+                : () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const HelpChatPage(
+                              entryPoint: 'certificate_purchase_unknown')),
+                    ),
+            child: const Text('Поддержка'),
+          ),
         ],
       ),
     );

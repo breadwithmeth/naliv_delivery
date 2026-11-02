@@ -7,7 +7,6 @@ import '../design/typography.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
-import '../utils/api.dart';
 import '../utils/web_window.dart';
 import 'card_flow.dart';
 import 'card_widgets.dart';
@@ -29,7 +28,7 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
   void initState() {
     super.initState();
     _flow = CardFlow(
-      readCards: () => ApiService.getUserCards(source: 'halyk'),
+      readCards: CardFlow.readAuthenticatedCards,
       openForm: (uri, window) => openHostedCardForm(context, uri, window,
           openCardForm: widget.openCardForm),
       requiresWindow: kIsWeb && widget.openCardForm == null,
@@ -73,9 +72,12 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 576),
-            child: AppGlassPanel(
+            child: AppSurface(
               radius: AppRadii.pill,
-              tint: _flow.canAdd ? palette.accentSoft : palette.surfaceMuted,
+              fill: _flow.canAdd
+                  ? Color.alphaBlend(palette.accentSoft, palette.surface)
+                  : palette.surfaceMuted,
+              clip: true,
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -84,6 +86,8 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     disabledBackgroundColor: Colors.transparent,
+                    foregroundColor: palette.textPrimary,
+                    disabledForegroundColor: palette.textSecondary,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                     minimumSize: const Size(44, 52),
@@ -94,10 +98,13 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       if (_flow.preparing)
-                        const SizedBox(
+                        SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: palette.textPrimary,
+                          ),
                         )
                       else
                         const Icon(Icons.add, size: 24),
@@ -146,31 +153,26 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                       child: CustomScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
-                          const SliverToBoxAdapter(
-                              child: SizedBox(height: 24)),
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
                           if (_flow.message != null)
                             SliverPadding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                               sliver: SliverToBoxAdapter(
                                   child: CardFlowFeedback(flow: _flow)),
                             ),
                           if (!empty)
                             const SliverPadding(
                               padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              sliver:
-                                  SliverToBoxAdapter(child: CardFaqPanel()),
+                              sliver: SliverToBoxAdapter(child: CardFaqPanel()),
                             ),
                           if (_flow.loading)
                             const SliverToBoxAdapter(
-                              child:
-                                  SizedBox(height: 120, child: AppLoading()),
+                              child: SizedBox(height: 120, child: AppLoading()),
                             ),
                           if (_flow.error != null ||
                               _flow.partialWarning != null)
                             SliverPadding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                               sliver: SliverToBoxAdapter(
                                   child: CardReadFeedback(flow: _flow)),
                             ),
@@ -186,8 +188,8 @@ class _ProfileCardsPageState extends State<ProfileCardsPage>
                                     padding: const EdgeInsets.only(bottom: 12),
                                     child: SavedCardRow(
                                       card: card,
-                                      key: ValueKey(
-                                          'saved-card-${card.rowKey}'),
+                                      key:
+                                          ValueKey('saved-card-${card.rowKey}'),
                                     ),
                                   );
                                 },

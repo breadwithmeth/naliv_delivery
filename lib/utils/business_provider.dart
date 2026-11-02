@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collection/collection.dart';
 
 /// Provider для управления выбранным магазином
 class BusinessProvider with ChangeNotifier {
@@ -19,10 +20,8 @@ class BusinessProvider with ChangeNotifier {
   /// Получить ID текущего магазина
   int? get selectedBusinessId => idOf(_selectedBusiness);
 
-  static int? idOf(Map<String, dynamic>? business) =>
-      normalizeId(business?['id'] ??
-          business?['business_id'] ??
-          business?['businessId']);
+  static int? idOf(Map<String, dynamic>? business) => normalizeId(
+      business?['id'] ?? business?['business_id'] ?? business?['businessId']);
 
   static int? normalizeId(Object? value) {
     if (value is num && !value.isFinite) return null;
@@ -38,11 +37,11 @@ class BusinessProvider with ChangeNotifier {
     if (business != null && id == null) return Future.value(false);
     final next = business == null
         ? null
-        : <String, dynamic>{...business, 'id': id};
+        : (<String, dynamic>{...business, 'id': id}
+          ..remove('business_id')
+          ..remove('businessId'));
     return _enqueue(() async {
-      if (next == null
-          ? _selectedBusiness == null
-          : id == selectedBusinessId) {
+      if (const DeepCollectionEquality().equals(next, _selectedBusiness)) {
         return true;
       }
       try {

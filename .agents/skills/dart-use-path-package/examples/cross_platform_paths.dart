@@ -12,7 +12,9 @@ bool isCanvasKitWasmAsset(File file) {
   return segments.contains('canvaskit') && p.extension(file.path) == '.wasm';
 }
 
-/// Converts an OS-native file path into a POSIX-style web asset key.
+/// Converts a trusted, in-root OS-native path into a POSIX-style asset key.
+///
+/// This lexical helper does not validate containment or resolve symlinks.
 String computeWebAssetKey(String filePath, String projectRoot) {
   final relative = p.relative(filePath, from: projectRoot);
   final segments = p.split(relative);
@@ -26,7 +28,7 @@ String computeWebAssetKey(String filePath, String projectRoot) {
 /// extensions (e.g. '.js.map') versus multi-dot stems (e.g. 'main.dart.wasm').
 String insertContentHash(String filename, String hash) {
   final compoundExt = p.extension(filename, 2);
-  final ext = compoundExt.endsWith('.map')
+  final ext = const {'.js.map', '.css.map', '.tar.gz'}.contains(compoundExt)
       ? compoundExt
       : p.extension(filename);
   final stem = filename.substring(0, filename.length - ext.length);
@@ -35,11 +37,12 @@ String insertContentHash(String filename, String hash) {
 
 /// Converts an OS-native relative path to a POSIX path suitable for
 /// `.gitignore`, `.gitattributes`, or Git tree objects.
+/// The input must use the host style; foreign paths need an explicit context.
 String toGitPath(String relativeNativePath) =>
     p.posix.joinAll(p.split(relativeNativePath));
 
 void main() {
-  print('Git path: ${toGitPath(r'lib\src\file.dart')}');
+  print('Git path: ${toGitPath(p.join('lib', 'src', 'file.dart'))}');
   print('Asset key: ${computeWebAssetKey('assets/icon.png', '.')}');
   print('Content hash: ${insertContentHash('main.dart.js.map', 'a1b2c3')}');
 }

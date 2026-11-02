@@ -4,11 +4,11 @@ import '../../../ui/app_states.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/product_view.dart';
-import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_search_field.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/liquid_glass_dock.dart';
 import '../../../ui/product_row.dart';
 import '../../../core/like_action.dart';
 import '../../../utils/cart_provider.dart';
@@ -39,43 +39,126 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final _controller = TextEditingController();
+  final _scroll = ScrollController();
+  int _generation = 0;
+  String? _query;
+  int _nextPage = 1;
+  bool _hasMore = false;
+  bool _loadingMore = false;
+  bool _moreFailed = false;
   List<ProductView>? _results;
   bool _loading = false;
   bool _failed = false;
 
   @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.businessId != widget.businessId) {
+      _search(_controller.text);
+    }
+  }
+
+  void _onScroll() {
+    if (_scroll.hasClients &&
+        _scroll.position.extentAfter < 240 &&
+        _hasMore &&
+        !_loadingMore &&
+        !_moreFailed) {
+      _loadMore();
+    }
+  }
+
+  void _checkForMore() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onScroll();
+    });
+  }
+
+  void _textChanged(String value) {
+    _generation++;
+    setState(() {
+      _loading = false;
+      _loadingMore = false;
+      _failed = false;
+      _moreFailed = false;
+      _hasMore = false;
+      _query = null;
+      if (value.trim().isEmpty) _results = null;
+    });
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
   Future<void> _search(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      setState(() {
-        _results = null;
-        _failed = false;
-      });
+      _textChanged('');
       return;
     }
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    final generation = ++_generation;
     setState(() {
+      _query = trimmed;
+      _results = null;
+      _nextPage = 1;
+      _hasMore = false;
+      _loadingMore = false;
+      _moreFailed = false;
       _loading = true;
       _failed = false;
     });
+    await _loadPage(generation, trimmed, append: false);
+  }
+
+  Future<void> _loadMore() async {
+    final query = _query;
+    if (query == null || !_hasMore || _loadingMore) return;
+    setState(() {
+      _loadingMore = true;
+      _moreFailed = false;
+    });
+    await _loadPage(_generation, query, append: true);
+  }
+
+  Future<void> _loadPage(int generation, String query,
+      {required bool append}) async {
     try {
-      final results =
-          await CatalogDataSource(businessId: widget.businessId ?? 0)
-              .search(trimmed);
-      if (!mounted) return;
+      final result = await CatalogDataSource(businessId: widget.businessId ?? 0)
+          .search(query, page: _nextPage);
+      if (!mounted || generation != _generation) return;
       setState(() {
-        _results = results;
+        final known = <int>{
+          for (final item in _results ?? <ProductView>[]) item.itemId
+        };
+        _results = [
+          if (append) ...?_results,
+          for (final item in result.items)
+            if (known.add(item.itemId)) item,
+        ];
+        _nextPage = result.page + 1;
+        _hasMore = result.hasNextPage;
         _loading = false;
+        _loadingMore = false;
       });
+      _checkForMore();
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
-        _failed = true;
+        _failed = !append;
+        _moreFailed = append;
         _loading = false;
+        _loadingMore = false;
       });
     }
   }
@@ -99,68 +182,55 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    final cart = context.watch<CartProvider>();
-    final liked = context.watch<LikedItemsProvider>();
-    final count = cart.displayItemCount;
-    final businessId = widget.businessId;
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(
-                    title: 'Поиск',
-                    onBack: () => Navigator.of(context).maybePop(),
-                    showBack: true,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppSearchField(
-                    controller: _controller,
-                    autofocus: true,
-                    onSubmitted: _search,
-                    onChanged: (value) {
-                      // Clearing the field returns to the idle state; typing keeps the last
-                      // results until the next submit, as the frames show.
-                      if (value.trim().isEmpty) _search('');
-                    },
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.huge),
-                Expanded(
-                  child: _list(palette, liked, businessId),
-                ),
-              ],
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice(),
-                  onTap: widget.onCart,
+        child: LiquidGlassDock(
+          content: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                child: AppTopBar(
+                  title: 'Поиск',
+                  onBack: () => Navigator.of(context).maybePop(),
+                  showBack: true,
                 ),
               ),
+              const SizedBox(height: AppSpacing.xl),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                child: AppSearchField(
+                  controller: _controller,
+                  autofocus: true,
+                  onSubmitted: _search,
+                  onChanged: _textChanged,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.huge),
+              Expanded(
+                child: _list(),
+              ),
+            ],
+          ),
+          dock: Selector<CartProvider, (int, double?)>(
+            selector: (_, cart) => (
+              cart.displayItemCount,
+              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
             ),
-          ],
+            builder: (_, summary, __) => AppCartButton(
+              itemCount: summary.$1,
+              total: summary.$2,
+              onTap: widget.onCart,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _list(AppPalette palette, LikedItemsProvider liked, int? businessId) {
+  Widget _list() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_failed) {
       return AppErrorState(
@@ -170,10 +240,11 @@ class _SearchPageState extends State<SearchPage> {
     }
     final results = _results;
     if (results == null) return const SizedBox.shrink();
-    if (results.isEmpty) {
+    if (results.isEmpty && !_hasMore) {
       return const AppEmptyState(title: 'Товары не найдены', muted: true);
     }
     return ListView.separated(
+      controller: _scroll,
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxxl,
         0,
@@ -181,23 +252,41 @@ class _SearchPageState extends State<SearchPage> {
         AppCartButton.clearanceFor(context) +
             MediaQuery.paddingOf(context).bottom,
       ),
-      itemCount: results.length,
+      itemCount: results.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) {
+        if (index == results.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.huge),
+            child: Center(
+              child: _loadingMore
+                  ? const CircularProgressIndicator()
+                  : TextButton(
+                      onPressed: _loadMore,
+                      child: Text(
+                          _moreFailed ? 'Повторить загрузку' : 'Показать ещё'),
+                    ),
+            ),
+          );
+        }
         final item = results[index];
-        final isLiked =
-            businessId != null && liked.isLiked(businessId, item.itemId);
-        return ProductRow.fromView(
-          item,
-          liked: isLiked,
-          onTap: () => _openProduct(item, isLiked),
-          quantity:
-              context.watch<CartProvider>().getCatalogQuantity(item.source),
-          onLike: () => _toggleLike(item),
-          onIncrement: () =>
-              context.read<CartProvider>().incrementCatalogItem(item.source),
-          onDecrement: () =>
-              context.read<CartProvider>().decrementCatalogItem(item.source),
+        return Selector2<CartProvider, LikedItemsProvider, (double, bool)>(
+          selector: (_, cart, likes) => (
+            cart.getCatalogQuantityForKey(item.catalogKey),
+            widget.businessId != null &&
+                likes.isLiked(widget.businessId!, item.itemId),
+          ),
+          builder: (context, state, _) => ProductRow.fromView(
+            item,
+            liked: state.$2,
+            onTap: () => _openProduct(item, state.$2),
+            quantity: state.$1,
+            onLike: () => _toggleLike(item),
+            onIncrement: () =>
+                context.read<CartProvider>().incrementCatalogItem(item.source),
+            onDecrement: () =>
+                context.read<CartProvider>().decrementCatalogItem(item.source),
+          ),
         );
       },
     );

@@ -89,13 +89,14 @@ class PromotionAward {
 PromotionAward? selectSubtractPromotion(
   List<Map<String, dynamic>> promotions, {
   double paidQuantity = 0,
+  DateTime? now,
 }) {
   Map<String, dynamic>? winner;
   var bestFree = -1.0;
   var bestBase = 0;
   var bestAdd = 0;
   var bestId = 0;
-  final now = DateTime.now();
+  now ??= DateTime.now();
   for (final promotion in promotions) {
     if (promotionType(promotion) != 'SUBTRACT' ||
         !isPromotionActive(promotion, now: now)) {
@@ -188,19 +189,22 @@ class PromotionEvaluation {
 PromotionEvaluation evaluatePromotion({
   required double paidQuantity,
   required List<Map<String, dynamic>> promotions,
+  DateTime? now,
 }) =>
     PromotionEvaluation(
-      award: selectSubtractPromotion(promotions, paidQuantity: paidQuantity),
+      award: selectSubtractPromotion(promotions,
+          paidQuantity: paidQuantity, now: now),
       paidQuantity: paidQuantity,
     );
 
 /// Free units for [quantity] paid units. Zero without a usable `SUBTRACT` promotion.
 double subtractPromotionFreeQuantity(
   double quantity,
-  List<Map<String, dynamic>> promotions,
-) {
+  List<Map<String, dynamic>> promotions, {
+  DateTime? now,
+}) {
   var freeQuantity = 0.0;
-  final now = DateTime.now();
+  now ??= DateTime.now();
   for (final promotion in promotions) {
     if (promotionType(promotion) != 'SUBTRACT' ||
         !isPromotionActive(promotion, now: now)) {
@@ -278,15 +282,17 @@ double applyPromotionsToPaidBaseTotal({
   required double unitPrice,
   required double quantity,
   required List<Map<String, dynamic>> promotions,
+  DateTime? now,
 }) {
   final payableQuantity = quantity;
+  now ??= DateTime.now();
   var result = unitPrice * payableQuantity;
 
   for (final promotion in promotions) {
     if (promotionType(promotion) != 'FIXED') {
       continue;
     }
-    if (!isPromotionActive(promotion)) {
+    if (!isPromotionActive(promotion, now: now)) {
       continue;
     }
     final discount = ((promotion['discount'] as num?) ??
@@ -303,7 +309,7 @@ double applyPromotionsToPaidBaseTotal({
   for (final promotion in promotions) {
     final type = promotionType(promotion);
     if (type == 'DISCOUNT' || type == 'PERCENT') {
-      if (!isPromotionActive(promotion)) {
+      if (!isPromotionActive(promotion, now: now)) {
         continue;
       }
       final discount = ((promotion['discount'] as num?) ??

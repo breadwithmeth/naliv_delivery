@@ -1,6 +1,64 @@
 # Fidelity report — redesigned screens vs the Figma file
 
-## Current measurements — 2026-10-09
+## Current usability and material cutover — 2026-10-09
+
+The catalogue is intentionally no longer the old three-column/featured-rail composition.
+It uses uniform sections, one complete category picker and natural card heights: two
+columns at 375 px, one at 320 px or large text, at most four on wide windows. Complete
+canonical metadata and combined offers take precedence over matching a sparse reference.
+Confirmation is fulfilment → order review → optional benefits → labelled breakdown;
+its measured action height is outside the scroll viewport. With the keyboard open,
+cost/readiness remains in the review and the persistent footer contains the creation action.
+
+The settled passes generated **128 captures**: 82 canonical, 30 narrow/2×, 8 keyboard
+and 8 wide, with **50** canonical diagnostic comparisons — regenerated after the
+2026-10-11 material quality pass. Metrics below are maximum-RGB-channel differences,
+excluding 48/34 logical-pixel insets. The old Figma frames are references, not
+acceptance targets for this layout or an Apple material match.
+
+| Changed surface | Dark mean Δ /255 | Light mean Δ /255 |
+|---|---:|---:|
+| Home | 72.79 | 81.51 |
+| Catalogue overview | 103.14 | 86.02 |
+| Category products | 120.69 | 53.55 |
+| Cart | 74.48 | 43.44 |
+| Delivery confirmation | 40.05 | 37.71 |
+| Pickup confirmation | 49.02 | 47.29 |
+
+Home's dark/light jump from the earlier 22.78/24.87 is expected, not a regression:
+the artwork-less promo card now hugs its copy, shifting everything below it against a
+reference frame that reserved the empty artwork band. Cart's red-tinted footer area is
+the genuine blurred `Подарок` gift banner behind the glass. Both are intentional
+composition changes measured against old sparse frames.
+
+The Windows optical probe used black/white textured scenery in both themes: shell
+refraction is visible, the scene outside the dock is unchanged, moved scenery changes
+the material image and foreground cart taps work. Evidence is under
+`.figma_cache/harness/optical/`; the disposable probe source was removed.
+This proves the Flutter shader path, **not** UIKit composition. The selected Apple path
+uses [`UIGlassEffect`](https://developer.apple.com/documentation/uikit/uiglasseffect)
+on iOS 26+, with the Apple execution boundary and required checks in `PLAN.md`.
+
+Synthetic artwork/metadata, reference differences and screenshots alone do not prove
+authenticated production behavior. Retained catalogue/confirmation boundary regressions
+and active-route fixture interaction evidence are recorded in `STATUS.md`.
+
+Current native-input checkout proof at light 375 px and dark 320 px/2×/keyboard-300
+retained entrance 12 and the applied 3,951 ₸ bonus after disclosures closed. Both showed
+the exact 128,579 ₸ payable amount. The final help/action bounds prove scroll/keyboard
+clearance; managed viewport, live canvas and PNG dimensions were all checked, not only
+the PNG header. Evidence: `.figma_cache/harness/review/current-runtime-evidence.json`
+and neighbouring `final-light-*` / `final-adaptive-*` PNGs.
+
+The current guarded tracked build booted directly into city onboarding. Its actual
+read-retry control was exercised; blocked production preflights left the cached-city
+warning and disabled continuation visible. No authenticated/API-success claim follows.
+Only intentional SDK/API network blocks were observed on completed browser runs;
+no unexpected Flutter/shader/page exceptions. Command and coverage evidence is in
+`STATUS.md`, separate from visual differences.
+
+
+## Prior composition measurements — superseded by the current usability request
 
 The F1–F11 client corrections and whole-screen design cutover are implemented and reviewed in
 strict fixtures. **This is not pixel-parity, authenticated-production, bank or push acceptance.**
@@ -16,7 +74,7 @@ The measurements below come from the settled-source `dart run tool/verify_surfac
 - The owned disposable adaptive probe passed **434** render/strict-request cases across 41 surfaces, 320/375/800 logical widths, 1.6×/2× inherited text and both themes; relevant forms also used a 300 px keyboard inset. These are overflow/transport checks, not proof that every control was operated at every size.
 - A retained bottling regression verifies that the live summary and first quantity control remain above the purchase action at the 375 × 812 / 48–34 inset reference. Actual browser journeys establish navigation and state transitions separately.
 
-### Current diagnostic results
+### Prior diagnostic results
 
 | Surface | Dark mean Δ /255 | Dark pixels >32 | Light mean Δ /255 | Light pixels >32 |
 |---|---:|---:|---:|---:|
@@ -62,7 +120,7 @@ Catalogue/cart/map residuals remain large. These figures are not a pixel match a
 
 Capture-only IDs (both themes): `promotion`, `onboarding`, `payment_method`, `payment_kaspi`, `checkout_error`, `product_options`, `product_pour`, `product_pour_real`, `product_pour_gift`, `product_pour_three_plus_one`, `product_pour_fractional`, `product_replacement`, `notifications`, `profile_setup`, `startup`, `active_route`. Notification preferences are not the Figma inbox. Gift packing/tariff follows the explicit user policy and is exercised through synthetic create/repeat, not a production transaction. The official Kaspi component is sourced/reviewed independently; there is no exact app-screen Figma baseline for the mixed payment screen.
 
-Final tracked release smoke at 375 × 812 / DPR 2 operated intro → city onboarding with production mutation guards. The final city's preflight was blocked; retry and disabled continuation were observed, not a successful final public cities GET. An earlier read-only cities observation is historical. Synthetic journeys establish client transitions separately, not authenticated production, real bank/OS lifecycle or bank certification. Official presentation review is source-linked, not inferred from a pixel score.
+The prior tracked release smoke at 375 × 812 / DPR 2 operated intro → city onboarding with production mutation guards. The city's preflight was blocked; retry and disabled continuation were observed, not a successful public cities GET. An earlier read-only cities observation is historical. Synthetic journeys establish client transitions separately, not authenticated production, real bank/OS lifecycle or bank certification. Official presentation review is source-linked, not inferred from a pixel score.
 
 ### Kaspi rule trace
 

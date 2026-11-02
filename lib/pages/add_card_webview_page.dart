@@ -98,7 +98,7 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
       _error = null;
     });
     try {
-      await _controller!.loadRequest(_uri!);
+      await _controller!.loadRequest(_uri);
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -114,7 +114,7 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
     setState(() => _launching = true);
     try {
       final opened = await launchUrl(
-        _uri!,
+        _uri,
         mode: kIsWeb
             ? LaunchMode.platformDefault
             : LaunchMode.externalApplication,
@@ -166,7 +166,7 @@ class _AddCardWebViewPageState extends State<AddCardWebViewPage> {
                               Text('Форма банка', style: AppTypography.title),
                               if (_uri != null) ...[
                                 const SizedBox(height: 8),
-                                Text(_uri!.host,
+                                Text(_uri.host,
                                     style: AppTypography.body.copyWith(
                                         color: palette.textSecondary)),
                               ],

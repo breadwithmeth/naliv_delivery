@@ -1,28 +1,37 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-/// Stores telemetry consent and keeps Sentry scopes aligned with the user's choice.
+/// Stores explicit telemetry consent and controls the reporting SDK lifecycle.
 class TelemetryConsentService {
   static const String _consentKey = 'telemetry_consent_enabled';
   static bool _cachedConsent = false;
   static bool _hasStoredConsent = false;
+  static Future<void> Function()? _startReporting;
+  static Future<void>? _updatingSdk;
 
-  /// Loads consent from storage into cache. Call during app bootstrap.
+  /// Loads consent before reporting is initialized, defaulting to no collection.
   static Future<bool> loadConsent() async {
     final prefs = await SharedPreferences.getInstance();
     _hasStoredConsent = prefs.containsKey(_consentKey);
-    // Default to enabled when no prior choice was stored.
-    _cachedConsent = prefs.getBool(_consentKey) ?? true;
+    _cachedConsent = prefs.getBool(_consentKey) ?? false;
     return _cachedConsent;
   }
 
-  /// Returns the cached consent flag (fast path for beforeSend hooks).
+  /// Installs the bootstrap callback and starts reporting only with consent.
+  static Future<void> initialize({
+    required Future<void> Function() startReporting,
+  }) async {
+    _startReporting = startReporting;
+    await _synchronizeReporting();
+  }
+
+  /// Whether the current choice allows error reporting.
   static bool get cachedConsent => _cachedConsent;
 
   /// Whether a consent value has been stored previously.
   static bool get hasStoredConsent => _hasStoredConsent;
 
-  /// Updates consent and immediately refreshes Sentry scope to reflect the new state.
+  /// Persists the choice and starts or stops reporting before completing.
   static Future<void> setConsent(bool allowed) async {
     final prefs = await SharedPreferences.getInstance();
     if (!await prefs.setBool(_consentKey, allowed)) {
@@ -30,30 +39,32 @@ class TelemetryConsentService {
     }
     _cachedConsent = allowed;
     _hasStoredConsent = true;
-
-    await Sentry.configureScope((scope) async {
-      if (!allowed) {
-        // Clear any user info when consent is revoked.
-        scope.setUser(null);
-      }
-    });
+    await _synchronizeReporting();
   }
 
-  /// Convenience to populate user context when consent is granted.
-  static Future<void> applyUserContext(
-      {String? id, String? username, String? email}) async {
-    if (!_cachedConsent) {
-      return;
+  static Future<void> _synchronizeReporting() async {
+    final pending = _updatingSdk;
+    if (pending != null) {
+      await pending;
+      return _synchronizeReporting();
     }
-    await Sentry.configureScope((scope) {
-      scope.setUser(SentryUser(id: id, username: username, email: email));
-    });
+    final update = _applyReportingState();
+    _updatingSdk = update;
+    try {
+      await update;
+    } finally {
+      _updatingSdk = null;
+    }
   }
 
-  /// Clears user context regardless of consent (e.g., on logout).
-  static Future<void> clearUserContext() async {
-    await Sentry.configureScope((scope) {
-      scope.setUser(null);
-    });
+  static Future<void> _applyReportingState() async {
+    try {
+      if (_cachedConsent && !Sentry.isEnabled) {
+        await _startReporting?.call();
+      }
+    } finally {
+      // A revocation can arrive while native SDK initialization is pending.
+      if (!_cachedConsent) await Sentry.close();
+    }
   }
 }

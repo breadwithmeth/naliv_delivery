@@ -9,6 +9,8 @@ import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/liquid_glass_dock.dart';
+import '../../../services/auth_service.dart';
 import '../../../utils/api.dart';
 import '../../../utils/cart_provider.dart';
 import '../certificate_purchase_session.dart';
@@ -49,17 +51,20 @@ class _CertificatesPageState extends State<CertificatesPage>
   bool _hasMore = false;
   bool _loadingMore = false;
   String? _moreError;
+  int _credentialRevision = AuthService.credentialRevision;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_credentialsChanged);
     _load();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_credentialsChanged);
     _code.dispose();
     _purchase.dispose();
     super.dispose();
@@ -70,6 +75,23 @@ class _CertificatesPageState extends State<CertificatesPage>
     if (state == AppLifecycleState.resumed && !_purchaseOpen && !_claiming) {
       _load();
     }
+  }
+
+  void _credentialsChanged() {
+    final revision = AuthService.credentialRevision;
+    if (_credentialRevision == revision || !mounted) return;
+    _credentialRevision = revision;
+    _requestId++;
+    _code.clear();
+    setState(() {
+      _certificates = null;
+      _claimError = null;
+      _error = null;
+      _moreError = null;
+      _loadingMore = false;
+      _hasMore = false;
+    });
+    _load();
   }
 
   Future<void> _load({bool append = false}) async {
@@ -83,11 +105,18 @@ class _CertificatesPageState extends State<CertificatesPage>
       _loadingMore = append;
       if (!append) _certificates = null;
     });
+    final session = await AuthService.captureSession();
+    if (!mounted || requestId != _requestId) return;
+    if (session == null) {
+      setState(() => _error = 'Войдите в аккаунт, чтобы увидеть сертификаты');
+      return;
+    }
     try {
       final response = await ApiService.getCertificates(
         status: status,
         limit: 50,
         offset: offset,
+        credentialToken: session.token,
       );
       final data = response['data'];
       final list = data is Map ? data['certificates'] : null;
@@ -102,14 +131,14 @@ class _CertificatesPageState extends State<CertificatesPage>
           else
             throw const FormatException('Invalid certificate'),
       ];
-      if (!mounted || requestId != _requestId) return;
+      if (!mounted || !session.isCurrent || requestId != _requestId) return;
       setState(() {
         _certificates =
             append ? [...?_certificates, ...certificates] : certificates;
         _hasMore = certificates.length == 50;
       });
     } catch (error) {
-      if (!mounted || requestId != _requestId) return;
+      if (!mounted || !session.isCurrent || requestId != _requestId) return;
       setState(() {
         final message = error is StateError
             ? error.message.toString()
@@ -121,7 +150,7 @@ class _CertificatesPageState extends State<CertificatesPage>
         }
       });
     } finally {
-      if (mounted && requestId == _requestId) {
+      if (mounted && session.isCurrent && requestId == _requestId) {
         setState(() => _loadingMore = false);
       }
     }
@@ -140,8 +169,15 @@ class _CertificatesPageState extends State<CertificatesPage>
       _claimError = null;
     });
     final messenger = ScaffoldMessenger.of(context);
+    final session = await AuthService.captureSession();
+    if (session == null || !mounted) {
+      if (mounted) setState(() => _claiming = false);
+      return;
+    }
     try {
-      final response = await ApiService.claimCertificate(code);
+      final response = await ApiService.claimCertificate(code,
+          credentialToken: session.token);
+      if (!mounted || !session.isCurrent) return;
       if (response['success'] != true) {
         if (mounted) {
           setState(() => _claimError =
@@ -156,7 +192,7 @@ class _CertificatesPageState extends State<CertificatesPage>
           const SnackBar(content: Text('Сертификат активирован')));
       await _load();
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || !session.isCurrent) return;
       setState(() => _claimError = 'Не удалось активировать сертификат');
     } finally {
       if (mounted) setState(() => _claiming = false);
@@ -172,13 +208,15 @@ class _CertificatesPageState extends State<CertificatesPage>
     if (_purchaseOpen) return;
     _purchaseOpen = true;
     try {
+      await _purchase.restore();
+      if (!mounted) return;
       await showCertificatePurchase(
         context,
         session: _purchase,
         openCardForm: widget.openCardForm,
       );
       if (!mounted) return;
-      if (_purchase.completed) {
+      if (_purchase.completed && await _purchase.acknowledgeCompleted()) {
         _purchase.dispose();
         _purchase = CertificatePurchaseSession();
         setState(() => _status = 'active');
@@ -203,23 +241,22 @@ class _CertificatesPageState extends State<CertificatesPage>
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: Stack(
-              children: [
-                Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xxxl),
-                      child: AppTopBar(
-                        title: 'Сертификаты',
-                        onBack: () => Navigator.of(context).maybePop(),
-                      ),
+            child: LiquidGlassDock(
+              content: Column(
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                    child: AppTopBar(
+                      title: 'Сертификаты',
+                      onBack: () => Navigator.of(context).maybePop(),
                     ),
-                    const SizedBox(height: 24),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () => _load(),
-                        child: ListView(
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => _load(),
+                      child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
@@ -296,23 +333,23 @@ class _CertificatesPageState extends State<CertificatesPage>
                                       builder: (context, value, _) => SizedBox(
                                         width: 85,
                                         child: ConstrainedBox(
-                                          constraints:
-                                              const BoxConstraints(minHeight: 48),
-                                        child: FilledButton(
-                                          onPressed: _claiming ||
-                                                  value.text.trim().isEmpty
-                                              ? null
-                                              : _claim,
-                                          child: _claiming
-                                              ? const SizedBox(
-                                                  width: 18,
-                                                  height: 18,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          strokeWidth: 2),
-                                                )
-                                              : const Text('Ок'),
-                                        ),
+                                          constraints: const BoxConstraints(
+                                              minHeight: 48),
+                                          child: FilledButton(
+                                            onPressed: _claiming ||
+                                                    value.text.trim().isEmpty
+                                                ? null
+                                                : _claim,
+                                            child: _claiming
+                                                ? const SizedBox(
+                                                    width: 18,
+                                                    height: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                            strokeWidth: 2),
+                                                  )
+                                                : const Text('Ок'),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -358,23 +395,17 @@ class _CertificatesPageState extends State<CertificatesPage>
                           ..._body(palette),
                         ],
                       ),
-                      ),
                     ),
-                  ],
-                ),
-                if (widget.onCart != null) Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-                  child: Center(
-                    child: AppCartButton(
+                  ),
+                ],
+              ),
+              dock: widget.onCart == null
+                  ? null
+                  : AppCartButton(
                       itemCount: count,
                       total: count == 0 ? null : cart.getTotalPrice().round(),
                       onTap: widget.onCart,
                     ),
-                  ),
-                ),
-              ],
             ),
           ),
         ),
@@ -583,23 +614,23 @@ class _CertificateRow extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           Flexible(
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (amount != null)
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (amount != null)
+                  Text(
+                    formatTenge(amount),
+                    style: AppTypography.titleMedium
+                        .copyWith(color: palette.textPrimary),
+                  ),
                 Text(
-                  formatTenge(amount),
-                  style: AppTypography.titleMedium
-                      .copyWith(color: palette.textPrimary),
+                  _stateLine(),
+                  style:
+                      AppTypography.label.copyWith(color: _stateColor(palette)),
                 ),
-              Text(
-                _stateLine(),
-                style:
-                    AppTypography.label.copyWith(color: _stateColor(palette)),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
         ],
       ),

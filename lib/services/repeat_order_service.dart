@@ -18,6 +18,8 @@ class RepeatOrderException implements Exception {
   String toString() => message;
 }
 
+enum RepeatAddressStatus { notRequired, restored, unavailable, failed }
+
 class RepeatOrderResult {
   const RepeatOrderResult({
     required this.order,
@@ -25,6 +27,7 @@ class RepeatOrderResult {
     required this.business,
     required this.addedItemsCount,
     required this.skippedItems,
+    required this.addressStatus,
     this.restoredAddress,
   });
 
@@ -34,6 +37,11 @@ class RepeatOrderResult {
   final int addedItemsCount;
   final List<String> skippedItems;
   final Map<String, dynamic>? restoredAddress;
+  final RepeatAddressStatus addressStatus;
+
+  bool get canProceedToCheckout =>
+      deliveryType != 'DELIVERY' ||
+      addressStatus == RepeatAddressStatus.restored;
 
   bool get hasSkippedItems => skippedItems.isNotEmpty;
 }
@@ -53,8 +61,14 @@ class RepeatOrderService {
     required Map<String, dynamic> sourceOrder,
     required CartProvider cartProvider,
     required BusinessProvider businessProvider,
+    bool Function()? isCurrent,
   }) async {
+    bool current() => isCurrent?.call() ?? true;
     await cartProvider.ensureLoaded();
+    if (cartProvider.saveStatus.value == CartSaveStatus.restoreFailed) {
+      throw const RepeatOrderException(
+          'Не удалось прочитать сохранённую корзину. Восстановите её перед повтором заказа.');
+    }
     if (cartProvider.hasActiveItems && cartProvider.businessId == null) {
       throw const RepeatOrderException(
           'Магазин текущей корзины неизвестен. Корзина не изменена.');
@@ -74,15 +88,26 @@ class RepeatOrderService {
       throw const RepeatOrderException(
           'Не удалось восстановить товары из этого заказа.');
     }
+    if (!current()) {
+      throw const RepeatOrderException(
+          'Сессия изменилась. Повтор заказа отменён до изменения корзины.');
+    }
 
     if (!await businessProvider.setSelectedBusiness(business)) {
       throw const RepeatOrderException(
           'Не удалось сохранить магазин. Корзина не изменена.');
     }
+    if (!current()) {
+      throw const RepeatOrderException(
+          'Сессия изменилась. Корзина не заменена; выбранный магазин мог измениться.');
+    }
 
     final businessId = _businessIdOf(business)!;
-    if (!await cartProvider.replaceForBusiness(
-        businessId, buildResult.items)) {
+    if (!await cartProvider.replaceForBusiness(businessId, buildResult.items)) {
+      if (!current()) {
+        throw const RepeatOrderException(
+            'Сессия изменилась. Корзина не заменена; проверьте выбранный магазин.');
+      }
       final restored =
           await businessProvider.setSelectedBusiness(previousBusiness);
       throw RepeatOrderException(restored
@@ -90,9 +115,27 @@ class RepeatOrderService {
           : 'Исходная корзина не изменена, но не удалось восстановить выбранный магазин.');
     }
 
-    final restoredAddress = extractDeliveryAddress(order);
-    if (deliveryType == 'DELIVERY' && restoredAddress != null) {
-      await AddressStorageService.saveSelectedAddress(restoredAddress);
+    Map<String, dynamic>? restoredAddress;
+    var addressStatus = RepeatAddressStatus.notRequired;
+    if (deliveryType == 'DELIVERY') {
+      final extracted = extractDeliveryAddress(order);
+      final address = extracted == null
+          ? null
+          : AddressStorageService.deliveryAddress(extracted);
+      addressStatus = RepeatAddressStatus.unavailable;
+      if (address != null && current()) {
+        // Store/cart replacement has committed. Address persistence is a
+        // separate operation, so report its failure without claiming rollback.
+        addressStatus = RepeatAddressStatus.failed;
+        try {
+          if (await AddressStorageService.saveSelectedAddress(address)) {
+            restoredAddress = address;
+            addressStatus = RepeatAddressStatus.restored;
+          }
+        } catch (_) {
+          // The committed cart remains available for explicit address recovery.
+        }
+      }
     }
 
     return RepeatOrderResult(
@@ -102,6 +145,7 @@ class RepeatOrderService {
       addedItemsCount: buildResult.items.length,
       skippedItems: buildResult.skippedItems,
       restoredAddress: restoredAddress,
+      addressStatus: addressStatus,
     );
   }
 
@@ -180,7 +224,8 @@ class RepeatOrderService {
             !step.isFinite ||
             step <= 0 ||
             (paid / step - (paid / step).round()).abs() > 0.0000001) {
-          skippedItems.add('${group.name}: нельзя точно восстановить количество');
+          skippedItems
+              .add('${group.name}: нельзя точно восстановить количество');
           continue;
         }
         var remaining = paid;
@@ -377,10 +422,9 @@ class RepeatOrderService {
         promotions: promotions,
         itemData: snapshot);
     final catalog = draft.snapshotItem;
-    if (selectedVariants.any((variant) =>
-        catalog == null
-            ? SmartCartSelection.isExplicitWithdrawnBottleVariant(variant)
-            : SmartCartSelection(catalog).isWithdrawnBottleVariant(variant))) {
+    if (selectedVariants.any((variant) => catalog == null
+        ? SmartCartSelection.isExplicitWithdrawnBottleVariant(variant)
+        : SmartCartSelection(catalog).isWithdrawnBottleVariant(variant))) {
       return null;
     }
     if (catalog != null && SmartCartSelection(catalog).usesPourFlow) {

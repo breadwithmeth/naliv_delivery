@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
@@ -7,16 +5,13 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
 
-/// A rounded container in the design's material vocabulary: one of `background`, `surface`
-/// or a translucent variant, with an explicit radius and no border unless asked.
-///
-/// The design puts almost everything on `surface` (dark `#141414` / light `#F2F2F2`) with
-/// radius 10, and uses translucent fills (`#141414 @ 75%`) for chrome that sits over content.
+/// A rounded ordinary surface with an optional fill, border, shadow and clipping.
 class AppSurface extends StatelessWidget {
   const AppSurface({
     required this.child,
     this.fill,
     this.radius = AppRadii.lg,
+    this.borderRadius,
     this.padding,
     this.width,
     this.height,
@@ -30,6 +25,7 @@ class AppSurface extends StatelessWidget {
   final Widget child;
   final Color? fill;
   final double radius;
+  final BorderRadiusGeometry? borderRadius;
   final EdgeInsetsGeometry? padding;
   final double? width;
   final double? height;
@@ -41,9 +37,10 @@ class AppSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final shape = borderRadius ?? BorderRadius.circular(radius);
     final decoration = BoxDecoration(
       color: fill ?? palette.surface,
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: shape,
       border: border,
       boxShadow: shadow,
     );
@@ -60,89 +57,8 @@ class AppSurface extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: shape.resolve(Directionality.of(context)),
         child: content,
-      ),
-    );
-  }
-}
-
-/// Floating glass that reveals the actual content behind the surface.
-class AppGlassPanel extends StatelessWidget {
-  const AppGlassPanel({
-    required this.child,
-    this.radius = AppRadii.lg,
-    this.borderRadius,
-    this.blur = 18,
-    this.tint,
-    this.tintStrength = 1,
-    this.padding,
-    this.width,
-    this.height,
-    super.key,
-  });
-
-  final Widget child;
-  final double radius;
-  final BorderRadiusGeometry? borderRadius;
-  final double blur;
-  final Color? tint;
-  final double tintStrength;
-  final EdgeInsetsGeometry? padding;
-  final double? width;
-  final double? height;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final shape = borderRadius ?? BorderRadius.circular(radius);
-    final base = tint ??
-        palette.glassTint.withValues(alpha: isDark ? .12 : .52);
-    final opacity = (base.a * tintStrength).clamp(0.0, 1.0).toDouble();
-    final surface = Container(
-      width: width,
-      height: height,
-      padding: padding,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.alphaBlend(
-              Colors.white.withValues(alpha: isDark ? .06 : .18),
-              base.withValues(alpha: opacity),
-            ),
-            base.withValues(alpha: opacity),
-          ],
-        ),
-        borderRadius: shape,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: isDark ? .18 : .65),
-          width: .8,
-        ),
-      ),
-      child: child,
-    );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: shape,
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadow.withValues(alpha: isDark ? .14 : .08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: shape,
-        child: blur <= 0
-            ? surface
-            : BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                child: surface,
-              ),
       ),
     );
   }
@@ -190,9 +106,9 @@ class AppPromoChip extends StatelessWidget {
       );
 }
 
-/// A glass section action with a label and an accessible tap target.
-class AppGlassChip extends StatelessWidget {
-  const AppGlassChip({required this.label, this.onTap, super.key});
+/// An ordinary filled section action with a label and an accessible tap target.
+class AppSectionAction extends StatelessWidget {
+  const AppSectionAction({required this.label, this.onTap, super.key});
 
   final String label;
   final VoidCallback? onTap;
@@ -205,25 +121,29 @@ class AppGlassChip extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: onTap != null,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadii.pillAll,
-        child: SizedBox(
-          height: pillHeight < AppSpacing.touchTarget
-              ? AppSpacing.touchTarget
-              : pillHeight,
-          child: Center(
-            child: AppGlassPanel(
-              radius: AppRadii.pill,
-              tint: onTap == null ? palette.surfaceMuted : palette.accentSoft,
-              blur: 18,
-              height: pillHeight,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              child: Center(
-                child: Text(
-                  label,
-                  style: AppTypography.labelMedium.copyWith(
-                    color: onTap == null ? palette.textPrimary : Colors.black,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: AppSpacing.touchTarget),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadii.pillAll,
+          child: SizedBox(
+            height: pillHeight < AppSpacing.touchTarget
+                ? AppSpacing.touchTarget
+                : pillHeight,
+            child: Center(
+              child: AppSurface(
+                radius: AppRadii.pill,
+                fill: onTap == null
+                    ? palette.surfaceMuted
+                    : Color.alphaBlend(palette.accentSoft, palette.surface),
+                height: pillHeight,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: Center(
+                  child: Text(
+                    label,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: palette.textPrimary,
+                    ),
                   ),
                 ),
               ),

@@ -1,209 +1,46 @@
-# 🏠 Система выбора адреса при первом запуске
+# Address selection and local recovery
 
-Этот документ описывает функциональность автоматического выбора адреса пользователя при первом запуске приложения.
+The active application enters through `lib/widgets/authentication_wrapper.dart`.
+Reachable address management remains in `lib/pages/profile_addresses_page.dart`;
+map selection uses `map_address_page.dart` and manual search uses
+`address_search_page.dart`. Do not substitute the old `MainPage` integration.
 
-## 🚀 Обзор функциональности
+## Selection ownership
 
-При первом открытии приложения, если в SharedPreferences нет сохраненного адреса, автоматически открывается модальное окно с двумя опциями:
-1. **Определить адрес по геолокации** - автоматическое определение через GPS
-2. **Найти вручную** - поиск адреса через текстовый ввод
+- A new map gesture or search selection supersedes any pending location intent.
+  Late location success, unavailable results and errors cannot replace that choice
+  or open a stale permission dialog.
+- Permission/provider checks are reused within one location intent. Disabled,
+  denied and unavailable location leave manual map/search selection usable.
+- Search and reverse-geocoding reads have a 10-second HTTP timeout. Failure exposes
+  an explicit retry; the client does not silently send another request.
 
-## 🛠 Архитектура компонентов
+## Local persistence
 
-### 1. **AddressStorageService** (`/utils/address_storage_service.dart`)
-Сервис для работы с сохранением адресов в SharedPreferences.
+`lib/utils/address_storage_service.dart` owns selected address, local address book,
+hidden server-address identities and search history in SharedPreferences.
 
-**Основные методы:**
-- `isFirstLaunch()` - проверяет первый запуск
-- `hasSelectedAddress()` - проверяет наличие сохраненного адреса
-- `saveSelectedAddress()` - сохраняет выбранный адрес
-- `getSelectedAddress()` - получает сохраненный адрес
-- `addToAddressHistory()` - добавляет в историю поиска
+- `getBookSnapshot()` decodes records individually. Valid neighbors remain usable;
+  unreadable original records survive unrelated save/remove operations.
+- `saveBookAddress()` retains replacement identity and updates related local data
+  through checked writes. `removeBookAddress()` keeps server hiding distinct from
+  local removal. These operations do not invent a server address-write endpoint.
+- Failed add/edit retains the exact draft for explicit retry or discard. The UI
+  never claims the address was saved merely because a picker returned a value.
+- Coordinate strings are normalized only when finite and in valid ranges.
+- The canonical base address stays separate from apartment, entrance, floor and
+  instructions. Checkout combines them for display without decorating the stored
+  base label again.
+- Account-derived address caches clear immediately on credential changes and reject
+  late prior-account reads. Device-local addresses remain available if refresh fails.
 
-### 2. **AddressSelectionModal** (`/widgets/address_selection_modal.dart`)
-Модальное окно для выбора адреса с двумя режимами работы.
+## Verification and limits
 
-**Возможности:**
-- Автоматическое определение по геолокации
-- Поиск адресов по тексту с автокомплитом
-- Сохранение выбранного адреса
-- Обработка ошибок геолокации
-- Красивый UI в стиле Cupertino
+`test/integration/address_location_test.dart` exercises superseded location intents
+and manual fallback. `address_recovery_test.dart` exercises failed drafts, explicit
+retry/discard, bounded reads and private-cache ownership. Storage boundaries live in
+`test/regression/address_storage_service_test.dart`.
 
-### 3. **Интеграция в MainPage** (`/pages/mainPage.dart`)
-Главная страница теперь отображает:
-- Выбранный адрес пользователя
-- Кнопку "Изменить" для смены адреса
-- Выбранный магазин с расстоянием
-
-## 📱 Пользовательский сценарий
-
-### Первый запуск:
-1. **Пользователь открывает приложение**
-2. **Система проверяет SharedPreferences**
-3. **Если адрес не найден → открывается модальное окно**
-4. **Пользователь выбирает один из вариантов:**
-
-#### Вариант А: Определить по геолокации
-```
-Нажимает "Определить мое местоположение"
-↓
-Запрос разрешений на геолокацию  
-↓
-Получение координат GPS
-↓
-Обратное геокодирование через API
-↓
-Сохранение найденного адреса
-```
-
-#### Вариант Б: Поиск вручную
-```
-Вводит текст в поле поиска
-↓
-Автоматический поиск через API (с задержкой 500мс)
-↓
-Показ результатов в списке
-↓
-Выбор нужного адреса из списка
-↓
-Сохранение выбранного адреса
-```
-
-### Последующие запуски:
-1. **Система находит сохраненный адрес**
-2. **Загружает его автоматически**
-3. **Отображает на главной странице**
-4. **Пользователь может изменить через кнопку "Изменить"**
-
-## 🔧 Техническая реализация
-
-### Проверка при запуске в `main.dart`:
-```dart
-Future<void> _checkAndShowAddressSelection() async {
-  final hasAddress = await AddressStorageService.hasSelectedAddress();
-  
-  if (!hasAddress) {
-    // Показываем модальное окно
-    _showAddressSelectionModal();
-  } else {
-    // Загружаем сохраненный адрес
-    final savedAddress = await AddressStorageService.getSelectedAddress();
-    setState(() {
-      _selectedAddress = savedAddress;
-    });
-  }
-}
-```
-
-### Интеграция с API поиска адресов:
-```dart
-// Поиск по геолокации
-final addresses = await ApiService.searchAddressesByCoordinates(
-  currentPosition!.latitude,
-  currentPosition!.longitude,
-);
-
-// Поиск по тексту
-final addresses = await ApiService.searchAddressesByText(query.trim());
-```
-
-### Сохранение в SharedPreferences:
-```dart
-// Сохранение адреса
-await AddressStorageService.saveSelectedAddress(addressMap);
-await AddressStorageService.addToAddressHistory(addressMap);
-```
-
-## 🎨 UI/UX особенности
-
-### Дизайн модального окна:
-- **Высота:** 85% экрана
-- **Стиль:** Cupertino (iOS-подобный)
-- **Анимации:** Плавное появление снизу
-- **Навигация:** Невозможно закрыть случайно (isDismissible: false)
-
-### Секция геолокации:
-- **Визуальное оформление:** Синяя рамка с иконкой
-- **Индикатор загрузки:** Во время получения координат
-- **Статус:** Текстовое описание процесса
-
-### Секция поиска:
-- **Поле ввода:** CupertinoSearchTextField
-- **Автокомплит:** Задержка 500мс для оптимизации
-- **Результаты:** Список с названием и описанием адресов
-
-### Отображение на главной:
-- **Секция адреса:** Отдельный блок вверху страницы
-- **Кнопка изменения:** В правом верхнем углу секции
-- **Информация:** Название и описание адреса
-
-## 🔄 Жизненный цикл данных
-
-### При первом запуске:
-```
-App Start
-  ↓
-Check SharedPreferences
-  ↓
-No Address Found
-  ↓
-Show Address Selection Modal
-  ↓
-User Selects Address
-  ↓
-Save to SharedPreferences
-  ↓
-Update UI State
-  ↓
-Mark as Launched
-```
-
-### При повторных запусках:
-```
-App Start
-  ↓
-Check SharedPreferences
-  ↓
-Address Found
-  ↓
-Load Address Data
-  ↓
-Update UI State
-  ↓
-Display on Main Page
-```
-
-## ⚡ Оптимизации
-
-1. **Автокомплит с задержкой** - предотвращает избыточные API запросы
-2. **Кэширование в SharedPreferences** - быстрая загрузка при повторных запусках
-3. **История поиска** - сохранение до 10 последних адресов
-4. **Валидация координат** - проверка корректности широты/долготы
-5. **Обработка ошибок** - graceful degradation при проблемах с API
-
-## 🧪 Тестирование
-
-### Сценарии для тестирования:
-1. **Первый запуск без разрешений геолокации**
-2. **Первый запуск с разрешениями геолокации**
-3. **Поиск несуществующего адреса**
-4. **Поиск популярного адреса (много результатов)**
-5. **Отсутствие интернет-соединения**
-6. **Изменение адреса через кнопку "Изменить"**
-7. **Повторный запуск с сохраненным адресом**
-
-### Точки проверки:
-- Корректность сохранения в SharedPreferences
-- Правильность отображения UI состояний
-- Обработка всех видов ошибок
-- Производительность поиска адресов
-- Валидация пользовательского ввода
-
-## 📋 Будущие улучшения
-
-1. **Геофенсинг** - уведомления при смене района
-2. **Избранные адреса** - быстрый выбор из сохраненных
-3. **Карта для выбора** - визуальный выбор адреса на карте
-4. **Автоопределение города** - по IP адресу как fallback
-5. **Валидация адресов** - проверка существования при доставке
+Fixtures use synthetic data and strict HTTP transports. They do not establish real
+GPS/permission behavior on a handset or authorize production address mutations.
+See [current integration evidence](redesign/STATUS.md) for executed release checks.

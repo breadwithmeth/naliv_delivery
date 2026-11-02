@@ -15,8 +15,8 @@ final sdkDir = path.dirname(path.dirname(dart));
 ```
 
 ### Why This Fails in Standalone AOT:
-* **JIT VM (`dart run`, `pub global activate`)**: `Platform.resolvedExecutable` points directly to `<dart-sdk>/bin/dart`. Calling `dirname(dirname(...))` resolves to the valid SDK root directory.
-* **AOT Binary (`dart compile exe`, `dart install`)**: `Platform.resolvedExecutable` points to the compiled application binary (e.g. `~/.dart/install/app-bundles/my_cli/.../bin/my_cli`).
+* **JIT VM (`dart run`)**: `Platform.resolvedExecutable` normally identifies the SDK's Dart executable. Do not infer the mode solely from its filename: globally activated tools may run as compiled snapshots.
+* **Standalone AOT binary (`dart compile exe`, `dart install` on Dart 3.12+)**: `Platform.resolvedExecutable` identifies the compiled application, not the Dart SDK.
 
 ### Consequences of Naive Resolution:
 1. **Recursive Subprocess Loop**: If the application executes `Platform.resolvedExecutable` expecting the `dart` VM, it spawns itself recursively.
@@ -25,9 +25,9 @@ final sdkDir = path.dirname(path.dirname(dart));
 
 ---
 
-## 2. The Solution: `package:cli_util` (`^0.6.0`)
+## 2. Reuse SDK Discovery
 
-Do not write bespoke SDK discovery probes. Depend on `package:cli_util` (version 0.6.0 or higher), which provides memoized, nullable getters (`dartExecutable` and `sdkPath`) that locate the Dart SDK across both JIT and AOT environments:
+Prefer an existing SDK locator or explicitly configured executable. If the package already uses `package:cli_util` 0.6.0+, its nullable getters (`dartExecutable` and `sdkPath`) handle JIT/AOT discovery. Do not add or upgrade the dependency merely for an existing script already launched with a known Dart SDK.
 
 ```dart
 import 'dart:io' as io;
@@ -45,6 +45,7 @@ Future<void> runSubprocess() async {
   final result = await io.Process.run(dartExe, ['format', '.']);
   io.stdout.write(result.stdout);
   io.stderr.write(result.stderr);
+  io.exitCode = result.exitCode;
 }
 ```
 
@@ -63,6 +64,6 @@ The exact search order and SDK directory validation logic should be delegated to
 
 When executing child subprocesses from a Dart CLI:
 
-1. **Always use `cli_util.dartExecutable`**: Never pass `Platform.executable` or `Platform.resolvedExecutable`.
-2. **Fallback to `'dart'` on `PATH`**: If `package:cli_util` is not an option, execute the literal string `'dart'` directly via `Process.start('dart', [...], runInShell: Platform.isWindows)`.
-3. **Windows Batch File Handling**: On Windows, Flutter installs `dart.bat` in `flutter/bin`. Invoking batch files directly via `Process.start` requires `runInShell: true` unless pointing to the resolved binary `dart.exe`.
+1. **Choose a Dart executable explicitly**: Reuse the existing locator/configuration, or `cli_util.dartExecutable` when available. A compiled app's own executable is not a Dart SDK.
+2. **PATH-based choice**: `'dart'` is reasonable when that is the tool's documented SDK selection policy. Report missing SDK failures; do not silently select a different SDK.
+3. **Windows batch wrappers**: A selected `.bat`/`.cmd` wrapper may need `runInShell: true`; an actual `dart.exe` does not. Avoid shell interpolation and untrusted command strings.

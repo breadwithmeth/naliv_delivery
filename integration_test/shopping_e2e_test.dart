@@ -21,8 +21,10 @@ import '../test/support/remaining_milestone_fixture.dart';
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
-    final scrollable = find.byWidgetPredicate((widget) =>
-        widget is Scrollable && widget.axisDirection == AxisDirection.down).first;
+    final scrollable = find
+        .byWidgetPredicate((widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down)
+        .first;
     tester.state<ScrollableState>(scrollable).position.jumpTo(0);
     await tester.pump();
     await tester.scrollUntilVisible(finder, 200, scrollable: scrollable);
@@ -70,9 +72,14 @@ void main() {
         brightness: Brightness.light,
       ));
       await tester.pumpAndSettle();
-      await _tap(tester, find.text('Слабоалкогольные напитки').first);
+      await _tap(
+          tester,
+          find
+              .bySemanticsLabel('Слабоалкогольные напитки')
+              .hitTestable()
+              .first);
       expect(find.byType(SupercategoryPage), findsOneWidget);
-      await _tap(tester, find.text('Все').first);
+      await _tap(tester, find.text('Все товары').first);
       await _tap(
           tester,
           find
@@ -100,9 +107,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(CheckoutPage), findsOneWidget);
       expect(
-          Provider.of<CartProvider>(
-                  tester.element(find.byType(CheckoutPage)), listen: false)
-              .activeDisplayGroups.single.totalQuantity,
+          Provider.of<CartProvider>(tester.element(find.byType(CheckoutPage)),
+                  listen: false)
+              .activeDisplayGroups
+              .single
+              .totalQuantity,
           2);
       // The shared send-code toast must expire before tapping the checkout footer.
       await tester.pump(const Duration(seconds: 4));

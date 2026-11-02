@@ -1,139 +1,35 @@
 ---
 name: flutter-build-responsive-layout
-description: Use `LayoutBuilder`, `MediaQuery`, or `Expanded/Flexible` to create a layout that adapts to different screen sizes. Use when you need the UI to look good on both mobile and tablet/desktop form factors.
-metadata:
-  model: models/gemini-3.1-pro-preview
-  last_modified: Tue, 21 Apr 2026 20:17:40 GMT
+description: Use when Flutter content must remain usable across window sizes, large text, keyboard insets, or different input methods.
 ---
-# Implementing Adaptive Layouts
+# Responsive Flutter layouts
 
-## Contents
-- [Space Measurement Guidelines](#space-measurement-guidelines)
-- [Widget Sizing and Constraints](#widget-sizing-and-constraints)
-- [Device and Orientation Behaviors](#device-and-orientation-behaviors)
-- [Workflow: Constructing an Adaptive Layout](#workflow-constructing-an-adaptive-layout)
-- [Workflow: Optimizing for Large Screens](#workflow-optimizing-for-large-screens)
-- [Examples](#examples)
+## Measure the allocated space
 
-## Space Measurement Guidelines
-Determine the available space accurately to ensure layouts adapt to the app window, not just the physical device.
+Use `LayoutBuilder` for local constraints and `MediaQuery.sizeOf(context)` for the app window. Base breakpoints on content that no longer fits, not phone/tablet detection, physical display size or orientation. Physical `Display` dimensions can exceed letterboxed content; they are not a substitute for the constraints used to lay out that content.
 
-*   **Use `MediaQuery.sizeOf(context)`** to get the size of the entire app window.
-*   **Use `LayoutBuilder`** to make layout decisions based on the parent widget's allocated space. Evaluate `constraints.maxWidth` to determine the appropriate widget tree to return.
-*   **Do not use `MediaQuery.orientationOf` or `OrientationBuilder`** near the top of the widget tree to switch layouts. Device orientation does not accurately reflect the available app window space.
-*   **Do not check for hardware types** (e.g., "phone" vs. "tablet"). Flutter apps run in resizable windows, multi-window modes, and picture-in-picture. Base all layout decisions strictly on available window space.
+Read the active route in `lib/widgets/authentication_wrapper.dart`, then the actual feature and its existing `lib/design/` and `lib/ui/` patterns. Preserve floating cart-only navigation, destinations, shared state and scroll position. A responsive fix does not authorize a router, navigation-shell or orientation-policy migration.
 
-## Widget Sizing and Constraints
-Understand and apply Flutter's core layout rule: **Constraints go down. Sizes go up. Parent sets position.**
+## Make content fit without losing behavior
 
-*   **Distribute Space:** Use `Expanded` and `Flexible` within `Row`, `Column`, or `Flex` widgets.
-    *   Use `Expanded` to force a child to fill all remaining available space (equivalent to `Flexible` with `fit: FlexFit.tight` and a `flex` factor of 1.0).
-    *   Use `Flexible` to allow a child to size itself up to a specific limit while still expanding/contracting. Use the `flex` factor to define the ratio of space consumption among siblings.
-*   **Constrain Width:** Prevent widgets from consuming all horizontal space on large screens. Wrap widgets like `GridView` or `ListView` in a `ConstrainedBox` or `Container` and define a `maxWidth` in the `BoxConstraints`.
-*   **Lazy Rendering:** Always use `ListView.builder` or `GridView.builder` when rendering lists with an unknown or large number of items.
+- Allow text and error messages to wrap; retain inherited `TextScaler`. Replace text-dependent fixed heights with padding/minimums. Do not disable accessibility scaling to match a screenshot.
+- Use `Expanded`/`Flexible` only within compatible Flex constraints; a vertically unbounded scrolling Column has no finite remaining height.
+- Stack or wrap competing controls when needed. Center/constrain readable content on wide windows. Do not automatically convert checkout lists to grids or add sidebars. For actual product grids, use existing delegates and lazy builders.
+- Keep one clear scroll owner and lazy rendering for large collections. Reserve enough scroll clearance for the actual floating cart dock and safe area.
+- Account for keyboard-reduced space and focused-field visibility; do not subtract keyboard/safe-area insets twice. Keep the last field and action reachable.
+- Preserve focus order, visible keyboard focus and usable touch/mouse targets. Resizing must not reset cart/form state.
 
-## Device and Orientation Behaviors
-Ensure the app behaves correctly across all device form factors and input methods.
+## Prove the dimensions and interactions
 
-*   **Do not lock screen orientation.** Locking orientation causes severe layout issues on foldable devices, often resulting in letterboxing (the app centered with black borders). Android large format tiers require both portrait and landscape support.
-*   **Fallback for Locked Orientation:** If business requirements strictly mandate a locked orientation, use the `Display API` to retrieve physical screen dimensions instead of `MediaQuery`. `MediaQuery` fails to receive the larger window size in compatibility modes.
-*   **Support Multiple Inputs:** Implement support for basic mice, trackpads, and keyboard shortcuts. Ensure touch targets are appropriately sized and keyboard navigation is accessible.
+Reuse `test/support/design_surfaces.dart` and `test/integration/home_layout_test.dart` or the affected screen test. The fixture controls expose width, text scaling and keyboard inset:
 
-## Workflow: Constructing an Adaptive Layout
-
-Follow this workflow to implement a layout that adapts to the available `BoxConstraints`.
-
-**Task Progress:**
-- [ ] Identify the target widget that requires adaptive behavior.
-- [ ] Wrap the widget tree in a `LayoutBuilder`.
-- [ ] Extract the `constraints.maxWidth` from the builder callback.
-- [ ] Define an adaptive breakpoint (e.g., `largeScreenMinWidth = 600`).
-- [ ] **If `maxWidth > largeScreenMinWidth`:** Return a large-screen layout (e.g., a `Row` placing a navigation sidebar and content area side-by-side).
-- [ ] **If `maxWidth <= largeScreenMinWidth`:** Return a small-screen layout (e.g., a `Column` or standard navigation-style approach).
-- [ ] Run validator -> resize the application window -> review layout transitions -> fix overflow errors.
-
-## Workflow: Optimizing for Large Screens
-
-Follow this workflow to prevent UI elements from stretching unnaturally on large displays.
-
-**Task Progress:**
-- [ ] Identify full-width components (e.g., `ListView`, text blocks, forms).
-- [ ] **If optimizing a list:** Convert `ListView.builder` to `GridView.builder` using `SliverGridDelegateWithMaxCrossAxisExtent` to automatically adjust column counts based on window size.
-- [ ] **If optimizing a form or text block:** Wrap the component in a `ConstrainedBox`.
-- [ ] Apply `BoxConstraints(maxWidth: [optimal_width])` to the `ConstrainedBox`.
-- [ ] Wrap the `ConstrainedBox` in a `Center` widget to keep the constrained content centered on large screens.
-- [ ] Run validator -> test on desktop/tablet target -> review horizontal stretching -> adjust `maxWidth` or grid extents.
-
-## Examples
-
-### Adaptive Layout using LayoutBuilder
-Demonstrates switching between a mobile and desktop layout based on available width.
-
-```dart
-import 'package:flutter/material.dart';
-
-const double largeScreenMinWidth = 600.0;
-
-class AdaptiveLayout extends StatelessWidget {
-  const AdaptiveLayout({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > largeScreenMinWidth) {
-          return _buildLargeScreenLayout();
-        } else {
-          return _buildSmallScreenLayout();
-        }
-      },
-    );
-  }
-
-  Widget _buildLargeScreenLayout() {
-    return Row(
-      children: [
-        const SizedBox(width: 250, child: Placeholder(color: Colors.blue)),
-        const VerticalDivider(width: 1),
-        Expanded(child: const Placeholder(color: Colors.green)),
-      ],
-    );
-  }
-
-  Widget _buildSmallScreenLayout() {
-    return const Placeholder(color: Colors.green);
-  }
-}
+```sh
+dart run tool/design_harness.dart preview
+dart run tool/design_harness.dart capture checkout_pickup --theme both --capture-only --width 320 --text-scale 2 --keyboard 300
 ```
 
-### Constraining Width on Large Screens
-Demonstrates preventing a widget from consuming all horizontal space.
+Run preview and capture serially; close preview first. Check 320/375/800 logical-pixel widths, normal/2x text, keyboard hidden/shown, both themes and long/empty/error data. Canonical design geometry is 375 x 812 with top/bottom insets 48/34 and DPR 2; adaptive captures must not overwrite its fixed-reference evidence.
 
-```dart
-import 'package:flutter/material.dart';
+Assert no layout exceptions, readable controls, final-content clearance and working navigation/inputs; pixel differences alone prove none of those. Fixtures use synthetic preferences and strict transports; never fall through to production or mutate real accounts, orders or payments.
 
-class ConstrainedContent extends StatelessWidget {
-  const ConstrainedContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 800.0, // Maximum width for readability
-          ),
-          child: ListView.builder(
-            itemCount: 50,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text('Item $index'),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-```
+Run focused tests via `dart run tool/design_harness.dart check <existing-test-path>`.

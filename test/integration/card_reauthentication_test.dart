@@ -15,6 +15,7 @@ import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -324,8 +325,10 @@ Future<void> _dispose(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() {
+  setUp(() async {
     SharedPreferences.setMockInitialValues({'auth_token': _expiredToken});
+    await AuthService.notifySessionChanged();
+    await AuthService.bindAuthenticatedIdentity('fixture-user');
   });
 
   testWidgets(

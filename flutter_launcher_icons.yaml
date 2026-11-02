@@ -1,9 +1,9 @@
-# flutter pub run flutter_launcher_icons
+# dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
 flutter_launcher_icons:
   image_path: "assets/logo/24.png"
 
   android: "launcher_icon"
-  min_sdk_android: 21
+  min_sdk_android: 24
 
   ios: true
   remove_alpha_ios: true

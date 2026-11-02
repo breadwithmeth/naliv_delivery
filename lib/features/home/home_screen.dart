@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/destinations.dart';
 import '../../utils/cart_provider.dart';
+import '../../ui/app_cart_button.dart';
+import '../../ui/product_card.dart';
 import '../product/product_navigation.dart';
 import 'home_view_data.dart';
 import 'ui/home_page.dart';
@@ -38,43 +40,51 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<CartProvider>(
-      builder: (context, cart, _) {
-        // The two numbers the design puts in the cart button (`Поиск - Удачный поиск`):
-        // the badge counts distinct cart rows, the pill shows the payable total.
-        final count = cart.displayItemCount;
-        final total = count == 0 ? null : cart.getTotalPrice();
-        return HomePage(
-          data: data,
-          cartItemCount: count,
-          cartTotal: total,
-          onCart: onCart,
-          onSearch: onSearch,
-          onCallCenter: onCallCenter,
-          onLiked: () => onNavigate?.call(AppDestination.favorites),
-          onNotifications: () => onNavigate?.call(AppDestination.notifications),
-          onProfile: onNavigate == null
-              ? null
-              : () => onNavigate!(AppDestination.profile),
-          onStore: onStore,
-          onPromo: onPromo,
-          onActiveOrder: onActiveOrder,
-          onCategory: onCategory,
-          onBonusHistory: onBonusHistory,
-          onSignIn: onSignIn,
-          productQuantity: (product) => cart.getCatalogQuantity(product.source),
-          onProductTap: (product) => openProduct(
+    return HomePage(
+      data: data,
+      cartDock: Selector<CartProvider, (int, double?)>(
+        selector: (_, cart) => (
+          cart.displayItemCount,
+          cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
+        ),
+        builder: (_, summary, __) => AppCartButton(
+          itemCount: summary.$1,
+          total: summary.$2,
+          onTap: onCart,
+        ),
+      ),
+      onCart: onCart,
+      onSearch: onSearch,
+      onCallCenter: onCallCenter,
+      onLiked: () => onNavigate?.call(AppDestination.favorites),
+      onNotifications: () => onNavigate?.call(AppDestination.notifications),
+      onProfile:
+          onNavigate == null ? null : () => onNavigate!(AppDestination.profile),
+      onStore: onStore,
+      onPromo: onPromo,
+      onActiveOrder: onActiveOrder,
+      onCategory: onCategory,
+      onBonusHistory: onBonusHistory,
+      onSignIn: onSignIn,
+      productBuilder: (_, product) => Selector<CartProvider, double>(
+        selector: (_, cart) =>
+            cart.getCatalogQuantityForKey(product.catalogKey),
+        builder: (context, quantity, _) => ProductCard.fromView(
+          product,
+          key: ValueKey('home-product-${product.itemId}'),
+          quantity: quantity,
+          onTap: () => openProduct(
             context,
             product,
             businessId: data.storeId,
             onCart: onCart,
           ),
-          onProductIncrement: (product) =>
+          onIncrement: () =>
               context.read<CartProvider>().incrementCatalogItem(product.source),
-          onProductDecrement: (product) =>
+          onDecrement: () =>
               context.read<CartProvider>().decrementCatalogItem(product.source),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -13,12 +13,13 @@ void browserHistoryPushFragment(String fragment) {
   if (_normalizedHash() == fragment) {
     return;
   }
-  web.window.history.pushState(null, web.document.title, nextUrl);
+  web.window.history
+      .pushState(web.window.history.state, web.document.title, nextUrl);
 }
 
 void browserHistoryReplaceFragment(String fragment) {
-  web.window.history
-      .replaceState(null, web.document.title, _withFragment(fragment));
+  web.window.history.replaceState(
+      web.window.history.state, web.document.title, _withFragment(fragment));
 }
 
 String browserHistoryCurrentFragment() => _normalizedHash();

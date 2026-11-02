@@ -26,12 +26,12 @@ android {
 
     compileOptions {
         coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
 
     sourceSets {
@@ -42,8 +42,8 @@ android {
         applicationId "kz.gradusy24.app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
-        versionCode 12113
-        versionName "1.2.113"
+        versionCode flutter.versionCode
+        versionName flutter.versionName
     }
 
     signingConfigs {
@@ -70,5 +70,4 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0"
 }

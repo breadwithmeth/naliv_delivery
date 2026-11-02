@@ -5,12 +5,640 @@ its original author in the loop: **every question that needs a human answer is l
 the default I am proceeding on**, so nothing blocks unnecessarily, and nothing gets decided
 silently either.
 
-Last updated: 2026-10-09. [ISSUES_THEN_DESIGN_PLAN.md](ISSUES_THEN_DESIGN_PLAN.md) governs the completed client corrections F1–F11 and full-screen design work D1–D5. Bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites, not claims established by fixtures. Earlier dated G1–G9 evidence below is historical. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
+Last updated: 2026-11-02. Current source release: **1.2.116+12116**. The app-wide ownership, recovery and performance changes are recorded first below; prior 1.2.115 evidence is historical. Client corrections F1–F11, dark/light themes, inherited text scaling, floating cart-only navigation and genuine glass remain preserved. The older Huawei report is not resolved by host/browser proof: physical Huawei/S25 Ultra, Apple-native glass, bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
 
 ---
 ## Current remediation gate
 
-### Client corrections and full-frame cutover — 2026-10-09
+### App-wide correctness, ownership and performance — 2026-11-02
+
+This pass covers the active feature routes and still-reachable legacy destinations,
+not a framework rewrite. It preserves backend contracts, physical-bottle pricing,
+signing identity, package ID, minSdk and renderer choices; no dependency upgrades or
+production account mutations were performed.
+
+- **Identity/private data:** credentials publish only after checked persistence.
+  Captured token/revision ownership rejects late prior-account results and cleanup.
+  Optional push initialization/login can retry without holding local login/logout.
+  Card reauthentication still requires its own successful login/profile return.
+- **Cart/repeat:** durability status is separate from content revisions. Checkout
+  requires the latest saved revision. Corrupt saved bytes remain intact until explicit
+  reload or confirmed durable discard; failed repeat-address persistence is a partial
+  result, not a claimed atomic restoration.
+- **Financial flows:** account-owned intent persists before POST. Storage refusal
+  sends nothing; timeout, parsing and 5xx uncertainty survives route/app recreation.
+  Existing read/status recovery never becomes a blind second order or charge.
+- **Browse/address:** query and map-intent generations reject stale completions.
+  Favorites reconcile membership with session ownership. Failed address drafts retain
+  retry/discard; malformed records do not poison valid records, and canonical labels
+  remain distinct from display details.
+- **Structure/performance:** catalogue DTOs and JSON normalization are separated from
+  HTTP transport; obsolete wrappers/re-exports are removed. Pricing is operation-scoped,
+  catalogue quantity reads are indexed by precomputed structural keys, exact bottle
+  allocation avoids target-sized arrays, subscriptions are narrow and image decoding
+  follows physical display geometry. Timings, image sizes and rebuild counts are in
+  [`CLEANUP_PLAN.md`](../CLEANUP_PLAN.md#measured-implementation-evidence).
+- **Harness/rendering:** fixture publication/serve lifetime is lock-owned and fixture
+  HTML cannot initialize production push. Glass/shadow use premultiplied compositing;
+  the paired orientation probe initializes every application uniform, retaining the
+  tiny read-back and genuine scene response rather than an opaque substitute.
+- **Global recovery usability:** compact error notices scroll independently and retain
+  a usable focused form at 320 px / 2× text / 300 px keyboard. Navigator semantics are
+  isolated so modal routes cannot prune the global recovery actions. The reachable-tree
+  regression failed before correction, then opened confirmation through a semantic tap;
+  cancellation and rejected storage preserve original bytes and typed input.
+
+Visual and interaction evidence:
+
+- **72 release-fixture captures:** 28 surfaces in both themes at 375 × 812 / DPR 2,
+  four compact large-text/keyboard states, and home/cart at 768 and 1280 px in both
+  themes. All images were inspected. No page/console errors, DOM horizontal overflow
+  or application API/push network requests were recorded. These normal-state captures
+  precede the final error-only notice corrections; they do not prove authenticated
+  production behavior.
+- Actual fixture interactions exercised search `Aperol`, add/quantity updates,
+  favorite removal state and cart totals (**13,170 ₸ / +395 bonuses**), payment-method
+  scrolling clear of the footer, and the compact profile form's remaining controls.
+- Actual Windows renderer orientation suite: **2 passed**. Source is unchanged since
+  that run. Apple-native composition and physical-phone rendering are not inferred.
+
+Final integration/release gate:
+
+- Full serial retained suite: **601 passed**; analysis of `lib test integration_test tool`:
+  **no issues**. Fresh LCOV: **15,474 / 18,494 = 83.67%**, 107 source records.
+- Strict Windows shopping journey passed through active authentication/home, store,
+  product/cart, fixture OTP, pickup checkout, saved-card payment and paid history.
+  No unexpected requests/native HTTP escapes were accepted.
+- Tracked production web and universal/three-ABI release APK builds passed after the
+  final semantic correction. All APKs retain package `kz.gradusy24.app`, minSdk **24**
+  and the established signer; all three existing `FIXED-*` copies are hash-matched.
+
+| APK | Version code | Size (MiB) |
+|---|---:|---:|
+| Universal | 12116 | 78.38 |
+| ARMv7 | 13116 | 32.42 |
+| ARM64 | 14116 | 34.65 |
+| x86_64 | 16116 | 36.08 |
+
+Use the same ABI for an installed split update; universal code 12116 is lower than the
+split codes. Do not uninstall or discard user data to work around a downgrade.
+Universal SHA-256: `a44fa8a8246b07ac504bc6f53b8fd96823ce6656fe0967d44b241ce61c948c27`.
+
+- Final production-bundle guest home rendered in both actual persisted themes at
+  375 × 812 / DPR 2: **5 GET / 0 OPTIONS** per navigation, versus old **5 GET / 5 OPTIONS**.
+  Strict interception fulfilled only known synthetic reads; no page/console errors.
+- Final 320 px corrupt-cart startup exposes both recovery actions in the accessibility
+  tree. Light-theme cancellation preserves unread bytes; confirmed checked clear,
+  home retry and reload restore and retain `{business_id: 1, items: []}`.
+  The complete recovery journey made **13 known synthetic GETs**, no unknown API
+  requests or mutations, and had no page/console errors. Fresh screenshots were inspected.
+- The external APK build's generated Java change was limited back to the user's
+  existing splash block; no whole-file generated-plugin rollback was applied.
+  Temporary probes were removed; owned tabs/web services and Gradle were stopped.
+
+Physical Huawei/S25 Ultra, Apple-native composition, handset permissions/GPS, real bank
+or push, authenticated production, Linux Docker/deployment and deployed service-worker
+acceptance remain unverified. The checks above are not exhaustive edge-case proof.
+
+Evidence: `.figma_cache/render/probe/quality116_fixtures_verified.json`,
+`quality116_interactions.json`, `quality116_compact_recovery.png`,
+`quality116_rgba_before.json`, `quality116_rgba_initialized.json`,
+`quality116_production_final.json`, `quality116_coverage.json` and `quality116_apks.json`.
+
+### Reliability and static delivery follow-up — 2026-10-30
+
+Release **1.2.115+12115** supersedes the 1.2.114 outputs described below. This pass
+does not redesign the UI, change rendering backends, upgrade dependencies or perform
+production account/provider mutations.
+
+- **Session-refresh isolation:** `AuthenticationWrapper._checkAuth` previously shared
+  one pending account read across different tokens. A replacement session could not
+  refresh until the previous request finished; ending a session likewise left the
+  guest home waiting. Both failures were reproduced in
+  `test/integration/authentication_refresh_test.dart`. Refreshes are now coalesced
+  only for the same token, with a request generation and token/ending-session checks
+  before and after identity binding. An old completion cannot publish account state
+  or clear the replacement session's pending read. Existing HTTP requests are not
+  force-cancelled; their stale results are ignored.
+- **Reserved HTTP paths:** real Nginx returned app HTML/200 for four missing association
+  or nested legacy-worker paths. `nginx.conf` now excludes those reserved prefixes
+  from SPA fallback. Known association JSON, worker JavaScript, their no-cache headers
+  and ordinary app-route fallback remain intact. Five missing-path checks now return
+  404; fourteen final checks passed against the actual release web root.
+- **Static transfer optimization:** gzip is enabled for compressible static types from
+  1 KiB, with `Vary: Accept-Encoding`; release cache headers are unchanged. On the
+  rebuilt 1.2.115 `main.dart.js`, identity transfer was **4,882,480 bytes**, gzip
+  **1,652,673 bytes** (**66.15% fewer payload bytes**). Decompression reproduced the
+  exact uncompressed bundle. No network-latency or server-CPU improvement is claimed.
+
+Verification:
+
+- The two new session cases failed before the fix; both then passed, including repeated
+  resume callbacks while the replacement read was pending. Together with existing
+  home-flow checks: **4 focused tests passed**.
+- Full `flutter test --coverage --concurrency=1 --no-pub --timeout=90s`:
+  **382 passed**; LCOV regenerated. `dart analyze lib test integration_test tool`:
+  **no issues**.
+- Tracked web and universal/three-ABI production APK builds succeeded.
+  `apksigner` verified every APK against the established signing identity; `aapt`
+  confirmed package `kz.gradusy24.app`, version **1.2.115**, minSdk **24**, and codes
+  **12115 / 13115 / 14115 / 16115** (universal / ARMv7 / ARM64 / x86_64).
+  Existing `FIXED-*` copies were refreshed and hash-checked. Universal SHA-256:
+  `dfcfe251db6ccebdf837c671d808c727e65cdb458fad2df48f542e2ae16c54ec`.
+- The actual production web bundle was exercised through the corrected Nginx server:
+  guest home at **375/768/1280 × 812, DPR 2**, both themes; cart opened its empty state
+  at 375 px in dark mode. Six home captures and the cart capture were reviewed:
+  upright page, readable controls and no horizontal overflow. Strict fixtures handled
+  **42 GETs / 42 preflights**, with no unexpected API requests or page exceptions.
+  OneSignal was deliberately blocked (one blocked-resource diagnostic per navigation);
+  push delivery was not tested.
+- A suspected visual sampling mismatch was checked with a disposable red/blue release
+  probe, using the real `LiquidGlassDock` on CanvasKit. The page matched its direct
+  reference and glass over the blue half was blue-dominant: center RGB **(6, 6, 180)**.
+  No orientation defect reproduced; no extra shader/platform workaround was added.
+  The disposable entry point/build were removed, retaining its PNG evidence.
+
+Local HTTP proof used Nginx **1.30.6 / Windows**, substituting only loopback listen and
+document root in the production server block. Linux Docker execution, deployment and
+physical Huawei/S25 Ultra retesting remain unverified. The prior Huawei acceptance
+limit still applies; this is not a new handset acceptance claim.
+
+Evidence: `.figma_cache/harness/maintenance115_http.json`,
+`.figma_cache/render/probe/maintenance115_web_smoke.json`,
+`maintenance115_web_home_<theme>_<width>.png`, `maintenance115_web_cart_empty_dark.png`
+and `maintenance115_color_probe.png`. Owned browser/server processes and the release
+Gradle daemon were stopped after verification.
+
+### Huawei orientation follow-up — 2026-10-30
+
+Client ground truth: the home page remains inverted on an older supported **Huawei**;
+the **Samsung S25 Ultra** is not affected. The Huawei model, Android/EMUI version and
+actual renderer are not yet available. The only connected Android device is unauthorized;
+no personal phone was inspected or modified.
+
+**Backend hypothesis (Flutter 3.44.8 engine source; not read from either phone).**
+`android_context_dynamic_impeller.cc` refuses automatic Vulkan selection when
+`ro.com.google.clientidbase` is `android-huawei` (“AHB imports do not consistently
+work”); `flutter_main.cc` starts automatic Impeller selection at API 29.
+**[INFERENCE]** A matching Huawei on Android 10+ can therefore take Impeller OpenGL ES,
+while a Vulkan-capable S25 Ultra can take Vulkan. Neither phone's actual renderer
+is verified. On OpenGL ES, `TextureGLES::GetYCoordScale()` is `-1` for render-to-texture
+images, and runtime-effect samplers do not receive the built-in image painter's
+coordinate correction. Upstream describes the caller's responsibility
+([flutter/flutter#169429](https://github.com/flutter/flutter/issues/169429)).
+The available emulator reproduced this GLES orientation difference; Android below
+API 29 normally takes Skia. **The reason the earlier correction failed on the Huawei
+is not established.**
+
+**Two concrete weaknesses were found and corrected.**
+
+1. *The whole page went through the glass shader.* Any wrong orientation measurement
+   turned the entire UI upside down. The page is now drawn by Flutter's own image painter
+   (`drawImageRect`, upright on every renderer); the shader runs only over the glass and
+   its 14 px shadow ring (`bounds.inflate(14)`, matching `distance > 14.0` in
+   `liquid_glass.frag`). A wrong measurement can now at worst mirror what the glass
+   refracts. Six surfaces (home/catalog/cart × dark/light) were captured before and after:
+   **0 differing pixels** (max channel delta 0) on the host renderer.
+2. *The measurement assumed the read-back's origin.* It inferred orientation from an
+   absolute red/blue value in the first row returned by `Picture.toImage` /
+   `toByteData`, so a reversed read-back reverses the decision. That counterexample is
+   reproduced; it is **not proof that the Huawei takes that path**. At warm-up Flutter's
+   normal image painter and the raw shader now draw the same two-row scene side by side
+   into one **4 × 2** output and `sceneSamplerNeedsYFlip` compares corresponding rows
+   (and rejects results where either patch lost its two distinct markers). A reversed
+   read-back cannot change that relation. It is one 32-byte read-back at initialization,
+   not a per-frame read-back, renderer switch, device-name check or rotation.
+
+`LiquidGlassDock` also logs one line, `sampler needs a vertical flip: <bool>`, after the
+measurement (`adb logcat -s flutter`; Impeller prints its chosen backend there too). If a
+device still misbehaves, that pair of lines is the first thing to collect.
+
+Retained regression coverage:
+
+- `scene_sampler_orientation_test.dart`: upright/inverted sampler × top-down/bottom-up
+  read-back (four decisions), plus an unrecognizable shader result and an
+  indistinguishable reference. The old absolute decision failed both bottom-up cases and
+  the ambiguous reference.
+- `liquid_glass_orientation_test.dart` compares the page with an **unsampled Flutter
+  reference in the same capture** and requires the glass over the blue band to refract
+  blue, not the mirrored red. During development, a deliberately reversed calibration
+  swapped the page rows before the structural fix; after it, the page stayed upright.
+  Reversing the classifier decision then failed only the glass assertion, as intended;
+  that source mutation was restored. The temporary `debugSceneFlipY` getter/setter and
+  its forced-state test have been removed: no test-only rendering control ships.
+
+Verification and release evidence:
+
+- After removing the test-only switch: **7 focused checks passed**; full
+  `flutter test --coverage --concurrency=1 --no-pub --timeout=90s`: **380 passed**.
+  `dart analyze lib test integration_test tool`: **no issues**. LCOV was regenerated.
+- The retained page/glass renderer check passed on an Android API 34 x86_64 emulator
+  with **Impeller OpenGL ES** (`flip: true`) and **Skia** (`flip: false`). The strict
+  gallery was also launched in Android debug and **release/AOT** on GLES; the page
+  and glass were upright. These Android runs preceded removal of only the test switch.
+  Screenshot: `.figma_cache/render/probe/hw_gles_release_dock2.png`.
+  Vulkan and either client's physical phone were **not** exercised.
+- Final production entry-point builds succeeded: universal APK, all three ABI APKs,
+  and tracked release `build/web` via `dart run tool/design_harness.dart build --tracked`.
+  The APKs were rebuilt after removal of the switch; none is a gallery APK.
+- The rebuilt production web home was exercised with guest-only synthetic storage and
+  strict intercepted GET/OPTIONS responses, at **375 / 768 / 1280 × 812**, **DPR 2**,
+  in dark and light themes. All six captures were reviewed: upright content/glass,
+  no horizontal overflow. The floating cart opened the actual empty-cart route.
+  No page exceptions or unexpected API requests occurred; **42 reads and 42 preflights**
+  were handled locally. The optional OneSignal SDK was deliberately blocked, producing
+  one blocked-resource console diagnostic per navigation; push was not verified.
+  Evidence: `.figma_cache/render/probe/hw114_web_smoke.json`,
+  `hw114_web_home_<theme>_<width>.png`, and `hw114_web_cart_empty_dark.png`.
+
+`apksigner verify --print-certs` validated every final APK and confirmed the same
+signing identity as the previously delivered 1.2.113 universal. `aapt dump badging`
+confirmed `kz.gradusy24.app`, version name **1.2.114**, minSdk **24**, and these codes/ABIs:
+
+| Production APK (`build/app/outputs/flutter-apk/`) | Version code | Native ABIs | Bytes |
+|---|---:|---|---:|
+| `app-release.apk` | 12114 | ARMv7, ARM64, x86_64 | 81,420,048 |
+| `app-armeabi-v7a-release.apk` | 13114 | ARMv7 | 33,744,132 |
+| `app-arm64-v8a-release.apk` | 14114 | ARM64 | 36,066,288 |
+| `app-x86_64-release.apk` | 16114 | x86_64 | 37,575,538 |
+
+Universal APK SHA-256:
+`3663a94d54ba9829c5101b9f9ce68d81b001022c6fe8b1aa4a956b9c19a93608`.
+The three existing `build/fixed_apks/FIXED-*` copies were refreshed from their matching
+verified outputs and their file hashes matched. Update a previous split install with
+the **same ABI**; the universal's lower code cannot replace an installed split.
+Do not uninstall to bypass a downgrade and lose app data.
+The owned temporary AVD was deleted and the final Gradle daemon stopped.
+
+Build identity is **1.2.114+12114**, distinct from the prior 1.2.113 APKs. Package ID,
+signing configuration, minSdk 24, dock geometry and the native Apple path are unchanged.
+Physical Huawei acceptance remains an explicit external check: do not infer it from host
+tests, a software-GPU emulator or the S25 Ultra result for the preceding build.
+
+### Home composition and compact cart — 2026-10-29
+
+The client asked for a smaller cart control and a composition pass without replacing the
+Figma style or cart-only navigation. Active entry remains `AuthenticationWrapper` →
+`HomeScreen` → `features/home/ui/home_page.dart`; no legacy home route was substituted.
+
+Visible controls and existing contracts:
+
+| Control | Destination / behavior | State and data source |
+|---|---|---|
+| Support, bonus, favorites, notifications, profile header actions | Existing chat, bonus history, favorites, notification settings and profile routes | Signed-in header; gated destinations retain login continuation |
+| Store/address card | Store chooser; a different store requires confirmation before discarding an active cart | `HomeDataSource` stores, selected-store preferences and cart business scope; failed persistence leaves the cart unchanged |
+| Search | Active search screen | Selected store; search owns loading/empty/error states |
+| Banner carousel | Promotion items | Server-supplied promotion/store IDs; absent banners omitted |
+| Campaign/category tiles and product-section actions | Store-scoped supercategory/catalogue | `HomeViewData` category/promo data; absent optional campaign omitted |
+| Product cards and quantity controls | Product details / existing cart quantity mutations | Server-backed product data and `CartProvider`; full names/attributes retained |
+| Active-order card | Existing order detail | Only shown when supplied by home data |
+| Bonus/QR card or guest sign-in | Bonus history or existing login flow | Authenticated bonus data versus guest prompt; no new loyalty policy |
+| Floating cart capsule | Active cart | Empty and filled states from `CartProvider`; no bottom-navigation tabs |
+
+The wrapper retains its loader, bounded auth/home reads and explicit home retry on failure.
+Production data contracts are unchanged. Verification uses synthetic guest/signed-in data,
+strict fixture transports and in-memory preferences; blank fixture product images and solid
+category fills are not evidence of missing production artwork.
+
+| Composition defect | Implemented correction |
+|---|---|
+| Oversized cart control | Stamp **78 → 56 px**, minimum control height **124 → 72 px** (margins excluded); centered filled cluster, at least 24 px count badge |
+| Large-text cart hides the page end | Explicit 1.2 text line heights and single-line scale-down total; scroll reserve measures the same typography |
+| Support label splits at narrow widths | Measure available inline width; omit only the text when necessary, retaining the phone icon, tooltip and tap action |
+| Store icon becomes an orange square | Glyph-only `shop_glyph.svg`; existing tile-bearing artwork remains unchanged for other consumers |
+| Categories suddenly become two oversized columns at 360 px | Three columns retained at normal text; captions wrap at word boundaries, use bounded gutter overhang and scale long words rather than splitting them |
+
+Intentional Figma departures are limited to the compact dock and adaptive text/header behavior.
+Dark/light themes, the floating capsule contract and natural product-card heights remain.
+
+Implementation-stage checks: six focused home tests passed; full serial suite **371 passed**;
+`dart analyze lib test integration_test tool` reported no issues. The four new layout cases
+failed under reverted dock-height, category-width and support-label mutations, then passed
+with the implementation restored. The clearance case exposed and fixed an actual overlap at
+320 × 640 / 2× text with 12 cart items and an unusually large amount.
+
+Rendered review covered guest/signed-in home at 375/360/320 widths, short-phone heights,
+both themes, and larger text; shared-dock captures also covered catalog, all products,
+search, favorites, orders, promotion, certificates and bonus history. Synthetic captures
+measure layout, not authenticated production acceptance. Final integration evidence follows
+the configuration audit below.
+
+Final release-fixture interaction smoke: active `AuthenticationWrapper` home → category →
+add one Aperol → back to home with cart count **1** / **13,170 ₸** → compact dock →
+active cart with that item/amount. No checkout/order/payment was triggered. A separate
+actual `main.dart` fixture boot exercised the production composition root, category
+navigation and browser Back after preserving Flutter history state. Its strict transport
+kept account/content synthetic and reporting requests in memory; the browser additionally
+denied external OneSignal. Reviewed current PNGs under `.figma_cache/render/probe/`:
+`final_active_home_dark.png`, `final_home_filled_dark.png`, `final_active_cart_dark.png`,
+`final_guest_home_light_360.png` and `final_actual_main_home.png`. All 375 × 812 images
+are 750 × 1624; the narrow light image is 720 × 1480 (360 × 740 / DPR 2).
+
+### Configuration audit — 2026-10-29
+
+Four independent Codex audits covered Android, Apple/desktop, web deployment and
+Dart/repository hygiene. Findings were checked against source, the current Flutter
+template and executable behavior before applying bounded corrections.
+
+| Area | Verified defect / correction | Acceptance boundary |
+|---|---|---|
+| Android application/task declarations | Removed the nonexistent foreground-task service and obsolete duplicate overlays; disabled automatic backup, added empty task affinity and the `PROCESS_TEXT` query; custom-scheme filter no longer claims domain verification | Real Geolocator service/foreground permission retained; HTTPS association remains enabled but needs the website file |
+| Account data transfer | Android 12+ extraction rules exclude both credential/device-protected shared-preference domains in cloud and device transfer; auth/chat capabilities share those preferences | Ordinary backup disabled. Existing local app data is not cleared; a new-device restore will not carry those settings/tokens when rules are honored. OEM device-transfer acceptance is not established |
+| Android build compatibility | Gradle 8.14.3 with distribution checksum, AGP 8.11.1, Kotlin 2.2.20 and Java/Kotlin target 17; obsolete explicit `kotlin-stdlib-jdk7` removed | Signed release build passed without the three prior Flutter support warnings; no AGP 9 or blind R8/resource-shrinking cutover |
+| Versions and SDK declarations | `pubspec.yaml` owns `1.2.113+12113`; Android uses Flutter version accessors; Dart 3.11 / Flutter 3.41 floors now match the resolved lockfile | Application ID/signing continuity and universal/ABI version-code scheme retained; four newly redundant null assertions removed by analyzer code actions |
+| Unused permission dependency | Removed the sole uncalled `permission_handler` method/import, direct dependency and five platform packages after LSP reference checks | Live permission/service checks still use Geolocator; no new location flow or privilege added |
+| Splash/icon configuration | API 31+ night splash and generator dark color now use `#121212`; one standalone launcher-icon configuration remains, aligned to minSdk 24 | No branding regeneration. Direct image inspection confirmed both existing maskable icons are branded; an initial blank-icon audit claim was rejected |
+| macOS sandbox/build settings | Added outbound-network/location entitlements and purpose disclosure; Podfile and three build configurations now target 10.15 | Both entitlement plists and the Xcode project parse; signed macOS network/location behavior requires Apple execution |
+| iOS extension packaging/version inputs | Extension frameworks copy to `Frameworks`, `.appex` embedding remains `PlugIns`; Runner/extension versions use generated Flutter inputs, extension configurations reference the existing `Generated.xcconfig` | OpenStep parsing verifies build-phase/configuration structure; archive embedding, provisioning and runtime not exercised on Windows |
+| Docker build context | Allowlisted only `build/web`, nginx configuration and Docker control files; application source/local signing/Figma files are not intended context inputs | Docker executable/engine unavailable here; image build/context upload was not exercised |
+| Static Hosting | Firebase fallback excludes association, OneSignal and legacy-worker paths; entry/runtime files get no-cache headers, workers JavaScript MIME and association files JSON MIME | Eleven local HTTP cases passed, including missing nested protected paths returning 404. Installed Windows emulator's `glob-slasher` emits backslashes, so verification used a throwaway POSIX URL-normalization adapter; this is not production-host or unmodified Windows-emulator proof |
+| Web startup recovery | The 60 s recovery hint was overwritten by a queued rotating-fact transition; recovery/removal now stops the interval and pending fact transition and restores visible text | Actual browser DOM reproduced before and retained the instruction afterward; `probe/startup_recovery_fixed.png` reviewed at 375 × 812 / DPR 2 |
+| Stale setup instructions | Removed unused browser VAPID launch argument and obsolete direct-Firebase/token/topic/client-server-key examples; existing push/hosting guides now describe OneSignal and dashboard-owned credentials | Provider-side Firebase/FCM/APNs registrations retained; documentation is not device-delivery acceptance |
+| Telemetry consent and web SDK | No stored choice now means no collection; SDK initialization is lazy and consent changes start/close it through serialized lifecycle handling. Traces, sessions, client reports and default PII disabled; misleading “anonymous” wording removed | Two regressions failed before the fix; three retained real-Sentry/in-memory-transport cases pass. A release-browser probe additionally reproduced the JS bridge ignoring Dart privacy settings; web now retains Flutter handlers with Dart transport only. Opt-in/off/re-enable delivered 1/0/1 synthetic events, no JS Sentry client/CDN or reporting-host request; native SDK behavior is unchanged |
+| Browser-history startup state | Custom hash helpers used `replaceState(null, ...)` / `pushState(null, ...)`, erasing Flutter's history tag. The actual main entry reproduced a null-check error in engine history teardown; helpers now preserve the current state object | Release-main fixture startup changed from one captured bootstrap exception to zero; preserved `{flutter: true}` observed. Active home → category and actual browser Back returned to home. No new URL/deep-link routing contract was introduced |
+| Repository hygiene | Added precise ignore guards for generated/local caches and diagnostic output | Already tracked files remain tracked. Approval-required inventory and retention decisions: [`../CLEANUP_PLAN.md`](../CLEANUP_PLAN.md#configuration-hygiene-audit--2026-10-29) |
+
+Remaining prerequisites and decisions:
+
+- **Android App Links:** the live `assetlinks.json` endpoint returned 404 and the API 34
+  verifier reported `legacy_failure`. Publishing requires the authoritative Play App Signing
+  SHA-256 (not an assumed upload-key fingerprint) and ownership of the HTTPS host.
+- **Incoming native URLs:** association/filter declarations do not implement a destination
+  router. Confirm the supported product/order/auth-return URL contract before implementing
+  it; the existing typed OneSignal `additionalData` flow is a different entry path.
+- **Apple release acceptance:** use Xcode 26+ and inspect exported app/extension versions,
+  embedded frameworks, profiles, entitlements, APNs delivery and native glass interactions.
+  Before Xcode 27/iOS 27 SDK use, complete manual UIScene migration while preserving both
+  generated-plugin and native-glass registration. Current custom AppDelegate does not meet
+  Flutter's stock auto-migration shape; this is a next-SDK gate, not a reproduced Xcode 26 failure.
+- **Registered identities:** iOS Team `W922PUY77B`, bundle `com.example.nalivDelivery`,
+  extension, App Group and AASA agree; none was renamed. macOS/Linux invalid placeholder
+  IDs and desktop publisher metadata need approved owner/account values, not invented names.
+- **Hosting/push ownership:** Firebase defaults and historical generation metadata name
+  different projects. Select the real site/project explicitly; no deploy, DNS/provider
+  change, personal-account test push or payment/order/address/card/SMS mutation was performed.
+- **Conservative retention:** keep dormant provider registration files, Gradle wrappers,
+  Cupertino font, natural product-card heights and tracked web output. Broader package
+  majors, shrinking and notification appearance changes were not silently included.
+
+One deferred review minor: the independent 60 s startup watchdog still fires once after a
+fast successful boot and returns on `__splashRemoved`; fact timers are cancelled. No
+user-visible regression from that single callback was demonstrated.
+
+Final integration checks on the settled implementation:
+
+| Check | Observed result |
+|---|---|
+| `flutter test --coverage --concurrency=1 --timeout=90s` | **374 passed**; LCOV **12,924 / 16,792** executable lines (**76.97%**) |
+| `dart analyze lib test integration_test tool` | **No issues** |
+| Windows `shopping_e2e_test.dart` with `CMAKE_BUILD_PARALLEL_LEVEL=1 CL=/MP1` | **1 passed**: active route, category/product, quantity two, synthetic OTP/pickup/card payment and paid-order history; strict fixture, not a production order |
+
+The first unrestricted Windows build failed in MSBuild's C++ task with
+`OutOfMemoryException`; the single-job retry compiled and launched. That run exposed
+an obsolete exact-text finder: whole-word category captions made it select an off-screen
+section heading. The retained journey now targets a hit-testable category semantics node,
+not caption implementation text; the full native journey then passed without missed taps.
+The full host suite was not narrowed or replaced by the native retry.
+
+Final signed artifacts, all package `kz.gradusy24.app` / version **1.2.113**:
+
+| Output under `build/app/outputs/flutter-apk/` | ABI | Version code | Bytes |
+|---|---|---:|---:|
+| `app-release.apk` | ARMv7 + ARM64 + x86_64 | 12113 | 81,420,048 |
+| `app-armeabi-v7a-release.apk` | ARMv7 | 13113 | 33,744,132 |
+| `app-arm64-v8a-release.apk` | ARM64 | 14113 | 36,066,292 |
+| `app-x86_64-release.apk` | x86_64 | 16113 | 37,575,538 |
+
+Both release-build commands completed. `apksigner verify` passed for all four; their
+certificate fingerprint matches the previously delivered universal APK. Existing three
+diagnostic copies under `build/fixed_apks/` were refreshed, not left pointing at older UI.
+Keep the same ABI for an installed split; a universal version-code downgrade is not a
+reason to uninstall and erase app data.
+
+Compiled-manifest/resource inspection confirmed backup/cleartext disabled, blank affinity,
+the new shared-preference cloud/device-transfer exclusions, absent lock-screen flags and
+absent stale service; real Geolocator and `PROCESS_TEXT` remain. The signed universal
+installed on the disposable API 34 x86_64 emulator, cold-launched `MainActivity`, remained
+the resumed/live app and rendered the intro sign-in control without a crash/ANR overlay.
+Installed package flags lacked `ALLOW_BACKUP`; no login or personal-account mutation was
+attempted. Screenshot: `probe/final_android_release.png` (1080 × 1920 physical pixels).
+
+Tracked `build/web` was rebuilt with `flutter build web --release --no-wasm-dry-run`.
+The release bundle rendered at 375 × 812 / DPR 2; intro entry opened the city-onboarding
+screen. The browser intentionally blocked the external city-read/OneSignal requests,
+so its explicit retry state is not evidence of production availability or push delivery.
+Fresh-start consent left no JavaScript Sentry client; Flutter history state remained
+tagged. Reviewed screenshot: `probe/final_release_web_intro.png` (750 × 1624).
+The owned probes, comparison template, temporary servers/browser tabs and disposable
+emulator are removed/stopped; useful ignored capture evidence remains.
+
+
+
+
+### Android dock orientation and lock-screen fixes — 2026-10-29
+
+Reported on a physical Android phone: every page with the floating dock (home first) rendered
+upside down while touch scrolling stayed normal, onboarding was fine, and waking a locked phone
+showed the app instead of the unlock screen.
+
+| Defect | Root cause | Fix |
+|---|---|---|
+| Page vertically flipped | The dock draws the whole page through `liquid_glass.frag`, which samples a `Scene.toImageSync` image. Impeller's OpenGL ES backend stores render-to-texture images bottom-up and applies its Y correction (`TextureGLES::GetYCoordScale`) only to built-in shaders, never to runtime effects, so the page came out flipped there. Skia was correct; onboarding has no dock | `uFlipY` shader uniform. `LiquidGlassDock.warmUp` measures the sampler once (a two-row red/blue scene through the real shader, 2×2 px readback) and sets it. No per-frame readback, and no renderer is named |
+| App shown over the lock screen | `MainActivity` declared `android:showWhenLocked="true"` and `android:turnScreenOn="true"` (added 2024-10 with the OneSignal setup); no code relies on either | Both attributes removed; no app-requested keyguard occlusion or screen wake. PIN sleep/wake verified below; notification-tap-specific behavior was not exercised |
+
+Exercised verification (Android emulator API 34 x86_64, debug builds of the strict fixture
+surface; no production traffic):
+
+| Check | Observed result |
+|---|---|
+| `integration_test/liquid_glass_orientation_test.dart` on Impeller OpenGL ES, before the fix | **Failed**: the upper page region read blue, not red |
+| Same test after the fix, and `flutter test test/regression/liquid_glass_orientation_test.dart` on the host | **Passed** |
+| Fixture `home` on Impeller OpenGL ES and on Skia (`enable-impeller=false`) | Upright and identical; the glass shows the tiles behind it |
+| Probe result inverted on the host (temporary mutation, reverted) | The regression test failed with the flipped colours |
+| PIN set, app in foreground, screen off then on | Before: the app held focus over the keyguard. After: `NotificationShade` held focus and the lock screen was shown |
+| `flutter test --concurrency=1`; `dart analyze lib test integration_test tool` | **367 passed**; no issues |
+
+Limits: only Impeller OpenGL ES and Skia were observed. Vulkan and Metal were not exercised;
+the probe measures behavior instead of assuming it, so they need no special case, but that is
+unproven here. The reporter's phone was not authorized for adb, so the exact device renderer
+was not read.
+
+### Material quality pass — 2026-10-11
+
+The user rejected the first refractive material's quality. Review of the rendered docks
+(home/catalog/cart/checkout, both themes) found: a luminance fog that flattened the
+interior into an opaque slab, saturation boost that turned colored content into muddy
+washes, weak blur that left the optical checker as tile mush, a constant interior dome
+warp, pow-blob rim highlights, and banding. Also fixed: the checkout dock hugged screen
+edges (8 px margins, radius 28) while every other dock uses 16 px / radius 36, and the
+home promo card reserved 160 px of artwork height even with nothing to show.
+
+| Change | Implemented result |
+|---|---|
+| `shaders/liquid_glass.frag` rewritten | 21-tap per-pixel-rotated golden-angle frost (kills tap-moiré), rim-concentrated refraction (SDF normal, IOR 1.45, bend 16–32 px) over a nearly flat interior, mild dispersion, Fresnel + crisp top streak + faint counter-light, dithering. Fog and saturation boost removed |
+| Theme range control | Adaptive shadow-lift (light) / highlight-crush (dark) instead of fog; a base material tint (dark 32% `#0E0E10`, light 30% white) carries the glass identity; mid-tones stay untouched so the scene remains visible |
+| Dock defaults | `LiquidGlassDock` default tint is now the theme base material; consumers can still override |
+| Checkout dock | Uses the shared default margins/radius; `_footerReserve` follows `AppSpacing.xl` |
+| Home promo card | Without artwork and fill the card hugs its copy instead of reserving 160 px |
+
+Exercised verification (Flutter processes serial; tests `--concurrency=1`):
+
+| Check | Observed result |
+|---|---|
+| Windows optical probe (dark + light): scene outside material untouched, material responds to moved scenery, exactly one foreground tap | **2 × passed**; top-region mean Δ 0, material mean Δ ≈ 42/255 (evidence in `.figma_cache/harness/optical/`) |
+| Focused `checkout_page_test`, `home_flow_test`, entire `design_harness_test` | **33 passed** |
+| `flutter test --coverage --concurrency=1 --timeout=90s` | **366 passed** |
+| Application LCOV (`SF:lib/` records) | **76.79%** — 12,824 / 16,701 lines, 99 files |
+| `dart analyze lib test integration_test tool` (also after probe removal) | **No issues found** |
+| Windows shopping journey | **1 passed** |
+| Capture refresh with the final shader | **128 captures** (82 canonical + 50 comparisons, 30 narrow/2×, 8 keyboard, 8 wide) |
+| Fixture rebuild + browser review | home/catalog/cart/checkout in both themes: frosted scene visible, bent rim, sharp foreground, readable amounts |
+
+Command evidence: `.figma_cache/harness/runs/2026-10-11T13-21-28.998248Z_18076.json`;
+captures `.figma_cache/render/runs/1791724663728720_25208.json`,
+`.../width_320.0__text_2.0__keyboard_0.0/runs/1791724760398050_24224.json`,
+`.../width_320.0__text_2.0__keyboard_300.0/runs/1791724805973722_32000.json`,
+`.../width_800.0__text_1.0__keyboard_0.0/runs/1791724831574326_4024.json`.
+The disposable optical probe source was removed after its run; its PNGs/measurements remain.
+The red tint visible behind the light cart footer is the genuine blurred `Подарок` gift
+banner behind the dock — correct glass behavior, with the gift banner's own readable
+foreground above it. The Apple boundary is unchanged: shader proof only; native
+`UIGlassEffect` acceptance still requires macOS/Xcode 26+/iOS 26+.
+
+### Catalogue, confirmation and genuine glass cutover — 2026-10-09
+
+| Requested change | Implemented result |
+|---|---|
+| Simplify the catalogue | Uniform category sections; removed the oversized featured-category sidebar and competing strip; short pinned navigation while heading/context scroll |
+| Unambiguous category navigation | One complete wrapping picker with selected semantics, overview and explicit close; sibling replacement retains the existing prefetched/paginated data contract |
+| Give cards enough space | Natural-height `ProductGrid`/`ProductRail`; two columns at 375 px, one at 320 px or large text, at most four on wide windows; complete known identity, prices, saving, gift and bonus outside artwork |
+| Usable confirmation hierarchy | Fulfilment → editable order review → collapsed benefits → labelled cost breakdown → quiet help; actual footer height reserved outside the scroll viewport; keyboard footer contains only creation/recovery |
+| Genuine Liquid Glass | GPU live-scene shader with curved-shell Snell refraction, rough transmission, dispersion and Fresnel reflection; separate sharp controls; actual `UIGlassEffect` bridge on iOS 26+ |
+| Glass around the whole cart control | One growing shell covers the 78 px starburst, badge and amount; removed the lower strip and separate amount material; original SVG crop/75% opacity and cart actions retained |
+
+Active routes and controls are mapped in `PLAN.md`. All nine floating-cart destinations
+and cart/product/configured-product/confirmation footers use the new dock. Ordinary
+chrome uses `AppSurface`/`AppSectionAction`; obsolete imitation-glass and fixed-card-height
+APIs are removed, without compatibility aliases. Cart/store identity, dynamic mandatory
+bag, independent quote/bag/bonus startup, precise benefits, kilogram steps/stock,
+structured product identity, paid/gift container tariffs and unknown-order/payment locks
+remain the F1–F11 contracts. Disclosure changes do not introduce financial retries.
+
+#### Settled verification
+
+Flutter processes ran serially; test commands used `--concurrency=1`.
+
+| Exercised path | Observed result |
+|---|---|
+| Entire `test/integration/checkout_page_test.dart` | **28 passed** |
+| Entire `test/regression/design_harness_test.dart`, after managed-viewport registration fix | **3 passed** |
+| `flutter test --coverage --concurrency=1 --timeout=90s` | **366 passed** |
+| Application LCOV, records matching `SF:lib/` or `SF:lib\` | **76.78%** — 12,820 / 16,697 lines, **99** application Dart files |
+| `dart analyze lib test integration_test tool`, including after the browser-helper change | **No issues found** |
+| Windows active-wrapper shopping journey | **1 passed**; synthetic store/category/product/OTP/bag/payment/history, no production transport |
+| Native Windows optical probe | Both themes: scene outside the material unchanged; refracted grid changes when underlay moves; foreground cart tap count **1** per theme |
+| Explicit canonical/adaptive capture passes | **128 captures**: 82 canonical, 30 narrow/2×, 8 keyboard, 8 wide; **50** canonical diagnostic comparisons |
+| Fixture and tracked release builds | Both succeeded; user-owned Android splash registration preserved |
+| Current release-fixture browser | Complete picker/sibling navigation, stock limit 20 and decrement to 19, expanded cart hit, checkout quantity/draft/bonus/clearance exercised |
+| Guarded tracked release, 375 × 812 / DPR 2 | City onboarding rendered; actual “Повторить запрос” caused a second deliberately blocked city-read preflight; cached-city warning and scroll-reachable disabled continuation observed |
+
+Command evidence:
+
+- Confirmation: `.figma_cache/harness/runs/2026-10-09T09-29-07.085957Z_16088.json`.
+- Full suite/analysis/native: `.figma_cache/harness/runs/2026-10-09T09-32-12.028393Z_20592.json`.
+- Browser-helper module/analysis: `.figma_cache/harness/runs/2026-10-09T12-01-45.403681Z_2832.json`.
+- Fixture build: `.figma_cache/harness/runs/2026-10-09T09-39-43.008727Z_27348.json`.
+- Tracked build: `.figma_cache/harness/runs/2026-10-09T09-41-06.320995Z_25496.json`.
+- Canonical: `.figma_cache/render/runs/1791538219760364_23592.json`.
+- Narrow: `.figma_cache/render/variants/width_320.0__text_2.0__keyboard_0.0/runs/1791538278120345_10700.json`.
+- Keyboard: `.figma_cache/render/variants/width_320.0__text_2.0__keyboard_300.0/runs/1791538302472765_24968.json`.
+- Wide: `.figma_cache/render/variants/width_800.0__text_1.0__keyboard_0.0/runs/1791538314893799_24436.json`.
+
+Coverage is Dart application line coverage, not Swift, GLSL or native-rendering coverage.
+The final browser-helper edit only registered its existing requested viewport on the
+managed tab; it did not change fixtures, expected assets or dimension assertions.
+The whole harness regression module and analysis passed afterward; no app bundle change
+required another Flutter build.
+
+#### Current browser geometry and state
+
+Authoritative runtime metadata/request decisions/diagnostics:
+`.figma_cache/harness/review/current-runtime-evidence.json`. PNGs are retained beside it.
+Both checkout scenarios used native mouse/keyboard input and asserted entrance **12**
+after collapse/reopen and applied bonus **3,951 ₸** after closing benefits.
+The observed paid quantities were `[1, 6, 1, 2]`, plus a separately displayed gift unit;
+same-origin synthetic cart persistence means a reload is not a cart reset.
+
+The labelled review and payable amount agreed:
+**131,700 products + 30 bag + 700 delivery + 100 service − 3,951 bonus = 128,579 ₸**.
+An earlier visibly tapped order row independently changed 2 → 3 units, line price
+26,340 → 39,510 ₸ and total 145,700 → 158,870 ₸, with neighbouring rows unchanged.
+
+| Current rendered checkout | Canvas/PNG pixels | Last help bottom | Creation action top–bottom |
+|---|---|---:|---:|
+| Light, 375 × 812 / DPR 2 | 750 × 1624 | 624 | 716–756 |
+| Dark, 320 × 812 / DPR 2, 2× text, 300 px keyboard | 640 × 1624 | 360 | 394–490 |
+
+The adaptive scroll viewport ends at **380** and the simulated keyboard starts at
+**512**: the last help control is inside the scroll viewport and the action is above
+the keyboard. The light **92 px** gap is to the action, not a claim of 92 px clearance
+above the material shell. Fresh calibrated navigation proved the live canvas as well as
+PNG dimensions; a correctly sized but padded screenshot is not sufficient evidence.
+
+Before tracked-app navigation, the current guard probe allowed local GET/HEAD (**200**)
+and rejected local POST and a production-host GET. Guards allowed only GET/HEAD to
+loopback/Flutter font-engine CDNs and remained active until page close. The exercised
+tracked entry was already city onboarding, not the intro CTA assumed by an initial
+driver wait. Actual city API preflights to `njt25.naliv.kz`, OneSignal and Sentry resources
+were deliberately denied. Completed fixture/tracked diagnostics contain these expected
+network blocks, but no unexpected Flutter/shader/page exceptions. No phone entry, SMS,
+address/card/chat mutation, order creation or payment was sent to production.
+
+#### Acceptance boundary
+
+Windows optical images and measurements are in `.figma_cache/harness/optical/`.
+They prove the live Flutter shader, not Apple-native composition or pixel parity.
+Native Runner integration requires **macOS/Xcode 26+ and an iOS 26+ runtime** for build,
+sampling, corner/theme updates, foreground taps and mounting/disposal acceptance;
+older supported iOS shader selection also remains an Apple-runtime check.
+Commands and platform-view limitations are in `PLAN.md`. Apple execution is unclaimed,
+not silently replaced with blur. Synthetic fixtures and old-frame diagnostic differences
+do not establish authenticated production, real-bank or push-device acceptance.
+
+
+### Design harness prerequisite — 2026-10-09
+
+Reused the existing strict fixture gallery and capture/comparison tools. Added
+`tool/design_harness.dart`, `tool/design/fixture_browser.js`, strict fixture URL options,
+one pure-Dart surface registry, and the project-specific `naliv-design-loop` OMP skill.
+Editor tasks now use the serial harness; removed the stale Mac CMake path and legacy
+Dart analyzer settings. Runtime MCP configuration was schema-linked and its enabled
+capabilities checked against the installed SDK help. Global OMP preferences are unchanged;
+no live MCP connection or release-bundle inspection is inferred from configuration.
+
+| Exercised harness path | Observed result |
+|---|---|
+| SDK/cache doctor | Flutter 3.44.8 / Dart 3.12.2; 41 strict fixture surfaces; reports capabilities/limits without reading an account |
+| Focused harness regressions + `dart analyze lib test integration_test tool` | **56 passed; no issues** |
+| Offline Figma lookup | Both themes' catalogue/all-products/checkout nodes resolved; no network fallback |
+| Exact-node spec repair | Read-only Figma GETs repaired ordinary dark/light home IDs and preserved modal originals; merged index now has 212 records, all four home variants report `ok` |
+| Held lock / second command | Second harness command exited **78** before starting its child; owned lock probe stopped and removed |
+| Canonical multi-surface capture | Catalogue, all products, pickup confirmation and cart: **8 captures + 8 measured diagnostic comparisons**, 750 × 1624 |
+| Adaptive capture-only | Catalogue/pickup, both themes, 320 px / 2× / 300 px keyboard: **4 captures**, 640 × 1624; no comparison metrics; canonical outputs retained |
+| Fixture release build | Built `.figma_cache/harness/web`; existing Android splash block preserved without replacing other registrations |
+| Actual release-browser helper | Catalogue boot/category selection; 375 px light and 320 px/2×/keyboard dark PNG dimensions verified; `cards=error` rejected visibly and helper closed its tab |
+| Fixture static server | HEAD 200 with `no-store`; POST 405; encoded parent escape 404 |
+
+Logs/status: `.figma_cache/harness/runs/`. Capture evidence:
+`.figma_cache/render/runs/1791529789527878_24516.json` and
+`.figma_cache/render/variants/width_320.0__text_2.0__keyboard_300.0/runs/1791529877544999_24780.json`.
+Actual browser PNGs: `.figma_cache/harness/harness_catalog_light.png` and
+`harness_catalog_adaptive_dark.png`. These established the harness, not acceptance of
+the former catalogue layout: its redundant navigation, cramped cards and large-text
+hierarchy triggered the implemented cutover above. No application production mutation occurred.
+
+
+### Prior client corrections and full-frame cutover — 2026-10-09
 
 | Issue | Implemented client behavior | Acceptance boundary |
 |---|---|---|
@@ -31,11 +659,11 @@ variants. Ordinary aliases now reference dark `2093:14635` / light `2098:32279`;
 `2093:14858` / `2098:32504` remain separately preserved. Sources:
 `.figma_cache/issue_plan_figma_manifest.json` and `.figma_cache/shots/`.
 
-Shared liquid glass now uses one lower cart layer and the SVG's original 75% alpha, without a
-redundant circular backing or multiplied color-filter opacity. Guest profile is inside the store
-card, with independent ≥44 px store/profile targets; dark home uses the canonical white brand
-asset. Catalogue density follows the full frames rather than the obsolete forced two-column
-rule. Configurable pour products expose live paid/gift litres, physical mix, truthful ADD/REPLACE
+In that prior pass, the cart used one lower material layer and the SVG's original 75% alpha,
+without redundant circular backing or multiplied color-filter opacity. That material and
+catalogue density are superseded by the current refractive/full-cart-shell and natural-card
+cutover above. Guest profile remained inside the store card with independent ≥44 px targets;
+dark home used the canonical white brand asset. Configurable pour products exposed live paid/gift litres, physical mix, truthful ADD/REPLACE
 tariffs and per-container gift allocation before the picker; large text/narrow rows remain
 scrollable. The campaign header advertises only active terms present on its individual items.
 
@@ -318,8 +946,9 @@ Use native typing into the focused Flutter editor. In this pass `browser.fill` p
 
 ## 3. Historical decisions and implementation evidence
 
-* **Portrait only**, all three surfaces: `AndroidManifest.xml` `screenOrientation="portrait"`,
-  iOS `UISupportedInterfaceOrientations` = portrait, `SystemChrome` in `main.dart`. Web ignores it.
+* **Portrait requested** on mobile: Android manifest, iOS supported orientations and
+  `SystemChrome` in `main.dart`; web is not locked. Android 16 ignores portrait requests
+  on displays with smallest width ≥ 600 dp, so large-screen layout must remain responsive.
 * **One typeface**, TikTok Sans (OFL-1.1), bundled. The *variable* file, not statics: measured
   against the design's own text boxes, 16 pt statics drift −6 % at 8 px and +1.7 % at 20 px, while
   `opsz = fontSize` lands within 1 %.

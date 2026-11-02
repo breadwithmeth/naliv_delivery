@@ -60,26 +60,85 @@ void main() {
     provider.dispose();
   });
 
-  test('same normalized store is a true no-op even when writes fail', () async {
-    final original = jsonEncode({'id': ' 01 ', 'name': 'Первый магазин'});
+  test('same-store metadata refresh persists without replacing cart ownership',
+      () async {
+    OnboardingPreferences({
+      'selected_business': jsonEncode({
+        'id': 1,
+        'name': 'Исходное название',
+        'address': 'Исходный адрес',
+      }),
+      'cart_items': jsonEncode({
+        'business_id': 1,
+        'items': [
+          CartItem(
+            itemId: 51,
+            name: 'Товар',
+            price: 120,
+            quantity: 2,
+            stepQuantity: 1,
+            selectedVariants: const [],
+            promotions: const [],
+          ).toJson(),
+        ],
+      }),
+    }).install();
+    final provider = BusinessProvider();
+    final cart = CartProvider();
+    addTearDown(provider.dispose);
+    addTearDown(cart.dispose);
+    await provider.loadSavedBusiness();
+    await cart.ensureLoaded();
+    final rows = jsonEncode(cart.toJsonForOrder());
+    var contentNotifications = 0;
+    cart.addListener(() => contentNotifications++);
+
+    expect(
+        await provider.setSelectedBusiness({
+          'business_id': ' 01 ',
+          'name': 'Актуальное название',
+          'address': 'Актуальный адрес',
+        }),
+        isTrue);
+    expect(cart.businessId, 1);
+    expect(jsonEncode(cart.toJsonForOrder()), rows);
+    expect(contentNotifications, 0);
+    final restarted = BusinessProvider();
+    addTearDown(restarted.dispose);
+    await restarted.loadSavedBusiness();
+    for (final selection in [provider, restarted]) {
+      expect(selection.selectedBusinessId, 1);
+      expect(selection.selectedBusinessName, 'Актуальное название');
+      expect(selection.selectedBusiness!['address'], 'Актуальный адрес');
+    }
+  });
+
+  test(
+      'rejected same-store metadata refresh retains persisted and visible data',
+      () async {
+    final original = jsonEncode({'id': 1, 'name': 'Исходное название'});
     final store = OnboardingPreferences({'selected_business': original})
       ..install();
     final provider = BusinessProvider();
+    addTearDown(provider.dispose);
     await provider.loadSavedBusiness();
-    var changes = 0;
-    provider.addListener(() => changes++);
+    var notifications = 0;
+    provider.addListener(() => notifications++);
     store.rejectedKeys.add('selected_business');
-    expect(await provider.setSelectedBusiness({'business_id': '1', 'name': 'Other'}),
-        isTrue);
+
+    final saved = await provider
+        .setSelectedBusiness({'id': '01', 'name': 'Актуальное название'});
     expect(provider.selectedBusinessId, 1);
-    expect(provider.selectedBusinessName, 'Первый магазин');
-    expect(changes, 0);
-    expect((await SharedPreferences.getInstance()).getString('selected_business'),
+    expect(provider.selectedBusinessName, 'Исходное название');
+    expect(notifications, 0);
+    expect(
+        (await SharedPreferences.getInstance()).getString('selected_business'),
         original);
-    provider.dispose();
+    expect(saved, isFalse);
   });
 
-  test('persisted cart store survives reload and rejected explicit discard', () async {
+  test('persisted cart store survives reload and rejected explicit discard',
+      () async {
     final store = OnboardingPreferences()..install();
     final cart = CartProvider();
     expect(await cart.bindBusiness(1), isTrue);
@@ -126,7 +185,8 @@ void main() {
     changed.dispose();
   });
 
-  test('unknown legacy cart remains readable removable and never binds a default',
+  test(
+      'unknown legacy cart remains readable removable and never binds a default',
       () async {
     final row = CartItem(
       itemId: 71,
@@ -148,7 +208,8 @@ void main() {
     expect(cart.hasUnresolvedBusiness, isTrue);
     expect(cart.getTotalPrice(), 1000);
     expect(await cart.bindBusiness(2), isFalse);
-    expect((await SharedPreferences.getInstance()).getString('cart_items'), original);
+    expect((await SharedPreferences.getInstance()).getString('cart_items'),
+        original);
     cart.updateQuantity(71, 1);
     expect(cart.getTotalQuantityForItem(71), 1);
     cart.removeItem(71);
@@ -175,14 +236,14 @@ void main() {
     await cart.loadCart();
     final original = jsonEncode(cart.toJsonForOrder());
     CartItem replacement(double quantity) => CartItem(
-      itemId: 2,
-      name: 'Другой товар',
-      price: 100,
-      quantity: quantity,
-      stepQuantity: 1,
-      selectedVariants: [],
-      promotions: [],
-    );
+          itemId: 2,
+          name: 'Другой товар',
+          price: 100,
+          quantity: quantity,
+          stepQuantity: 1,
+          selectedVariants: [],
+          promotions: [],
+        );
     expect(await cart.replaceForBusiness(2, [replacement(0.5)]), isFalse);
     expect(jsonEncode(cart.toJsonForOrder()), original);
     store.rejectedKeys.add('cart_items');

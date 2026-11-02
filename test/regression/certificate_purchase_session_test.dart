@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/features/certificates/certificate_purchase_session.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../support/preferences_store.dart';
 
 http.Response _json(Object body, {int status = 200}) =>
     http.Response(jsonEncode(body), status,
@@ -17,9 +19,20 @@ CertificatePurchaseSession _draft() => CertificatePurchaseSession()
   ..message = '  Для тебя  '
   ..selectedCardId = 'bank-card-b';
 
+class _RefusedFinancialPreferences extends OnboardingPreferences {
+  _RefusedFinancialPreferences() : super({'auth_token': 'fixture-only'});
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async =>
+      false;
+}
+
 void main() {
-  setUp(() =>
-      SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'}));
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'});
+    await AuthService.notifySessionChanged();
+    await AuthService.bindAuthenticatedIdentity('certificate-fixture-user');
+  });
 
   test('positive finite custom amounts are accepted without invented limits',
       () {
@@ -163,6 +176,7 @@ void main() {
         }
       },
     ]) {
+      SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'});
       final session = _draft();
       var charges = 0;
       final client = MockClient((request) async {
@@ -179,6 +193,7 @@ void main() {
       expect(charges, 1);
       session.dispose();
     }
+    SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'});
     final session = _draft();
     addTearDown(session.dispose);
     var charges = 0;
@@ -192,6 +207,265 @@ void main() {
     }, () => client);
     expect(session.unconfirmed, isTrue);
     expect(session.certificate, isNull);
+    expect(charges, 1);
+  });
+
+  for (final status in [408, 500, 503]) {
+    test('JSON $status certificate response cannot permit a second charge',
+        () async {
+      final session = _draft();
+      addTearDown(session.dispose);
+      final unknown = <String>[];
+      var charges = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/certificates/purchase') {
+          charges++;
+          expect(request.headers['authorization'], 'Bearer fixture-only');
+          return _json({
+            'success': false,
+            'error': {'message': 'Ответ сервера недоступен'},
+          }, status: status);
+        }
+        unknown.add('${request.method} ${request.url}');
+        throw StateError('Unexpected certificate request');
+      });
+      addTearDown(() => expect(unknown, isEmpty));
+      await http.runWithClient(() async {
+        await session.purchase();
+        await session.purchase();
+      }, () => client);
+      expect(charges, 1);
+      expect(session.unconfirmed, isTrue);
+      expect(session.canPurchase, isFalse);
+      expect(session.certificate, isNull);
+    });
+  }
+
+  test('refused durable certificate intent sends no charge', () async {
+    _RefusedFinancialPreferences().install();
+    final session = _draft();
+    addTearDown(session.dispose);
+    final unknown = <String>[];
+    var charges = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        charges++;
+        return _json({'success': false, 'error': 'Fixture refusal'});
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(session.purchase, () => client);
+    expect(charges, 0);
+    expect(session.certificate, isNull);
+    expect(session.error, isNotNull);
+  });
+
+  test(
+      'pending purchase identity survives session recreation for status-only recovery',
+      () async {
+    final first = _draft();
+    final restored = _draft();
+    addTearDown(restored.dispose);
+    final unknown = <String>[];
+    var charges = 0;
+    var statusReads = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        charges++;
+        return _json({
+          'success': true,
+          'data': {
+            'purchase_id': 'durable-purchase',
+            'payment_status': 'pending',
+          },
+        });
+      }
+      if (request.method == 'GET' &&
+          request.url.path ==
+              '/api/certificates/purchases/durable-purchase/status') {
+        statusReads++;
+        return _json({
+          'success': true,
+          'data': {
+            'payment_status': 'completed',
+            'certificate': {'code': 'RECOVERED-ONLY-BY-READ'},
+          },
+        });
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(() async {
+      await first.purchase();
+      first.dispose();
+      await restored.refreshStatus();
+      expect(restored.purchaseId, 'durable-purchase');
+      expect(restored.certificate?['code'], 'RECOVERED-ONLY-BY-READ');
+      await restored.purchase();
+    }, () => client);
+    expect(charges, 1);
+    expect(statusReads, 1);
+  });
+
+  test('unknown purchase without identity survives session recreation',
+      () async {
+    final first = _draft();
+    final restored = _draft();
+    addTearDown(restored.dispose);
+    final unknown = <String>[];
+    var charges = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        charges++;
+        return http.Response('{malformed', 200);
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(() async {
+      await first.purchase();
+      first.dispose();
+      await restored.purchase();
+    }, () => client);
+    expect(charges, 1);
+    expect(restored.purchaseId, isNull);
+    expect(restored.unconfirmed, isTrue);
+    expect(restored.canPurchase, isFalse);
+  });
+
+  test('JSON 503 retains purchase identity for existing status recovery',
+      () async {
+    final session = _draft();
+    addTearDown(session.dispose);
+    final unknown = <String>[];
+    var charges = 0;
+    var statusReads = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        charges++;
+        return _json({
+          'success': false,
+          'error': 'Ответ сервера недоступен',
+          'data': {
+            'purchase_id': 'identity-from-503',
+            'payment_status': 'pending',
+          },
+        }, status: 503);
+      }
+      if (request.method == 'GET' &&
+          request.url.path ==
+              '/api/certificates/purchases/identity-from-503/status') {
+        statusReads++;
+        return _json({
+          'success': true,
+          'data': {'payment_status': 'pending'},
+        });
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(() async {
+      await session.purchase();
+      expect(session.purchaseId, 'identity-from-503');
+      await session.refreshStatus();
+      await session.purchase();
+    }, () => client);
+    expect(charges, 1);
+    expect(statusReads, 1);
+    expect(session.unconfirmed, isTrue);
+  });
+
+  test(
+      'account switch isolates unresolved intent and returning account stays locked',
+      () async {
+    await AuthService.bindAuthenticatedIdentity('certificate-account-a');
+    addTearDown(() => AuthService.bindAuthenticatedIdentity(null));
+    final accountA = _draft();
+    final restoredA = _draft();
+    addTearDown(accountA.dispose);
+    addTearDown(restoredA.dispose);
+    final unknown = <String>[];
+    final credentials = <String?>[];
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        credentials.add(request.headers['authorization']);
+        return request.headers['authorization'] == 'Bearer fixture-account-b'
+            ? _json({'success': false, 'error': 'Оплата отклонена'},
+                status: 400)
+            : _json({'success': false, 'error': 'Ответ не получен'},
+                status: 503);
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(() async {
+      await accountA.purchase();
+      await AuthService.saveToken('fixture-account-b');
+      await AuthService.bindAuthenticatedIdentity('certificate-account-b');
+      final accountB = _draft();
+      addTearDown(accountB.dispose);
+      await accountB.purchase();
+      expect(accountB.canPurchase, isTrue);
+      await AuthService.saveToken('fixture-only');
+      await AuthService.bindAuthenticatedIdentity('certificate-account-a');
+      await restoredA.purchase();
+    }, () => client);
+    expect(credentials, ['Bearer fixture-only', 'Bearer fixture-account-b']);
+    expect(restoredA.unconfirmed, isTrue);
+    expect(restoredA.canPurchase, isFalse);
+  });
+
+  test('late purchase completion cannot expose another accounts certificate',
+      () async {
+    await AuthService.bindAuthenticatedIdentity('certificate-account-a');
+    addTearDown(() => AuthService.bindAuthenticatedIdentity(null));
+    final session = _draft();
+    addTearDown(session.dispose);
+    final response = Completer<http.Response>();
+    final sent = Completer<void>();
+    final unknown = <String>[];
+    var charges = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        charges++;
+        expect(request.headers['authorization'], 'Bearer fixture-only');
+        if (!sent.isCompleted) sent.complete();
+        return response.future;
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(() async {
+      final purchase = session.purchase();
+      await sent.future;
+      await AuthService.saveToken('fixture-account-b');
+      await AuthService.bindAuthenticatedIdentity('certificate-account-b');
+      response.complete(_json({
+        'success': true,
+        'data': {
+          'purchase_id': 'account-a-purchase',
+          'payment_status': 'completed',
+          'certificate': {'code': 'PRIVATE-ACCOUNT-A-CODE'},
+        },
+      }));
+      await purchase;
+      expect(session.certificate, isNull);
+      await session.purchase();
+    }, () => client);
     expect(charges, 1);
   });
 }

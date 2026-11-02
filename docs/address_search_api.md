@@ -1,230 +1,28 @@
-# 📍 API поиска адресов через Яндекс.Карты
+# Address search API
 
-Этот документ описывает новые методы для поиска адресов в `ApiService`, которые интегрируются с Яндекс.Карты API через ваш сервер.
+The active client uses the existing `ApiService.baseUrl` API, not a local example
+server. Current implementation: `lib/utils/api.dart`.
 
-## 🔗 Endpoint
+| Operation | Dart entry point | HTTP contract | Successful result |
+|---|---|---|---|
+| Text search | `searchAddressByText(query, {city, country})` | `GET /addresses/search?query=...` | Normalized maps from `data.features`, filtered to the requested country/city |
+| Reverse lookup | `searchAddressByCoordinates(lat, lon)` | `GET /addresses/reverse?lat=...&lon=...` | `data` map or list normalized to a list of maps |
 
-**Базовый URL:** `http://localhost:3000/api/addresses/search`
+Both methods return `Future<List<Map<String, dynamic>>?>`. An empty successful list
+means no matches; `null` reports a failed request/response. Text search builds the
+query from the supplied city/country context. Reverse lookup checks coordinate
+ranges before sending the request.
 
-## 📋 Доступные методы
+Both GETs send `Accept: application/json` without an unnecessary JSON Content-Type
+header and time out after 10 seconds. Timeout/network/server failure does not trigger
+an automatic retry. The active search/map UI retains manual selection and offers an
+explicit retry. A late response does not take ownership from a newer selection.
 
-### 1. **Поиск по текстовому запросу**
+Address-book persistence and canonical delivery labels are separate from HTTP
+lookup. See [address selection and recovery](address_selection_system.md).
+Retired typed/demo wrappers are not part of the current API; use the two existing
+entry points above instead of reviving obsolete examples.
 
-#### `searchAddressByText(String query)`
-Ищет адреса по текстовому запросу.
-
-```dart
-// Пример использования
-final addresses = await ApiService.searchAddressByText('улица Пушкина 12');
-if (addresses != null) {
-  for (var address in addresses) {
-    print('Найден адрес: ${address['name']}');
-    print('Координаты: ${address['point']['lat']}, ${address['point']['lon']}');
-  }
-}
-```
-
-**Параметры:**
-- `query` (String) - строка поиска
-
-**Возвращает:** `Future<List<Map<String, dynamic>>?>`
-
-### 2. **Поиск по координатам (обратное геокодирование)**
-
-#### `searchAddressByCoordinates(double lat, double lon)`
-Находит адрес по географическим координатам.
-
-```dart
-// Пример использования
-final addresses = await ApiService.searchAddressByCoordinates(43.238293, 76.945465);
-if (addresses != null) {
-  for (var address in addresses) {
-    print('Адрес: ${address['name']}');
-    print('Расстояние: ${address['distance']}м');
-  }
-}
-```
-
-**Параметры:**
-- `lat` (double) - широта (от -90 до 90)
-- `lon` (double) - долгота (от -180 до 180)
-
-**Возвращает:** `Future<List<Map<String, dynamic>>?>`
-
-**Валидация:** Автоматически проверяет корректность координат.
-
-### 3. **Универсальный поиск**
-
-#### `searchAddresses({String? query, double? lat, double? lon})`
-Универсальный метод, который автоматически определяет тип поиска.
-
-```dart
-// Поиск по тексту
-final textResults = await ApiService.searchAddresses(query: 'Москва Красная площадь');
-
-// Поиск по координатам  
-final coordResults = await ApiService.searchAddresses(lat: 55.7558, lon: 37.6176);
-```
-
-**Параметры:**
-- `query` (String?, опционально) - текстовый запрос
-- `lat` (double?, опционально) - широта
-- `lon` (double?, опционально) - долгота
-
-**Возвращает:** `Future<List<Map<String, dynamic>>?>`
-
-## 🎯 Типизированные методы (с моделями)
-
-### 1. **Типизированный поиск по тексту**
-
-#### `searchAddressesByText(String query)`
-Возвращает типизированные объекты `Address`.
-
-```dart
-final addresses = await ApiService.searchAddressesByText('улица Пушкина 12');
-if (addresses != null) {
-  for (Address address in addresses) {
-    print('Название: ${address.name}');
-    print('Координаты: ${address.point.lat}, ${address.point.lon}');
-    print('Описание: ${address.description}');
-    print('Тип: ${address.kind}');
-    print('Точность: ${address.precision}');
-  }
-}
-```
-
-### 2. **Типизированный поиск по координатам**
-
-#### `searchAddressesByCoordinates(double lat, double lon)`
-Возвращает типизированные объекты `Address`.
-
-```dart
-final addresses = await ApiService.searchAddressesByCoordinates(43.238293, 76.945465);
-if (addresses != null) {
-  for (Address address in addresses) {
-    print('Адрес: ${address.name}');
-    if (address.distance != null) {
-      print('Расстояние: ${address.distance}м');
-    }
-  }
-}
-```
-
-### 3. **Универсальный типизированный поиск**
-
-#### `searchAddressesTyped({String? query, double? lat, double? lon})`
-Универсальный типизированный метод.
-
-```dart
-// Поиск по тексту
-final textResults = await ApiService.searchAddressesTyped(query: 'Москва');
-
-// Поиск по координатам
-final coordResults = await ApiService.searchAddressesTyped(lat: 55.7558, lon: 37.6176);
-```
-
-## 📊 Модели данных
-
-### `Address`
-Основная модель для адреса.
-
-```dart
-class Address {
-  final String name;           // Полное название адреса
-  final AddressPoint point;    // Координаты
-  final String description;    // Описание (город, страна)
-  final String kind;          // Тип объекта (house, street, etc.)
-  final String precision;     // Точность поиска (exact, near, etc.)
-  final double? distance;     // Расстояние в метрах (для поиска по координатам)
-}
-```
-
-### `AddressPoint`  
-Модель для координат.
-
-```dart
-class AddressPoint {
-  final double lat;  // Широта
-  final double lon;  // Долгота
-}
-```
-
-## 🔧 Примеры интеграции
-
-### В LocationService
-```dart
-// Получение адреса по текущим координатам пользователя
-Future<String?> getCurrentAddressName() async {
-  if (currentPosition != null) {
-    final addresses = await ApiService.searchAddressesByCoordinates(
-      currentPosition!.latitude, 
-      currentPosition!.longitude
-    );
-    return addresses?.first.name;
-  }
-  return null;
-}
-```
-
-### В UI компонентах
-```dart
-// Автокомплит для поиска адресов
-class AddressSearchWidget extends StatefulWidget {
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoSearchTextField(
-      onChanged: (query) async {
-        if (query.length > 2) {
-          final addresses = await ApiService.searchAddressesByText(query);
-          // Показать результаты в выпадающем списке
-        }
-      },
-    );
-  }
-}
-```
-
-## ⚠️ Обработка ошибок
-
-Все методы возвращают `null` в случае ошибки и выводят информацию в консоль:
-
-- **Сетевые ошибки:** `Network Error: ...`
-- **HTTP ошибки:** `HTTP Error: [код] - [сообщение]`
-- **API ошибки:** `API Error: [сообщение из ответа]`
-- **Валидация координат:** `Invalid latitude/longitude: ...`
-
-## 🎯 Лучшие практики
-
-1. **Проверяйте результат на null:**
-   ```dart
-   final addresses = await ApiService.searchAddressByText('запрос');
-   if (addresses != null && addresses.isNotEmpty) {
-     // Обрабатываем результаты
-   }
-   ```
-
-2. **Используйте типизированные методы:**
-   ```dart
-   // Лучше
-   final addresses = await ApiService.searchAddressesByText('запрос');
-   
-   // Чем
-   final addresses = await ApiService.searchAddressByText('запрос');
-   ```
-
-3. **Кэшируйте результаты для часто используемых запросов**
-
-4. **Устанавливайте таймауты для сетевых запросов в production**
-
-## 📱 Готовые компоненты
-
-Для быстрого старта используйте готовые примеры из `/utils/address_search_example.dart`:
-
-```dart
-// Запуск всех демонстраций
-await AddressSearchExample.runAllDemos();
-
-// Или отдельные методы
-await AddressSearchExample.demonstrateTextSearch();
-await AddressSearchExample.demonstrateCoordinateSearch();
-```
+Verification is fixture-only for mutations. Do not send real address changes or
+use a production account to test retries. Handset geolocation and deployed upstream
+geocoder acceptance remain separate from host regression evidence.

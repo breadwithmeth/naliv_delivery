@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import '../design/theme.dart';
 import '../design/typography.dart';
 import '../features/faq/ui/faq_page.dart' as redesigned;
+import '../services/auth_service.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
@@ -29,6 +30,12 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
   bool _busy = false;
   String? _error;
   bool _reading = false;
+  int _loadRevision = 0;
+  late int _credentialRevision;
+  Map<String, dynamic>? _pendingDraft;
+  Map<String, dynamic>? _pendingReplacing;
+  bool _pendingServerOwned = false;
+  String? _saveError;
   List<Map<String, dynamic>> _server = [];
   AddressBookSnapshot _book = const AddressBookSnapshot(
     localAddresses: [],
@@ -40,12 +47,15 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _credentialRevision = AuthService.credentialRevision;
+    AuthService.sessionRevision.addListener(_sessionChanged);
     _load();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_sessionChanged);
     super.dispose();
   }
 
@@ -54,8 +64,28 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
     if (state == AppLifecycleState.resumed) _load();
   }
 
-  Future<void> _load() async {
-    if (_busy || _reading) return;
+  void _sessionChanged() {
+    final revision = AuthService.credentialRevision;
+    if (!mounted || revision == _credentialRevision) return;
+    setState(() {
+      _credentialRevision = revision;
+      ++_loadRevision;
+      _reading = false;
+      _server = [];
+      _error = null;
+      if (_pendingServerOwned) _discardDraft();
+    });
+    _load(force: true);
+  }
+
+  Future<void> _load({bool force = false}) async {
+    if (!force && (_busy || _reading)) return;
+    final request = ++_loadRevision;
+    final credentials = _credentialRevision;
+    bool current() =>
+        mounted &&
+        request == _loadRevision &&
+        credentials == AuthService.credentialRevision;
     _reading = true;
     setState(() {
       _loading = true;
@@ -63,9 +93,13 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
     });
     try {
       final book = await AddressStorageService.getBookSnapshot();
-      if (!mounted) return;
+      if (!current()) return;
       setState(() => _book = book);
-      final data = await ApiService.getFullInfo();
+      final session = await AuthService.captureSession();
+      if (!current()) return;
+      if (session == null) return;
+      final data = await ApiService.getFullInfo(credentialToken: session.token);
+      if (!current() || !session.isCurrent) return;
       if (data == null) throw StateError('Адреса аккаунта недоступны');
       final raw = data['addresses'];
       if (raw is! List) {
@@ -76,15 +110,17 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
         if (item is! Map) throw const FormatException('Некорректный адрес');
         addresses.add(Map<String, dynamic>.from(item));
       }
-      if (mounted) setState(() => _server = addresses);
+      if (current()) setState(() => _server = addresses);
     } catch (_) {
-      if (mounted) {
+      if (current()) {
         setState(() => _error =
             'Не удалось обновить адреса. Сохранённые на устройстве адреса остаются доступны.');
       }
     } finally {
-      _reading = false;
-      if (mounted) setState(() => _loading = false);
+      if (current()) {
+        _reading = false;
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -151,31 +187,77 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
     }
   }
 
+  void _discardDraft() {
+    _pendingDraft = null;
+    _pendingReplacing = null;
+    _pendingServerOwned = false;
+    _saveError = null;
+  }
+
+  Future<void> _persistDraft() async {
+    final draft = _pendingDraft;
+    final replacing = _pendingReplacing;
+    if (draft == null) return;
+    final saved = await AddressStorageService.saveBookAddress(draft,
+        replacing: replacing);
+    if (!mounted || !identical(draft, _pendingDraft)) return;
+    if (!saved) {
+      const message =
+          'Не удалось сохранить адрес на устройстве. Введённые данные оставлены для повторной попытки.';
+      setState(() => _saveError = message);
+      return;
+    }
+    setState(_discardDraft);
+    await _refreshBook();
+    _feedback('Адрес сохранён на этом устройстве');
+  }
+
+  Future<void> _retryDraft() async {
+    if (_busy || _loading || _pendingDraft == null) return;
+    setState(() => _busy = true);
+    try {
+      await _persistDraft();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _addOrEdit({Map<String, dynamic>? initial}) async {
     if (_busy || _loading) return;
+    final pending = _pendingDraft;
+    final replacing = pending != null ? _pendingReplacing : initial;
+    final serverOwned = pending != null
+        ? _pendingServerOwned
+        : initial != null &&
+            !_book.localAddresses.any((item) =>
+                AddressStorageService.identity(item) ==
+                AddressStorageService.identity(initial));
+    final credentials = _credentialRevision;
     setState(() => _busy = true);
     try {
       final picked = await AddressSelectionModalHelper.show(
         context,
-        initialAddress:
-            initial == null ? <String, dynamic>{} : _delivery(initial),
-        openDetailsFirst: initial != null,
+        initialAddress: pending ??
+            (initial == null ? <String, dynamic>{} : _delivery(initial)),
+        openDetailsFirst: pending != null || initial != null,
         tileProvider: widget.tileProvider,
         locate: widget.locate,
         detailsConfirmButtonLabel: 'Сохранить на устройстве',
       );
       if (picked == null || !mounted) return;
-      final saved = await AddressStorageService.saveBookAddress(picked,
-          replacing: initial == null ? null : _delivery(initial));
-      if (!saved) {
-        _feedback(
-            'Не удалось сохранить адрес на устройстве. Предыдущие данные не изменены.');
-        return;
-      }
-      await _refreshBook();
-      _feedback('Адрес сохранён на этом устройстве');
+      if (serverOwned && credentials != AuthService.credentialRevision) return;
+      _pendingDraft = picked;
+      _pendingReplacing = replacing == null ? null : _delivery(replacing);
+      _pendingServerOwned = serverOwned;
+      await _persistDraft();
     } catch (_) {
-      _feedback('Не удалось сохранить адрес на устройстве. Попробуйте снова.');
+      const message =
+          'Не удалось сохранить адрес на устройстве. Попробуйте снова.';
+      if (mounted && _pendingDraft != null) {
+        setState(() => _saveError = message);
+      } else {
+        _feedback(message);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -312,14 +394,48 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                                 padding: EdgeInsets.fromLTRB(
                                     16, 0, 16, clearance + 16),
                                 children: [
-                                  if (_loading)
-                                    const LinearProgressIndicator(),
+                                  if (_loading) const LinearProgressIndicator(),
                                   if (_error != null) ...[
                                     AppErrorState(
                                       message: _error!,
                                       onRetry: _busy ? null : _load,
                                     ),
                                     const SizedBox(height: 24),
+                                  ],
+                                  if (_book.unreadableEntries > 0) ...[
+                                    Text(
+                                      'Некоторые сохранённые адреса повреждены. Исходные данные сохранены; остальные адреса доступны.',
+                                      style: AppTypography.bodySmall.copyWith(
+                                          color: palette.textSecondary),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  if (_saveError != null) ...[
+                                    Text(_saveError!,
+                                        style: AppTypography.bodySmall
+                                            .copyWith(color: palette.error)),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        TextButton(
+                                          key: const Key('address_draft_retry'),
+                                          onPressed: _busy || _loading
+                                              ? null
+                                              : _retryDraft,
+                                          child: const Text(
+                                              'Повторить сохранение'),
+                                        ),
+                                        TextButton(
+                                          key: const Key(
+                                              'address_draft_discard'),
+                                          onPressed: _busy || _loading
+                                              ? null
+                                              : () => setState(_discardDraft),
+                                          child: const Text('Удалить черновик'),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
                                   ],
                                   if (entries.isEmpty && _error == null) ...[
                                     Padding(
@@ -361,9 +477,10 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
-            child: AppGlassPanel(
+            child: AppSurface(
               radius: 32,
               padding: const EdgeInsets.all(8),
+              clip: true,
               child: FilledButton.icon(
                 key: const Key('address_book_add'),
                 style: FilledButton.styleFrom(
@@ -372,8 +489,8 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                 ),
                 onPressed: _busy || _loading ? null : () => _addOrEdit(),
                 icon: const Icon(Icons.add, size: 20),
-                label: const Text('Добавить адрес',
-                    textAlign: TextAlign.center),
+                label:
+                    const Text('Добавить адрес', textAlign: TextAlign.center),
               ),
             ),
           ),

@@ -1,203 +1,80 @@
 ---
 name: dart-use-path-package
-description: >-
-  Cross-platform file and directory path manipulation, segment splitting, extension extraction, and context conversion using `package:path` and `package:file`. Use when writing, inspecting, joining, splitting, or refactoring file paths, directory names, or extensions, or replacing raw string path operations (`.split('/')`, `'$dir/$file'`, `.endsWith('.ext')`, `.replaceAll('\\', '/')`). Don't use for HTTP network URI routing, database query strings, or non-path string processing.
-metadata:
-  model: models/gemini-3.1-pro-preview
-  last_modified: Sun, 06 Sep 2026 07:14:00 GMT
+description: Use when Dart code joins, compares, splits or converts filesystem paths, handles extensions, or must respect a foreign or in-memory filesystem's path style.
 ---
 
-# Safe Cross-Platform Path Manipulation in Dart
+# Filesystem paths in Dart
 
-## Contents
-* [1. Core Principles & Cross-Platform Rules](#1-core-principles--cross-platform-rules)
-* [2. Recommended package:path Idioms vs. String Anti-Patterns](#2-recommended-packagepath-idioms-vs-string-anti-patterns)
-* [3. Bridging Native Paths to POSIX, Git, & URL Contexts](#3-bridging-native-paths-to-posix-git--url-contexts)
-* [4. Mockable File Systems (`package:file` vs. Global `p.*`)](#4-mockable-file-systems-packagefile-vs-global-p)
-* [5. Extensions, Compound Extensions & Stem Extraction](#5-extensions-compound-extensions--stem-extraction)
-* [6. Workflows & Audit Checklist](#6-workflows--audit-checklist)
-* [References & Examples](#references--examples)
+Use the existing `package:path` dependency for path semantics, not indiscriminate
+string replacement. This project already has path for tooling; do not add
+`package:file`, migrate filesystem access, or rewrite non-path strings to apply
+this skill. HTTP routing and URI encoding are distinct from native paths.
 
----
+## Select the correct context
 
-## 1. Core Principles & Cross-Platform Rules
+- Top-level `p.*` functions use the host style. For Windows strings on Linux use
+  `p.Context(style: p.Style.windows)` (or `p.windows`); similarly use `p.posix`
+  for explicitly POSIX inputs.
+- If code already uses `package:file`, use `entity.fileSystem.path`, including
+  tests using `MemoryFileSystem` with a style unlike the host. No new filesystem
+  abstraction is needed just to join a local path.
 
-### Avoid Treating File Paths as Raw Strings
-* Native file paths on Windows use backslashes (`\`), whereas macOS and Linux use forward slashes (`/`).
-* String operations like `.contains('foo/')`, `.startsWith('foo/')`, or `.split('/')` silently fail on Windows native paths.
-* String interpolation like `'$dir/$file'` injects forward slashes on Windows and produces duplicate slashes (`//`) when `$dir` ends with a trailing slash.
+## Operations and boundaries
 
-**Rule**: Always decompose paths into segments using `p.split(path)` before inspecting directory hierarchy or segment names, and always join path components using `p.join(...)`.
+| Intent | Operation |
+| --- | --- |
+| Join native segments | `context.join(root, 'sub', 'file.json')` |
+| Inspect component names | `context.split(context.normalize(path))` |
+| Test lexical descendant | `context.isWithin(root, path)` |
+| Extract name/extension | `basename`, `extension`, `withoutExtension` |
+| File URI conversion | matching context's `toUri` / `fromUri` |
 
-### Pragmatic Boundary Joining vs. Multi-Segment Decomposition (`p.join`)
-* **Cross-Platform Libraries (Windows + POSIX)**: Pass individual path segments to `p.join(dir, 'sub', 'file.json')` so `package:path` inserts OS-native separators (`\` on Windows, `/` on POSIX) between every component.
-* **POSIX-Only Tools & Static Subpath Greppability**: In codebases exclusively targeting Linux/macOS (or when joining a dynamic base path to a known static subpath), decomposing 5–6 static segments into separate arguments (`p.join(home, '.local', 'share', 'app', 'bin', 'config.json')`) causes `dart format` to wrap across 6–8 vertical lines and **destroys substring greppability** (`grep` / `code_search` for `.local/share/app/bin`).
-* **Rule for POSIX Targets**: Prefer **2-argument boundary joining** (`p.join(home, '.local/share/app/bin/config.json')`). This prevents duplicate-slash bugs (`//`) at variable boundaries while preserving single-line readability and exact string searchability.
+`isWithin` excludes equality. Both it and normalization are lexical, not a
+filesystem sandbox. For untrusted relative keys, reject absolute/outside-root
+inputs before converting; symlink escape checks need filesystem-aware handling.
 
-### Normalization vs. Canonicalization (`p.normalize` vs. `p.canonicalize`)
-* `p.normalize(path)` resolves `.` and `..` segments purely lexically without consulting the filesystem or standardizing case.
-* When deduplicating directory paths or comparing physical file identity across symlinks, relative roots, or case-insensitive filesystems, use `p.canonicalize(path)`.
+**`canonicalize` does not resolve symlinks**: it makes lexical canonical paths,
+including Windows ASCII-case normalization. Use `FileSystemEntity.identical`
+for filesystem-object identity, or `resolveSymbolicLinks` when a resolved target
+path is needed; these perform I/O and can fail. `identical` follows directory
+links within a path, **not a final link itself**: link-versus-target is false.
+Resolve final links first when comparing their targets. Extension parsing and
+normalization do not establish that an entry exists or is a file.
 
-### Strip Location Specifiers & Convert URIs Safely
-* Strings formatted as `<path>:<line>-<col>` or `<path>:<line>` are not pure file paths. Passing them directly to `p.normalize` or `Uri.parse` causes bugs (on Windows, `Uri.parse` mistakes `C:` for a URI scheme and `:line` for a port).
-* Extract the trailing `:line-col` suffix via regular expression (`RegExp(r'^(.*?):(\d+(?:-\d+)?)$')`) *before* passing the file path to `package:path`.
-* **URI Boundary Conversions**: When converting between file paths and `Uri` objects, always use `p.toUri(path)` and `p.fromUri(uri)` rather than `Uri.parse(path)` or manual string concatenation.
+## Convert relative keys, not roots
 
----
-
-## 2. Recommended package:path Idioms vs. String Anti-Patterns
-
-### Path Joining
-* **Prefer**: `p.join(dir, file)`
-* **Avoid**: `'$dir/$file'` or `'a/$b'`
-* **Why**: String interpolation injects `/` on Windows and creates duplicate
-  slashes (`//`) when `$dir` ends with a trailing separator.
-
-### Segment Matching
-* **Prefer**: `p.split(path).contains('foo')`
-* **Avoid**: `path.contains('foo/')`
-* **Why**: String matching fails on Windows backslashes (`foo\bar`) and produces
-  false positives on partial substring names (e.g. `barfoo/`).
-
-### Root and Directory Prefixes
-* **Prefer**: `p.split(path).first == 'foo'` or `p.isWithin('foo', path)`
-* **Avoid**: `path.startsWith('foo/')`
-* **Why**: Fails on Windows separators and misses relative prefix variants such
-  as `./foo/`.
-
-### File Extensions
-* **Prefer**: `p.extension(path) == '.wasm'`
-* **Avoid**: `path.endsWith('.wasm')`
-* **Why**: Substring suffix matching falsely matches directories (`foo.wasm/`)
-  or non-extension suffixes.
-
-### Extension Slicing and Compound Extensions
-* **Prefer**: `p.withoutExtension(path)` and `p.extension(path, 2)`
-* **Avoid**: `path.lastIndexOf('.')` and manual `substring` slicing
-* **Why**: Manual arithmetic breaks on hidden dotfiles (`.gitignore`) and
-  compound extensions (`.js.map`, `.tar.gz`).
-
-### POSIX and URL Path Conversion
-* **Prefer**: `p.posix.joinAll(p.split(path))` or `p.url.joinAll(p.split(path))`
-* **Avoid**: `path.replaceAll(r'\', '/')`
-* **Why**: Ad-hoc separator replacement fails on root drives and mixes OS
-  context with POSIX or URL targets.
-
-### URI Conversion
-* **Prefer**: `p.toUri(path)` and `p.fromUri(uri)`
-* **Avoid**: `Uri.parse(path)` and `uri.path`
-* **Why**: Direct URI parsing fails on Windows drive letters (`C:`) and leaks
-  percent-encoding (e.g. `%20` for spaces).
-
-### Directory Basename Helper
-* **Prefer**:
-  `String canonicalDirName(Directory d) => p.basename(p.normalize(d.absolute.path));`
-* **Avoid**: Repeating `p.basename(p.normalize(dir.absolute.path))` inline
-  across files.
-* **Why**: Centralizes canonical directory naming logic and reduces boilerplate.
-
----
-
-## 3. Bridging Native Paths to POSIX, Git, & URL Contexts
-
-Avoid calling `.replaceAll('\\', '/')` or `.replaceAll(r'\', '/')` to convert
-OS-native paths into POSIX paths (for Git, YAML, archive manifests) or URL
-segments.
-
-**Rule**: Split the relative native path using `p.split(...)`, inspect segments
-with **Dart 3 list pattern matching**, and join using `p.posix.joinAll(...)` or
-`p.url.joinAll(...)`. Always call `p.relative(filePath, from: root)` first so
-leading root segments (`'/'` on POSIX or `r'C:\'` on Windows) do not interfere
-with relative prefix patterns:
+For a validated descendant using the source context:
 
 ```dart
-import 'package:path/path.dart' as p;
-
-String computeWebAssetKey(String filePath, String projectRoot) {
-  final relative = p.relative(filePath, from: projectRoot);
-  final segments = p.split(relative);
-  return switch (segments) {
-    ['assets', ...] => p.posix.joinAll(segments),
-    _ => p.posix.joinAll(['assets', ...segments]),
-  };
-}
+final relative = source.relative(filePath, from: root);
+final segments = source.split(relative);
+final gitKey = p.posix.joinAll(segments);
+final url = Uri(
+  scheme: 'https',
+  host: 'example.invalid',
+  pathSegments: ['assets', ...segments],
+);
 ```
 
-### Git Paths and Repository Metadata
-* Git repository tree objects, `.gitignore` pattern rules, `.gitattributes`,
-  and git-tracked symlinks strictly use POSIX forward slashes (`/`), even on
-  Windows.
-* Inserting native Windows backslashes (`\`) into `.gitignore` or git commands
-  causes Git to treat `\` as an escape character rather than a directory
-  separator, silently breaking pattern matching.
-* When generating `.gitignore` entries, repository manifests, or symlink
-  targets programmatically from native file paths, convert the relative native
-  path using `p.posix.joinAll(p.split(relativePath))` or `p.posix.join(...)`.
+`p.url.joinAll` joins URL-style paths but does **not** percent-encode spaces or
+`#`; `Uri(pathSegments: ...)` handles encoding. Do not use `Uri.parse(nativePath)`
+or turn an absolute Windows root into a POSIX segment. Strip any diagnostic
+`:line:column` suffix according to its actual format before path operations.
 
----
+For extensions, define the intended compound suffixes explicitly: extension
+level 2 is not a file-type detector (`main.dart.wasm` has `.dart.wasm`). Dotfiles,
+trailing separators, case sensitivity, roots and relative paths need deliberate
+cases. Keep literal suffix checks when that, rather than extension semantics,
+is the requirement.
 
-## 4. Mockable File Systems (`package:file` vs. Global `p.*`)
+## Examples and checks
 
-In codebases that use `package:file` (e.g., CLI applications or services tested
-with `MemoryFileSystem`), avoid calling top-level `p.*` functions on `File` or
-`Directory` paths.
+- [Cross-platform paths and compound extensions](examples/cross_platform_paths.dart).
+- [Existing package:file context](examples/file_system_context.dart).
 
-* Top-level `p.*` functions bind to the *host operating system* running the test.
-* If a unit test creates a `MemoryFileSystem(style: FileSystemStyle.windows)` on a Linux or macOS runner, global `p.split(file.path)` will split on `/` instead of `\`, breaking the test.
+Check Windows/POSIX contexts explicitly and reuse existing tests. The second
+example requires package:file; it is optional reference material, not a new
+project dependency.
 
-**Rule**: Always use the `Context` attached to the `FileSystem` (`file.fileSystem.path`):
-
-```dart
-import 'package:file/file.dart';
-
-List<String> listSubdirectoryNames(Directory dir) {
-  final pathContext = dir.fileSystem.path;
-  return dir
-      .listSync()
-      .whereType<Directory>()
-      .map((d) => pathContext.basename(d.path))
-      .toList();
-}
-```
-
----
-
-## 5. Extensions, Compound Extensions & Stem Extraction
-
-Avoid manual `.lastIndexOf('.')` and `.substring()` arithmetic when extracting file extensions or inserting content hashes. `p.extension` natively supports multi-level extensions via its optional `level` parameter.
-
-* **Multi-Dot Stem Nuance**: Calling `p.extension('main.dart.wasm', 2)` returns `'.dart.wasm'` because it blindly captures the last two dot-separated segments. When hashing or stripping extensions on files that may have multi-dot stems (e.g., `main.dart.wasm` vs. `main.dart.js.map`), check whether `p.extension(filename, 2)` matches a known compound extension (or `.endsWith('.map')`) before falling back to single-level `p.extension(filename)`:
-
-```dart
-import 'package:path/path.dart' as p;
-
-String insertContentHash(String filename, String hash) {
-  final compoundExt = p.extension(filename, 2);
-  // Only use the 2-level extension for true compound suffixes (e.g., '.js.map')
-  final ext = compoundExt.endsWith('.map')
-      ? compoundExt
-      : p.extension(filename);
-  final stem = filename.substring(0, filename.length - ext.length);
-  return '$stem.$hash$ext';
-}
-```
-
----
-
-## 6. Workflows & Audit Checklist
-
-### Path Refactoring Checklist
-- [ ] Replace string interpolation (`'$dir/$file'`) with `p.join(dir, file)`.
-- [ ] Replace `.contains('dir/')` and `.startsWith('dir/')` with `p.split(path)` segment checks or `p.isWithin(parent, child)`.
-- [ ] Replace `.replaceAll(r'\', '/')` with `p.posix.joinAll(p.split(path))` (or `p.url.joinAll`).
-- [ ] Replace `.endsWith('.ext')` on file paths with `p.extension(path) == '.ext'`.
-- [ ] Replace manual dot-index slicing with `p.withoutExtension(path)` and `p.extension(path, [level])`.
-- [ ] Verify that code using `package:file` accesses `fileSystem.path` instead of global `p.*`.
-- [ ] Ensure Git paths, `.gitignore` entries, and symlink targets use `p.posix` forward slashes.
-
----
-
-## References & Examples
-
-* **Cross-Platform Path & POSIX Conversion Examples**: [examples/cross_platform_paths.dart](examples/cross_platform_paths.dart)
-* **Mockable FileSystem Path Context Example**: [examples/file_system_context.dart](examples/file_system_context.dart)
+[canonicalize API](https://pub.dev/documentation/path/latest/path/canonicalize.html)
+· [Filesystem identity API](https://api.dart.dev/dart-io/FileSystemEntity/identical.html)

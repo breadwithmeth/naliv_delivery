@@ -14,7 +14,9 @@ import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
+import '../ui/liquid_glass_dock.dart';
 import '../ui/product_card.dart';
+import '../ui/product_grid.dart';
 import '../utils/api.dart';
 import '../utils/cart_provider.dart';
 import '../utils/liked_items_provider.dart';
@@ -85,15 +87,17 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
       _loadItems();
     }
   }
+
   String? _itemTerms(List<ProductView> items) {
     final terms = <String>{};
     for (final item in items) {
       if (item.promo != null) terms.add(item.promo!);
       if (item.discount != null) terms.add(item.discount!);
     }
-    return terms.isEmpty ? null : 'Условия отдельных товаров: ${terms.join(' · ')}';
+    return terms.isEmpty
+        ? null
+        : 'Условия отдельных товаров: ${terms.join(' · ')}';
   }
-
 
   Future<void> _loadItems() async {
     final generation = ++_loadGeneration;
@@ -221,95 +225,64 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
   }
 
   Widget _header() => AppTopBar(
-        title: _title,
+        title: 'Акции',
         onBack: () => Navigator.of(context).maybePop(),
       );
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
-    final count = cart.displayItemCount;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xxxl,
-                  ),
-                  child: _header(),
+        child: LiquidGlassDock(
+          content: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxxl,
                 ),
-                const SizedBox(height: AppSpacing.xl),
-                if (!_isLoading && !_failed && _items != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Товары акции · ${_items!.length}',
-                            style: AppTypography.bodySmall
-                                .copyWith(color: context.palette.textSecondary),
-                          ),
-                          if (_terms != null)
-                            Text(_terms!,
-                                style: AppTypography.bodySmall
-                                    .copyWith(color: context.palette.gold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: AppSpacing.xl),
-                Expanded(child: _body()),
-              ],
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice(),
-                  onTap: _openCart,
-                ),
+                child: _header(),
               ),
+              const SizedBox(height: AppSpacing.xl),
+              Expanded(child: _body()),
+            ],
+          ),
+          dock: Selector<CartProvider, (int, double?)>(
+            selector: (_, cart) => (
+              cart.displayItemCount,
+              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
             ),
-          ],
+            builder: (_, summary, __) => AppCartButton(
+              itemCount: summary.$1,
+              total: summary.$2,
+              onTap: _openCart,
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _body() {
-    if (_isLoading) return const AppLoading();
-    if (_failed) {
-      return AppErrorState(
+    final items = _items;
+    Widget? footer;
+    if (_isLoading) {
+      footer = const SizedBox(height: 200, child: AppLoading());
+    } else if (_failed) {
+      footer = AppErrorState(
         message: 'Не удалось загрузить товары акции',
         onRetry: _loadItems,
       );
-    }
-    final items = _items;
-    if (items == null || items.isEmpty) {
-      return const AppEmptyState(
+    } else if (items == null || items.isEmpty) {
+      footer = const AppEmptyState(
         title: 'В этой акции пока нет товаров',
         muted: true,
       );
     }
-    final cart = context.watch<CartProvider>();
-    final liked = context.watch<LikedItemsProvider>();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final usableWidth = constraints.maxWidth - AppSpacing.gutter * 2;
-        final columns = ProductCard.columnsFor(context, usableWidth);
-        final cardWidth =
-            (usableWidth - AppSpacing.md * (columns - 1)) / columns;
-        return GridView.builder(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 840),
+        child: ProductGrid(
           key: const ValueKey('promotion-products-grid'),
           padding: EdgeInsets.fromLTRB(
             AppSpacing.gutter,
@@ -318,40 +291,60 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
             AppCartButton.clearanceFor(context) +
                 MediaQuery.paddingOf(context).bottom,
           ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisSpacing: AppSpacing.xl,
-            crossAxisSpacing: AppSpacing.md,
-            mainAxisExtent: ProductCard.heightFor(
-              context,
-              width: cardWidth,
-              products: items,
-            ),
+          header: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _title,
+                style: AppTypography.displayBold
+                    .copyWith(color: context.palette.textPrimary),
+              ),
+              if (!_isLoading && !_failed && items != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Товары акции · ${items.length}',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.palette.textSecondary),
+                ),
+                if (_terms != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    _terms!,
+                    style: AppTypography.bodySmall
+                        .copyWith(color: context.palette.textSecondary),
+                  ),
+                ],
+              ],
+            ],
           ),
-          itemCount: items.length,
+          footer: footer,
+          itemCount: _isLoading || _failed ? 0 : items?.length ?? 0,
           itemBuilder: (context, index) {
-            final item = items[index];
-            final isLiked = liked.isLiked(widget.businessId, item.itemId);
+            final item = items![index];
             final busy = _liking.contains((widget.businessId, item.itemId));
-            final quantity = cart.getCatalogQuantity(item.source);
-            final card = ProductCard.fromView(
-              item,
-              quantity: quantity,
-              onTap: () => _openItem(item),
-              onIncrement:
-                  item.source.amount != null && quantity >= item.source.amount!
+            return Selector2<CartProvider, LikedItemsProvider, (double, bool)>(
+              selector: (_, cart, likes) => (
+                cart.getCatalogQuantityForKey(item.catalogKey),
+                likes.isLiked(widget.businessId, item.itemId),
+              ),
+              builder: (context, state, _) {
+                final quantity = state.$1;
+                final isLiked = state.$2;
+                return ProductCard.fromView(
+                  item,
+                  key: ValueKey('promotion-product-$index'),
+                  quantity: quantity,
+                  onTap: () => _openItem(item),
+                  onIncrement: item.source.amount != null &&
+                          quantity >= item.source.amount!
                       ? null
-                      : () => cart.incrementCatalogItem(item.source),
-              onDecrement: () => cart.decrementCatalogItem(item.source),
-            );
-            return Stack(
-              key: ValueKey('promotion-product-$index'),
-              children: [
-                Positioned.fill(child: card),
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: Semantics(
+                      : () => context
+                          .read<CartProvider>()
+                          .incrementCatalogItem(item.source),
+                  onDecrement: () => context
+                      .read<CartProvider>()
+                      .decrementCatalogItem(item.source),
+                  trailingAction: Semantics(
                     button: true,
                     toggled: isLiked,
                     enabled: !busy,
@@ -365,10 +358,9 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                         asset: AppIcons.heart,
                         size: AppSpacing.touchTarget,
                         glyphSize: 20,
-                        blur: 0,
                         fill: isLiked
-                            ? context.palette.brandRed.withValues(alpha: 0.75)
-                            : context.palette.surface.withValues(alpha: 0.75),
+                            ? context.palette.brandRed
+                            : context.palette.surfaceMuted,
                         color: isLiked
                             ? Colors.white
                             : context.palette.textPrimary,
@@ -379,12 +371,12 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+              },
             );
           },
-        );
-      },
+        ),
+      ),
     );
   }
 }

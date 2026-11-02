@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
@@ -8,22 +8,58 @@ import 'package:naliv_delivery/model/item.dart' as item_model;
 import 'smart_cart.dart';
 import 'promotion_engine.dart';
 
+enum CartSaveStatus { saved, pending, failed, restoreFailed }
+
 /// Провайдер управления корзиной
 class CartProvider extends ChangeNotifier {
   static const double _quantityEpsilon = 0.0000001;
   static const _storageKey = 'cart_items';
   int? _businessId;
   bool _loaded = false;
+  bool _restoreFailed = false;
   bool _disposed = false;
   Future<void>? _loading;
   Future<void> _pendingPersistence = Future<void>.value();
+  final ValueNotifier<CartSaveStatus> _saveStatus =
+      ValueNotifier(CartSaveStatus.saved);
+  int _savedRevision = 0;
+  int _saveAttempt = 0;
+
+  ValueListenable<CartSaveStatus> get saveStatus => _saveStatus;
+  int get contentRevision => _revision;
+
+  Future<bool> ensureSaved() async {
+    await ensureLoaded();
+    while (true) {
+      final pending = _pendingPersistence;
+      await pending;
+      if (identical(pending, _pendingPersistence)) {
+        return !_restoreFailed && _loaded && _savedRevision == _revision;
+      }
+    }
+  }
+
+  Future<bool> retrySave() async {
+    await ensureLoaded();
+    if (_restoreFailed) return false;
+    if (_savedRevision != _revision) _saveCart();
+    return ensureSaved();
+  }
+
+  void _setSaveStatus(CartSaveStatus status) {
+    if (!_disposed) _saveStatus.value = status;
+  }
 
   int? get businessId => _businessId;
   bool get hasUnresolvedBusiness => hasActiveItems && _businessId == null;
 
-  Future<void> ensureLoaded() => _loaded
-      ? Future<void>.value()
-      : (_loading ??= loadCart().whenComplete(() => _loading = null));
+  Future<void> ensureLoaded() {
+    if (_loading != null) return _loading!;
+    if (_loaded || _restoreFailed) return Future<void>.value();
+    return loadCart();
+  }
+
+  bool get _canMutate => !_restoreFailed && _loading == null && !_disposed;
 
   final List<CartItem> _items = [];
   final Map<String, int> _displayOrderByKey = <String, int>{};
@@ -33,6 +69,7 @@ class CartProvider extends ChangeNotifier {
   int _displayGroupsRevision = -1;
   List<CartDisplayGroup> _displayGroups = const [];
   List<CartDisplayGroup> _activeDisplayGroups = const [];
+  final Map<String, double> _catalogQuantities = {};
 
   /// Неподmodifiable список товаров в корзине
   UnmodifiableListView<CartItem> get items => UnmodifiableListView(_items);
@@ -89,6 +126,10 @@ class CartProvider extends ChangeNotifier {
     _activeDisplayGroups = List<CartDisplayGroup>.unmodifiable(
         groups.where((group) => group.totalQuantity > _quantityEpsilon));
     _displayGroupsRevision = _revision;
+    _catalogQuantities
+      ..clear()
+      ..addEntries(
+          groups.map((group) => MapEntry(group.key, group.totalQuantity)));
   }
 
   bool get hasActiveItems => activeDisplayGroups.isNotEmpty;
@@ -97,6 +138,7 @@ class CartProvider extends ChangeNotifier {
 
   /// Добавить товар. Возвращает false, если обязательные опции не выбраны
   bool addItem(CartItem newItem) {
+    if (!_canMutate) return false;
     final normalizedItem = _normalizeItem(newItem);
     final snapshot = normalizedItem.snapshotItem;
     if (!normalizedItem.quantity.isFinite ||
@@ -140,11 +182,13 @@ class CartProvider extends ChangeNotifier {
   }
 
   bool addDisplayGroupItems(Iterable<CartItem> items) {
+    if (!_canMutate) return false;
     final rows = items.map(_normalizeItem).toList(growable: false);
     if (rows.isEmpty) return false;
     final groups = CartDisplayGroup.groupItems(rows);
     if (groups.length != 1) return false;
     final group = groups.single;
+    final evaluated = group.evaluate();
     final selection = group.selection;
     if (rows.any((row) =>
         !row.quantity.isFinite ||
@@ -158,7 +202,7 @@ class CartProvider extends ChangeNotifier {
         !_requiredVariantsSelected(row.selectedVariants))) {
       return false;
     }
-    if (group.allocationIssue != null ||
+    if (evaluated.allocationIssue != null ||
         group.hasWithdrawnBottles ||
         selection?.containerIssue != null ||
         selection?.quantityIssue != null) {
@@ -168,7 +212,7 @@ class CartProvider extends ChangeNotifier {
         displayGroups.firstWhereOrNull((entry) => entry.key == group.key);
     if (selection != null &&
         !_fitsStock(selection, group.key,
-            (current?.totalQuantity ?? 0) + group.totalQuantity,
+            (current?.totalQuantity ?? 0) + evaluated.totalQuantity,
             retainedGiftCounts: group.retainedGiftBottleCounts)) {
       return false;
     }
@@ -199,16 +243,19 @@ class CartProvider extends ChangeNotifier {
     }
     final reserved = <int, double>{};
     final stock = <int, double>{};
-    for (final group in CartDisplayGroup.groupItems(normalized)) {
+    final evaluation = CartEvaluation(CartDisplayGroup.groupItems(normalized));
+    for (final evaluated in evaluation.groups) {
+      final group = evaluated.group;
       final selection = group.selection;
       if (group.hasWithdrawnBottles ||
-          group.allocationIssue != null ||
+          evaluated.allocationIssue != null ||
           selection?.containerIssue != null ||
           selection?.quantityIssue != null) {
         return false;
       }
-      reserved.update(group.itemId, (amount) => amount + group.totalOrderQuantity,
-          ifAbsent: () => group.totalOrderQuantity);
+      reserved.update(
+          group.itemId, (amount) => amount + evaluated.totalOrderQuantity,
+          ifAbsent: () => evaluated.totalOrderQuantity);
       final limit = group.maxAmount;
       if (limit != null) {
         final previous = stock[group.itemId];
@@ -235,24 +282,29 @@ class CartProvider extends ChangeNotifier {
 
   bool _addItemInternal(CartItem newItem, {bool refreshPromotions = false}) {
     if (!_requiredVariantsSelected(newItem.selectedVariants)) return false;
-
+    final variantKeys = newItem.selectedVariants
+        .map(SmartCartSelection.variantStableKey)
+        .toList(growable: false);
     final index = _items.indexWhere(
       (item) =>
           item.itemId == newItem.itemId &&
-          const DeepCollectionEquality()
-              .equals(item.selectedVariants, newItem.selectedVariants),
+          const ListEquality<String>().equals(
+              item.selectedVariants
+                  .map(SmartCartSelection.variantStableKey)
+                  .toList(growable: false),
+              variantKeys),
     );
     if (index >= 0) {
-      _items[index].quantity += newItem.quantity;
-      // Catalogue-sourced merges carry live promotions, so they replace the ones stored when the
-      // row was created: a promotion that ended stops gifting and a new one applies as soon as the
-      // item is touched again. Repeat-order rows keep the historical promotions they were built
-      // with, because overwriting a live promotion with an order's snapshot could resurrect an
-      // expired gift or, with no catalogue snapshot, silently drop a discount.
-      if (refreshPromotions &&
-          !const DeepCollectionEquality()
-              .equals(_items[index].promotions, newItem.promotions)) {
-        _items[index] = _items[index].copyWith(promotions: newItem.promotions);
+      final existing = _items[index];
+      if (refreshPromotions) {
+        // A catalogue touch refreshes the complete authoritative row, not just
+        // promotions. Historical repeat rows do not replace catalogue metadata.
+        _items[index] = newItem.copyWith(
+          quantity: existing.quantity + newItem.quantity,
+          giftBottleCounts: existing.giftBottleCounts,
+        );
+      } else {
+        existing.quantity += newItem.quantity;
       }
     } else {
       _items.add(newItem);
@@ -262,6 +314,7 @@ class CartProvider extends ChangeNotifier {
 
   /// Удалить товар(ы) по ID и (необязательно) вариантам
   void removeItem(int itemId, [List<Map<String, dynamic>>? variants]) {
+    if (!_canMutate) return;
     _removeItemInternal(itemId, variants);
     _persistAndNotify();
   }
@@ -284,6 +337,7 @@ class CartProvider extends ChangeNotifier {
 
   /// Очистить всю корзину
   void clearCart() {
+    if (!_canMutate) return;
     _items.clear();
     _displayOrderByKey.clear();
     _nextDisplayOrder = 0;
@@ -293,6 +347,7 @@ class CartProvider extends ChangeNotifier {
   /// Обновить количество товара, удалит при <=0
   void updateQuantity(int itemId, double newQuantity,
       [List<Map<String, dynamic>>? variants]) {
+    if (!_canMutate) return;
     final existing = getItem(itemId, variants);
     if (existing == null || !newQuantity.isFinite || newQuantity < 0) return;
     final ratio = newQuantity / existing.stepQuantity;
@@ -329,16 +384,15 @@ class CartProvider extends ChangeNotifier {
     return true;
   }
 
-  /// Общая сумма корзины с учетом скидок
-  double getTotalPrice() =>
-      displayGroups.fold(0.0, (sum, item) => sum + item.totalPrice);
+  CartEvaluation evaluate({DateTime? now}) =>
+      CartEvaluation(displayGroups, now: now);
 
-  List<Map<String, dynamic>> toJsonForOrder() => [
-        for (final group in activeDisplayGroups) ...group.toJsonForOrder(),
-      ];
+  double getTotalPrice() => evaluate().totalPrice;
+
+  List<Map<String, dynamic>> toJsonForOrder() => evaluate().toJsonForOrder();
 
   String _serializedState({int? businessId, bool empty = false}) => jsonEncode({
-        'business_id': businessId ?? _businessId,
+        'business_id': empty ? businessId : (businessId ?? _businessId),
         'items': empty
             ? const <Object>[]
             : _items.map((item) => item.toJson()).toList(growable: false),
@@ -367,55 +421,94 @@ class CartProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<void> _saveCart() {
+  Future<bool> _saveCart() {
     _loaded = true;
+    final revision = _revision;
+    final attempt = ++_saveAttempt;
     final state = _serializedState();
+    _setSaveStatus(CartSaveStatus.pending);
     return _enqueuePersistence(() async {
-      await _writeState(state);
+      final saved = await _writeState(state);
+      if (saved) _savedRevision = revision;
+      if (attempt == _saveAttempt && revision == _revision) {
+        _setSaveStatus(_savedRevision == _revision
+            ? CartSaveStatus.saved
+            : CartSaveStatus.failed);
+      }
+      return saved;
     });
   }
 
-  Future<void> loadCart() async {
+  Future<void> loadCart() =>
+      _loading ??= _readCart().whenComplete(() => _loading = null);
+
+  Future<bool> retryLoad() async {
+    // Unsaved accepted edits need save recovery, never a destructive re-read.
+    if (_loaded && _savedRevision != _revision) return false;
+    await (_loading ??=
+        _readCart(reload: true).whenComplete(() => _loading = null));
+    return !_restoreFailed && _loaded;
+  }
+
+  Future<void> _readCart({bool reload = false}) async {
     await _pendingPersistence;
+    if (_loaded && _savedRevision != _revision) return;
     final revision = _revision;
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_storageKey);
-    if (_revision != revision || _disposed) return;
-    if (jsonString != null) {
-      final decoded = jsonDecode(jsonString);
-      final rawRows = decoded is Map ? decoded['items'] : decoded;
-      if (rawRows is! List) {
-        throw const FormatException('Неверный формат сохранённой корзины');
-      }
-      final rows = [
-        for (final raw in rawRows)
-          _normalizeItem(CartItem.fromJson(Map<String, dynamic>.from(raw as Map))),
-      ];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (reload) await prefs.reload();
+      final jsonString = prefs.getString(_storageKey);
+      if (_revision != revision || _disposed) return;
+      final rows = <CartItem>[];
       int? storedBusinessId;
-      if (decoded is Map) {
-        storedBusinessId = _storeId(decoded['business_id']);
-      } else if (rows.isNotEmpty) {
-        // Legacy snapshots may prove the store. A bare list without that
-        // evidence remains readable/removable but is never assigned a default.
-        final ids = rows.map((row) => row.snapshotItem?.businessId).toSet();
-        if (ids.length == 1) storedBusinessId = _storeId(ids.single);
+      if (jsonString != null) {
+        final decoded = jsonDecode(jsonString);
+        final rawRows = decoded is Map ? decoded['items'] : decoded;
+        if (rawRows is! List) {
+          throw const FormatException('Неверный формат сохранённой корзины');
+        }
+        for (final raw in rawRows) {
+          rows.add(_normalizeItem(
+              CartItem.fromJson(Map<String, dynamic>.from(raw as Map))));
+        }
+        if (decoded is Map) {
+          storedBusinessId = _storeId(decoded['business_id']);
+        } else if (rows.isNotEmpty) {
+          // Unknown-store legacy rows remain readable, never default-bound.
+          final ids = rows.map((row) => row.snapshotItem?.businessId).toSet();
+          if (ids.length == 1) storedBusinessId = _storeId(ids.single);
+        }
       }
+      final changed = jsonString != null ||
+          _items.isNotEmpty ||
+          _businessId != null ||
+          _restoreFailed;
       _businessId = storedBusinessId;
       _displayOrderByKey.clear();
       _nextDisplayOrder = 0;
       _items
         ..clear()
         ..addAll(rows);
-      _revision++;
+      if (changed) _revision++;
       _mergeExactDuplicates();
-      if (!_disposed) notifyListeners();
+      _savedRevision = _revision;
+      _loaded = true;
+      _restoreFailed = false;
+      _setSaveStatus(CartSaveStatus.saved);
+      if (changed && !_disposed) notifyListeners();
+    } catch (error) {
+      // Keep both the last published rows and unread persisted bytes intact.
+      // No ordinary edit or save retry may overwrite them until explicit recovery.
+      _restoreFailed = true;
+      _setSaveStatus(CartSaveStatus.restoreFailed);
+      debugPrint('Не удалось восстановить корзину: $error');
     }
-    _loaded = true;
   }
 
   Future<bool> bindBusiness(int businessId) async {
     if (businessId <= 0) return false;
     await ensureLoaded();
+    if (!_canMutate) return false;
     return _enqueuePersistence(() async {
       if (_businessId == businessId) return true;
       if (hasActiveItems) return false;
@@ -428,15 +521,19 @@ class CartProvider extends ChangeNotifier {
         return false;
       }
       _businessId = businessId;
+      _revision++;
+      _savedRevision = _revision;
+      _setSaveStatus(CartSaveStatus.saved);
       if (!_disposed) notifyListeners();
       return true;
     });
   }
 
-  Future<bool> discardForBusiness(int businessId) async {
-    if (businessId <= 0) return false;
+  Future<bool> discardForBusiness(int? businessId) async {
+    if (businessId != null && businessId <= 0) return false;
     await ensureLoaded();
     return _enqueuePersistence(() async {
+      if (businessId == null && !_restoreFailed) return false;
       final revision = _revision;
       if (!await _writeState(
           _serializedState(businessId: businessId, empty: true))) {
@@ -451,6 +548,10 @@ class CartProvider extends ChangeNotifier {
       _displayOrderByKey.clear();
       _nextDisplayOrder = 0;
       _revision++;
+      _loaded = true;
+      _restoreFailed = false;
+      _savedRevision = _revision;
+      _setSaveStatus(CartSaveStatus.saved);
       if (!_disposed) notifyListeners();
       return true;
     });
@@ -460,6 +561,7 @@ class CartProvider extends ChangeNotifier {
       int businessId, Iterable<CartItem> replacement) async {
     if (businessId <= 0) return false;
     await ensureLoaded();
+    if (!_canMutate) return false;
     final rows = replacement.map(_normalizeItem).toList(growable: false);
     if (!canReplaceItems(rows)) return false;
     return _enqueuePersistence(() async {
@@ -481,6 +583,8 @@ class CartProvider extends ChangeNotifier {
       _nextDisplayOrder = 0;
       _revision++;
       _mergeExactDuplicates();
+      _savedRevision = _revision;
+      _setSaveStatus(CartSaveStatus.saved);
       if (!_disposed) notifyListeners();
       return true;
     });
@@ -508,11 +612,12 @@ class CartProvider extends ChangeNotifier {
     updateQuantity(itemId, newQuantity, variants);
   }
 
-  double getCatalogQuantity(item_model.Item item) {
-    final selection = SmartCartSelection(item);
-    final group = displayGroups
-        .firstWhereOrNull((entry) => entry.key == selection.defaultDisplayKey);
-    return group?.totalQuantity ?? 0.0;
+  double getCatalogQuantity(item_model.Item item) =>
+      getCatalogQuantityForKey(SmartCartSelection(item).defaultDisplayKey);
+
+  double getCatalogQuantityForKey(String key) {
+    _ensureDisplayGroups();
+    return _catalogQuantities[key] ?? 0;
   }
 
   void incrementCatalogItem(item_model.Item item) {
@@ -532,6 +637,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   void removeDisplayGroup(CartDisplayGroup group) {
+    if (!_canMutate) return;
     final matching = _items
         .where(
             (item) => CartDisplayGroup.displayKeyForCartItem(item) == group.key)
@@ -549,6 +655,7 @@ class CartProvider extends ChangeNotifier {
 
   void updateDisplayGroupBottleCounts(
       CartDisplayGroup group, Map<int, int> bottleCounts) {
+    if (!_canMutate) return;
     final snapshot = group.itemSnapshot;
     if (snapshot == null) {
       return;
@@ -568,6 +675,7 @@ class CartProvider extends ChangeNotifier {
     double targetQuantity, {
     List<Map<String, dynamic>>? previousBaseVariants,
   }) =>
+      _canMutate &&
       _syncSelectionGroup(
           SmartCartSelection(item), baseVariants, targetQuantity,
           previousBaseVariants: previousBaseVariants);
@@ -578,6 +686,7 @@ class CartProvider extends ChangeNotifier {
     Map<int, int> bottleCounts, {
     List<Map<String, dynamic>>? previousBaseVariants,
   }) {
+    if (!_canMutate) return false;
     final selection = SmartCartSelection(item);
     if (!selection.usesPourFlow) return false;
     return _syncPourFlowBottleCounts(selection, baseVariants, bottleCounts,
@@ -588,6 +697,7 @@ class CartProvider extends ChangeNotifier {
     item_model.Item item, {
     required int direction,
   }) {
+    if (!_canMutate) return;
     final selection = SmartCartSelection(item);
     final key = selection.defaultDisplayKey;
     final currentGroup =
@@ -616,16 +726,18 @@ class CartProvider extends ChangeNotifier {
     CartDisplayGroup group, {
     required int direction,
   }) {
-    if (direction > 0 && !group.canIncrease) return;
+    if (!_canMutate) return;
+    final evaluated = group.evaluate();
+    if (direction > 0 && !evaluated.canIncrease) return;
     final snapshot = group.itemSnapshot;
     if (snapshot == null) {
       _adjustLegacyExistingGroup(group, direction: direction);
       return;
     }
 
-    final selection = SmartCartSelection(snapshot);
+    final selection = group.selection!;
     if (selection.usesPourFlow) {
-      final counts = group.paidBottleCounts;
+      final counts = evaluated.paidBottleCounts;
       var batches = 0;
       for (final count in counts.values) {
         if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
@@ -727,41 +839,46 @@ class CartProvider extends ChangeNotifier {
   double _legacyItemStep(CartItem item) =>
       item.stepQuantity > 0 ? item.stepQuantity : 1.0;
 
-  double _orderQuantity(SmartCartSelection selection, double paid) =>
+  double _orderQuantity(SmartCartSelection selection, double paid,
+          {DateTime? now}) =>
       paid +
-      subtractPromotionFreeQuantity(paid, [
-        for (final promotion
-            in selection.item.promotions ?? const <item_model.ItemPromotion>[])
-          if (promotion.isActive) promotion.toJson(),
-      ]);
+      subtractPromotionFreeQuantity(
+          paid,
+          [
+            for (final promotion in selection.item.promotions ??
+                const <item_model.ItemPromotion>[])
+              promotion.toJson(),
+          ],
+          now: now);
 
   bool _fitsStock(SmartCartSelection selection, String key, double paid,
       {String? previousKey, Map<int, int>? retainedGiftCounts}) {
-    final opened = displayGroups
-        .firstWhereOrNull((group) => group.key == (previousKey ?? key));
+    final evaluation = evaluate();
+    final opened = evaluation.groups
+        .firstWhereOrNull((entry) => entry.group.key == (previousKey ?? key));
+    final orderQuantity = _orderQuantity(selection, paid, now: evaluation.now);
     // Availability constrains fresh demand, never the customer's ability to
     // reduce or remove quantities that were actually restored from persistence.
     if (opened != null &&
         paid <= opened.totalQuantity + 0.0000001 &&
-        _orderQuantity(selection, paid) <=
-            opened.totalOrderQuantity + 0.0000001) {
+        orderQuantity <= opened.totalOrderQuantity + 0.0000001) {
       return true;
     }
     if (selection.usesPourFlow) {
       try {
-        selection.giftBottleBreakdown(paid, retainedCounts: retainedGiftCounts);
+        selection.giftBottleBreakdown(paid,
+            retainedCounts: retainedGiftCounts, now: evaluation.now);
       } on StateError {
         return false;
       }
     }
-    final reserved = activeDisplayGroups
-        .where((group) =>
-            group.itemId == selection.item.itemId &&
-            group.key != key &&
-            group.key != previousKey)
-        .fold<double>(0, (sum, group) => sum + group.totalOrderQuantity);
-    return reserved + _orderQuantity(selection, paid) <=
-        selection.maxAmount + 0.0000001;
+    final reserved = evaluation.activeGroups
+        .where((entry) =>
+            entry.group.itemId == selection.item.itemId &&
+            entry.group.key != key &&
+            entry.group.key != previousKey)
+        .fold<double>(0, (sum, entry) => sum + entry.totalOrderQuantity);
+    return reserved + orderQuantity <= selection.maxAmount + 0.0000001;
   }
 
   void _removePreviousConfiguration(String key, String? previousKey) {
@@ -882,15 +999,16 @@ class CartProvider extends ChangeNotifier {
     final totalLiters = selection.litersForCounts(bottleCounts);
     if (opened == null && selection.containerIssue != null) return false;
     Map<int, int>? retainedGifts;
+    final evaluatedOpened = opened?.evaluate();
     if (opened != null &&
-        opened.freeQuantity > 0 &&
-        opened.allocationIssue == null) {
-      final currentGifts = opened.selection!.giftBottleBreakdown(
-          opened.totalQuantity,
-          retainedCounts: opened.retainedGiftBottleCounts);
-      final nextGift = _orderQuantity(selection, totalLiters) - totalLiters;
+        evaluatedOpened!.freeQuantity > 0 &&
+        evaluatedOpened.allocationIssue == null) {
+      final nextGift =
+          _orderQuantity(selection, totalLiters, now: evaluatedOpened.now) -
+              totalLiters;
       retainedGifts = SmartCartSelection.scaledBottleCounts(
-          currentGifts, nextGift / opened.freeQuantity);
+          evaluatedOpened.giftBottleCounts,
+          nextGift / evaluatedOpened.freeQuantity);
       if (retainedGifts != null) {
         try {
           selection.giftBottleBreakdown(totalLiters,
@@ -930,8 +1048,8 @@ class CartProvider extends ChangeNotifier {
               selection: option.selection,
               optionItems: [
                 for (final variant in option.optionItems)
-                  oldBottles.firstWhereOrNull((old) =>
-                          old.relationId == variant.relationId) ??
+                  oldBottles.firstWhereOrNull(
+                          (old) => old.relationId == variant.relationId) ??
                       variant,
               ],
             ),
@@ -1024,6 +1142,7 @@ class CartProvider extends ChangeNotifier {
     String? packagingType,
     Map<String, dynamic>? itemData,
   ) {
+    if (!_canMutate) return false;
     // Используем переданные мапы вариантов и акций
     final variantMaps = SmartCartSelection.normalizeVariantMaps(
         List<Map<String, dynamic>>.from(selectedVariants));
@@ -1135,6 +1254,7 @@ class CartProvider extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _saveStatus.dispose();
     super.dispose();
   }
 }

@@ -1,130 +1,42 @@
 ---
 name: flutter-fix-layout-issues
-description: Fixes Flutter layout errors (overflows, unbounded constraints) using Dart and Flutter MCP tools. Use when addressing "RenderFlex overflowed", "Vertical viewport was given unbounded height", or similar layout issues.
-metadata:
-  model: models/gemini-3.1-pro-preview
-  last_modified: Tue, 21 Apr 2026 19:45:59 GMT
+description: Use when Flutter reports overflows, unbounded viewport or InputDecorator constraints, ParentData errors, or missing layout sizes.
 ---
-# Resolving Flutter Layout Errors
+# Fix Flutter layout constraints
 
-## Contents
-- [Constraint Violation Diagnostics](#constraint-violation-diagnostics)
-- [Layout Error Resolution Workflow](#layout-error-resolution-workflow)
-- [Examples](#examples)
+**Constraints go down; sizes go up; parents position children.** Locate the first exception and inspect constraints along that axis. Later `RenderBox was not laid out` errors may be consequences, not the cause. Do not repeatedly launch a known-failing environment just to recapture an already reported error.
 
-## Constraint Violation Diagnostics
+## Diagnose before choosing a wrapper
 
-Flutter layout operates on a strict rule: **Constraints go down. Sizes go up. Parent sets position.** Layout errors occur when this negotiation fails, typically due to unbounded constraints or unconstrained children. 
+| Failure | Check and smallest valid fix |
+| --- | --- |
+| Unbounded vertical viewport | Identify the scroll owner. A `ListView` in a bounded `Column` can use `Expanded`; inside `SingleChildScrollView`, the Column's height is unbounded and flex is not a fix. Prefer one lazy `ListView`/`CustomScrollView`; use a non-scrolling shrink-wrapped inner list only for small content. Use an explicit height only when the design needs a separately bounded viewport. |
+| Unbounded InputDecorator width | In a bounded `Row`, constrain the text field using `Expanded`/`Flexible` or a meaningful finite width. Trace any unbounded ancestor first. |
+| RenderFlex overflow | Measure text/control space at the failing width and text scale. Wrap flexible text, stack or wrap controls, or scroll the intended axis; `Expanded` is not a universal overflow fix. |
+| Incorrect ParentDataWidget | `Expanded`/`Flexible` must apply to a Flex child, `Positioned` to a Stack child, without an intervening incompatible render-object parent. Put padding inside the flex child. |
 
-Diagnose layout failures using the following error signatures:
+Example **only when the Column receives finite height**, such as a Scaffold body:
 
-*   **"Vertical viewport was given unbounded height"**: Triggered when a scrollable widget (`ListView`, `GridView`) is placed inside an unconstrained vertical parent (`Column`). The parent provides infinite height, and the child attempts to expand infinitely.
-*   **"An InputDecorator...cannot have an unbounded width"**: Triggered when a `TextField` or `TextFormField` is placed inside an unconstrained horizontal parent (`Row`). The text field attempts to determine its width based on infinite available space.
-*   **"RenderFlex overflowed"**: Triggered when a child of a `Row` or `Column` requests a size larger than the parent's allocated constraints. Visually indicated by yellow and black warning stripes.
-*   **"Incorrect use of ParentData widget"**: Triggered when a `ParentDataWidget` is not a direct descendant of its required ancestor. (e.g., `Expanded` outside a `Flex`, `Positioned` outside a `Stack`).
-*   **"RenderBox was not laid out"**: A cascading side-effect error. Ignore this and look further up the stack trace for the primary constraint violation (usually an unbounded height/width error).
-
-## Layout Error Resolution Workflow
-
-Copy and use this checklist to systematically resolve layout constraint violations.
-
-### Task Progress
-- [ ] Run the application in debug mode to capture the exact layout exception in the console.
-- [ ] Identify the primary error message (ignore cascading "RenderBox was not laid out" errors).
-- [ ] Apply the conditional fix based on the specific error type:
-  - **If "Vertical viewport was given unbounded height"**: Wrap the scrollable child (`ListView`, `GridView`) in an `Expanded` widget to consume remaining space, or wrap it in a `SizedBox` to provide an absolute height constraint.
-  - **If "An InputDecorator...cannot have an unbounded width"**: Wrap the `TextField` or `TextFormField` in an `Expanded` or `Flexible` widget.
-  - **If "RenderFlex overflowed"**: Constrain the overflowing child by wrapping it in an `Expanded` widget (to force it to fit) or a `Flexible` widget (to allow it to be smaller than the allocated space).
-  - **If "Incorrect use of ParentData widget"**: Move the `ParentDataWidget` to be a direct child of its required parent. Ensure `Expanded`/`Flexible` are direct children of `Row`/`Column`/`Flex`. Ensure `Positioned` is a direct child of `Stack`.
-- [ ] Execute Flutter hot reload.
-- [ ] Run validator -> review errors -> fix: Inspect the UI to verify the red/grey error screen or yellow/black overflow stripes are resolved. If new layout errors appear, repeat the workflow.
-
-## Examples
-
-### Fixing Unbounded Height (ListView in Column)
-
-**Input (Error State):**
 ```dart
-// Throws "Vertical viewport was given unbounded height"
 Column(
-  children: <Widget>[
-    const Text('Header'),
-    ListView(
-      children: const <Widget>[
-        ListTile(title: Text('Item 1')),
-        ListTile(title: Text('Item 2')),
-      ],
-    ),
-  ],
-)
-```
-
-**Output (Resolved State):**
-```dart
-// Wrap ListView in Expanded to constrain its height to the remaining Column space
-Column(
-  children: <Widget>[
+  children: [
     const Text('Header'),
     Expanded(
-      child: ListView(
-        children: const <Widget>[
-          ListTile(title: Text('Item 1')),
-          ListTile(title: Text('Item 2')),
-        ],
+      child: ListView.builder(
+        itemCount: items.length,
+        itemBuilder: buildItem,
       ),
     ),
   ],
 )
 ```
 
-### Fixing Unbounded Width (TextField in Row)
+Do not put that Column under a vertical scroll view. If large text/keyboard leaves no room for fixed headers/footers, move them into the single scrolling content instead. Avoid clipping errors, disabling text scaling, arbitrary fixed heights, and blanket `shrinkWrap` on large lists.
 
-**Input (Error State):**
-```dart
-// Throws "An InputDecorator...cannot have an unbounded width"
-Row(
-  children: [
-    const Icon(Icons.search),
-    TextField(), 
-  ],
-)
-```
+## Reproduce safely in this project
 
-**Output (Resolved State):**
-```dart
-// Wrap TextField in Expanded to constrain its width to the remaining Row space
-Row(
-  children: [
-    const Icon(Icons.search),
-    Expanded(
-      child: TextField(),
-    ),
-  ],
-)
-```
+Trace `lib/widgets/authentication_wrapper.dart` to the active feature/remaining legacy destination. Reuse `test/support/design_surfaces.dart` and relevant `test/integration/` tests. Launch `dart run tool/design_harness.dart preview` (the existing `tool/dev_surface.dart` Windows gallery); runtime MCP needs that debug app and is optional. Do not retry the known-failing debug Chrome path without a relevant change.
 
-### Fixing RenderFlex Overflow
+Check the failing geometry plus normal sizes: 320/375/800 px, inherited text scale up to 2, both themes, keyboard inset 300 and realistic long content. Avoid double-applying keyboard/safe-area insets. Assert no layout exception **and** final controls/fields remain reachable above the floating cart dock. Never verify with production SMS/orders/payments or account mutations.
 
-**Input (Error State):**
-```dart
-// Throws "A RenderFlex overflowed by X pixels on the right"
-Row(
-  children: [
-    const Icon(Icons.info),
-    const Text('This is a very long text string that will definitely overflow the available screen width and cause a RenderFlex error.'),
-  ],
-)
-```
-
-**Output (Resolved State):**
-```dart
-// Wrap the Text widget in Expanded to force it to wrap within the available constraints
-Row(
-  children: [
-    const Icon(Icons.info),
-    Expanded(
-      child: const Text('This is a very long text string that will definitely overflow the available screen width and cause a RenderFlex error.'),
-    ),
-  ],
-)
-```
+Run focused tests through `dart run tool/design_harness.dart check <existing-test-path>`; use fixture captures for visual proof, not as a substitute for interactions.

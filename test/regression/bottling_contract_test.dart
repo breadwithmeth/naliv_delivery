@@ -177,8 +177,7 @@ void main() {
     await restored.loadCart();
     expect(restored.getTotalPrice(), 3980);
     expect(restored.activeDisplayGroups.single.freeQuantity, 2);
-    expect(
-        restored.toJsonForOrder().map((row) => row['amount']), [2.0, 4.0]);
+    expect(restored.toJsonForOrder().map((row) => row['amount']), [2.0, 4.0]);
   });
 
   test('3+1 bottles every litre and charges four ordinary one-litre tariffs',
@@ -267,8 +266,8 @@ void main() {
   test('withdrawn 3L cannot enter a fresh cart through any add boundary', () {
     final item = capturedPourSurfaceItem();
     final selection = SmartCartSelection(item);
-    final bottle =
-        selection.bottleVariants.singleWhere((value) => value.relationId == 2713);
+    final bottle = selection.bottleVariants
+        .singleWhere((value) => value.relationId == 2713);
     final row = CartItem(
       itemId: item.itemId,
       name: item.name,
@@ -283,7 +282,8 @@ void main() {
     expect(cart.syncItemBottleCounts(item, [], {2713: 1}), isFalse);
     expect(cart.addItem(row), isFalse);
     expect(cart.addDisplayGroupItems([row]), isFalse);
-    expect(cart.syncItemSelectionQuantity(item, row.selectedVariants, 3), isFalse);
+    expect(
+        cart.syncItemSelectionQuantity(item, row.selectedVariants, 3), isFalse);
     final onlyWithdrawn = _boundary(volumes: [3]);
     expect(SmartCartSelection(onlyWithdrawn).usesPourFlow, isTrue);
     expect(SmartCartSelection(onlyWithdrawn).containerIssue, isNotNull);
@@ -507,6 +507,29 @@ void main() {
     expect(selection.autoBottleBreakdown(0.95), {2711: 2});
     expect(selection.volumeLabel(0.475), '0.475 л');
     expect(selection.autoBottleBreakdown(30), {2713: 1});
+  });
+
+  test('automatic bottling minimizes count before earlier-capacity preference',
+      () {
+    final selection = SmartCartSelection(_boundary(volumes: [0.2, 0.3, 0.5]));
+    expect(selection.autoBottleBreakdown(1), {2712: 2});
+    expect(selection.autoBottleBreakdown(0), isEmpty);
+  });
+
+  test('equal bottle minima retain the earliest filtered-capacity preference',
+      () {
+    final selection = SmartCartSelection(_boundary(volumes: [0.8, 0.4, 0.6]));
+    // 0.4 + 0.8 and 0.6 + 0.6 both use two bottles. The existing
+    // allocator prefers the earlier filtered capacity (0.4), not input order.
+    expect(selection.autoBottleBreakdown(1.2), {2711: 1, 2710: 1});
+  });
+
+  test('six-decimal coprime capacities retain exact paid-bottle quantities',
+      () {
+    final selection =
+        SmartCartSelection(_boundary(volumes: [0.475001, 0.333333]));
+    expect(selection.autoBottleBreakdown(4.75001), {2710: 10});
+    expect(() => selection.autoBottleBreakdown(0.1), throwsStateError);
   });
 
   test('explicit millilitre label converts capacity without inventing a unit',

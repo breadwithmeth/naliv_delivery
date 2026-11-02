@@ -5,9 +5,7 @@
     "html.format.wrapLineLength": 160,
     "git.mergeEditor": true,
     "java.configuration.updateBuildConfiguration": "interactive",
-    "dart.useLsp ": true,
-    "dart.useLegacyAnalyzerProtocol": true,
-    "cmake.sourceDirectory": "/Users/shrvse/naliv_delivery/linux"
+    "cmake.sourceDirectory": "${workspaceFolder}/windows"
 
 
 }

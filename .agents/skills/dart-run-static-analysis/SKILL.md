@@ -1,104 +1,46 @@
 ---
 name: dart-run-static-analysis
-description: Execute `dart analyze` to identify warnings and errors, and use `dart fix --apply` to automatically resolve mechanical lint issues. Use during development to ensure code quality and before committing changes.
+description: Use when inspecting Dart analyzer diagnostics, resolving warnings or type errors in changed files, or preparing analysis evidence for integration.
 metadata:
   model: models/gemini-3.1-pro-preview
-  last_modified: Fri, 24 Apr 2026 15:09:34 GMT
+  last_modified: "2026-11-02"
 ---
-# Analyzing and Fixing Dart Code
+# Analyze with the existing policy
 
-## Contents
-- [Analysis Configuration](#analysis-configuration)
-- [Diagnostic Suppression](#diagnostic-suppression)
-- [Workflow: Executing Static Analysis](#workflow-executing-static-analysis)
-- [Workflow: Applying Automated Fixes](#workflow-applying-automated-fixes)
-- [Examples](#examples)
+Read the current `analysis_options.yaml`, `pubspec.yaml` and affected code. This checkout already includes `package:flutter_lints/flutter.yaml`. Analysis is not permission to introduce strict-language flags, plugins, packages, new lint baselines or a formatter-policy migration.
 
-## Analysis Configuration
+## Inspect diagnostics
 
-Configure the Dart analyzer using the `analysis_options.yaml` file located at the package root.
+- Use OMP LSP diagnostics or `dart analyze <actual file>` for a focused inspection. Read the displayed source and related callsites before editing.
+- Record diagnostic code, location and cause. Separate introduced problems from unrelated existing diagnostics; report blockers without silently rewriting unrelated code.
+- Fix type/behavior problems at their cause. Do not downgrade errors, alter API contracts or add success-looking fallbacks to obtain a clean analyzer result.
 
-- **Base Configuration:** Always include a standard rule set (e.g., `package:lints/recommended.yaml` or `package:flutter_lints/flutter.yaml`) using the `include:` directive.
-- **Strict Type Checks:** Enable strict type checks under the `analyzer: language:` node to prevent implicit downcasts and dynamic inferences. Set `strict-casts: true`, `strict-inference: true`, and `strict-raw-types: true`.
-- **Linter Rules:** Explicitly enable or disable specific rules under the `linter: rules:` node. Use a key-value map (`rule_name: true/false`) when overriding included rules, or a list (`- rule_name`) when defining a fresh set. Do not mix list and map syntax in the same `rules` block.
-- **Formatter Configuration:** Configure `dart format` behavior under the `formatter:` node. Set `page_width` (default 80) and `trailing_commas` (`automate` or `preserve`).
-- **Analyzer Plugins:** Enable custom diagnostics by adding plugins under the `analyzer: plugins:` node. Ensure the plugin package is added as a `dev_dependency` in `pubspec.yaml`.
+## Apply only scoped fixes
 
-## Diagnostic Suppression
+Prefer a targeted code action or manual edit for one or two files. An unscoped `dart fix --apply` can change the entire checkout; do not use it as routine analysis remediation.
 
-When a diagnostic (lint or warning) yields a false positive or applies to generated code, suppress it explicitly.
+For an **explicitly approved directory-wide** mechanical repair, preview the specific diagnostic in the intended directory:
 
-- **File-level Exclusion:** Use the `analyzer: exclude:` node in `analysis_options.yaml` to exclude entire files or directories (e.g., `**/*.g.dart`) using glob patterns.
-- **File-level Suppression:** Add `// ignore_for_file: <diagnostic_code>` at the top of a Dart file to suppress specific diagnostics for the entire file. Use `// ignore_for_file: type=lint` to suppress all linter rules.
-- **Line-level Suppression:** Add `// ignore: <diagnostic_code>` on the line directly above the offending code, or appended to the end of the offending line.
-- **Pubspec Suppression:** Add `# ignore: <diagnostic_code>` above the offending line in `pubspec.yaml` files (e.g., `# ignore: sort_pub_dependencies`).
-- **Plugin Diagnostics:** Prefix the diagnostic code with the plugin name when suppressing plugin-specific issues (e.g., `// ignore: some_plugin/some_code`).
-
-## Workflow: Executing Static Analysis
-
-Use this workflow to identify type-related bugs, style violations, and potential runtime errors.
-
-**Task Progress:**
-- [ ] 1. Verify `analysis_options.yaml` exists at the project root.
-- [ ] 2. Run the analyzer using the `analyze_files` MCP tool (if available) or the CLI command `dart analyze <target_directory>`.
-- [ ] 3. Review the diagnostic output.
-- [ ] 4. If info-level issues must be treated as failures, append the `--fatal-infos` flag.
-- [ ] 5. Resolve reported errors manually or proceed to the Automated Fixes workflow.
-
-## Workflow: Applying Automated Fixes
-
-Use this workflow to resolve outdated API usages, apply quick fixes, and migrate code (e.g., Dart 3 migrations).
-
-**Task Progress:**
-- [ ] 1. Execute a dry run to preview proposed changes using the `dart_fix` MCP tool or CLI command `dart fix --dry-run`.
-- [ ] 2. Review the proposed fixes to ensure they align with the intended architecture.
-- [ ] 3. If additional fixes are required, verify that the corresponding linter rules are enabled in `analysis_options.yaml`.
-- [ ] 4. Apply the fixes using the `dart_fix` MCP tool or CLI command `dart fix --apply`.
-- [ ] 5. Format the modified code using the `dart_format` MCP tool or CLI command `dart format .`.
-- [ ] 6. Run the static analysis workflow to verify all diagnostics are resolved.
-
-## Examples
-
-### Comprehensive `analysis_options.yaml`
-
-```yaml
-include: package:flutter_lints/recommended.yaml
-
-analyzer:
-  exclude:
-    - "**/*.g.dart"
-    - "lib/generated/**"
-  language:
-    strict-casts: true
-    strict-inference: true
-    strict-raw-types: true
-  errors:
-    todo: ignore
-    invalid_assignment: warning
-    missing_return: error
-
-linter:
-  rules:
-    avoid_shadowing_type_parameters: false
-    await_only_futures: true
-    use_super_parameters: true
-
-formatter:
-  page_width: 100
-  trailing_commas: preserve
+```sh
+dart fix --dry-run --code=<diagnostic_code> <approved_directory>
 ```
 
-### Inline Diagnostic Suppression
+Review every affected file and fix type. Apply with `--apply` replacing `--dry-run` only when all proposed changes are within the approved scope and preserve behavior. Do not enable extra lints to manufacture more fixes. Format only edited Dart paths with `dart format <actual edited files>`, never `dart format .` for a focused task.
 
-```dart
-// Suppress for the entire file
-// ignore_for_file: unused_local_variable, dead_code
+## Suppression is not remediation
 
-void processData() {
-  // Suppress for a specific line
-  // ignore: invalid_assignment
-  int x = '';
-  
-  const y = 10; // ignore: constant_identifier_names
-}
+Do not use `ignore_for_file: type=lint`, exclude affected source trees, suppress type errors or disable rules globally to hide failures. A demonstrated false positive may justify a single-code, narrow line suppression with an explanation; inspect the underlying cause first. Preserve established generated-file policy instead of adding broad exclusions.
+
+## Verify serially
+
+Stop external Flutter runs. For repository analysis through the lock-protected harness:
+
+```sh
+dart run tool/design_harness.dart check
 ```
+
+With no files or flags, this runs `dart analyze lib test integration_test tool`, not tests. For behavior changes, run `check <actual affected test file>` first; it runs that test with concurrency 1 and then analysis. At integration use `check --full` for retained tests, LCOV and analysis; add `--native` when the existing Windows journey is required. Never run competing Flutter processes or default-concurrency coverage.
+
+Report actual commands and results, including unrelated diagnostics that prevent a clean run. Analysis alone does not prove runtime behavior or passing tests, and never authorizes production mutations.
+
+Reference: [Dart fix scopes and diagnostic filtering](https://dart.dev/tools/dart-fix).

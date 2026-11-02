@@ -8,13 +8,16 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../core/money.dart';
 import '../core/product_view.dart';
+import '../core/like_action.dart';
 import '../core/quantity.dart';
 import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
+import '../ui/liquid_glass_dock.dart';
 import '../ui/surfaces.dart';
 import '../utils/api.dart';
+import '../services/auth_service.dart';
 import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/liked_items_provider.dart';
@@ -62,6 +65,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _saved = false;
   int? _businessId;
   String? _feedback;
+  int _credentialRevision = AuthService.credentialRevision;
+  double _footerHeight = 180;
 
   bool get _pour => _selection.usesPourFlow;
   bool get _inStock => widget.item.amount == null || widget.item.amount! > 0;
@@ -75,6 +80,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
+    AuthService.sessionRevision.addListener(_sessionChanged);
     _selection = SmartCartSelection(widget.item);
     _view = ProductView.fromItem(widget.item);
     _options = _pour
@@ -100,16 +106,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final group = _findGroup(cart, _openedVariants);
       _openedGroupExists = group != null;
       if (group != null) {
+        final evaluated = group.evaluate();
         _restoreVariants(group.baseVariants);
         _quantity = group.totalQuantity;
         // Do not infer or rebalance bottles when reopening an exact allocation.
         _bottleCounts.addAll(group.paidBottleCounts);
         _retainedGiftCounts = group.selection?.usesPourFlow == true &&
-                group.allocationIssue == null
-            ? group.selection!.giftBottleBreakdown(group.totalQuantity,
-                retainedCounts: group.retainedGiftBottleCounts)
+                evaluated.allocationIssue == null
+            ? evaluated.giftBottleCounts
             : null;
-        _retainedGiftQuantity = group.freeQuantity;
+        _retainedGiftQuantity = evaluated.freeQuantity;
       } else if (_pour) {
         for (final bottle in _selection.filteredBottles) {
           if (_fitsAvailable(
@@ -131,6 +137,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  void _sessionChanged() {
+    if (_credentialRevision != AuthService.credentialRevision) {
+      _credentialRevision = AuthService.credentialRevision;
+      setState(() {
+        _liked = false;
+        _liking = false;
+      });
+    }
+    final businessId = _businessId;
+    if (businessId != null) _loadLiked(businessId);
+  }
+
+  @override
+  void dispose() {
+    AuthService.sessionRevision.removeListener(_sessionChanged);
+    super.dispose();
+  }
+
   void _restoreVariants(List<Map<String, dynamic>> variants) {
     final ids = variants
         .map(SmartCartSelection.variantRelationId)
@@ -147,35 +171,70 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _loadLiked(int businessId) async {
     final provider = context.read<LikedItemsProvider?>();
-    final liked = provider?.isLiked(businessId, widget.item.itemId) == true ||
+    final session = await AuthService.captureSession();
+    if (session == null) return;
+    final known = provider?.confirmedLike(businessId, widget.item.itemId);
+    final liked = known ??
         await LikedStorageService.isLiked(
             businessId: businessId, itemId: widget.item.itemId);
-    if (!mounted || businessId != _businessId) return;
-    setState(() => _liked = liked);
-    if (liked) provider?.updateLike(businessId, widget.item.itemId, true);
+    if (!mounted || !session.isCurrent || businessId != _businessId) return;
+    final resolved =
+        provider?.confirmedLike(businessId, widget.item.itemId) ?? liked;
+    setState(() => _liked = resolved);
+    if (provider?.confirmedLike(businessId, widget.item.itemId) == null &&
+        resolved) {
+      provider?.updateLike(businessId, widget.item.itemId, true);
+    }
   }
 
   Future<void> _toggleLike() async {
     if (_liking) return;
     setState(() => _liking = true);
     final provider = context.read<LikedItemsProvider?>();
+    final session = await AuthService.captureSession();
     try {
-      final liked = await (widget.onLike ??
-          ApiService.toggleLikeItem)(widget.item.itemId);
-      if (!mounted) return;
+      if (session == null || !mounted) return;
+      final businessId = _businessId;
+      final callback = widget.onLike;
+      final bool? liked;
+      if (callback == null && businessId != null) {
+        liked = await toggleItemLike(
+          context,
+          businessId: businessId,
+          itemId: widget.item.itemId,
+        );
+      } else {
+        liked = await (callback ??
+            (itemId) => ApiService.toggleLikeItem(
+                  itemId,
+                  credentialToken: session.token,
+                ))(widget.item.itemId);
+        if (!session.isCurrent) return;
+        if (liked != null && businessId != null) {
+          provider?.updateLike(businessId, widget.item.itemId, liked);
+          try {
+            await LikedStorageService.setLiked(
+                businessId: businessId,
+                itemId: widget.item.itemId,
+                liked: liked);
+          } catch (_) {
+            if (mounted && session.isCurrent) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content:
+                    Text('Избранное изменено, но не сохранено на устройстве'),
+              ));
+            }
+          }
+        }
+      }
+      if (!mounted || !session.isCurrent) return;
       if (liked == null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
                 'Не удалось изменить избранное. Войдите в аккаунт или попробуйте ещё раз.')));
         return;
       }
-      setState(() => _liked = liked);
-      final businessId = _businessId;
-      if (businessId != null) {
-        await LikedStorageService.setLiked(
-            businessId: businessId, itemId: widget.item.itemId, liked: liked);
-        provider?.updateLike(businessId, widget.item.itemId, liked);
-      }
+      setState(() => _liked = liked!);
     } finally {
       if (mounted) setState(() => _liking = false);
     }
@@ -263,7 +322,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ];
 
   CartPriceBreakdown? _price;
-  CartDisplayGroup? _previewGroup;
+  CartGroupEvaluation? _previewGroup;
   String? _allocationIssue;
   double get _total => _price?.totalPrice ?? 0;
   double get _subtotal => _price?.subtotalBeforePromotions ?? 0;
@@ -324,8 +383,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return false;
     }
     return !_pour ||
-        _bottleCounts.entries.every(
-            (entry) => entry.value <= (opened.paidBottleCounts[entry.key] ?? 0));
+        _bottleCounts.entries.every((entry) =>
+            entry.value <= (opened.paidBottleCounts[entry.key] ?? 0));
   }
 
   bool _canIncreaseDraft(CartProvider cart) =>
@@ -334,7 +393,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _selection.containerIssue == null &&
       _findGroup(cart, _openedVariants)?.hasWithdrawnBottles != true;
 
-  String? _invalidReason(CartProvider cart) {
+  String? _invalidReason(CartProvider cart,
+      {CartGroupEvaluation? preview, double? available}) {
     if (_isRemoval(cart) || _isReduction(cart)) return null;
     if (cart.hasUnresolvedBusiness) {
       return 'Магазин сохранённой корзины не определён. Можно уменьшить или удалить её товары.';
@@ -351,17 +411,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return _pour ? 'Выберите хотя бы одну бутылку' : 'Выберите количество';
     }
     if (_pour) {
-      try {
-        _selection.giftBottleBreakdown(_amount,
-            retainedCounts: _retainedGiftQuantity > 0
-                ? SmartCartSelection.scaledBottleCounts(
-                    _retainedGiftCounts, _free / _retainedGiftQuantity)
-                : null);
-      } on StateError catch (error) {
-        return error.message.toString();
-      }
+      final evaluated = preview ??
+          CartEvaluation(CartDisplayGroup.groupItems(_previewItems))
+              .groups
+              .firstOrNull;
+      final issue = evaluated?.allocationIssue;
+      if (issue != null) return issue;
     }
-    if (!_fitsAvailable(_amount, _availableAmount(cart))) {
+    if (!_fitsAvailable(_amount, available ?? _availableAmount(cart))) {
       return 'Выбранное количество превышает доступный остаток';
     }
     if (!_pour &&
@@ -416,10 +473,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     _openedVariants = variants;
     _openedGroupExists = true;
     final savedGroup = _findGroup(cart, variants);
-    _retainedGiftQuantity = savedGroup?.freeQuantity ?? 0;
+    final evaluated = savedGroup?.evaluate();
+    _retainedGiftQuantity = evaluated?.freeQuantity ?? 0;
     _retainedGiftCounts = savedGroup?.selection?.usesPourFlow == true
-        ? savedGroup!.selection!.giftBottleBreakdown(savedGroup.totalQuantity,
-            retainedCounts: savedGroup.retainedGiftBottleCounts)
+        ? evaluated?.giftBottleCounts
         : null;
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(true);
@@ -434,22 +491,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final liked = _businessId == null
+        ? _liked
+        : context.select<LikedItemsProvider?, bool?>((likes) =>
+                likes?.confirmedLike(_businessId!, widget.item.itemId)) ??
+            _liked;
     final cart = context.watch<CartProvider>();
     final available = _availableAmount(cart);
-    final invalid = _invalidReason(cart);
     _allocationIssue = null;
     _previewGroup = null;
     final previewItems = _previewItems;
     try {
-      _price = CartItem.calculatePrice(previewItems);
-      if (previewItems.isNotEmpty) {
-        final previewGroups = CartDisplayGroup.groupItems(previewItems);
-        if (previewGroups.isNotEmpty) _previewGroup = previewGroups.single;
-      }
+      final preview = CartEvaluation(CartDisplayGroup.groupItems(previewItems));
+      _previewGroup = preview.groups.firstOrNull;
+      _allocationIssue = _previewGroup?.allocationIssue;
+      _price = preview.price;
     } on StateError catch (error) {
       _price = null;
       _allocationIssue = error.message.toString();
     }
+    final invalid =
+        _invalidReason(cart, preview: _previewGroup, available: available);
     final description = widget.item.description?.trim() ?? '';
     final removal = _isRemoval(cart);
     return Scaffold(
@@ -459,208 +521,222 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                key: const ValueKey('configuration-scroll'),
-                padding: EdgeInsets.only(
-                  bottom: 180 +
-                      MediaQuery.paddingOf(context).bottom +
-                      (MediaQuery.textScalerOf(context).scale(16) > 20 ? 120 : 0),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(16)),
-                      child: Container(
-                        height: _pour ? 144 : 320,
-                        color: Colors.white,
-                        padding: EdgeInsets.fromLTRB(
-                            48, _pour ? 64 : 88, 48, 16),
-                        child: widget.item.hasImage
-                            ? Image.network(widget.item.image!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.inventory_2_outlined,
-                                    color: Colors.black38, size: 56))
-                            : const Icon(Icons.inventory_2_outlined,
-                                color: Colors.black38, size: 56),
+          child: LiquidGlassDock(
+            content: Stack(
+              children: [
+                SingleChildScrollView(
+                  key: const ValueKey('configuration-scroll'),
+                  padding: EdgeInsets.only(
+                    bottom: _footerHeight +
+                        MediaQuery.paddingOf(context).bottom +
+                        AppSpacing.xl * 2,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(16)),
+                        child: Container(
+                          height: _pour ? 144 : 320,
+                          color: Colors.white,
+                          padding:
+                              EdgeInsets.fromLTRB(48, _pour ? 64 : 88, 48, 16),
+                          child: widget.item.hasImage
+                              ? Image.network(widget.item.image!,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: Colors.black38,
+                                      size: 56))
+                              : const Icon(Icons.inventory_2_outlined,
+                                  color: Colors.black38, size: 56),
+                        ),
                       ),
-                    ),
-                    Padding(
-                      padding: _pour
-                          ? const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xxxl,
-                              vertical: AppSpacing.md)
-                          : const EdgeInsets.all(AppSpacing.xxxl),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (_view.category != null)
-                            Text(_view.category!,
-                                style: AppTypography.bodySmall
-                                    .copyWith(color: palette.textSecondary)),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(_view.title,
-                              style: AppTypography.displayBold
-                                  .copyWith(color: palette.textPrimary)),
-                          if (_view.metadata.isNotEmpty) ...[
+                      Padding(
+                        padding: _pour
+                            ? const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.xxxl,
+                                vertical: AppSpacing.md)
+                            : const EdgeInsets.all(AppSpacing.xxxl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_view.category != null)
+                              Text(_view.category!,
+                                  style: AppTypography.bodySmall
+                                      .copyWith(color: palette.textSecondary)),
                             const SizedBox(height: AppSpacing.xs),
+                            Text(_view.title,
+                                style: AppTypography.displayBold
+                                    .copyWith(color: palette.textPrimary)),
+                            if (_view.metadata.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                  _view.metadata
+                                      .where((part) =>
+                                          part.toLowerCase() !=
+                                          _view.category?.toLowerCase())
+                                      .join(' · '),
+                                  style: AppTypography.bodySmall
+                                      .copyWith(color: palette.textSecondary)),
+                            ],
+                            SizedBox(
+                                height: _pour ? AppSpacing.xs : AppSpacing.xl),
+                            _unitPrice(),
+                            SizedBox(
+                                height: _pour ? AppSpacing.xs : AppSpacing.md),
                             Text(
-                                _view.metadata.where((part) =>
-                                    part.toLowerCase() != _view.category?.toLowerCase()).join(' · '),
-                                style: AppTypography.bodySmall
-                                    .copyWith(color: palette.textSecondary)),
-                          ],
-                          SizedBox(height: _pour ? AppSpacing.xs : AppSpacing.xl),
-                          _unitPrice(),
-                          SizedBox(height: _pour ? AppSpacing.xs : AppSpacing.md),
-                          Text(
-                            key: const ValueKey('configuration-stock'),
-                            !_inStock
-                                ? 'Нет в наличии'
-                                : (available.isFinite
-                                    ? 'Доступно: ${_amountLabel(available)}'
-                                    : 'В наличии'),
-                            style: AppTypography.body.copyWith(
-                                color: _inStock
-                                    ? palette.textSecondary
-                                    : palette.error),
-                          ),
-                          SizedBox(height: _pour ? AppSpacing.md : AppSpacing.xxxl),
-                          if (_pour)
-                            ..._bottles(available)
-                          else ...[
-                            _heading('Количество'),
-                            const SizedBox(height: AppSpacing.md),
-                            _ConfigurationStepper(
-                              label: _amountLabel(_quantity),
-                              valueKey: 'configuration-quantity',
-                              onMinus: _quantity > (_openedGroupExists ? 0 : _step)
-                                  ? () => setState(() {
-                                        _quantity = math.max(0, _quantity - _step);
-                                        _saved = false;
-                                        _feedback = null;
-                                      })
-                                  : null,
-                              onPlus: _inStock &&
-                                      _canIncreaseDraft(cart) &&
-                                      _fitsAvailable(
-                                          _quantity + _step, available)
-                                  ? () => setState(() {
-                                        _quantity += _step;
-                                        _saved = false;
-                                      })
-                                  : null,
+                              key: const ValueKey('configuration-stock'),
+                              !_inStock
+                                  ? 'Нет в наличии'
+                                  : (available.isFinite
+                                      ? 'Доступно: ${_amountLabel(available)}'
+                                      : 'В наличии'),
+                              style: AppTypography.body.copyWith(
+                                  color: _inStock
+                                      ? palette.textSecondary
+                                      : palette.error),
                             ),
-                            const SizedBox(height: AppSpacing.huge),
-                          ],
-                          for (final option in _options) ...[
-                            _option(option),
-                            const SizedBox(height: AppSpacing.huge),
-                          ],
-                          if (!_pour && _promotions.isNotEmpty) ...[
-                            _promotionInfo(),
-                            const SizedBox(height: AppSpacing.huge),
-                          ],
-                          if (!_pour && _options.isNotEmpty) _priceBreakdown(),
-                          if (description.isNotEmpty) ...[
-                            const SizedBox(height: AppSpacing.huge),
-                            _heading('Описание'),
-                            const SizedBox(height: AppSpacing.md),
-                            LayoutBuilder(builder: (context, constraints) {
-                              final style = AppTypography.bodyMedium
-                                  .copyWith(color: palette.textSecondary);
-                              final painter = TextPainter(
-                                text: TextSpan(text: description, style: style),
-                                maxLines: 6,
-                                textDirection: Directionality.of(context),
-                                textScaler: MediaQuery.textScalerOf(context),
-                              )..layout(maxWidth: constraints.maxWidth);
-                              final overflows = painter.didExceedMaxLines;
-                              painter.dispose();
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(description,
-                                      maxLines: _expanded ? null : 6,
-                                      overflow: _expanded
-                                          ? null
-                                          : TextOverflow.ellipsis,
-                                      style: style),
-                                  if (overflows)
-                                    TextButton(
+                            SizedBox(
+                                height:
+                                    _pour ? AppSpacing.md : AppSpacing.xxxl),
+                            if (_pour)
+                              ..._bottles(available)
+                            else ...[
+                              _heading('Количество'),
+                              const SizedBox(height: AppSpacing.md),
+                              _ConfigurationStepper(
+                                label: _amountLabel(_quantity),
+                                valueKey: 'configuration-quantity',
+                                onMinus: _quantity >
+                                        (_openedGroupExists ? 0 : _step)
+                                    ? () => setState(() {
+                                          _quantity =
+                                              math.max(0, _quantity - _step);
+                                          _saved = false;
+                                          _feedback = null;
+                                        })
+                                    : null,
+                                onPlus: _inStock &&
+                                        _canIncreaseDraft(cart) &&
+                                        _fitsAvailable(
+                                            _quantity + _step, available)
+                                    ? () => setState(() {
+                                          _quantity += _step;
+                                          _saved = false;
+                                        })
+                                    : null,
+                              ),
+                              const SizedBox(height: AppSpacing.huge),
+                            ],
+                            for (final option in _options) ...[
+                              _option(option),
+                              const SizedBox(height: AppSpacing.huge),
+                            ],
+                            if (!_pour && _promotions.isNotEmpty) ...[
+                              _promotionInfo(),
+                              const SizedBox(height: AppSpacing.huge),
+                            ],
+                            if (!_pour && _options.isNotEmpty)
+                              _priceBreakdown(),
+                            if (description.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.huge),
+                              _heading('Описание'),
+                              const SizedBox(height: AppSpacing.md),
+                              LayoutBuilder(builder: (context, constraints) {
+                                final style = AppTypography.bodyMedium
+                                    .copyWith(color: palette.textSecondary);
+                                final painter = TextPainter(
+                                  text:
+                                      TextSpan(text: description, style: style),
+                                  maxLines: 6,
+                                  textDirection: Directionality.of(context),
+                                  textScaler: MediaQuery.textScalerOf(context),
+                                )..layout(maxWidth: constraints.maxWidth);
+                                final overflows = painter.didExceedMaxLines;
+                                painter.dispose();
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(description,
+                                        maxLines: _expanded ? null : 6,
+                                        overflow: _expanded
+                                            ? null
+                                            : TextOverflow.ellipsis,
+                                        style: style),
+                                    if (overflows)
+                                      TextButton(
+                                        key: const ValueKey(
+                                            'configuration-description-toggle'),
+                                        onPressed: () => setState(
+                                            () => _expanded = !_expanded),
+                                        child: Text(_expanded
+                                            ? 'Свернуть'
+                                            : 'Читать далее'),
+                                      ),
+                                  ],
+                                );
+                              }),
+                            ],
+                            if (invalid != null || _feedback != null) ...[
+                              const SizedBox(height: AppSpacing.xxxl),
+                              Semantics(
+                                  liveRegion: true,
+                                  child: Text(_feedback ?? invalid!,
                                       key: const ValueKey(
-                                          'configuration-description-toggle'),
-                                      onPressed: () =>
-                                          setState(() => _expanded = !_expanded),
-                                      child: Text(_expanded
-                                          ? 'Свернуть'
-                                          : 'Читать далее'),
-                                    ),
-                                ],
-                              );
-                            }),
+                                          'configuration-feedback'),
+                                      style: AppTypography.bodyMedium
+                                          .copyWith(color: palette.error))),
+                            ],
                           ],
-                          if (invalid != null || _feedback != null) ...[
-                            const SizedBox(height: AppSpacing.xxxl),
-                            Semantics(
-                                liveRegion: true,
-                                child: Text(_feedback ?? invalid!,
-                                    key: const ValueKey(
-                                        'configuration-feedback'),
-                                    style: AppTypography.bodyMedium
-                                        .copyWith(color: palette.error))),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 22,
-                left: AppSpacing.xxxl,
-                right: AppSpacing.xxxl,
-                child: Row(
-                  children: [
-                    AppIconButton(
-                        key: const ValueKey('configuration-back'),
-                        asset: AppIcons.back,
-                        tooltip: 'Назад без сохранения',
-                        onTap: () => Navigator.of(context).maybePop()),
-                    const Spacer(),
-                    AppIconButton(
-                        key: const ValueKey('configuration-like'),
-                        asset: AppIcons.heart,
-                        tooltip:
-                            _liked ? 'Убрать из избранного' : 'В избранное',
-                        onTap: _liking ? null : _toggleLike,
-                        fill: _liked
-                            ? palette.brandRed
-                            : palette.surface.withValues(alpha: 0.75),
-                        color: _liked ? Colors.white : palette.textPrimary),
-                  ],
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top + 22,
+                  left: AppSpacing.xxxl,
+                  right: AppSpacing.xxxl,
+                  child: Row(
+                    children: [
+                      AppIconButton(
+                          key: const ValueKey('configuration-back'),
+                          asset: AppIcons.back,
+                          tooltip: 'Назад без сохранения',
+                          onTap: () => Navigator.of(context).maybePop()),
+                      const Spacer(),
+                      AppIconButton(
+                          key: const ValueKey('configuration-like'),
+                          asset: AppIcons.heart,
+                          tooltip:
+                              liked ? 'Убрать из избранного' : 'В избранное',
+                          onTap: _liking ? null : _toggleLike,
+                          fill: liked
+                              ? palette.brandRed
+                              : palette.surface.withValues(alpha: 0.75),
+                          color: liked ? Colors.white : palette.textPrimary),
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _footer(
-                  enabled: removal ||
-                      (_allocationIssue == null &&
-                          (_isReduction(cart) ||
-                              (_inStock &&
-                                  !cart.hasUnresolvedBusiness &&
-                                  _selection.containerIssue == null &&
-                                  _selection.quantityIssue == null))),
-                  removal: removal,
-                ),
-              ),
-            ],
+              ],
+            ),
+            dock: _footer(
+              enabled: removal ||
+                  (_allocationIssue == null &&
+                      (_isReduction(cart) ||
+                          (_inStock &&
+                              !cart.hasUnresolvedBusiness &&
+                              _selection.containerIssue == null &&
+                              _selection.quantityIssue == null))),
+              removal: removal,
+            ),
+            onDockHeightChanged: (height) {
+              if ((height - _footerHeight).abs() > 0.5) {
+                setState(() => _footerHeight = height);
+              }
+            },
           ),
         ),
       ),
@@ -707,8 +783,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       replacementTariff |= bottle.priceType.toUpperCase() == 'REPLACE';
     }
     final mix = mixParts.join(' • ');
-    final promotion = evaluatePromotion(
-        paidQuantity: _amount, promotions: _promotions);
+    final promotion =
+        evaluatePromotion(paidQuantity: _amount, promotions: _promotions);
     return [
       _heading('Объём и тара'),
       const SizedBox(height: AppSpacing.md),
@@ -772,8 +848,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       const SizedBox(height: AppSpacing.md),
       if (_selection.containerIssue != null)
         Text(_selection.containerIssue!,
-            style: AppTypography.body
-                .copyWith(color: context.palette.error)),
+            style: AppTypography.body.copyWith(color: context.palette.error)),
       for (final bottle in bottles) ...[
         AppSurface(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -783,7 +858,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 Text(
                   bottle.itemName.trim().isEmpty
-                      ? _selection.volumeLabel(_selection.volumeForBottle(bottle))
+                      ? _selection
+                          .volumeLabel(_selection.volumeForBottle(bottle))
                       : bottle.itemName,
                   style: AppTypography.bodyMedium
                       .copyWith(color: context.palette.textPrimary),
@@ -823,7 +899,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       _canIncreaseDraft(context.read<CartProvider>()) &&
                       _isOfferedBottle(bottle) &&
                       _fitsAvailable(
-                          _amount + _selection.volumeForBottle(bottle), available)
+                          _amount + _selection.volumeForBottle(bottle),
+                          available)
                   ? () => setState(() {
                         _bottleCounts[bottle.relationId] =
                             (_bottleCounts[bottle.relationId] ?? 0) + 1;
@@ -902,8 +979,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       );
 
   Widget _promotionInfo() {
-    final evaluation = evaluatePromotion(
-        paidQuantity: _amount, promotions: _promotions);
+    final evaluation =
+        evaluatePromotion(paidQuantity: _amount, promotions: _promotions);
     return AppSurface(
       key: const ValueKey('configuration-promotion'),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -912,8 +989,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             in widget.item.promotions ?? const <item_model.ItemPromotion>[])
           if (promotion.isActive) ...[
             Text(promotion.name,
-                style: AppTypography.title
-                    .copyWith(color: context.palette.gold)),
+                style:
+                    AppTypography.title.copyWith(color: context.palette.gold)),
             if (promotion.discountType == 'SUBTRACT' &&
                 promotion.baseAmount > 0 &&
                 promotion.addAmount > 0)
@@ -965,8 +1042,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             _priceLine(
                 'Товар · ${_amountLabel(_amount)}', _price!.productSubtotal),
             if (_price!.optionsTotal != 0)
-              _priceLine('Дополнения',
-                  _price!.optionsTotal),
+              _priceLine('Дополнения', _price!.optionsTotal),
             if (_price!.discount > 0) _priceLine('Скидка', -_price!.discount),
             if (_free > 0)
               _priceLine('Напиток в подарок · ${_amountLabel(_free)}', 0),
@@ -990,78 +1066,72 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ]),
       );
 
-  Widget _footer({required bool enabled, required bool removal}) =>
-      AppGlassPanel(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
-        child: SafeArea(
-          top: false,
-          child: LayoutBuilder(builder: (context, constraints) {
-            final adaptive = constraints.maxWidth < 320 ||
-                MediaQuery.textScalerOf(context).scale(16) > 20;
-            final summary = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_subtotal > _total)
-                    Text(formatTenge(_subtotal),
-                        style: AppTypography.bodySmall.copyWith(
-                            color: context.palette.textSecondary,
-                            decoration: TextDecoration.lineThrough)),
-                  Text(
-                      removal
-                          ? formatTenge(0)
-                          : (_allocationIssue == null
-                              ? formatTenge(_total)
-                              : 'Расчёт недоступен'),
-                      key: const ValueKey('configuration-total'),
-                      style: AppTypography.displayBold
-                          .copyWith(color: context.palette.textPrimary)),
-                ]);
-            final action = FilledButton(
-              key: const ValueKey('configuration-save'),
-              onPressed: enabled ? _save : null,
-              style: FilledButton.styleFrom(
-                  minimumSize: const Size(154, 49),
-                  shape: const StadiumBorder()),
-              child: Text(removal
-                  ? 'Удалить'
-                  : (!_inStock && !enabled
-                      ? 'Нет в наличии'
-                      : (_openedGroupExists ? 'Сохранить' : 'В корзину'))),
-            );
-            return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_saved)
-                    AppGlassPanel(
-                      radius: AppRadii.pill,
-                      tint: context.palette.success.withValues(alpha: 0.75),
-                      padding: const EdgeInsets.all(14),
-                      child: Text('Сохранено в корзине',
-                          textAlign: TextAlign.center,
-                          style: AppTypography.title
-                              .copyWith(color: Colors.white)),
-                    )
-                  else if (adaptive) ...[
-                    summary,
-                    const SizedBox(height: AppSpacing.md),
+  Widget _footer({required bool enabled, required bool removal}) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final adaptive = constraints.maxWidth < 320 ||
+              MediaQuery.textScalerOf(context).scale(16) > 20;
+          final summary = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_subtotal > _total)
+                  Text(formatTenge(_subtotal),
+                      style: AppTypography.bodySmall.copyWith(
+                          color: context.palette.textPrimary,
+                          decoration: TextDecoration.lineThrough)),
+                Text(
+                    removal
+                        ? formatTenge(0)
+                        : (_allocationIssue == null
+                            ? formatTenge(_total)
+                            : 'Расчёт недоступен'),
+                    key: const ValueKey('configuration-total'),
+                    style: AppTypography.displayBold
+                        .copyWith(color: context.palette.textPrimary)),
+              ]);
+          final action = FilledButton(
+            key: const ValueKey('configuration-save'),
+            onPressed: enabled ? _save : null,
+            style: FilledButton.styleFrom(
+                minimumSize: const Size(154, 49), shape: const StadiumBorder()),
+            child: Text(removal
+                ? 'Удалить'
+                : (!_inStock && !enabled
+                    ? 'Нет в наличии'
+                    : (_openedGroupExists ? 'Сохранить' : 'В корзину'))),
+          );
+          return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_saved)
+                  AppSurface(
+                    radius: AppRadii.pill,
+                    fill: context.palette.success,
+                    padding: const EdgeInsets.all(14),
+                    child: Text('Сохранено в корзине',
+                        textAlign: TextAlign.center,
+                        style:
+                            AppTypography.title.copyWith(color: Colors.black)),
+                  )
+                else if (adaptive) ...[
+                  summary,
+                  const SizedBox(height: AppSpacing.md),
+                  action,
+                ] else
+                  Row(children: [
+                    Expanded(child: summary),
+                    const SizedBox(width: AppSpacing.md),
                     action,
-                  ] else
-                    Row(children: [
-                      Expanded(child: summary),
-                      const SizedBox(width: AppSpacing.md),
-                      action,
-                    ]),
-                  if (widget.onCart != null)
-                    TextButton(
-                        key: const ValueKey('configuration-cart'),
-                        onPressed: widget.onCart,
-                        child: const Text('Открыть корзину')),
-                ]);
-          }),
-        ),
+                  ]),
+                if (widget.onCart != null)
+                  TextButton(
+                      key: const ValueKey('configuration-cart'),
+                      onPressed: widget.onCart,
+                      child: const Text('Открыть корзину')),
+              ]);
+        }),
       );
 }
 
@@ -1077,12 +1147,13 @@ class _ConfigurationStepper extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     ButtonStyle style(VoidCallback? callback) => IconButton.styleFrom(
-      minimumSize: const Size.square(AppSpacing.touchTarget),
-      backgroundColor: callback == null ? palette.accentFaint : palette.accentSoft,
-      foregroundColor: palette.textOnAccent,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg)),
-    );
+          minimumSize: const Size.square(AppSpacing.touchTarget),
+          backgroundColor:
+              callback == null ? palette.accentFaint : palette.accentSoft,
+          foregroundColor: palette.textOnAccent,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.lg)),
+        );
     return AppSurface(
       radius: 18,
       padding: const EdgeInsets.all(AppSpacing.xs),

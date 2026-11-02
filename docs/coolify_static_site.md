@@ -1,62 +1,62 @@
-# Coolify Static Site
+# Coolify and static web deployment
 
-## Что мешало работе
+## Release output
 
-- В исходном `web/index.html` был root-зависимый путь к `web_support.js`, который хуже переносится на статический хостинг.
-- Для Flutter Web нужен SPA fallback на `index.html`, а конфиг с `=404` ломает обновление страницы и прямые заходы по маршрутам.
-- Для web push нужен `firebase-messaging-sw.js` в корне сайта.
-- Для FCM в браузере нужен `FIREBASE_WEB_VAPID_KEY` во время сборки.
-- `404.html` и `50x.html` в проекте отсутствовали, хотя nginx-конфиг на них ссылался.
+The root-hosted release is `build/web`, intentionally retained as the deployment artifact. Build only after code and checks settle:
 
-## Что должно быть в Coolify
-
-- Publish directory: `build/web`
-- Build command:
-
-```bash
-flutter build web --release --dart-define=FIREBASE_WEB_VAPID_KEY=YOUR_PUBLIC_VAPID_KEY
+```sh
+flutter build web --release --no-wasm-dry-run
 ```
 
-- Сайт должен открываться по HTTPS.
+For a Coolify static site, use `build/web` as the publish directory. The checked-in Dockerfile instead packages that prebuilt directory into nginx; it does not compile Flutter. Its Docker context is allowlisted to the web release, `nginx.conf` and the Docker control files. Signing keys, Figma credentials, SDK paths and application source are not build inputs.
 
-## Правильный nginx конфиг
+Use the checked-in `nginx.conf`, rather than copying a second configuration from this document. It provides SPA fallback, uncached release entry/runtime metadata, strict missing-worker/association responses and JSON association endpoints. Missing paths under `/.well-known/`, `/onesignal/` and `/flutter_service_worker.js/` must not receive the app HTML. Keep the root Flutter worker endpoint during retirement of older installed workers; do not assume current Flutter generates the historical cache-first worker.
 
-```nginx
-server {    
-    listen 80;
-    server_name _;
+Static HTML, CSS, JavaScript, JSON, Wasm and SVG responses of at least 1 KiB can use
+gzip when the client accepts it. `Vary: Accept-Encoding` separates compressed and
+uncompressed responses; the release no-cache policy is unchanged. Already compressed
+image/font formats are not added to the gzip type list.
 
-    root /usr/share/nginx/html;
-    index index.html;
+The 1.2.115 release was served locally through Nginx 1.30.6 on Windows with only
+the listen address and document root substituted. Four reserved missing paths changed
+from app HTML/200 to 404; fourteen final HTTP cases passed. The actual main bundle
+transferred 1,652,673 gzip bytes versus 4,882,480 uncompressed bytes (66.15% fewer
+payload bytes), with identical decoded content. This is local Nginx/runtime proof,
+not a Docker image build, production deployment or end-user latency measurement.
 
-    location = /firebase-messaging-sw.js {
-        try_files $uri =404;
-        add_header Cache-Control "no-cache" always;
-    }
+## Fixture isolation and publication
 
-    location = /flutter_service_worker.js {
-        try_files $uri =404;
-        add_header Cache-Control "no-cache" always;
-    }
+`dart run tool/design_harness.dart build` publishes fixture-only output under
+`.figma_cache/harness/web`; `build --tracked` builds production `build/web`.
+Never deploy the fixture directory or use its synthetic account as production proof.
+The harness acquires its exclusive lock before changing validity markers or output.
+`serve` holds that lock until shutdown, preventing a rebuild of actively served
+fixtures. Failed/interrupted builds cannot be served as valid fixture output.
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+Fixture composition installs an in-memory push provider, and fixture HTML removes
+the production OneSignal SDK loader. Tracked production HTML retains the loader.
+The web bridge releases rejected initialization attempts for explicit retry while
+sharing successful startup/listener ownership. Host fake-provider checks do not
+establish real notification delivery.
 
-    error_page 404 /404.html;
-    location = /404.html {
-        internal;
-    }
+## Push is OneSignal, not direct browser FCM
 
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        internal;
-    }
-}
-```
+- Web push initializes OneSignal in `web/index.html` and uses the existing `/onesignal/` service workers.
+- Serve those workers as JavaScript over valid HTTPS with their real paths and no-cache policy; missing workers must be HTTP 404, not `index.html`.
+- Confirm the OneSignal application/origin configuration for the actual public hostname. Its current worker scope and paths assume a root deployment; `--base-href` alone does not establish subpath support.
+- `FIREBASE_WEB_VAPID_KEY` is not consumed by the current client. Do not supply it as a build requirement or add a second Firebase messaging worker.
+- iOS/iPadOS web push acceptance requires a supported Home Screen web app and user permission. Repository fixtures do not prove provider or device delivery.
 
-## Ограничения
+## Association files and URLs
 
-- На Android Chrome web push работает как обычный браузерный push при корректном HTTPS и VAPID.
-- На iPhone push для web работает только для PWA, добавленного на домашний экран, на iOS/iPadOS 16.4+.
-- Если `FIREBASE_WEB_VAPID_KEY` не передан, приложение не сможет получить web FCM token.
+- Preserve `.well-known/` in web output. The checked-in iOS AASA matches Team `W922PUY77B` and bundle ID `com.example.nalivDelivery`.
+- Android `assetlinks.json` is still absent. Obtain the authoritative signing SHA-256 for each installed distribution: **Play App Signing**, not an assumed upload-key fingerprint, for Play installations. Publish the file for package `kz.gradusy24.app` at the real HTTPS hostname as JSON without authentication, redirects or SPA fallback.
+- Native filters advertise more URLs than the current Dart router implements. Product must confirm the supported incoming-URL contract before destination routing can be completed; do not mistake successful app launch/domain verification for an opened product/order.
+
+## Firebase Hosting alternative
+
+`firebase.json` keeps the same static release directory, allows association dotfiles, supplies JSON/worker and no-cache headers, and excludes association/OneSignal/legacy-worker paths from SPA fallback. Real static files take precedence over rewrites.
+
+Select the intended Firebase project/site **explicitly** before any deployment. The existing `.firebaserc` default and historical FlutterFire registration metadata name different projects; neither establishes which site owns `app.gradusy24.kz`. Provider registrations are retained, not silently recreated or deleted. No deployment is part of local verification.
+
+Before release, exercise the actual selected host: route refresh, release-refresh headers, AASA JSON, missing association/worker 404s and OneSignal worker paths. The local Hosting emulator checks configuration behavior, not DNS/custom-domain ownership or production delivery.

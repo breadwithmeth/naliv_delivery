@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../verify_surface.dart';
+import 'surface_manifest.dart';
 
 const _width = 750;
 const _height = 1624;
@@ -55,13 +56,12 @@ Future<void> _saveHeatmap(String path, Uint8List pixels) async {
   }
 }
 
-Future<void> _compare(String surface, String theme) async {
+Future<void> _compare(
+    String surface, String theme, SurfaceRunOptions options) async {
   final referencePath = surfaceReferencePath(surface, theme);
   final capturePath = surfaceCapturePath(surface, theme);
   final diffPath = surfaceDiffPath(surface, theme);
-  // Direct test invocation must not leave an old heatmap on failure either.
-  final oldDiff = File(diffPath);
-  if (oldDiff.existsSync()) await oldDiff.delete();
+  final metricsPath = surfaceMetricsPath(surface, theme);
 
   final reference = await _decode(referencePath);
   try {
@@ -77,6 +77,11 @@ Future<void> _compare(String surface, String theme) async {
             'Comparison requires exact dimensions, not overlapping crops.',
           );
         }
+      }
+      // Remove only this pair's owned outputs after its inputs are validated.
+      for (final outputPath in [diffPath, metricsPath]) {
+        final oldOutput = File(outputPath);
+        if (oldOutput.existsSync()) await oldOutput.delete();
       }
       final expected = await _rgba(reference);
       final actual = await _rgba(captured);
@@ -101,10 +106,31 @@ Future<void> _compare(String surface, String theme) async {
         }
       }
       await _saveHeatmap(diffPath, heatmap);
+      final meanDelta = deltaTotal / count;
+      final percentOver32 = 100 * over32 / count;
+      writeSurfaceJson(metricsPath, {
+        'schemaVersion': 1,
+        'complete': true,
+        'surface': surface,
+        'theme': theme,
+        ...options.geometryJson,
+        'pngDimensions': {'width': _width, 'height': _height},
+        'referencePath': referencePath,
+        'capturePath': capturePath,
+        'diffPath': diffPath,
+        'metrics': {
+          'deltaDefinition': 'maximumAbsoluteRgbChannelDifference',
+          'meanMaxChannelDelta': meanDelta,
+          'pixelsOver32': over32,
+          'percentOver32': percentOver32,
+          'pixelCount': count,
+          'excludedLogicalInsets': {'top': 48, 'bottom': 34},
+        },
+      });
       stdout.writeln(
         '$surface/$theme fixture vs Figma: mean max-channel Δ='
-        '${(deltaTotal / count).toStringAsFixed(2)}/255; '
-        'pixels Δ>32=${(100 * over32 / count).toStringAsFixed(2)}%; '
+        '${meanDelta.toStringAsFixed(2)}/255; '
+        'pixels Δ>32=${percentOver32.toStringAsFixed(2)}%; '
         'heatmap=$diffPath (excludes 48px top / 34px bottom logical insets)',
       );
     } finally {
@@ -116,26 +142,32 @@ Future<void> _compare(String surface, String theme) async {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  const surface = String.fromEnvironment('SURFACE', defaultValue: 'all');
-  const theme = String.fromEnvironment('SURFACE_THEME', defaultValue: 'dark');
-  if (surface != 'all' && !surfaceReferenceFrames.containsKey(surface)) {
-    throw ArgumentError.value(
-        surface, 'SURFACE', 'Expected a surface ID or all');
+  final options = SurfaceRunOptions.fromEnvironment();
+  if (options.captureOnly || !options.isReferenceGeometry) {
+    throw ArgumentError(
+        'Comparison is only available for reference-sized, unscaled captures without keyboard insets.');
   }
-  if (theme != 'dark' && theme != 'light' && theme != 'both') {
-    throw ArgumentError.value(
-        theme, 'SURFACE_THEME', 'Expected dark, light or both');
-  }
-  final surfaces = surface == 'all' ? surfaceReferenceFrames.keys : [surface];
-  final themes = theme == 'both' ? ['dark', 'light'] : [theme];
-  for (final t in themes) {
-    for (final s in surfaces) {
-      if (surfaceReferenceFrames[s] == null) {
-        stdout.writeln('$s/$t: capture-only; no matching Figma frame.');
-        continue;
+  final comparedPairs = [
+    for (final pair in options.pairs)
+      if (surfaceReferenceFrames[pair.$1] != null) pair,
+  ];
+  // A direct invocation must also finish preflight before deleting any heatmap.
+  for (final (surface, theme) in comparedPairs) {
+    for (final inputPath in [
+      surfaceReferencePath(surface, theme),
+      surfaceCapturePath(surface, theme),
+    ]) {
+      final dimensions = readSurfacePngDimensions(inputPath);
+      if (dimensions != (_width, _height)) {
+        throw FormatException(
+            '$inputPath has ${dimensions.$1}x${dimensions.$2} pixels; '
+            'expected ${_width}x$_height. Comparison cannot resize or crop inputs.');
       }
-      test('fixture image difference: $s/$t', () => _compare(s, t));
     }
+  }
+  TestWidgetsFlutterBinding.ensureInitialized();
+  for (final (surface, theme) in comparedPairs) {
+    test('fixture image difference: $surface/$theme',
+        () => _compare(surface, theme, options));
   }
 }

@@ -49,9 +49,9 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 608),
-            child: AppGlassPanel(
+            child: AppSurface(
               radius: 32,
-              tint: palette.accentSoft,
+              fill: palette.accentSoft,
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -76,55 +76,56 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
-            child: Builder(builder: (context) => CustomScrollView(
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16,
-                        MediaQuery.paddingOf(context).bottom + 24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: palette.accent,
-                          ),
-                          child: Icon(Icons.check_rounded,
-                              color: palette.textOnAccent, size: 56),
-                        ),
-                        const SizedBox(height: 28),
-                        Text('Оплата прошла успешно!',
-                            textAlign: TextAlign.center,
-                            style: AppTypography.displayBold),
-                        const SizedBox(height: 24),
-                        AppSurface(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text('Заказ #${widget.orderId}',
-                                  textAlign: TextAlign.center,
-                                  style: AppTypography.title),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Статус заказа доступен в разделе «Мои заказы».',
-                                textAlign: TextAlign.center,
-                                style: AppTypography.body.copyWith(
-                                    color: palette.textSecondary),
-                              ),
-                            ],
+            child: Builder(
+                builder: (context) => CustomScrollView(
+                      slivers: [
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(16, 24, 16,
+                                MediaQuery.paddingOf(context).bottom + 24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: palette.accent,
+                                  ),
+                                  child: Icon(Icons.check_rounded,
+                                      color: palette.textOnAccent, size: 56),
+                                ),
+                                const SizedBox(height: 28),
+                                Text('Оплата прошла успешно!',
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.displayBold),
+                                const SizedBox(height: 24),
+                                AppSurface(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      Text('Заказ #${widget.orderId}',
+                                          textAlign: TextAlign.center,
+                                          style: AppTypography.title),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Статус заказа доступен в разделе «Мои заказы».',
+                                        textAlign: TextAlign.center,
+                                        style: AppTypography.body.copyWith(
+                                            color: palette.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-              ],
-            )),
+                    )),
           ),
         ),
       ),

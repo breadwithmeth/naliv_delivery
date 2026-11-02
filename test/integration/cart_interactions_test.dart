@@ -1,12 +1,19 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
+import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/preferences_store.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -95,6 +102,65 @@ void main() {
     } finally {
       semantics.dispose();
     }
+  });
+
+  testWidgets('cart restore error follows external recovery and local retry',
+      (tester) async {
+    OnboardingPreferences({'cart_items': '{unread'}).install();
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    final unexpected = <String>[];
+    final client = MockClient((request) async {
+      unexpected.add('${request.method} ${request.url}');
+      throw StateError('Cart restore fixture must not access the network');
+    });
+    addTearDown(client.close);
+    addTearDown(() => expect(unexpected, isEmpty));
+    await http.runWithClient(() async {
+      await _mount(tester, cart);
+      expect(find.byKey(const ValueKey('cart-load-error')), findsOneWidget);
+      expect(find.byKey(const ValueKey('cart-total-bar')), findsNothing);
+      expect(cart.saveStatus.value, CartSaveStatus.restoreFailed);
+      final row = CartItem(
+        itemId: 8501,
+        name: 'Восстановленный товар',
+        price: 100,
+        quantity: 1,
+        stepQuantity: 1,
+        selectedVariants: const [],
+        promotions: const [],
+      );
+      final repaired = jsonEncode({
+        'business_id': 7,
+        'items': [row.toJson()],
+      });
+      final prefs = await SharedPreferences.getInstance();
+      expect(await prefs.setString('cart_items', repaired), isTrue);
+      expect(await cart.retryLoad(), isTrue);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('cart-load-error')), findsNothing);
+      expect(find.text('Восстановленный товар'), findsOneWidget);
+      expect(find.byKey(const ValueKey('cart-total-bar')), findsOneWidget);
+
+      expect(await prefs.setString('cart_items', '{still-unread'), isTrue);
+      expect(await cart.retryLoad(), isFalse);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('cart-load-error')), findsOneWidget);
+      expect(cart.items.single.quantity, 1);
+      expect(find.byKey(const ValueKey('cart-total-bar')), findsNothing);
+      expect(await prefs.setString('cart_items', repaired), isTrue);
+      await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('cart-load-error')),
+        matching: find.text('Повторить'),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('cart-load-error')), findsNothing);
+      expect(find.text('Восстановленный товар'), findsOneWidget);
+      expect(cart.saveStatus.value, CartSaveStatus.saved);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }, () => client);
   });
 }
 

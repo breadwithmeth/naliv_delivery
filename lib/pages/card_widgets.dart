@@ -60,9 +60,11 @@ class CardFaqPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return AppGlassPanel(
-      tint: palette.accent.withValues(alpha: .2),
+    return AppSurface(
+      fill: Color.alphaBlend(
+          palette.accent.withValues(alpha: .2), palette.surface),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      clip: true,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -143,7 +145,10 @@ class SavedCardRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(card.mask, style: AppTypography.title),
-                Text(card.canCharge ? 'Карта' : 'Номер карты · оплата недоступна',
+                Text(
+                    card.canCharge
+                        ? 'Карта'
+                        : 'Номер карты · оплата недоступна',
                     style: AppTypography.bodySmall
                         .copyWith(color: palette.textSecondary)),
               ],
@@ -270,14 +275,16 @@ class CardReadFeedback extends StatelessWidget {
 
   Future<void> _signIn(BuildContext context) async {
     if (!allowSignIn) return;
-    final authenticated =
-        await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
-      builder: (_) => const LoginPage(
-        startWithPhoneForm: true,
-        completionMode: LoginCompletionMode.returnAuthenticated,
-      ),
-    ));
-    if (authenticated == true && context.mounted) await flow.refresh();
+    await flow.reauthenticate(() async {
+      final authenticated =
+          await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
+        builder: (_) => const LoginPage(
+          startWithPhoneForm: true,
+          completionMode: LoginCompletionMode.returnAuthenticated,
+        ),
+      ));
+      return authenticated == true && context.mounted;
+    });
   }
 
   @override

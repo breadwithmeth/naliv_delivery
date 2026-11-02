@@ -14,6 +14,7 @@ import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
@@ -53,6 +54,18 @@ class _Cart extends CartProvider {
   }
 }
 
+class _RefusedFinancialPreferences extends OnboardingPreferences {
+  _RefusedFinancialPreferences() : super({'auth_token': 'fixture-only'});
+
+  bool rejectWrites = false;
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) =>
+      rejectWrites
+          ? Future.value(false)
+          : super.setValue(valueType, key, value);
+}
+
 class _Fixture {
   final cart = _Cart();
   final business = BusinessProvider();
@@ -70,9 +83,14 @@ class _Fixture {
   int profileWrites = 0;
   int bonusReads = 0;
   int accountReads = 0;
+  int promoValidations = 0;
+  int certificateValidations = 0;
+  int bagReads = 0;
   int bagId = 48044;
   double bagPrice = 30;
   double bonusBalance = 900;
+  String accountId = 'checkout-fixture-user';
+  final allowedCredentials = {'Bearer fixture-only'};
 
   Future<void> initialize({bool empty = false}) async {
     await business.setSelectedBusiness(
@@ -92,7 +110,7 @@ class _Fixture {
 
   late final client = MockClient((request) async {
     final authorization = request.headers['authorization'];
-    if (authorization != null && authorization != 'Bearer fixture-only') {
+    if (authorization != null && !allowedCredentials.contains(authorization)) {
       throw StateError('Non-fixture checkout credentials');
     }
     switch ((request.method, request.url.path)) {
@@ -102,8 +120,10 @@ class _Fixture {
           'success': true,
           'data': {
             'user': {
-              'id': 'checkout-fixture-user',
-              'name': profileRequired && !profileCompleted ? '' : 'Тестовый Получатель',
+              'id': accountId,
+              'name': profileRequired && !profileCompleted
+                  ? ''
+                  : 'Тестовый Получатель',
               'date_of_birth': profileRequired && !profileCompleted
                   ? ''
                   : '${DateTime.now().year - 25}-01-01',
@@ -119,7 +139,10 @@ class _Fixture {
           'onetime_code': '123456',
         });
         return verification == null
-            ? _json({'success': true, 'data': {'token': 'fixture-only'}}, 202)
+            ? _json({
+                'success': true,
+                'data': {'token': 'fixture-only'}
+              }, 202)
             : await verification!.future;
       case ('PATCH', '/api/users/profile'):
         expectSync(profileRequired, isTrue);
@@ -134,6 +157,7 @@ class _Fixture {
         profileWrites++;
         return _json({'success': true});
       case ('GET', '/api/items/search'):
+        bagReads++;
         expectSync(request.url.queryParameters, {
           'name': 'майка',
           'business_id': '1',
@@ -173,6 +197,7 @@ class _Fixture {
       case ('GET', '/api/delivery/calculate-by-address'):
         return quote == null ? _quote(800) : await quote!(request);
       case ('POST', '/api/orders/validate-promo-code'):
+        promoValidations++;
         return promo == null
             ? _json({
                 'success': true,
@@ -180,6 +205,7 @@ class _Fixture {
               })
             : await promo!(request);
       case ('POST', '/api/certificates/validate'):
+        certificateValidations++;
         return certificate == null
             ? _json({
                 'success': true,
@@ -244,8 +270,11 @@ Future<void> _pump(
   _Fixture fixture, {
   CheckoutPage page = const CheckoutPage(initialAddress: _address),
   bool settle = true,
+  Size size = const Size(375, 812),
+  TextScaler textScaler = TextScaler.noScaling,
+  EdgeInsets viewInsets = EdgeInsets.zero,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(375, 812));
+  await tester.binding.setSurfaceSize(size);
   await tester.pumpWidget(MultiProvider(
       providers: [
         ChangeNotifierProvider<CartProvider>.value(value: fixture.cart),
@@ -256,6 +285,8 @@ Future<void> _pump(
         builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
               padding: const EdgeInsets.only(top: 48, bottom: 34),
+              textScaler: textScaler,
+              viewInsets: viewInsets,
             ),
             child: child!),
         home: page,
@@ -279,10 +310,12 @@ Future<void> _show(WidgetTester tester, String key) async {
   await tester.pump();
   final target = find.byKey(ValueKey(key));
   if (target.evaluate().isEmpty) {
-    final scrollable = find.descendant(
-      of: find.byKey(const ValueKey('checkout-scroll')),
-      matching: find.byType(Scrollable),
-    ).first;
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('checkout-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
     tester.state<ScrollableState>(scrollable).position.jumpTo(0);
     await tester.pump();
     await tester.scrollUntilVisible(
@@ -293,12 +326,35 @@ Future<void> _show(WidgetTester tester, String key) async {
   }
   await Scrollable.ensureVisible(
     tester.element(find.byKey(ValueKey(key))),
-    alignment: 0.5,
+    alignment: 0.25,
   );
   await tester.pump();
 }
 
+Future<void> _toggleDisclosure(WidgetTester tester, String toggleKey) async {
+  await _show(tester, toggleKey);
+  await tester.tap(find.byKey(ValueKey(toggleKey)));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openDisclosure(
+    WidgetTester tester, String toggleKey, String fieldKey) async {
+  await _show(tester, toggleKey);
+  if (find.byKey(ValueKey(fieldKey)).evaluate().isEmpty) {
+    await tester.tap(find.byKey(ValueKey(toggleKey)));
+    await tester.pumpAndSettle();
+  }
+}
+
+Future<void> _openDeliveryDetails(WidgetTester tester) => _openDisclosure(
+    tester, 'checkout-delivery-details-toggle', 'checkout-entrance');
+
+Future<void> _openBenefits(WidgetTester tester) =>
+    _openDisclosure(tester, 'checkout-benefits-toggle', 'checkout-promo-code');
+
 Future<void> _fillDraft(WidgetTester tester) async {
+  await _openDeliveryDetails(tester);
+  await _openBenefits(tester);
   for (final entry in const {
     'checkout-entrance': '2Б',
     'checkout-floor': '4',
@@ -314,6 +370,8 @@ Future<void> _fillDraft(WidgetTester tester) async {
 }
 
 Future<void> _expectDraft(WidgetTester tester) async {
+  await _openDeliveryDetails(tester);
+  await _openBenefits(tester);
   for (final entry in const {
     'checkout-entrance': '2Б',
     'checkout-floor': '4',
@@ -323,7 +381,10 @@ Future<void> _expectDraft(WidgetTester tester) async {
   }.entries) {
     await _show(tester, entry.key);
     expect(
-        tester.widget<TextField>(find.byKey(ValueKey(entry.key))).controller!.text,
+        tester
+            .widget<TextField>(find.byKey(ValueKey(entry.key)))
+            .controller!
+            .text,
         entry.value);
   }
 }
@@ -350,6 +411,221 @@ void main() {
   setUp(() =>
       SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'}));
 
+  testWidgets(
+      'closing delivery and benefit disclosures retains the draft and applied price',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _fillDraft(tester);
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pumpAndSettle();
+      expect(fixture.promoValidations, 1);
+      await _toggleDisclosure(tester, 'checkout-benefits-toggle');
+      await _toggleDisclosure(tester, 'checkout-delivery-details-toggle');
+      await _show(tester, 'checkout-benefits-toggle');
+      expect(find.byKey(const ValueKey('checkout-benefit-applied')),
+          findsOneWidget);
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(1730));
+      await _expectDraft(tester);
+      expect(fixture.promoValidations, 1);
+      await _toggleDisclosure(tester, 'checkout-benefits-toggle');
+      await _toggleDisclosure(tester, 'checkout-delivery-details-toggle');
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['entrance'], '2Б');
+      expect(body['floor'], '4');
+      expect(body['apartment'], '12');
+      expect(body['lat'], 49.8);
+      expect(body['lon'], 73.1);
+      expect(body['business_id'], 1);
+      expect(body['promo_code'], 'DRAFT-PROMO');
+      expect(body['total_amount'], 1730);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'fulfilment changes retain draft codes but require explicit benefit reapplication',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _fillDraft(tester);
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pumpAndSettle();
+      await _show(tester, 'checkout-mode-pickup');
+      await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
+      await tester.pumpAndSettle();
+      await _show(tester, 'checkout-mode-delivery');
+      await tester.tap(find.byKey(const ValueKey('checkout-mode-delivery')));
+      await tester.pumpAndSettle();
+      await _expectDraft(tester);
+      expect(
+          find.byKey(const ValueKey('checkout-benefit-applied')), findsNothing);
+      expect(fixture.promoValidations, 1);
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(1830));
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pumpAndSettle();
+      expect(fixture.promoValidations, 2);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['delivery_type'], 'DELIVERY');
+      expect(body['business_id'], 1);
+      expect(body['lat'], 49.8);
+      expect(body['lon'], 73.1);
+      expect(body['entrance'], '2Б');
+      expect(body['floor'], '4');
+      expect(body['apartment'], '12');
+      expect(body['promo_code'], 'DRAFT-PROMO');
+      expect(body['total_amount'], 1730);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('editing the cart returns to the original confirmation draft',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      final route = ModalRoute.of(tester.element(find.byType(CheckoutPage)));
+      await _fillDraft(tester);
+      await _show(tester, 'checkout-edit-cart');
+      await tester.tap(find.byKey(const ValueKey('checkout-edit-cart')));
+      await tester.pumpAndSettle();
+      final cartRow = find.byKey(const ValueKey('cart-row-0'));
+      await tester.tap(find.descendant(
+          of: cartRow, matching: find.byIcon(Icons.add_rounded)));
+      await tester.pumpAndSettle();
+      expect(fixture.cart.getTotalQuantityForItem(99), 2);
+      await tester.tap(find.byKey(const ValueKey('cart-checkout-button')));
+      await tester.pumpAndSettle();
+      expect(ModalRoute.of(tester.element(find.byType(CheckoutPage))), route);
+      await _expectDraft(tester);
+      expect(fixture.creates, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['entrance'], '2Б');
+      expect(body['floor'], '4');
+      expect(body['apartment'], '12');
+      expect(body['business_id'], 1);
+      expect(body['total_amount'], 2830);
+      expect(
+          (body['items'] as List)
+              .cast<Map>()
+              .singleWhere((row) => row['item_id'] == 99)['amount'],
+          2);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'narrow large-text keyboard checkout keeps quantity benefit and submission reachable',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize(empty: true);
+    final item = Item(
+      itemId: 92,
+      name: 'Сыр',
+      price: 1000.5,
+      amount: 1,
+      unit: 'кг',
+      stepQuantity: 0.25,
+      category: ItemCategory(categoryId: 9, name: 'Еда'),
+    );
+    fixture.cart.addItem(CartItem(
+      itemId: item.itemId,
+      name: item.name,
+      price: item.price,
+      quantity: 0.25,
+      stepQuantity: 0.25,
+      selectedVariants: [],
+      promotions: [],
+      itemData: item.toJson(),
+    ));
+    fixture.create = (_) async => _json({
+          'success': false,
+          'error': {'message': 'Магазин закрыт'},
+        }, 409);
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        size: const Size(320, 812),
+        textScaler: const TextScaler.linear(2),
+        viewInsets: const EdgeInsets.only(bottom: 280),
+      );
+      await _openDeliveryDetails(tester);
+      await _show(tester, 'checkout-entrance');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-entrance')), '2Б');
+      await _openBenefits(tester);
+      await _show(tester, 'checkout-promo-code');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
+      final group = fixture.cart.activeDisplayGroups.single;
+      await _show(tester, 'checkout-quantity-${group.key}');
+      await tester.tap(find.descendant(
+          of: find.byKey(ValueKey('checkout-quantity-${group.key}')),
+          matching: find.byIcon(Icons.add)));
+      await tester.pumpAndSettle();
+      expect(fixture.cart.getTotalQuantityForItem(item.itemId), 0.5);
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pumpAndSettle();
+      final submit = find.byKey(const ValueKey('checkout-submit'));
+      expect(submit.hitTestable(), findsOneWidget);
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['entrance'], '2Б');
+      expect(body['promo_code'], 'PROMO');
+      expect(body['total_amount'], closeTo(1230.25, 0.000000001));
+      expect(
+          (body['items'] as List)
+              .cast<Map>()
+              .singleWhere((row) => row['item_id'] == item.itemId)['amount'],
+          0.5);
+      expect(fixture.cart.clears, 0);
+      expect(submit.hitTestable(), findsOneWidget);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('removing the final reviewed item removes order creation',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      final group = fixture.cart.activeDisplayGroups.single;
+      await _show(tester, 'checkout-remove-${group.key}');
+      await tester.tap(find.byKey(ValueKey('checkout-remove-${group.key}')));
+      await tester.pumpAndSettle();
+      expect(fixture.cart.hasActiveItems, isFalse);
+      expect(find.byKey(const ValueKey('checkout-submit')), findsNothing);
+      expect(fixture.creates, isEmpty);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
   for (final requireProfile in [false, true]) {
     testWidgets(
         'guest login resumes the same checkout draft with required profile=$requireProfile',
@@ -374,26 +650,28 @@ void main() {
           await tester.enterText(
               find.byKey(const ValueKey('profile-setup-name')),
               'Тестовый Получатель');
-          await tester.tap(
-              find.byKey(const ValueKey('profile-setup-birthday')));
+          await tester
+              .tap(find.byKey(const ValueKey('profile-setup-birthday')));
           await tester.pumpAndSettle();
           await tester.tap(find.text('OK'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(
-              find.byKey(const ValueKey('profile-setup-save')));
+          await tester
+              .ensureVisible(find.byKey(const ValueKey('profile-setup-save')));
           await tester.tap(find.byKey(const ValueKey('profile-setup-save')));
           await tester.pumpAndSettle();
           expect(fixture.profileWrites, 1);
         }
         expect(find.byType(LoginPage), findsNothing);
-        expect(identical(tester.state(find.byType(CheckoutPage)), state), isTrue);
+        expect(
+            identical(tester.state(find.byType(CheckoutPage)), state), isTrue);
         expect(ModalRoute.of(tester.element(find.byType(CheckoutPage))), route);
         expect(jsonEncode(fixture.cart.toJsonForOrder()), rows);
         expect(fixture.cart.businessId, 1);
         expect(fixture.business.selectedBusinessId, 1);
         expect(fixture.bonusReads, greaterThanOrEqualTo(1));
         await _expectDraft(tester);
-        expect(find.byKey(const ValueKey('checkout-benefit-applied')), findsNothing);
+        expect(find.byKey(const ValueKey('checkout-benefit-applied')),
+            findsNothing);
         expect(_enabled(tester), isTrue);
         expect(fixture.creates, isEmpty);
         await _dispose(tester, fixture);
@@ -404,8 +682,7 @@ void main() {
   testWidgets('cancelled and late login keep the checkout fields and rows',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final fixture = _Fixture()
-      ..verification = Completer<http.Response>();
+    final fixture = _Fixture()..verification = Completer<http.Response>();
     await fixture.initialize();
     await http.runWithClient(() async {
       await _pump(tester, fixture);
@@ -438,7 +715,8 @@ void main() {
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize();
-    await fixture.business.setSelectedBusiness({'id': ' 01 ', 'name': 'Ignored'});
+    await fixture.business
+        .setSelectedBusiness({'id': ' 01 ', 'name': 'Ignored'});
     await http.runWithClient(() async {
       await _pump(tester, fixture);
       await _fillDraft(tester);
@@ -449,7 +727,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('checkout-store-option-1')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('checkout-confirm-store')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('checkout-confirm-store')), findsNothing);
       expect(jsonEncode(fixture.cart.toJsonForOrder()), rows);
       expect(fixture.cart.getTotalPrice(), total);
       expect(fixture.cart.clears, 0);
@@ -512,7 +791,8 @@ void main() {
     });
   }
 
-  testWidgets('tobacco delivery and fractional weight do not inflate bonus redemption',
+  testWidgets(
+      'tobacco delivery and fractional weight do not inflate bonus redemption',
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize(empty: true);
@@ -525,16 +805,18 @@ void main() {
       stepQuantity: 0.25,
       category: ItemCategory(categoryId: 9, name: 'Еда'),
     );
-    expect(fixture.cart.addItem(CartItem(
-      itemId: weight.itemId,
-      name: weight.name,
-      price: weight.price,
-      quantity: 0.75,
-      stepQuantity: 0.25,
-      selectedVariants: [],
-      promotions: [],
-      itemData: weight.toJson(),
-    )), isTrue);
+    expect(
+        fixture.cart.addItem(CartItem(
+          itemId: weight.itemId,
+          name: weight.name,
+          price: weight.price,
+          quantity: 0.75,
+          stepQuantity: 0.25,
+          selectedVariants: [],
+          promotions: [],
+          itemData: weight.toJson(),
+        )),
+        isTrue);
     final tobacco = Item(
       itemId: 93,
       name: 'Марка',
@@ -543,42 +825,52 @@ void main() {
       unit: 'шт.',
       category: ItemCategory(categoryId: 7, name: 'Табачная продукция'),
     );
-    expect(fixture.cart.addItem(CartItem(
-      itemId: tobacco.itemId,
-      name: tobacco.name,
-      price: tobacco.price,
-      quantity: 1,
-      stepQuantity: 1,
-      selectedVariants: [],
-      promotions: [],
-      itemData: tobacco.toJson(),
-    )), isTrue);
+    expect(
+        fixture.cart.addItem(CartItem(
+          itemId: tobacco.itemId,
+          name: tobacco.name,
+          price: tobacco.price,
+          quantity: 1,
+          stepQuantity: 1,
+          selectedVariants: [],
+          promotions: [],
+          itemData: tobacco.toJson(),
+        )),
+        isTrue);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
+      await _openBenefits(tester);
       await _show(tester, 'checkout-bonus-toggle');
       await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
       await tester.pumpAndSettle();
       expect(
-          tester.widget<Text>(find.byKey(const ValueKey('checkout-total'))).data,
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
           formatTenge(5355.375));
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       final body = fixture.creates.single;
       expect(body['bonus_amount'], 225);
       expect(body['total_amount'], closeTo(5355.375, 0.000000001));
-      expect((body['items'] as List).cast<Map>()
-          .singleWhere((row) => row['item_id'] == 92)['amount'], 0.75);
+      expect(
+          (body['items'] as List)
+              .cast<Map>()
+              .singleWhere((row) => row['item_id'] == 92)['amount'],
+          0.75);
       expect(fixture.bonusReads, 2);
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
 
-  testWidgets('fresh changed bonus balance requires consent before any creation',
+  testWidgets(
+      'fresh changed bonus balance requires consent before any creation',
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize();
     await http.runWithClient(() async {
       await _pump(tester, fixture);
+      await _openBenefits(tester);
       await _show(tester, 'checkout-bonus-toggle');
       await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
       await tester.pumpAndSettle();
@@ -598,9 +890,12 @@ void main() {
     }, () => fixture.client);
   });
 
-  testWidgets('a different purchased bag cannot suppress the verified branded SKU',
+  testWidgets(
+      'a different purchased bag cannot suppress the verified branded SKU',
       (tester) async {
-    final fixture = _Fixture()..bagId = 177..bagPrice = 40;
+    final fixture = _Fixture()
+      ..bagId = 177
+      ..bagPrice = 40;
     await fixture.initialize();
     fixture.cart.addItem(CartItem(
       itemId: 777,
@@ -618,24 +913,32 @@ void main() {
       await tester.pumpAndSettle();
       final body = fixture.creates.single;
       expect(body['total_amount'], 1050);
-      expect((body['items'] as List).cast<Map>()
-          .where((row) => row['item_id'] == 177).toList(), [
-        {'item_id': 177, 'amount': 1, 'options': <Object>[]},
-      ]);
-      expect((body['items'] as List).cast<Map>()
-          .singleWhere((row) => row['item_id'] == 777)['amount'], 1);
+      expect(
+          (body['items'] as List)
+              .cast<Map>()
+              .where((row) => row['item_id'] == 177)
+              .toList(),
+          [
+            {'item_id': 177, 'amount': 1, 'options': <Object>[]},
+          ]);
+      expect(
+          (body['items'] as List)
+              .cast<Map>()
+              .singleWhere((row) => row['item_id'] == 777)['amount'],
+          1);
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
 
-  testWidgets('an unavailable branded SKU blocks order without substituting a bag',
+  testWidgets(
+      'an unavailable branded SKU blocks order without substituting a bag',
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize();
     fixture.bag = (_) async => _json({
-      'success': true,
-      'data': {'items': <Object>[]},
-    });
+          'success': true,
+          'data': {'items': <Object>[]},
+        });
     await http.runWithClient(() async {
       await _pump(tester, fixture,
           page: const CheckoutPage(initialDeliveryType: 'PICKUP'));
@@ -684,7 +987,8 @@ void main() {
           .cast<Map>()
           .where((line) => line['item_id'] == 1186)
           .toList();
-      expect(lines.fold<num>(0, (sum, line) => sum + (line['amount'] as num)), 4);
+      expect(
+          lines.fold<num>(0, (sum, line) => sum + (line['amount'] as num)), 4);
       final containers = <int, num>{};
       for (final line in lines) {
         for (final option in (line['options'] as List).cast<Map>()) {
@@ -717,6 +1021,19 @@ void main() {
     expect(fixture.cart.getTotalPrice(), 3400);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
+      final group = fixture.cart.activeDisplayGroups.single;
+      await _show(tester, 'checkout-containers-${group.key}');
+      final containers =
+          find.byKey(ValueKey('checkout-containers-${group.key}'));
+      expect(
+          find.descendant(
+              of: containers, matching: find.text(formatTenge(300))),
+          findsOneWidget);
+      expect(
+          find.descendant(
+              of: containers, matching: find.text(formatTenge(100))),
+          findsOneWidget);
+      await _show(tester, 'checkout-mode-pickup');
       await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
       await tester.pumpAndSettle();
       expect(
@@ -881,6 +1198,365 @@ void main() {
     }, () => fixture.client);
   });
 
+  for (final benefit in ['promo', 'certificate']) {
+    testWidgets(
+        '$benefit validation waits for the initial mandatory packaging snapshot',
+        (tester) async {
+      final fixture = _Fixture();
+      await fixture.initialize();
+      final packaging = Completer<http.Response>();
+      fixture.bag = (_) => packaging.future;
+      await http.runWithClient(() async {
+        await _pump(tester, fixture, settle: false);
+        await _show(tester, 'checkout-benefits-toggle');
+        await tester
+            .tap(find.byKey(const ValueKey('checkout-benefits-toggle')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await _show(tester, 'checkout-$benefit-code');
+        final field = find.byKey(ValueKey('checkout-$benefit-code'));
+        expect(field.hitTestable(), findsOneWidget);
+        expect(tester.widget<TextField>(field).enabled, isTrue);
+        await tester.enterText(field, 'PACKAGING-REQUIRED');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pump();
+        await tester.pump();
+        expect(find.byKey(const ValueKey('checkout-benefit-error')),
+            findsOneWidget);
+        final prematureValidations = benefit == 'promo'
+            ? fixture.promoValidations
+            : fixture.certificateValidations;
+        packaging.complete(_json({
+          'success': true,
+          'data': {
+            'items': [
+              {
+                'item_id': 48044,
+                'code': 'KR-00002264',
+                'name': 'Майка фирменная',
+                'price': 30,
+                'amount': 100,
+                'visible': 1,
+                'unit': 'шт',
+                'quantity_step': 1,
+                'category': {'category_id': 191, 'name': 'Утилитарное'},
+                'options': <Object>[],
+                'promotions': <Object>[],
+              },
+            ],
+          },
+        }));
+        await tester.pumpAndSettle();
+        expect(prematureValidations, 0,
+            reason: 'A benefit must not be validated against bag-less items');
+        expect(find.byKey(const ValueKey('checkout-benefit-applied')),
+            findsNothing);
+        await _show(tester, 'checkout-apply-$benefit');
+        expect(find.byKey(ValueKey('checkout-apply-$benefit')).hitTestable(),
+            findsOneWidget);
+        await tester.tap(find.byKey(ValueKey('checkout-apply-$benefit')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('checkout-benefit-applied')),
+            findsOneWidget);
+        await _dispose(tester, fixture);
+      }, () => fixture.client);
+    });
+  }
+
+  testWidgets(
+      'replacing priced lines with the same subtotal invalidates accepted benefits',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    fixture.cart.addItem(CartItem(
+        itemId: 100,
+        name: 'Сок',
+        price: 500,
+        quantity: 1,
+        stepQuantity: 1,
+        selectedVariants: [],
+        promotions: []));
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _openBenefits(tester);
+      await _show(tester, 'checkout-promo-code');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-promo-code')), 'LINE-PRICE');
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('checkout-benefit-applied')),
+          findsOneWidget);
+      expect(
+          await fixture.cart.replaceForBusiness(1, [
+            CartItem(
+                itemId: 99,
+                name: 'Вода',
+                price: 900,
+                quantity: 1,
+                stepQuantity: 1,
+                selectedVariants: [],
+                promotions: []),
+            CartItem(
+                itemId: 100,
+                name: 'Сок',
+                price: 600,
+                quantity: 1,
+                stepQuantity: 1,
+                selectedVariants: [],
+                promotions: []),
+          ]),
+          isTrue);
+      await tester.pumpAndSettle();
+      expect(fixture.cart.getTotalPrice(), 1500);
+      expect(
+          find.byKey(const ValueKey('checkout-benefit-applied')), findsNothing);
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(2330));
+      expect(fixture.creates, isEmpty);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('twenty cart-only edits reuse store packaging metadata',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      expect(fixture.bagReads, 1);
+      for (var quantity = 2; quantity <= 21; quantity++) {
+        fixture.cart.updateQuantity(99, quantity.toDouble());
+        await tester.pumpAndSettle();
+        expect(_enabled(tester), isTrue);
+      }
+      expect(fixture.bagReads, 1,
+          reason: 'Cart edits must not re-read the same store catalogue');
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(21830));
+      expect(fixture.creates, isEmpty);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('checkout edit save keeps the canonical base address label',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    fixture.create = (_) async => _json({
+          'success': false,
+          'error': {'message': 'Магазин закрыт'},
+        }, 409);
+    await http.runWithClient(() async {
+      await _pump(tester, fixture,
+          page: const CheckoutPage(initialAddress: {
+            'address': 'Тестовая, 16',
+            'street': 'Тестовая',
+            'house': '16',
+            'lat': 49.8,
+            'lon': 73.1,
+            'entrance': '2',
+            'apartment': '12',
+          }));
+      await _openDeliveryDetails(tester);
+      await _show(tester, 'checkout-apartment');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-apartment')), '24');
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final prefs = await SharedPreferences.getInstance();
+      final first = jsonDecode(prefs.getString('selected_address')!) as Map;
+      expect(first['address'], 'Тестовая, 16');
+      expect(first['apartment'], '24');
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await _pump(tester, fixture, page: const CheckoutPage());
+      await _openDeliveryDetails(tester);
+      await _show(tester, 'checkout-apartment');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-apartment')), '36');
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final second = jsonDecode(prefs.getString('selected_address')!) as Map;
+      expect(second['address'], 'Тестовая, 16');
+      expect(second['apartment'], '36');
+      expect(fixture.creates, hasLength(2));
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  for (final status in [408, 500, 503]) {
+    testWidgets(
+        'JSON $status creation stays unresolved and cannot send another order',
+        (tester) async {
+      final fixture = _Fixture();
+      await fixture.initialize();
+      fixture.create = (_) async => _json({
+            'success': false,
+            'error': {'message': 'Ответ сервера недоступен'},
+          }, status);
+      await http.runWithClient(() async {
+        await _pump(tester, fixture);
+        await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+        await tester.pumpAndSettle();
+        expect(fixture.creates, hasLength(1));
+        expect(fixture.cart.hasActiveItems, isTrue);
+        expect(fixture.cart.clears, 0);
+        expect(_enabled(tester), isFalse);
+        await _show(tester, 'checkout-check-orders');
+        expect(
+            tester
+                .widget<TextButton>(
+                    find.byKey(const ValueKey('checkout-check-orders')))
+                .onPressed,
+            isNotNull);
+        await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+        await tester.pumpAndSettle();
+        expect(fixture.creates, hasLength(1));
+        await _dispose(tester, fixture);
+      }, () => fixture.client);
+    });
+  }
+
+  testWidgets(
+      'unknown creation survives checkout route recreation without another POST',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    fixture.create = (_) async => _json({
+          'success': true,
+          'data': {'total_amount': 1830},
+        }, 201);
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      expect(_enabled(tester), isFalse);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await _pump(tester, fixture);
+      expect(fixture.cart.hasActiveItems, isTrue);
+      expect(_enabled(tester), isFalse);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      expect(fixture.creates, hasLength(1));
+      await _show(tester, 'checkout-check-orders');
+      expect(
+          find.byKey(const ValueKey('checkout-check-orders')), findsOneWidget);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('refused financial intent persistence sends no creation POST',
+      (tester) async {
+    final preferences = _RefusedFinancialPreferences()..install();
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture,
+          page: const CheckoutPage(initialDeliveryType: 'PICKUP'));
+      expect(_enabled(tester), isTrue);
+      preferences.rejectWrites = true;
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      expect(fixture.creates, isEmpty);
+      expect(fixture.cart.hasActiveItems, isTrue);
+      expect(fixture.cart.clears, 0);
+      expect(find.byType(PaymentMethodPage), findsNothing);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('unreadable saved cart is blocked rather than presented as empty',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      'selected_business': jsonEncode({
+        'id': 1,
+        'name': 'Градусы24',
+        'address': 'Караганда, Магазин, 1',
+      }),
+      'cart_items': '{unreadable-cart',
+    });
+    final fixture = _Fixture();
+    await fixture.business.loadSavedBusiness();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      expect(find.byKey(const ValueKey('checkout-cart-restore-error')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('checkout-empty')), findsNothing);
+      expect(find.byKey(const ValueKey('checkout-submit')), findsNothing);
+      expect(fixture.creates, isEmpty);
+      expect((await SharedPreferences.getInstance()).getString('cart_items'),
+          '{unreadable-cart');
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('failed latest cart persistence prevents financial creation',
+      (tester) async {
+    final preferences = OnboardingPreferences({'auth_token': 'fixture-only'})
+      ..install();
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      preferences.rejectedKeys.add('cart_items');
+      fixture.cart.updateQuantity(99, 2);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      expect(fixture.creates, isEmpty);
+      expect(fixture.cart.getTotalQuantityForItem(99), 2);
+      expect(fixture.cart.clears, 0);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('late account A creation cannot clear account B cart or navigate',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    final response = Completer<http.Response>();
+    fixture.create = (_) => response.future;
+    fixture.allowedCredentials.add('Bearer fixture-account-b');
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pump();
+      expect(fixture.creates, hasLength(1));
+      fixture.accountId = 'checkout-account-b';
+      await AuthService.saveToken('fixture-account-b');
+      await AuthService.bindAuthenticatedIdentity('checkout-account-b');
+      response.complete(_json({
+        'success': true,
+        'data': {'order_id': 'account-a-created-order'},
+      }, 201));
+      await tester.pumpAndSettle();
+      expect(fixture.cart.hasActiveItems, isTrue);
+      expect(fixture.cart.clears, 0);
+      expect(find.byType(PaymentMethodPage), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      fixture.accountId = 'checkout-fixture-user';
+      await AuthService.saveToken('fixture-only');
+      await AuthService.bindAuthenticatedIdentity('checkout-fixture-user');
+      await _pump(tester, fixture);
+      expect(_enabled(tester), isFalse);
+      await _show(tester, 'checkout-resume-order');
+      expect(
+          find.byKey(const ValueKey('checkout-resume-order')), findsOneWidget);
+      expect(fixture.creates, hasLength(1));
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
   testWidgets(
       'refused create preserves input and cart and allows an explicit later submission',
       (tester) async {
@@ -892,6 +1568,8 @@ void main() {
         }, 409);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
+      await _openDeliveryDetails(tester);
+      await _show(tester, 'checkout-entrance');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-entrance')), '2Б');
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
@@ -940,6 +1618,48 @@ void main() {
       expect(fixture.cart.clears, 0);
       expect(find.byType(PaymentMethodPage), findsNothing);
       expect(_enabled(tester), isFalse);
+      expect(
+          tester
+              .widget<TextButton>(
+                  find.byKey(const ValueKey('checkout-mode-pickup')))
+              .onPressed,
+          isNull);
+      await _show(tester, 'checkout-edit-cart');
+      expect(
+          tester
+              .widget<TextButton>(
+                  find.byKey(const ValueKey('checkout-edit-cart')))
+              .onPressed,
+          isNull);
+      final group = fixture.cart.activeDisplayGroups.single;
+      await _show(tester, 'checkout-remove-${group.key}');
+      expect(
+          tester
+              .widget<TextButton>(
+                  find.byKey(ValueKey('checkout-remove-${group.key}')))
+              .onPressed,
+          isNull);
+      await _openBenefits(tester);
+      await _toggleDisclosure(tester, 'checkout-benefits-toggle');
+      expect(_enabled(tester), isFalse);
+      await _show(tester, 'checkout-check-orders');
+      expect(
+          tester
+              .widget<TextButton>(
+                  find.byKey(const ValueKey('checkout-check-orders')))
+              .onPressed,
+          isNotNull);
+      fixture.cart.updateQuantity(99, 2);
+      await tester.pumpAndSettle();
+      expect(_enabled(tester), isFalse);
+      await _show(tester, 'checkout-check-orders');
+      expect(
+          tester
+              .widget<TextButton>(
+                  find.byKey(const ValueKey('checkout-check-orders')))
+              .onPressed,
+          isNotNull);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pump(const Duration(seconds: 10));
       expect(fixture.creates, hasLength(1));
       await _dispose(tester, fixture);
@@ -992,6 +1712,7 @@ void main() {
     };
     await http.runWithClient(() async {
       await _pump(tester, fixture);
+      await _openBenefits(tester);
       await _show(tester, 'checkout-promo-code');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
@@ -1024,6 +1745,7 @@ void main() {
     await fixture.initialize();
     await http.runWithClient(() async {
       await _pump(tester, fixture);
+      await _openBenefits(tester);
       await _show(tester, 'checkout-promo-code');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');

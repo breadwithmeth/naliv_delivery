@@ -133,6 +133,9 @@ class ProductRow extends StatelessWidget {
                     child: imageUrl?.isNotEmpty == true
                         ? Image.network(
                             imageUrl!,
+                            cacheWidth: (artWidth *
+                                    MediaQuery.devicePixelRatioOf(context))
+                                .ceil(),
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => _missingArt(palette),
                           )
@@ -151,7 +154,8 @@ class ProductRow extends StatelessWidget {
                             tooltip: 'Убрать из избранного',
                             onPressed: onLike,
                             style: IconButton.styleFrom(
-                              minimumSize: const Size.square(AppSpacing.touchTarget),
+                              minimumSize:
+                                  const Size.square(AppSpacing.touchTarget),
                               backgroundColor:
                                   palette.brandRed.withValues(alpha: .25),
                             ),
@@ -164,7 +168,6 @@ class ProductRow extends StatelessWidget {
                             onTap: onLike,
                             size: AppSpacing.touchTarget,
                             glyphSize: 20,
-                            blur: 0,
                             fill: palette.surfaceMuted,
                             color: palette.textPrimary,
                           ),
@@ -221,7 +224,8 @@ class ProductRow extends StatelessWidget {
               ),
             Text(
               unitPriceLabel ?? formatTenge(price),
-              style: AppTypography.headline.copyWith(color: palette.textPrimary),
+              style:
+                  AppTypography.headline.copyWith(color: palette.textPrimary),
             ),
             if (saving != null)
               Text(

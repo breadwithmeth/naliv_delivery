@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../services/auth_service.dart';
 import '../utils/api.dart';
 
 Uri? hostedCardUri(String? value) {
@@ -37,8 +38,10 @@ class SavedCard {
     if (value is! String) return null;
     final mask = value.trim();
     final digitCount = _digits.allMatches(mask).length;
-    return _validMask.hasMatch(mask) && _masking.hasMatch(mask) &&
-            digitCount >= 4 && digitCount <= 10
+    return _validMask.hasMatch(mask) &&
+            _masking.hasMatch(mask) &&
+            digitCount >= 4 &&
+            digitCount <= 10
         ? mask
         : null;
   }
@@ -115,12 +118,45 @@ class CardFlow extends ChangeNotifier {
   CardFlow({
     required this.readCards,
     required this.openForm,
-    this.generateLink = ApiService.generateAddCardLinkResult,
+    Future<AddCardLinkResult> Function()? generateLink,
     this.reserveWindow,
     this.closeWindow,
     this.requiresWindow = false,
     this.requestTimeout = const Duration(seconds: 12),
-  });
+  }) : generateLink = generateLink ?? _generateAuthenticatedLink {
+    AuthService.sessionRevision.addListener(_credentialsChanged);
+  }
+
+  static Future<Object?> readAuthenticatedCards() async {
+    final session = await AuthService.captureSession();
+    if (session == null) {
+      throw const SavedCardReadException(SavedCardReadFailure.authentication);
+    }
+    final cards = await ApiService.getUserCards(
+        source: 'halyk', credentialToken: session.token);
+    if (!session.isCurrent) {
+      throw const SavedCardReadException(SavedCardReadFailure.authentication);
+    }
+    return cards;
+  }
+
+  static Future<AddCardLinkResult> _generateAuthenticatedLink() async {
+    final session = await AuthService.captureSession();
+    if (session == null) {
+      return const AddCardLinkResult(
+          success: false,
+          authRequired: true,
+          message: 'Войдите в аккаунт перед привязкой карты');
+    }
+    final result = await ApiService.generateAddCardLinkResult(
+        credentialToken: session.token);
+    return session.isCurrent
+        ? result
+        : const AddCardLinkResult(
+            success: false,
+            authRequired: true,
+            message: 'Аккаунт изменился. Привязка карты отменена.');
+  }
 
   final Future<Object?> Function() readCards;
   final Future<AddCardLinkResult> Function() generateLink;
@@ -147,6 +183,49 @@ class CardFlow extends ChangeNotifier {
   bool _disposed = false;
   int _attempt = 0;
   int _readAttempt = 0;
+  int _credentialRevision = AuthService.credentialRevision;
+  bool _reauthenticationRequired = false;
+  bool _reauthenticating = false;
+  bool get reauthenticationRequired => _reauthenticationRequired;
+
+  Future<void> reauthenticate(Future<bool> Function() authenticate) async {
+    if (_disposed || _reauthenticating) return;
+    _reauthenticating = true;
+    _reauthenticationRequired = true;
+    try {
+      final authenticated = await authenticate();
+      if (_disposed || !authenticated) return;
+      _reauthenticationRequired = false;
+      await refresh();
+    } finally {
+      _reauthenticating = false;
+      _emit();
+    }
+  }
+
+  void _credentialsChanged() {
+    final revision = AuthService.credentialRevision;
+    if (_disposed || revision == _credentialRevision) return;
+    _credentialRevision = revision;
+    ++_attempt;
+    ++_readAttempt;
+    closeWindow?.call(_reservedWindow);
+    _reservedWindow = null;
+    _preparedUri = null;
+    _previousIds = null;
+    cards = const [];
+    hasLoaded = false;
+    loading = false;
+    newCardId = null;
+    partialWarning = null;
+    message = null;
+    error = 'Войдите в аккаунт снова, чтобы загрузить сохранённые карты.';
+    authRequired = true;
+    addState = CardAddState.idle;
+    _baselineNeedsRefresh = false;
+    _emit();
+    if (!_reauthenticationRequired) unawaited(refresh());
+  }
 
   bool get preparing => addState == CardAddState.preparing;
   bool get awaiting => addState == CardAddState.awaiting;
@@ -162,7 +241,7 @@ class CardFlow extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    if (_disposed || loading || preparing) return;
+    if (_disposed || loading || preparing || _reauthenticationRequired) return;
     final attempt = ++_readAttempt;
     loading = true;
     error = null;
@@ -268,8 +347,10 @@ class CardFlow extends ChangeNotifier {
             error == null &&
             hasLoaded &&
             partialWarning == null
-        ? cards.where((card) => card.canCharge)
-            .map((card) => card.chargeId!).toSet()
+        ? cards
+            .where((card) => card.canCharge)
+            .map((card) => card.chargeId!)
+            .toSet()
         : null;
     addState = CardAddState.preparing;
     message = 'Открываем форму банка…';
@@ -359,6 +440,7 @@ class CardFlow extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    AuthService.sessionRevision.removeListener(_credentialsChanged);
     ++_attempt;
     ++_readAttempt;
     closeWindow?.call(_reservedWindow);

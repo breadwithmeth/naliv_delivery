@@ -1,9 +1,9 @@
 ---
 name: dart-fix-runtime-errors
-description: Uses get_runtime_errors and lsp to fetch an active stack trace, locate the failing line, apply a fix, and verify resolution via hot_reload.
+description: Use when an observed Dart or Flutter exception occurs in a running debug app, including fixture-only failures requiring runtime stack and state evidence.
 metadata:
   model: models/gemini-3.1-pro-preview
-  last_modified: Tue, 29 Sep 2026 00:00:00 GMT
+  last_modified: "2026-11-02"
 ---
 # Fixing a Dart or Flutter runtime failure
 
@@ -26,6 +26,6 @@ Use this workflow for an **observed exception in a running app**, not for static
 1. Make the smallest cause-level edit; preserve frozen backend contracts and relevant callsites.
 2. Use `hot_reload` for a compatible code change; use `hot_restart` if global state, constants, or initialization must reset. A hot-reload success message alone is **not** a fix.
 3. Exercise the original failure path again. Check `get_runtime_errors` **after** the action; check the visible surface/widget tree and resulting state. Only clear stale runtime errors after recording them.
-4. Add a permanent regression test when it catches consumer-visible behavior, then run that focused test. Use `flutter test` and `dart analyze lib test` when integrating the fix.
+4. Add a permanent behavior regression using existing strict fixtures, then stop the debug app and other external Flutter runs before checks. Run `dart run tool/design_harness.dart check <actual test file>` for focused proof, then `dart run tool/design_harness.dart check --full` for serial LCOV and analysis of `lib test integration_test tool`. Add `--native` when the existing Windows journey is required; do not launch competing checks or default-concurrency coverage.
 
 If DTD discovery or connection is unavailable, say exactly which runtime tool failed and fall back to the observable test/browser reproduction; do not claim a live inspector check.

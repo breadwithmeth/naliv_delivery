@@ -1,4 +1,4 @@
-import '../../utils/api.dart';
+import '../../core/json_payload.dart';
 
 class CheckoutQuote {
   const CheckoutQuote._({
@@ -39,7 +39,7 @@ double? checkoutAmount(dynamic value) {
 
 Map<String, dynamic>? checkoutCreatedOrder(Map<String, dynamic> response) {
   if (response['success'] != true) return null;
-  final order = ApiService.mapFromDynamic(response['data']);
+  final order = payloadMap(response['data']);
   final id = order['order_id'] ?? order['order_uuid'] ?? order['id'];
   if (id is! String && id is! num) return null;
   if (id is num && (!id.isFinite || id <= 0)) return null;

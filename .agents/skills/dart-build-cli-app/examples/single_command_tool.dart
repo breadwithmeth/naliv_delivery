@@ -6,13 +6,12 @@
 ///
 /// Demonstrates argument parsing with `ArgParser`, standard I/O stream routing,
 /// and non-destructive exit code assignment via `exitCode`.
+/// Uses the project's existing args dependency and Dart's built-in I/O.
 library;
 
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:io/io.dart' show ExitCode;
-import 'package:stack_trace/stack_trace.dart';
 
 Future<void> main(List<String> args) async {
   final parser = ArgParser()
@@ -35,6 +34,7 @@ Future<void> main(List<String> args) async {
       help: 'Path to the input file to process.',
     );
 
+  late final String inputPath;
   try {
     final results = parser.parse(args);
 
@@ -46,25 +46,30 @@ Future<void> main(List<String> args) async {
       return;
     }
 
-    await _runTool(results);
+    inputPath = results.option('input')!;
   } on FormatException catch (e) {
     // Argument parse error: write error message AND usage to stderr.
     stderr
       ..writeln('Error: ${e.message}')
       ..writeln(parser.usage);
-    exitCode = ExitCode.usage.code;
+    exitCode = 64; // Conventional usage-error status.
   } on ArgumentError catch (e) {
     // Missing mandatory option error thrown by results.option():
     stderr
       ..writeln('Error: ${e.message}')
       ..writeln(parser.usage);
-    exitCode = ExitCode.usage.code;
+    exitCode = 64;
+  }
+  if (exitCode != 0) return;
+
+  try {
+    await _runTool(inputPath);
   } catch (e, st) {
     stderr.writeln('Fatal error: $e');
     if (args.contains('-v') || args.contains('--verbose')) {
-      stderr.writeln(Trace.from(st).terse);
+      stderr.writeln(st);
     }
-    exitCode = ExitCode.software.code;
+    exitCode = 70; // Conventional software-error status.
   }
 }
 
@@ -73,7 +78,6 @@ Future<void> main(List<String> args) async {
 /// In larger applications, place this logic in `lib/src/` rather than
 /// directly in `bin/` so unit tests can import and test functions directly
 /// without needing to spawn an OS subprocess.
-Future<void> _runTool(ArgResults args) async {
-  final inputPath = args.option('input')!;
+Future<void> _runTool(String inputPath) async {
   stdout.writeln('Processing $inputPath...');
 }

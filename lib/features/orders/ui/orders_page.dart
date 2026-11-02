@@ -11,6 +11,8 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/liquid_glass_dock.dart';
+import '../../../services/auth_service.dart';
 import '../../../utils/api.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
@@ -36,17 +38,21 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
   bool _loading = false;
   bool _failed = false;
   bool _bonusFailed = false;
+  int _credentialRevision = AuthService.credentialRevision;
+  int _generation = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AuthService.sessionRevision.addListener(_credentialsChanged);
     _load();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AuthService.sessionRevision.removeListener(_credentialsChanged);
     super.dispose();
   }
 
@@ -55,29 +61,64 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) _load();
   }
 
-  Future<void> _load() async {
-    if (_loading) return;
-    setState(() => _loading = true);
-    await Future.wait([_loadOrders(), _loadBonuses()]);
-    if (mounted) setState(() => _loading = false);
+  void _credentialsChanged() {
+    final revision = AuthService.credentialRevision;
+    if (_credentialRevision == revision || !mounted) return;
+    _credentialRevision = revision;
+    _generation++;
+    setState(() {
+      _orders = null;
+      _bonuses = null;
+      _loading = false;
+      _failed = false;
+      _bonusFailed = false;
+    });
+    _load();
   }
 
-  Future<void> _loadBonuses() async {
-    setState(() => _bonusFailed = false);
-    try {
-      final bonuses =
-          BonusAccount.fromResponse(await ApiService.getUserBonuses());
-      if (mounted) setState(() => _bonuses = bonuses);
-    } catch (_) {
-      if (mounted) setState(() => _bonusFailed = true);
+  Future<void> _load() async {
+    if (_loading) return;
+    final generation = ++_generation;
+    setState(() => _loading = true);
+    final session = await AuthService.captureSession();
+    if (!mounted || generation != _generation) return;
+    if (session == null) {
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
+      return;
+    }
+    await Future.wait([
+      _loadOrders(session, generation),
+      _loadBonuses(session, generation),
+    ]);
+    if (mounted && session.isCurrent && generation == _generation) {
+      setState(() => _loading = false);
     }
   }
 
-  Future<void> _loadOrders() async {
+  Future<void> _loadBonuses(AuthSession session, int generation) async {
+    setState(() => _bonusFailed = false);
+    try {
+      final bonuses = BonusAccount.fromResponse(
+          await ApiService.getUserBonuses(credentialToken: session.token));
+      if (mounted && session.isCurrent && generation == _generation) {
+        setState(() => _bonuses = bonuses);
+      }
+    } catch (_) {
+      if (mounted && session.isCurrent && generation == _generation) {
+        setState(() => _bonusFailed = true);
+      }
+    }
+  }
+
+  Future<void> _loadOrders(AuthSession session, int generation) async {
     setState(() => _failed = false);
     try {
       final response = await ApiService.getMyOrdersHistory(
         businessId: widget.businessId,
+        credentialToken: session.token,
       );
       if (response == null) {
         throw const FormatException('Order history unavailable');
@@ -111,10 +152,10 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
         throw const FormatException('Order history response has no order list');
       }
       final orders = entries.map((item) => asOrderMap(item)!).toList();
-      if (!mounted) return;
+      if (!mounted || !session.isCurrent || generation != _generation) return;
       setState(() => _orders = orders);
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || !session.isCurrent || generation != _generation) return;
       setState(() => _failed = true);
     }
   }
@@ -142,41 +183,34 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: Stack(
-          children: [
-            Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(
-                    title: 'Мои заказы',
-                    onBack: () => Navigator.of(context).maybePop(),
+            child: LiquidGlassDock(
+              content: Column(
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                    child: AppTopBar(
+                      title: 'Мои заказы',
+                      onBack: () => Navigator.of(context).maybePop(),
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.huge),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _load,
-                    child: _body(),
+                  const SizedBox(height: AppSpacing.huge),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      child: _body(),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            if (widget.onCart != null) Positioned(
-              left: 0,
-              right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: count,
-                  total: count == 0 ? null : cart.getTotalPrice().round(),
-                  onTap: widget.onCart,
-                ),
+                ],
               ),
+              dock: widget.onCart == null
+                  ? null
+                  : AppCartButton(
+                      itemCount: count,
+                      total: count == 0 ? null : cart.getTotalPrice().round(),
+                      onTap: widget.onCart,
+                    ),
             ),
-          ],
-        ),
           ),
         ),
       ),
@@ -232,7 +266,8 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: _OrderCard(
                       order: order,
-                      operations: _bonuses?.entriesForOrder(orderId) ?? const [],
+                      operations:
+                          _bonuses?.entriesForOrder(orderId) ?? const [],
                       onTap: () => _openOrder(order),
                     ),
                   );
@@ -295,68 +330,68 @@ class _OrderCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadii.lgAll,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 114),
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (scaled)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [date, const SizedBox(height: 4), status],
-              )
-            else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Expanded(child: date), Flexible(child: status)],
-              ),
-            Text(
-              '№${order['order_id'] ?? '—'}',
-              style: AppTypography.base(size: 12, weight: 400)
-                  .copyWith(color: palette.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: AppSpacing.huge,
-              runSpacing: 12,
-              children: [
-                _Summary(
-                  label: 'Сумма',
-                  value: total == null ? '—' : formatTenge(total),
-                  valueColor: palette.textPrimary,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 114),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (scaled)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [date, const SizedBox(height: 4), status],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Expanded(child: date), Flexible(child: status)],
                 ),
-                if (operations.isNotEmpty)
+              Text(
+                '№${order['order_id'] ?? '—'}',
+                style: AppTypography.base(size: 12, weight: 400)
+                    .copyWith(color: palette.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: AppSpacing.huge,
+                runSpacing: 12,
+                children: [
                   _Summary(
-                    label: 'Бонусные операции',
-                    value: operations
-                        .map((entry) => signedBonusLabel(entry.amount))
-                        .join(' · '),
-                    valueColor: palette.gold,
-                  )
-                else if (estimate != null)
-                  _Summary(
-                    label: 'Оценка · ещё не начислено',
-                    value: '≈${signedBonusLabel(estimate)}',
-                    valueColor: palette.gold,
-                  )
-                else
-                  _Summary(
-                    label: 'Бонусы',
-                    value: 'Подтверждённые операции не переданы',
-                    valueColor: palette.textSecondary,
+                    label: 'Сумма',
+                    value: total == null ? '—' : formatTenge(total),
+                    valueColor: palette.textPrimary,
                   ),
-              ],
-            ),
-          ],
+                  if (operations.isNotEmpty)
+                    _Summary(
+                      label: 'Бонусные операции',
+                      value: operations
+                          .map((entry) => signedBonusLabel(entry.amount))
+                          .join(' · '),
+                      valueColor: palette.gold,
+                    )
+                  else if (estimate != null)
+                    _Summary(
+                      label: 'Оценка · ещё не начислено',
+                      value: '≈${signedBonusLabel(estimate)}',
+                      valueColor: palette.gold,
+                    )
+                  else
+                    _Summary(
+                      label: 'Бонусы',
+                      value: 'Подтверждённые операции не переданы',
+                      valueColor: palette.textSecondary,
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -376,8 +411,8 @@ class _OrderCard extends StatelessWidget {
 
   int? _pendingBonusEstimate(Map<String, dynamic> order) {
     if (isOrderClosed(order)) return null;
-    final status = asOrderMap(order['current_status']) ??
-        asOrderMap(order['status']);
+    final status =
+        asOrderMap(order['current_status']) ?? asOrderMap(order['status']);
     if (!const {'1', '11', '12', '2', '21', '3', '31'}
         .contains(status?['status']?.toString())) {
       return null;
@@ -390,13 +425,15 @@ class _OrderCard extends StatelessWidget {
       if (map == null) return null;
       final snapshot = asOrderMap(map['item_data']);
       if (BonusRules.isBonusExcludedText(
-        name: (map['name'] ?? map['item_name'] ?? snapshot?['name'])?.toString() ??
+        name: (map['name'] ?? map['item_name'] ?? snapshot?['name'])
+                ?.toString() ??
             '',
         description:
             (map['description'] ?? snapshot?['description'])?.toString(),
         code: (map['code'] ?? snapshot?['code'])?.toString(),
-        categoryName: asOrderMap(map['category'] ?? snapshot?['category'])?['name']
-            ?.toString(),
+        categoryName:
+            asOrderMap(map['category'] ?? snapshot?['category'])?['name']
+                ?.toString(),
       )) {
         continue;
       }

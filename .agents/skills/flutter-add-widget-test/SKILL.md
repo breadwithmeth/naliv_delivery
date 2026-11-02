@@ -1,154 +1,39 @@
 ---
 name: flutter-add-widget-test
-description: Implement a component-level test using `WidgetTester` to verify UI rendering and user interactions (tapping, scrolling, entering text). Use when validating that a specific widget displays correct data and responds to events as expected.
-metadata:
-  model: models/gemini-3.1-pro-preview
-  last_modified: Tue, 21 Apr 2026 21:15:41 GMT
+description: Use when testing Flutter widget rendering, user interactions, navigation results, or loading/error/retry states without a native device journey.
 ---
-# Writing Flutter Widget Tests
+# Flutter widget tests
 
-## Contents
-- [Setup & Configuration](#setup--configuration)
-- [Core Components](#core-components)
-- [Workflow: Implementing a Widget Test](#workflow-implementing-a-widget-test)
-- [Interaction & State Management](#interaction--state-management)
-- [Examples](#examples)
+## Reuse this project's fixtures
 
-## Setup & Configuration
+`flutter_test` is already a dev dependency. Extend the affected `_test.dart` under `test/integration/` (multi-component UI/transport flows) or `test/regression/` (behavior boundaries), rather than scaffolding a demo app or adding packages.
 
-Ensure the testing environment is properly configured before authoring widget tests.
+Read the target widget and neighboring tests first. Useful references:
 
-1. Add the `flutter_test` dependency to the `dev_dependencies` section of `pubspec.yaml`.
-2. Place all test files in the `test/` directory at the root of the project.
-3. Suffix all test file names with `_test.dart` (e.g., `widget_test.dart`).
+- `test/integration/checkout_page_test.dart`: controlled requests, checkout assertions, synthetic account/cart state.
+- `test/integration/home_layout_test.dart`: viewport, text scaling, dock clearance and layout assertions.
+- `test/support/design_surfaces.dart`: `DesignSurfaceApp`, `SurfaceFixtureClient`, `surfaceFixturePreferences` for shared active-route fixtures.
+- `test/support/preferences_store.dart`: existing preference-test support.
 
-## Core Components
+Trace `lib/widgets/authentication_wrapper.dart` when the test needs the active route. Supply only the real inherited dependencies required by the widget (theme, locale, providers, navigator). Use a small component wrapper for isolated widgets; use the existing active-route fixture for route behavior.
 
-Utilize the following `flutter_test` components to interact with and validate the widget tree:
+## Write assertions around the behavior
 
-*   **`WidgetTester`**: The primary interface for building and interacting with widgets in the test environment. Provided automatically by the `testWidgets()` function.
-*   **`Finder`**: Locates widgets in the test environment (e.g., `find.text('Submit')`, `find.byType(TextField)`, `find.byKey(Key('submit_btn'))`).
-*   **`Matcher`**: Verifies the presence or state of widgets located by a `Finder` (e.g., `findsOneWidget`, `findsNothing`, `findsNWidgets(2)`, `matchesGoldenFile`).
+1. Name the regression and the production change that would make it fail. Set synthetic preferences before creating providers; install strict `MockClient`/`http.runWithClient` before mounting networked widgets. Reject and record unexpected requests; never forward to production.
+2. Pump the actual widget. Assert the initial state with semantic labels, stable keys or scoped finders. Reuse keys before adding new ones.
+3. Drive the real control with `tap`, `enterText` or scrolling. For lazy content, pass the intended **Scrollable finder** to `scrollUntilVisible`, not an unrelated ListView.
+4. Assert the visible result and relevant business outcome: request method/payload/count, preserved cart, navigation destination, validation preventing submission, or error/retry behavior. Do not assert only mock invocation or hide failure by weakening expectations.
 
-## Workflow: Implementing a Widget Test
+## Pump deliberately
 
-Copy the following checklist to track progress when implementing a new widget test.
+`pump()` processes a frame; a finite-duration pump advances known animations/timers. Use controlled Completers for pending/success/error responses. `pumpAndSettle()` is suitable only when frames terminate: repeating loading animations never settle. For asynchronous state, use bounded pumps with an explicit expected-state assertion, not arbitrary sleeps or unbounded loops. Keep loading pending long enough to assert it, then resolve it and assert error/success; retry must issue the intended request exactly once.
 
-### Task Progress
-- [ ] **Step 1: Define the test.** Use `testWidgets('description', (WidgetTester tester) async { ... })`.
-- [ ] **Step 2: Build the widget.** Call `await tester.pumpWidget(MyWidget())` to render the UI. Wrap the widget in a `MaterialApp` or `Directionality` widget if it requires inherited directional or theme data.
-- [ ] **Step 3: Locate elements.** Instantiate `Finder` objects for the target widgets.
-- [ ] **Step 4: Verify initial state.** Use `expect(finder, matcher)` to validate the initial render.
-- [ ] **Step 5: Simulate interactions.** Execute gestures or inputs (e.g., `await tester.tap(buttonFinder)`).
-- [ ] **Step 6: Rebuild the tree.** Call `await tester.pump()` or `await tester.pumpAndSettle()` to process state changes.
-- [ ] **Step 7: Verify updated state.** Use `expect()` to validate the UI after the interaction.
-- [ ] **Step 8: Run and validate.** Execute `flutter test test/your_test_file_test.dart`.
-- [ ] **Step 9: Feedback Loop.** Review test output -> identify failing matchers -> adjust widget logic or test assertions -> re-run until passing.
+Unmount/dispose in the fixture scope, restore surface size/overrides/global state, and assert unexpected requests plus `tester.takeException()`. Never send real SMS, mutate addresses/cards, submit orders or pay during tests.
 
-## Interaction & State Management
+## Serial verification
 
-Apply the following conditional logic based on the type of interaction or state change being tested:
-
-*   **If testing static rendering:** Call `await tester.pumpWidget()` once, then immediately run `expect()` assertions.
-*   **If testing standard state changes (e.g., button taps):** 
-    1. Call `await tester.tap(finder)`.
-    2. Call `await tester.pump()` to trigger a single frame rebuild.
-*   **If testing animations, transitions, or asynchronous UI updates:** 
-    1. Trigger the action (e.g., `await tester.drag(finder, Offset(500, 0))`).
-    2. Call `await tester.pumpAndSettle()` to repeatedly pump frames until no more frames are scheduled (animation completes).
-*   **If testing text input:** Call `await tester.enterText(textFieldFinder, 'Input string')`.
-*   **If testing items in a dynamic or long list:** Call `await tester.scrollUntilVisible(itemFinder, 500.0, scrollable: listFinder)` to ensure the target widget is rendered before interacting with it.
-
-## Examples
-
-### High-Fidelity Widget Test Implementation
-
-**Target Widget (`lib/todo_list.dart`):**
-```dart
-import 'package:flutter/material.dart';
-
-class TodoList extends StatefulWidget {
-  const TodoList({super.key});
-
-  @override
-  State<TodoList> createState() => _TodoListState();
-}
-
-class _TodoListState extends State<TodoList> {
-  final todos = <String>[];
-  final controller = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Column(
-          children: [
-            TextField(controller: controller),
-            Expanded(
-              child: ListView.builder(
-                itemCount: todos.length,
-                itemBuilder: (context, index) {
-                  final todo = todos[index];
-                  return Dismissible(
-                    key: Key('$todo$index'),
-                    onDismissed: (_) => setState(() => todos.removeAt(index)),
-                    child: ListTile(title: Text(todo)),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            setState(() {
-              todos.add(controller.text);
-              controller.clear();
-            });
-          },
-          child: const Icon(Icons.add),
-        ),
-      ),
-    );
-  }
-}
+```sh
+dart run tool/design_harness.dart check test/integration/checkout_page_test.dart
 ```
 
-**Test Implementation (`test/todo_list_test.dart`):**
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:my_app/todo_list.dart';
-
-void main() {
-  testWidgets('Add and remove a todo item', (WidgetTester tester) async {
-    // 1. Build the widget
-    await tester.pumpWidget(const TodoList());
-
-    // 2. Verify initial state
-    expect(find.byType(ListTile), findsNothing);
-
-    // 3. Enter text into the TextField
-    await tester.enterText(find.byType(TextField), 'Buy groceries');
-
-    // 4. Tap the add button
-    await tester.tap(find.byType(FloatingActionButton));
-
-    // 5. Rebuild the widget to reflect the new state
-    await tester.pump();
-
-    // 6. Verify the item was added
-    expect(find.text('Buy groceries'), findsOneWidget);
-
-    // 7. Swipe the item to dismiss it
-    await tester.drag(find.byType(Dismissible), const Offset(500, 0));
-
-    // 8. Build the widget until the dismiss animation ends
-    await tester.pumpAndSettle();
-
-    // 9. Verify the item was removed
-    expect(find.text('Buy groceries'), findsNothing);
-  });
-}
-```
+Replace the path with the affected existing test. This runs the focused test and analysis; integration runs the full retained suite afterward. Do not launch competing Flutter checks/previews.

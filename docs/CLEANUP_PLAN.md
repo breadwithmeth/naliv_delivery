@@ -6,6 +6,187 @@ Make the app and repository easier to understand, cheaper to verify and lighter 
 
 Production verification stays read-only. Preserve the existing API contracts, paid/free bottle allocation, chargeable card identity, durable payment locks, draft recovery, dark/light themes, text scaling and floating cart-only navigation. The active route is `main.dart` → `AppEntryGate` → `AuthenticationWrapper`; reachable `lib/pages` implementations are not automatically obsolete. User changes to the Android generated plugin registrant are outside cleanup ownership. Tracked web output remains the deployment artifact.
 
+## App-wide quality review and restructuring — 2026-11-02
+
+The current request is a whole-app correctness/performance review with restructuring
+and edge-case coverage, not another isolated patch. Preserve the frozen API,
+paid/free bottle policy, themes/geometry, real glass, signing and platform support.
+Prior 1.2.115 verification is historical until this pass is integrated.
+
+### Coverage and ownership
+
+| Workstream | Reviewed surface | Required correction / structural boundary |
+|---|---|---|
+| Cart/domain | Models, quantity/stock/configurations, gifts, promotion/bonus math, persistence, repeat restoration | Visible failed-save/retry state; latest merged catalogue metadata; truthful partial repeat outcome; operation-scoped evaluation and indexed catalogue quantity |
+| Financial flows | Checkout/quotes/benefits, order creation/recovery, cards/payments, certificates, order history/detail | 408/5xx uncertainty; account-owned durable intent before mutation; retained recovery identity; complete benefit snapshot; store-scoped packaging data |
+| Browse/rendering | Home, categories/pagination, search, favorites, product routes, cards/images/design/glass | Latest-query ownership/continuation; shared favorites reconciliation; narrow cart subscriptions and physical-width image decoding |
+| Identity/comms | Auth/profile/login/setup, chat, push/provider bridge, consent and fixture composition | Credential-labelled async work; private-state invalidation; injected provider; single-flight/serialized synchronization; optional provider detached from local auth |
+| Address/onboarding | Permissions/location, map/search/details, local address book and checkout boundary | Latest intent wins; failed drafts remain retryable; malformed rows do not poison valid operations; bounded reads; canonical label separate from display details |
+| Platform/tooling | Native entry/configuration, browser/history/workers, hosting/build/assets and fixture harness | Existing platform decisions retained; lock owns marker/build/serve lifetime; fixtures cannot initialize production push |
+| Shared API/composition | HTTP headers/ownership, typed normalization, pure-model imports and app entry | Remove needless public-GET preflights; separate catalogue decoding from transport; integrate credential/cart-durability contracts |
+
+Source review yielded five prioritized hypotheses in each feature/domain slice and
+two harness findings. Regressions/measurements must verify them before a fix is claimed.
+Review alone does not establish physical-phone, Apple, bank, push or deployment acceptance.
+
+### Shared contracts and decisions
+
+- Identity owns `AuthService.credentialRevision`, `captureSession()` and immutable
+  `AuthSession` (`token`, `revision`, `isCurrent`). Credential changes/local logout
+  invalidate captures synchronously; verified identity binding alone does not.
+  Provider cleanup receives captured prior credentials, never a newly stored account.
+  Card consumers also retain their local reauthentication gate until that exact
+  login route returns verified success; credential publication cannot bypass a
+  required profile or cancelled verification.
+- Cart commands retain synchronous in-memory responsiveness. Separate pending/failed/
+  saved persistence state, explicit retry and `ensureSaved()` gate checkout on the
+  latest durable revision. `restoreFailed` preserves unread original data and blocks
+  edits until explicit `retryLoad()` or confirmed checked discard. A cold unknown-store
+  discard resets unbound; ordinary store selection remains responsible for binding.
+  Save-status changes do not broadcast cart-content revisions. Explicit replacements
+  remain write-before-publish.
+- A repeat that commits cart/store but fails address persistence reports a partial
+  outcome, never a fictional atomic multi-key transaction or claimed restored address.
+- Financial intent is durable/account-owned before POST. Storage refusal sends nothing.
+  Known IDs use existing read/status recovery. Unknown without ID stays explicitly
+  unresolved with orders/support navigation; absence from a list is not proof of refusal.
+- Money evaluation is operation-scoped, not revision-cached across promotion expiry.
+  Quantity/membership indices retain existing configuration, ordering and stock semantics.
+- Exact bottle allocation uses no arrays proportional to microlitres, invented precision
+  or quantity caps, approximate fills or price preference. Preserve minimum bottle count,
+  earlier-input tie preference and existing bounded-availability behavior.
+- Production and fixtures use a real provider boundary, not test-only production toggles.
+  Fixture HTML omits production push initialization; tracked deployment HTML retains it.
+  Harness lock acquisition precedes output mutation and protects active served output.
+
+### Execution and verification
+
+1. Write failing consumer regressions on existing entrypoints before bug fixes.
+   Performance-only refactors start with old-path measurements and semantic coverage.
+2. Implement disjoint ownership slices. Integration owner alone changes API/main,
+   shared DTO imports, release metadata and documentation.
+3. Migrate all affected callers; remove obsolete paths, aliases and test-only switches.
+4. Measure bottle allocation, cart evaluation/lookup, public-GET preflights and image/
+   rebuild bounds. No flaky timing assertions or phone frame-time claims from host timing.
+5. Exercise strict fixture flows for ordering, refusal, disposal/recreation, account
+   changes and failed-save retry; then run full serial tests/LCOV and analysis.
+6. Rebuild tracked release web and signed production APKs; smoke actual release surfaces
+   and record finding dispositions, benchmark context and external acceptance limits.
+
+Use the supplied dirty feature checkout without reset/cleanup/commits. Keep production
+verification read-only, heavy Flutter processes serial and ownership of mutable files
+explicit. Stop owned services/Gradle after integration.
+
+### Measured implementation evidence
+
+Temporary Flutter host probes ran serially with identical synthetic inputs. These
+are operation/decoded-image measurements, not physical-phone frame-time claims.
+
+| Operation | Before | After | Correctness check |
+|---|---:|---:|---|
+| Exact fill, 4.75001 L from six-decimal capacities | 82–125 ms/call across 2/4/8 capacities; two 4,750,011-entry arrays | 0.036–0.213 ms/call across the same cases; no target-sized arrays | Same exact ten-bottle allocation; independent small-case enumeration and large-count cases |
+| Cart evaluation, 500 rows × 10 render/submit-style evaluations | 9,115.150 ms | 167.242 ms | Identical price and quantity checksums; coherent physical/order/discount evaluation |
+| Catalogue quantity, 25,000 lookups / 500 cart rows | 941.616 ms through raw `Item` lookup | 9.112 ms through precomputed `ProductView.catalogKey` | Identical 112,500 quantity checksum; presentation conversion outside timing |
+| 2000 × 2000 thumbnail, 176 logical-pixel card / DPR 2.5 | 16,000,000 decoded RGBA bytes | 400 × 400 / 640,000 bytes | Actual `ImageInfo` dimensions; detail heroes unchanged |
+| Same source, narrow product row / DPR 2.5 | 16,000,000 decoded RGBA bytes | 176 × 176 / 123,904 bytes | Actual row image width 70.4 logical pixels |
+| Ten cart increments on home | 10 page/header rebuilds and 300 unrelated card rebuilds | 0 page/header and 0 unrelated; affected card rebuilt 10 times | Actual keyed rebuild callbacks; category/promotion headers also stayed unchanged |
+
+The first quantity-index change alone did **not** improve the raw-Item lookup loop:
+it still reconstructed selection/default identity. Hot presentation paths now carry
+their structural catalogue key. The host probe separately checked keyed and raw
+lookup checksums. Promotion-sensitive money retains one captured operation time.
+At 2× text / DPR 3, actual decoded card and row sizes were 792 × 792 and 252 × 252
+respectively, preserving geometry while following the larger physical image budget.
+
+The new exact solver matched independent exhaustive small inputs and large modular
+cases. Twelve solver tests and eleven real harness subprocess cases passed together.
+The combined post-cutover allocation/cart/business/repeat/save-recovery run passed
+62 checks, including the temporary performance cases; this is not the final suite count.
+
+An isolated Node execution of the tracked web bridge with a reject-once fake provider
+passed retry, single-flight and listener-ownership checks. It made no live SDK call;
+the disposable probe was removed after execution.
+
+A fresh whole-change review identified two additional recovery gaps. Reject-once
+provider login after a successful anonymous sync now retries identity binding rather
+than publishing attempted ownership. Corrupt cart storage now offers a confirmed,
+checked discard; cancellation/refused storage preserves original bytes and typed
+input. A cold corrupt cart can reset to an unbound empty cart and use normal store
+selection afterward. Both review regressions failed before correction and passed
+afterward. No automatic reset, backend retry or production mutation was introduced.
+
+Review limits remain explicit: source review does not establish test/build success,
+benchmark speedups, physical/native rendering, external financial/push acceptance,
+deployment/service-worker acceptance or generated-bundle parity. Integration evidence
+must come from the parent-owned runs below, not reviewer confidence.
+
+The release visual gate exposed two additional renderer defects absent from the
+host shopping run. Raw sampled page pixels outside the glass could overwrite the
+upright page; the shader now composites premultiplied glass/shadow over Flutter's
+page painter without resampling that exterior. CanvasKit's installed WASM allocator
+also leaves unwritten float slots uncleared: the probe initialized only size, leaving
+bounds/flip undefined. Isolated actual-web RGBA showed correct source/reference but
+transparent raw-shader output, then matching red/blue output after initializing all
+application slots. The original 2 × 2 source / 4 × 2 read-back is retained. Larger
+patches, timing changes and diagnostic logs were removed; no opaque fallback,
+saturation boost, renderer substitution or per-frame CPU read-back was introduced.
+
+The last compact recovery smoke reproduced a focused form with no usable height
+at 320 px, 2× text and a 300 px keyboard inset. Recovery notices now have a bounded,
+independently scrollable area; confirmation content scrolls without shrinking text.
+The real-font regression reaches the clear action, cancels it, and preserves both
+typed input and unread bytes. Recovery text/actions use the theme's high-contrast
+foreground. Normal saved-cart layout is unchanged.
+
+The production corrupt-cart startup rendered correctly, but Navigator route semantics
+pruned both global recovery actions from the reachable accessibility tree. An explicit
+semantics boundary around Navigator content confines route blocking without replacing
+the child or losing typed input. The retained recovery test failed on an empty reachable
+action set before the fix, then passed by invoking the actual semantic tap and verifying
+cancel/refused-write/success outcomes. All four focused recovery tests and analysis pass.
+
+### Final integrated evidence — 1.2.116+12116
+
+- `CMAKE_BUILD_PARALLEL_LEVEL=1 CL=/MP1 dart run tool/design_harness.dart check --full --native`:
+  **601 retained tests passed**; `dart analyze lib test integration_test tool` reported
+  **no issues**. Fresh LCOV: **15,474 / 18,494 lines = 83.67%**, across 107 recorded
+  source files. These are the final report's counts, not the earlier probe-inclusive LCOV.
+- The strict Windows journey passed through the active wrapper, store/category/product,
+  cart, synthetic login, pickup checkout/payment and paid history, asserting no unexpected
+  requests/native HTTP escapes. The unchanged actual-renderer orientation suite separately
+  passed **2 tests**.
+- Tracked production web and signed universal/three-ABI APK builds passed after the
+  semantic-boundary fix. `aapt`/`apksigner` confirmed version **1.2.116**, package
+  `kz.gradusy24.app`, minSdk **24**, expected ABIs, codes **12116/13116/14116/16116**
+  and signer continuity with 1.2.115. All three existing `FIXED-*` copies match their
+  original output hashes. The user's existing splash-registration block was restored
+  after external Flutter generation, without restoring obsolete/unrelated plugin entries.
+- The actual final web bundle rendered healthy guest home in both persisted themes at
+  375 × 812 / DPR 2: **5 GET / 0 OPTIONS** per navigation versus the measured old
+  **5 GET / 5 OPTIONS**. Anonymous GETs carry no JSON Content-Type or Authorization.
+  No page or console errors occurred.
+- Final corrupt-cart web proof reached both recovery actions at 320 px. The light-theme
+  cancel/confirmed-clear/home-retry/reload journey preserved bytes before consent,
+  persisted `{business_id: 1, items: []}` afterward and retained it across reload.
+  Its **13 known synthetic GETs** had no unknown requests, mutations, page or console
+  errors. All application API requests were intercepted; no live account mutation occurred.
+- **72 inspected release-fixture captures** and actual browse/cart/form/footer interactions
+  are detailed in [`STATUS.md`](redesign/STATUS.md#app-wide-correctness-ownership-and-performance--2026-11-02).
+  Temporary benchmark/diagnostic source files were removed. Owned browser tabs, web
+  services and the release Gradle daemon were stopped.
+
+Final evidence: `.figma_cache/harness/runs/2026-11-02T01-10-01.894312Z_5224.log`,
+`.figma_cache/render/probe/quality116_coverage.json`, `quality116_apks.json`,
+`quality116_network.json` and `quality116_production_final.json`.
+
+Limits: host timings/fixtures and signatures are not physical Huawei/S25 Ultra,
+Apple-native glass, handset permissions/GPS, real bank/push, authenticated production,
+Linux Docker or deployed service-worker acceptance. No exhaustive-edge-case or
+production recovery guarantee is claimed. No commits, resets, dependency upgrades,
+signing changes or production mutations were performed.
+
+
+
 ## Baseline and evidence
 
 - Previous integrated suite: 297 passing tests. The source tree has many feature/service/contract files but no `integration_test` directory.
@@ -121,4 +302,47 @@ The JavaScript payload is effectively unchanged, not smaller. Dead declarations 
 - Native fixture revision: integration-runner engine callbacks used their registration zone rather than the later HTTP test zone. The first attempt received an unauthenticated production 401; no production mutation occurred. The native test now re-registers the existing frame callbacks in the strict fixture zone and rejects any native HTTP-client escape. The passing journey asserted zero escapes and zero unexpected fixture requests. Plain catalog items correctly open `ProductPage`, not the option editor; the native journey follows that real route, while retained bottling tests cover options.
 - Post-cleanup revision: the user then asked for the design's glass material, a bounded cart control, a smaller add-to-cart confirmation and gutter-bounded category tiles. That work added one focused home bounds regression (**227 host cases**; `dart analyze lib test integration_test tool` clean; coverage **10,389 / 14,122 = 73.57 %**) and left the measured cleanup footprint unchanged. Details and the measured before/after geometry are in `docs/redesign/STATUS.md`.
 
+
+## Configuration hygiene audit — 2026-10-29
+
+The new audit added precise ignore guards for local caches/build output and restricted
+Docker's context to the prebuilt static release plus nginx/control files. These changes
+do **not** remove already tracked files. No index cleanup, unrelated deletion or platform
+identity change has been applied.
+
+| Approval-required candidate | Tracked files | Evidence / decision |
+|---|---:|---|
+| `ios/build/` | 325 | 63,811,157 bytes of Xcode build databases, manifests and module caches; untrack generated output, not native source or lockfiles |
+| `.tmp-appdata/` | 4 | Local tool telemetry state |
+| `.firebase/` | 2 | Historical Hosting upload caches, not Firebase project registrations |
+| `.VSCodeCounter/` | 9 | Historical editor statistics |
+| `coverage/` | 1 | Regenerated LCOV; retain published evidence separately if wanted |
+| `.flutter-plugins` | 1 | Obsolete generated inventory with another machine's paths; already ignored |
+| `android/local.properties` | 1 | Local SDK/Flutter paths and stale separator; already ignored. Keep the working local file when untracking |
+| Root `flutter` gitlink | 1 | Git mode `160000`, empty working directory, no `.gitmodules` mapping; owner must confirm accidental pointer versus intended SDK pin |
+
+If approved, prefer removing generated/machine-specific entries **from Git while keeping
+their local files**, then retain the ignore guards. Do not blanket-untrack Gradle wrapper
+scripts/JAR, native plugin registrants or tracked `build/web`; the latter remains the
+intentional deployment artifact and is rebuilt after code settles.
+
+Dormant Android/iOS/macOS Firebase registration files and historical FlutterFire generation
+metadata also need an owner decision before retirement. The current Dart runtime uses
+OneSignal, not FlutterFire; Android's local Google Services JSON is for another package
+and is not consumed by the current Gradle configuration. This is stale configuration,
+not evidence that public Firebase client keys are privileged secrets or that credentials
+were disclosed. Firebase Hosting and provider-side FCM/APNs configuration remain relevant.
+
+Keep Cupertino icons: the SDK birthday picker still uses the font. Keep the real
+Geolocator location/permission path. The uncalled `permission_handler` method, import,
+direct package and five platform packages were removed together after LSP reference
+verification; this was not a mass dependency upgrade. Broader major-version upgrades,
+R8/resource shrinking and notification icon/provider changes require their own concrete
+compatibility/device evidence.
+
+Desktop release identity remains a product/account prerequisite: macOS `naliv_delivery`
+contains an invalid bundle-ID underscore; Linux's same GApplication ID lacks a period;
+placeholder publisher metadata needs the approved legal publisher. Do not invent or
+silently rename registered identities. Existing iOS Team/bundle/App Group/AASA values
+agree and are intentionally preserved.
 

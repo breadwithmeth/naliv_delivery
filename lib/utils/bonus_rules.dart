@@ -70,7 +70,8 @@ class BonusRules {
 
   static double calculateEligibleSubtotalForCartItems(
       Iterable<CartItem> items) {
-    return calculateEligibleSubtotalForGroups(CartDisplayGroup.groupItems(items));
+    return calculateEligibleSubtotalForGroups(
+        CartDisplayGroup.groupItems(items));
   }
 
   static int calculateEarnedBonusesForCartItems(Iterable<CartItem> items) {
@@ -79,9 +80,15 @@ class BonusRules {
   }
 
   static double calculateEligibleSubtotalForGroups(
-      Iterable<CartDisplayGroup> groups) {
+          Iterable<CartDisplayGroup> groups) =>
+      calculateEligibleSubtotalForEvaluations(
+          CartEvaluation(groups).activeGroups);
+
+  static double calculateEligibleSubtotalForEvaluations(
+      Iterable<CartGroupEvaluation> evaluations) {
     var eligible = 0.0;
-    for (final group in groups) {
+    for (final evaluation in evaluations) {
+      final group = evaluation.group;
       final item = group.itemSnapshot;
       if (isBonusExcludedText(
         name: item?.name ?? group.name,
@@ -91,14 +98,14 @@ class BonusRules {
       )) {
         continue;
       }
-      final amount = group.totalPrice;
+      final amount = evaluation.price.totalPrice;
       if (amount.isFinite && amount > 0) eligible += amount;
     }
     return eligible;
   }
 
   static int calculateEarnedBonusesForGroups(
-      Iterable<CartDisplayGroup> groups) =>
+          Iterable<CartDisplayGroup> groups) =>
       calculateEarnedBonuses(calculateEligibleSubtotalForGroups(groups));
 
   static int calculateRedeemableBonuses({

@@ -150,10 +150,13 @@ class CartItem {
   }
 
   Map<String, dynamic> toJsonForOrder({double? freeQuantity}) {
-    final snapshot = snapshotItem;
-    final pour = snapshot != null && SmartCartSelection(snapshot).usesPourFlow;
-    freeQuantity ??=
-        pour ? 0 : subtractPromotionFreeQuantity(quantity, promotions);
+    if (freeQuantity == null) {
+      final snapshot = snapshotItem;
+      final pour =
+          snapshot != null && SmartCartSelection(snapshot).usesPourFlow;
+      freeQuantity =
+          pour ? 0 : subtractPromotionFreeQuantity(quantity, promotions);
+    }
     return {
       'item_id': itemId,
       'amount': physicalQuantity + freeQuantity,
@@ -200,9 +203,13 @@ class CartItem {
   }
 
   double get optionsTotal {
-    var total = 0.0;
     final snapshot = snapshotItem;
-    final selection = snapshot == null ? null : SmartCartSelection(snapshot);
+    return optionsTotalForSelection(
+        snapshot == null ? null : SmartCartSelection(snapshot));
+  }
+
+  double optionsTotalForSelection(SmartCartSelection? selection) {
+    var total = 0.0;
     for (final selected in selectedVariants) {
       final variant = _variantData(selected);
       if (variant['price_type']?.toString().toUpperCase() == 'REPLACE') {
@@ -223,34 +230,9 @@ class CartItem {
   // The same calculation is used for a preview, a display group and checkout.
   // Paid drink selections are stable; gifts extend their physical container
   // allocation, with ordinary container tariffs outside base-product discounts.
-  static CartPriceBreakdown calculatePrice(Iterable<CartItem> items) {
-    var quantity = 0.0;
-    var productSubtotal = 0.0;
-    var options = 0.0;
-    var paid = 0.0;
-    List<Map<String, dynamic>>? promotions;
-    for (final item in SmartCartSelection.withGiftContainers(items)) {
-      promotions ??= item.promotions;
-      if (item.physicalQuantity <= 0) continue;
-      quantity += item.quantity;
-      final rate = item.paidUnitPrice;
-      productSubtotal += rate * item.quantity;
-      paid += applyPromotionsToPaidBaseTotal(
-          unitPrice: rate, quantity: item.quantity, promotions: promotions);
-      options += item.optionsTotal;
-    }
-    final unitPrice = quantity > 0 ? productSubtotal / quantity : 0.0;
-    final free =
-        subtractPromotionFreeQuantity(quantity, promotions ?? const []);
-    return (
-      productSubtotal: productSubtotal,
-      optionsTotal: options,
-      discount: productSubtotal - paid,
-      freeQuantity: free,
-      subtotalBeforePromotions: productSubtotal + unitPrice * free + options,
-      totalPrice: paid + options,
-    );
-  }
+  static CartPriceBreakdown calculatePrice(Iterable<CartItem> items,
+          {DateTime? now}) =>
+      CartEvaluation(CartDisplayGroup.groupItems(items), now: now).price;
 
   double get subtotalBeforePromotions =>
       calculatePrice([this]).subtotalBeforePromotions;

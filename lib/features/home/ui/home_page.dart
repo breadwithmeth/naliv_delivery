@@ -9,8 +9,10 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
+import '../../../ui/liquid_glass_dock.dart';
 import '../../../ui/surfaces.dart';
 import '../../../ui/product_card.dart';
+import '../../../ui/product_grid.dart';
 import '../home_view_data.dart';
 
 /// The public landing page measured from the 375 × 812 Figma home frames.
@@ -33,10 +35,8 @@ class HomePage extends StatelessWidget {
     this.onCategory,
     this.onBonusHistory,
     this.onSignIn,
-    this.productQuantity,
-    this.onProductTap,
-    this.onProductIncrement,
-    this.onProductDecrement,
+    this.productBuilder,
+    this.cartDock,
     this.onCart,
     super.key,
   });
@@ -55,10 +55,9 @@ class HomePage extends StatelessWidget {
   final ValueChanged<HomeCategory>? onCategory;
   final VoidCallback? onBonusHistory;
   final VoidCallback? onSignIn;
-  final num Function(ProductView product)? productQuantity;
-  final ValueChanged<ProductView>? onProductTap;
-  final ValueChanged<ProductView>? onProductIncrement;
-  final ValueChanged<ProductView>? onProductDecrement;
+  final Widget Function(BuildContext context, ProductView product)?
+      productBuilder;
+  final Widget? cartDock;
   final VoidCallback? onCart;
 
   @override
@@ -67,152 +66,141 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: EdgeInsets.only(
-                top: AppSpacing.huge,
-                bottom: AppCartButton.clearanceFor(context) + bottomInset,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _ContentWidth(
-                    child: KeyedSubtree(
-                      key: const ValueKey('home-header'),
-                      child: data.signedIn
-                          ? _HomeHeader(
-                              onCallCenter: onCallCenter,
-                              onBonusHistory: onBonusHistory,
-                              onLiked: onLiked,
-                              onNotifications: onNotifications,
-                              onProfile: onProfile,
-                            )
-                          : Row(
-                              children: [
-                                const _HomeBrandMark(),
-                                const SizedBox(width: AppSpacing.xl),
-                                Expanded(
-                                  child: KeyedSubtree(
-                                    key: const ValueKey('home-store-card'),
-                                    child: _StoreCard(
-                                        data: data,
-                                        onTap: onStore,
-                                        onProfile: onProfile),
-                                  ),
+        child: LiquidGlassDock(
+          content: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              top: AppSpacing.huge,
+              bottom: AppCartButton.clearanceFor(context) + bottomInset,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ContentWidth(
+                  child: KeyedSubtree(
+                    key: const ValueKey('home-header'),
+                    child: data.signedIn
+                        ? _HomeHeader(
+                            onCallCenter: onCallCenter,
+                            onBonusHistory: onBonusHistory,
+                            onLiked: onLiked,
+                            onNotifications: onNotifications,
+                            onProfile: onProfile,
+                          )
+                        : Row(
+                            children: [
+                              const _HomeBrandMark(),
+                              const SizedBox(width: AppSpacing.xl),
+                              Expanded(
+                                child: KeyedSubtree(
+                                  key: const ValueKey('home-store-card'),
+                                  child: _StoreCard(
+                                      data: data,
+                                      onTap: onStore,
+                                      onProfile: onProfile),
                                 ),
-                              ],
-                            ),
-                    ),
+                              ),
+                            ],
+                          ),
                   ),
-                  if (data.signedIn) ...[
-                    const SizedBox(height: AppSpacing.xl),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-store-card'),
-                        child: _StoreCard(
-                            data: data, onTap: onStore, onProfile: onProfile),
-                      ),
-                    ),
-                  ],
-                  if (data.activeOrder case final order?) ...[
-                    const SizedBox(height: AppSpacing.xl),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-active-order'),
-                        child: _ActiveOrderCard(
-                          order: order,
-                          onTap: onActiveOrder == null
-                              ? null
-                              : () => onActiveOrder!(order),
-                        ),
-                      ),
-                    ),
-                  ],
+                ),
+                if (data.signedIn) ...[
                   const SizedBox(height: AppSpacing.xl),
                   _ContentWidth(
                     child: KeyedSubtree(
-                      key: const ValueKey('home-search-field'),
-                      child: _SearchField(onTap: onSearch),
+                      key: const ValueKey('home-store-card'),
+                      child: _StoreCard(
+                          data: data, onTap: onStore, onProfile: onProfile),
                     ),
                   ),
-                  if (data.banners.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.huge),
-                    KeyedSubtree(
-                      key: const ValueKey('home-banner-carousel'),
-                      child: _BannerCarousel(
-                        banners: data.banners,
-                        onTap: onPromo,
+                ],
+                if (data.activeOrder case final order?) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  _ContentWidth(
+                    child: KeyedSubtree(
+                      key: const ValueKey('home-active-order'),
+                      child: _ActiveOrderCard(
+                        order: order,
+                        onTap: onActiveOrder == null
+                            ? null
+                            : () => onActiveOrder!(order),
                       ),
                     ),
-                  ],
-                  if (data.promoCard case final promo?) ...[
-                    const SizedBox(height: AppSpacing.huge),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-promo-card'),
-                        child: _PromoCard(
-                          promo: promo,
-                          onTap: onCategory == null
-                              ? null
-                              : () => onCategory!(
-                                    HomeCategory(
-                                      id: promo.id,
-                                      title: promo.title,
-                                      imageUrl: promo.imageUrl,
-                                      fill: promo.fill,
-                                    ),
-                                  ),
-                        ),
-                      ),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.xl),
+                _ContentWidth(
+                  child: KeyedSubtree(
+                    key: const ValueKey('home-search-field'),
+                    child: _SearchField(onTap: onSearch),
+                  ),
+                ),
+                if (data.banners.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.huge),
+                  KeyedSubtree(
+                    key: const ValueKey('home-banner-carousel'),
+                    child: _BannerCarousel(
+                      banners: data.banners,
+                      onTap: onPromo,
                     ),
-                  ],
+                  ),
+                ],
+                if (data.promoCard case final promo?) ...[
                   const SizedBox(height: AppSpacing.huge),
                   _ContentWidth(
                     child: KeyedSubtree(
-                      key: const ValueKey('home-category-grid'),
-                      child: _CategoryGrid(
-                        categories: data.categories,
-                        onTap: onCategory,
+                      key: const ValueKey('home-promo-card'),
+                      child: _PromoCard(
+                        promo: promo,
+                        onTap: onCategory == null
+                            ? null
+                            : () => onCategory!(
+                                  HomeCategory(
+                                    id: promo.id,
+                                    title: promo.title,
+                                    imageUrl: promo.imageUrl,
+                                    fill: promo.fill,
+                                  ),
+                                ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.huge),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-bonus-card'),
-                        child: _BonusCard(
-                          data: data,
-                          onHistory: onBonusHistory,
-                          onSignIn: onSignIn,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: data.signedIn ? 32 : 24),
-                  _ProductSections(
-                    sections: data.productSections,
-                    onCategory: onCategory,
-                    quantityOf: productQuantity,
-                    onProductTap: onProductTap,
-                    onIncrement: onProductIncrement,
-                    onDecrement: onProductDecrement,
                   ),
                 ],
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: bottomInset + AppSpacing.xl,
-              child: Center(
-                child: AppCartButton(
-                  itemCount: cartItemCount,
-                  total: cartTotal,
-                  onTap: onCart,
+                const SizedBox(height: AppSpacing.huge),
+                _ContentWidth(
+                  child: KeyedSubtree(
+                    key: const ValueKey('home-category-grid'),
+                    child: _CategoryGrid(
+                      categories: data.categories,
+                      onTap: onCategory,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: AppSpacing.huge),
+                _ContentWidth(
+                  child: KeyedSubtree(
+                    key: const ValueKey('home-bonus-card'),
+                    child: _BonusCard(
+                      data: data,
+                      onHistory: onBonusHistory,
+                      onSignIn: onSignIn,
+                    ),
+                  ),
+                ),
+                SizedBox(height: data.signedIn ? 32 : 24),
+                _ProductSections(
+                  sections: data.productSections,
+                  onCategory: onCategory,
+                  productBuilder: productBuilder,
+                ),
+              ],
             ),
-          ],
+          ),
+          dock: cartDock ??
+              AppCartButton(
+                itemCount: cartItemCount,
+                total: cartTotal,
+                onTap: onCart,
+              ),
         ),
       ),
     );
@@ -265,35 +253,74 @@ class _HomeHeader extends StatelessWidget {
   final VoidCallback? onNotifications;
   final VoidCallback? onProfile;
 
+  static const _supportLabel = 'Поддержка';
+  static const _brandWidth = 48.0;
+  static const _actionCount = 4;
+
+  /// The support entry keeps its label only when it fits on one line beside the
+  /// four actions. Squeezed into a 360 px phone it used to break mid-word
+  /// ("Поддержк/а"); the phone glyph, tooltip and semantics stay either way.
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
-          final phone = InkWell(
-            onTap: onCallCenter,
-            borderRadius: AppRadii.mdAll,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: AppSpacing.touchTarget),
-              child: Row(
-                children: [
-                  AppIcon(AppIcons.phone, size: 18, color: context.palette.accent),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      'Поддержка',
-                      style: AppTypography.label.copyWith(color: context.palette.textSecondary),
+          final painter = TextPainter(
+            text: TextSpan(
+              text: _supportLabel,
+              style:
+                  DefaultTextStyle.of(context).style.merge(AppTypography.label),
+            ),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+            maxLines: 1,
+          )..layout();
+          final labelledWidth =
+              18 + AppSpacing.xs + painter.width.ceilToDouble();
+          painter.dispose();
+
+          Widget support(bool showLabel) => Tooltip(
+                message: _supportLabel,
+                child: Semantics(
+                  button: true,
+                  child: InkWell(
+                    onTap: onCallCenter,
+                    borderRadius: AppRadii.mdAll,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: AppSpacing.touchTarget,
+                        minHeight: AppSpacing.touchTarget,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppIcon(AppIcons.phone,
+                              size: showLabel ? 18 : 22,
+                              color: context.palette.accent),
+                          if (showLabel) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              _supportLabel,
+                              maxLines: 1,
+                              softWrap: false,
+                              style: AppTypography.label.copyWith(
+                                  color: context.palette.textSecondary),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          );
+                ),
+              );
           final actions = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               _HeaderAction(
                   icon: AppIcons.star, label: 'Бонусы', onTap: onBonusHistory),
               _HeaderAction(
-                  icon: AppIcons.heart, label: 'Избранные товары', onTap: onLiked),
+                  icon: AppIcons.heart,
+                  label: 'Избранные товары',
+                  onTap: onLiked),
               _HeaderAction(
                   icon: AppIcons.bell,
                   label: 'Настройки уведомлений',
@@ -302,15 +329,27 @@ class _HomeHeader extends StatelessWidget {
                   icon: AppIcons.user, label: 'Профиль', onTap: onProfile),
             ],
           );
-          if (constraints.maxWidth < 320 ||
-              MediaQuery.textScalerOf(context).scale(14) > 21) {
+          final inlineSupportWidth = constraints.maxWidth -
+              _brandWidth -
+              AppSpacing.md -
+              AppSpacing.xs -
+              AppSpacing.touchTarget * _actionCount;
+          if (inlineSupportWidth < AppSpacing.touchTarget) {
+            // Not even the bare phone button fits beside the actions.
+            final stackedSupportWidth =
+                constraints.maxWidth - _brandWidth - AppSpacing.xl;
             return Column(
               children: [
                 Row(
                   children: [
                     const _HomeBrandMark(),
                     const SizedBox(width: AppSpacing.xl),
-                    Expanded(child: phone),
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: support(stackedSupportWidth >= labelledWidth),
+                      ),
+                    ),
                   ],
                 ),
                 Align(alignment: Alignment.centerRight, child: actions),
@@ -321,7 +360,12 @@ class _HomeHeader extends StatelessWidget {
             children: [
               const _HomeBrandMark(),
               const SizedBox(width: AppSpacing.md),
-              Expanded(child: phone),
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: support(inlineSupportWidth >= labelledWidth),
+                ),
+              ),
               const SizedBox(width: AppSpacing.xs),
               actions,
             ],
@@ -364,8 +408,7 @@ class _HeaderAction extends StatelessWidget {
 
 /// y = 141, 343 × 57.
 class _StoreCard extends StatelessWidget {
-  const _StoreCard(
-      {required this.data, required this.onProfile, this.onTap});
+  const _StoreCard({required this.data, required this.onProfile, this.onTap});
 
   final HomeViewData data;
   final VoidCallback? onTap;
@@ -374,16 +417,15 @@ class _StoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final glyph = AppGlassPanel(
+    final glyph = AppSurface(
       radius: AppRadii.md,
-      tint: palette.accentSoft,
-      blur: 18,
+      fill: Color.alphaBlend(palette.accentSoft, palette.surface),
       width: 32,
       height: 32,
       child: Center(
         child: data.signedIn
-            ? const AppIcon(AppIcons.shop, size: 18, color: Colors.white)
-            : const AppIcon(AppIcons.user, size: 18, color: Colors.white),
+            ? AppIcon(AppIcons.shopGlyph, size: 24, color: palette.textPrimary)
+            : AppIcon(AppIcons.user, size: 18, color: palette.textPrimary),
       ),
     );
     return InkWell(
@@ -417,7 +459,8 @@ class _StoreCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const AppIcon(AppIcons.store, size: 12),
+                            AppIcon(AppIcons.shopGlyph,
+                                size: 16, color: palette.accent),
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
@@ -631,8 +674,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
             final locale = Localizations.maybeLocaleOf(context);
             double textHeight(String text, TextStyle style) {
               final painter = TextPainter(
-                text: TextSpan(text: text,
-                    style: defaultStyle.merge(style)),
+                text: TextSpan(text: text, style: defaultStyle.merge(style)),
                 textDirection: textDirection,
                 locale: locale,
                 textScaler: textScaler,
@@ -658,8 +700,10 @@ class _BannerCarouselState extends State<_BannerCarousel> {
                 contentHeight += textHeight(subtitle, AppTypography.bodySmall);
               }
               if (banner.promotionId != null && widget.onTap != null) {
-                actionHeight ??= textHeight('Смотреть товары →',
-                    AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600));
+                actionHeight ??= textHeight(
+                    'Смотреть товары →',
+                    AppTypography.bodySmall
+                        .copyWith(fontWeight: FontWeight.w600));
                 contentHeight += AppSpacing.sm + actionHeight;
               }
               if (contentHeight > height) height = contentHeight;
@@ -793,13 +837,18 @@ class _PromoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final hasArtwork = (promo.imageUrl?.trim() ?? '').isNotEmpty;
+    final hasFill = promo.fill != null;
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadii.lgAll,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadii.lg),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 160),
+          // An artwork-less promo without even a campaign fill has nothing to
+          // show below its copy; reserving artwork height leaves a bare panel.
+          constraints:
+              BoxConstraints(minHeight: hasArtwork || hasFill ? 160 : 0),
           child: Stack(
             children: [
               Positioned.fill(
@@ -846,6 +895,12 @@ class _PromoCard extends StatelessWidget {
   }
 }
 
+/// How far a caption may spill past its tile on each side. The 24 px gutter minus this on
+/// both neighbours still leaves 8 px between captions.
+const _captionOverhang = AppSpacing.md;
+
+final _whitespace = RegExp(r'\s+');
+
 // Category artwork retains its reference size; readable captions set the height.
 class _CategoryGrid extends StatelessWidget {
   const _CategoryGrid({required this.categories, this.onTap});
@@ -858,16 +913,19 @@ class _CategoryGrid extends StatelessWidget {
     final visible = categories.length;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // The frames fill the gutters with three 98 px columns at 375; larger text needs
-        // wider columns, never narrower ones, and the artwork never outgrows its column.
+        // Three columns need 88 px tiles. That keeps the frames' three columns on 360 px
+        // phones (93 px tiles) instead of dropping to two 152 px ones; larger text still
+        // needs wider columns, never narrower ones, and the artwork never outgrows its column.
         final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
-        final minimumWidth = 98 * (1 + (scale - 1) * 0.34);
+        final minimumWidth = 88 * (1 + (scale - 1) * 0.34);
         final columns = ((constraints.maxWidth + AppSpacing.huge) /
                 (minimumWidth + AppSpacing.huge))
             .floor()
             .clamp(1, 3);
         final tileWidth =
             (constraints.maxWidth - AppSpacing.huge * (columns - 1)) / columns;
+        final captionScale =
+            _captionScale(context, tileWidth + _captionOverhang * 2);
         return Wrap(
           spacing: AppSpacing.huge,
           runSpacing: AppSpacing.xl,
@@ -875,6 +933,7 @@ class _CategoryGrid extends StatelessWidget {
             for (var index = 0; index < visible; index++)
               _CategoryTile(
                 width: tileWidth,
+                captionScale: captionScale,
                 category: categories[index],
                 onTap: onTap == null ? null : () => onTap!(categories[index]),
               ),
@@ -883,14 +942,44 @@ class _CategoryGrid extends StatelessWidget {
       },
     );
   }
+
+  /// One caption size for the whole grid. Long live titles ("Слабоалкогольные
+  /// напитки") shrink every caption a little (never below 85%) instead of leaving a
+  /// single caption visibly smaller than its neighbours.
+  double _captionScale(BuildContext context, double columnWidth) {
+    final style =
+        DefaultTextStyle.of(context).style.merge(AppTypography.bodySmall);
+    final textDirection = Directionality.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+    var widest = 0.0;
+    for (final category in categories) {
+      for (final word in category.title.split(_whitespace)) {
+        if (word.isEmpty) continue;
+        final painter = TextPainter(
+          text: TextSpan(text: word, style: style),
+          textDirection: textDirection,
+          textScaler: textScaler,
+          maxLines: 1,
+        )..layout();
+        if (painter.width > widest) widest = painter.width;
+        painter.dispose();
+      }
+    }
+    return widest <= columnWidth ? 1.0 : (columnWidth / widest).clamp(.85, 1.0);
+  }
 }
 
 class _CategoryTile extends StatelessWidget {
-  const _CategoryTile(
-      {required this.width, required this.category, this.onTap});
+  const _CategoryTile({
+    required this.width,
+    required this.category,
+    required this.captionScale,
+    this.onTap,
+  });
 
   final double width;
   final HomeCategory category;
+  final double captionScale;
   final VoidCallback? onTap;
 
   @override
@@ -915,15 +1004,54 @@ class _CategoryTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 9),
-            Text(category.title,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySmall
-                    .copyWith(color: palette.textPrimary)),
+            _CategoryCaption(
+              title: category.title,
+              style: AppTypography.bodySmall.copyWith(
+                color: palette.textPrimary,
+                fontSize: AppTypography.bodySmall.fontSize! * captionScale,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Wraps between words only, on a line up to [_captionOverhang] wider than the tile on each
+/// side. A word that still does not fit (the live catalogue has "Слабоалкогольные" and
+/// "Безалкогольные") scales down instead of breaking mid-word ("Слабоалкого/льное") the
+/// way a plain [Text] does.
+class _CategoryCaption extends StatelessWidget {
+  const _CategoryCaption({required this.title, required this.style});
+
+  final String title;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: title,
+        excludeSemantics: true,
+        child: LayoutBuilder(
+          builder: (context, constraints) => FractionallySizedBox(
+            widthFactor: (constraints.maxWidth + _captionOverhang * 2) /
+                constraints.maxWidth,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: AppSpacing.xs,
+              children: [
+                for (final word in title.split(_whitespace))
+                  if (word.isNotEmpty)
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(word,
+                          maxLines: 1, softWrap: false, style: style),
+                    ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _BonusCard extends StatelessWidget {
@@ -950,7 +1078,7 @@ class _BonusCard extends StatelessWidget {
                       style: AppTypography.title
                           .copyWith(color: palette.textPrimary))),
               if (data.signedIn)
-                AppGlassChip(label: 'История', onTap: onHistory),
+                AppSectionAction(label: 'История', onTap: onHistory),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -1012,13 +1140,13 @@ class _BonusCard extends StatelessWidget {
                   AppIcon(AppIcons.avatar,
                       size: 40, color: palette.textSecondary),
                   const SizedBox(height: AppSpacing.xl),
-                  Text('Авторизируйтесь, чтобы видеть бонусы',
+                  Text('Авторизуйтесь, чтобы видеть бонусы',
                       textAlign: TextAlign.center,
                       style: AppTypography.body
                           .copyWith(color: palette.textSecondary)),
                   const SizedBox(height: AppSpacing.xl),
                   Align(
-                    child: AppGlassChip(label: 'Войти', onTap: onSignIn),
+                    child: AppSectionAction(label: 'Войти', onTap: onSignIn),
                   ),
                 ],
               ),
@@ -1033,18 +1161,13 @@ class _ProductSections extends StatelessWidget {
   const _ProductSections({
     required this.sections,
     this.onCategory,
-    this.quantityOf,
-    this.onProductTap,
-    this.onIncrement,
-    this.onDecrement,
+    this.productBuilder,
   });
 
   final List<HomeProductSection> sections;
   final ValueChanged<HomeCategory>? onCategory;
-  final num Function(ProductView product)? quantityOf;
-  final ValueChanged<ProductView>? onProductTap;
-  final ValueChanged<ProductView>? onIncrement;
-  final ValueChanged<ProductView>? onDecrement;
+  final Widget Function(BuildContext context, ProductView product)?
+      productBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -1054,10 +1177,7 @@ class _ProductSections extends StatelessWidget {
           _ProductSection(
             section: sections[index],
             onCategory: onCategory,
-            quantityOf: quantityOf,
-            onProductTap: onProductTap,
-            onIncrement: onIncrement,
-            onDecrement: onDecrement,
+            productBuilder: productBuilder,
           ),
           if (index != sections.length - 1) const SizedBox(height: 32),
         ],
@@ -1070,18 +1190,13 @@ class _ProductSection extends StatelessWidget {
   const _ProductSection({
     required this.section,
     this.onCategory,
-    this.quantityOf,
-    this.onProductTap,
-    this.onIncrement,
-    this.onDecrement,
+    this.productBuilder,
   });
 
   final HomeProductSection section;
   final ValueChanged<HomeCategory>? onCategory;
-  final num Function(ProductView product)? quantityOf;
-  final ValueChanged<ProductView>? onProductTap;
-  final ValueChanged<ProductView>? onIncrement;
-  final ValueChanged<ProductView>? onDecrement;
+  final Widget Function(BuildContext context, ProductView product)?
+      productBuilder;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -1098,7 +1213,7 @@ class _ProductSection extends StatelessWidget {
                         child: Text(section.category.title,
                             style: AppTypography.headline
                                 .copyWith(color: context.palette.textPrimary))),
-                    AppGlassChip(
+                    AppSectionAction(
                       label: 'Все',
                       onTap: onCategory == null
                           ? null
@@ -1108,36 +1223,14 @@ class _ProductSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                height: ProductCard.heightFor(
-                  context,
-                  width: ProductCard.widthFor(context),
-                  products: section.products,
-                ),
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  itemCount: section.products.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(width: AppSpacing.xl),
-                  itemBuilder: (context, index) {
-                    final product = section.products[index];
-                    return ProductCard.fromView(
-                      product,
-                      quantity: quantityOf?.call(product),
-                      onTap: onProductTap == null
-                          ? null
-                          : () => onProductTap!(product),
-                      onIncrement: onIncrement == null
-                          ? null
-                          : () => onIncrement!(product),
-                      onDecrement: onDecrement == null
-                          ? null
-                          : () => onDecrement!(product),
-                    );
-                  },
-                ),
+              ProductRail(
+                spacing: AppSpacing.xl,
+                itemCount: section.products.length,
+                itemBuilder: (context, index) {
+                  final product = section.products[index];
+                  return productBuilder?.call(context, product) ??
+                      ProductCard.fromView(product);
+                },
               ),
             ],
           ),

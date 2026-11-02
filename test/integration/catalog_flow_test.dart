@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/features/catalog/catalog_view_data.dart';
 import 'package:naliv_delivery/features/catalog/ui/category_products_page.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
@@ -158,10 +159,12 @@ void main() {
     }, () => client);
   });
 
-  testWidgets('featured heading opens its products without another request',
+  testWidgets('opening a category keeps every prefetched first-page product',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final cart = CartProvider();
+    await cart.bindBusiness(1);
     var itemReads = 0;
     final client = MockClient((request) async {
       if (request.method != 'GET' ||
@@ -202,7 +205,13 @@ void main() {
           jsonEncode({
             'success': true,
             'data': {
-              'items': [_itemJson(100)]
+              'items': [
+                for (var id = 100; id < 112; id++)
+                  {
+                    ..._itemJson(id),
+                    if (id != 100) 'name': 'Товар $id',
+                  },
+              ],
             },
           }),
           200,
@@ -214,7 +223,7 @@ void main() {
     await http.runWithClient(() async {
       await tester.pumpWidget(
         ChangeNotifierProvider(
-          create: (_) => CartProvider(),
+          create: (_) => cart,
           child: MaterialApp(
             theme: AppTheme.light(),
             home: const SupercategoryPage(
@@ -228,19 +237,139 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump();
       expect(itemReads, 1);
-      await tester.tap(find.text('Аперитив').last);
+      await tester.tap(find.byKey(const ValueKey('catalog-open-10')));
       await tester.pumpAndSettle();
       expect(find.byType(CategoryProductsPage), findsOneWidget);
+      final scrollable = find.descendant(
+        of: find.byKey(const ValueKey('category-products-grid')),
+        matching: find.byType(Scrollable),
+      );
+      final last = find.byKey(const ValueKey('category-product-11'));
+      final lastAdd = find.descendant(
+        of: last,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is StepTap && widget.label == 'Добавить',
+        ),
+      );
+      await tester.scrollUntilVisible(lastAdd, 300, scrollable: scrollable);
+      await Scrollable.ensureVisible(tester.element(lastAdd), alignment: .3);
+      await tester.pumpAndSettle();
+      await tester.tap(lastAdd);
+      await tester.pumpAndSettle();
+      expect(cart.getTotalQuantityForItem(111), 1);
+      final firstAdd = find.descendant(
+        of: find.byKey(const ValueKey('category-product-0')),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is StepTap && widget.label == 'Добавить',
+        ),
+      );
+      await tester.scrollUntilVisible(firstAdd, -300, scrollable: scrollable);
+      await Scrollable.ensureVisible(tester.element(firstAdd), alignment: .3);
+      await tester.pumpAndSettle();
+      await tester.tap(firstAdd);
+      await tester.pumpAndSettle();
+      expect(cart.getTotalQuantityForItem(100), 1);
       expect(itemReads, 1);
       expect(tester.takeException(), isNull);
     }, () => client);
   });
 
-  testWidgets('ambiguous leaves open their own products and keep route selection',
+  testWidgets(
+      'prefetched pagination retries without refetching or losing items',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final pages = <String>[];
+    final unexpected = <String>[];
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: CategoryProductsPage(
+              categoryId: 10,
+              title: 'Аперитив',
+              businessId: 1,
+              initialItems: _products,
+              initialHasMore: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final scrollable = find.descendant(
+        of: find.byKey(const ValueKey('category-products-grid')),
+        matching: find.byType(Scrollable),
+      );
+      await tester.scrollUntilVisible(
+        find.text('Повторить загрузку'),
+        300,
+        scrollable: scrollable,
+      );
+      await Scrollable.ensureVisible(
+        tester.element(find.text('Повторить загрузку')),
+        alignment: .3,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Повторить загрузку'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('После первой страницы'),
+        300,
+        scrollable: scrollable,
+      );
+      expect(find.text('После первой страницы'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('category-product-5')),
+        -300,
+        scrollable: scrollable,
+      );
+      expect(find.byKey(const ValueKey('category-product-5')), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('category-product-0')),
+        -300,
+        scrollable: scrollable,
+      );
+      expect(find.byKey(const ValueKey('category-product-0')), findsOneWidget);
+      expect(pages, ['2', '2']);
+      expect(unexpected, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+        () => MockClient((request) async {
+              final query = request.url.queryParameters;
+              if (request.method != 'GET' ||
+                  request.url.path != '/api/categories/10/items' ||
+                  query['business_id'] != '1' ||
+                  query['page'] != '2') {
+                unexpected.add('$request');
+                throw StateError('Unexpected request: $request');
+              }
+              pages.add(query['page']!);
+              if (pages.length == 1) return http.Response('', 503);
+              return http.Response(
+                jsonEncode({
+                  'success': true,
+                  'data': {
+                    'items': [
+                      {..._itemJson(200), 'name': 'После первой страницы'},
+                    ],
+                    'pagination': {'page': 2, 'total_pages': 2},
+                  },
+                }),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              );
+            }));
+  });
+
+  testWidgets(
+      'ambiguous leaves open their own products and keep route selection',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final semantics = tester.ensureSemantics();
+    final reads = <String>[];
     final client = MockClient((request) async {
       if (request.method != 'GET') {
         throw StateError('Unexpected mutation: $request');
@@ -277,6 +406,7 @@ void main() {
           throw StateError('Unexpected store: $request');
         }
         final isAlcoholFree = request.url.path.contains('/202/');
+        reads.add(request.url.path);
         data = {
           'items': [
             {
@@ -311,36 +441,104 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Все категории'));
+      await tester.tap(find.text('Светлое · Пиво'));
+      await tester.pumpAndSettle();
+      expect(find.text('Светлый лагер'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      await tester.pumpAndSettle();
+      final selectedBeer = find.text('Светлое · Пиво').last;
+      expect(tester.getSemantics(selectedBeer).flagsCollection.isSelected,
+          Tristate.isTrue);
+      await tester.tap(selectedBeer);
+      await tester.pumpAndSettle();
+      expect(reads.where((path) => path.contains('/101/')).length, 1);
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Светлое · Безалкогольное пиво').last);
       await tester.pumpAndSettle();
       expect(find.text('Безалкогольный лагер'), findsOneWidget);
       expect(find.text('Светлый лагер'), findsNothing);
-      final strip = find.byKey(const ValueKey('catalog-chip-strip'));
-      final selected = find.descendant(
-        of: strip,
-        matching: find.text('Светлое · Безалкогольное пиво'),
-      );
-      expect(tester.getSemantics(selected).flagsCollection.isSelected,
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      await tester.pumpAndSettle();
+      final readsBeforeReselect = reads.length;
+      final selectedFree = find.text('Светлое · Безалкогольное пиво').last;
+      expect(tester.getSemantics(selectedFree).flagsCollection.isSelected,
           Tristate.isTrue);
-      final all = find.descendant(of: strip, matching: find.text('Все'));
-      await tester.ensureVisible(all);
+      await tester.tap(selectedFree);
       await tester.pumpAndSettle();
-      await tester.tap(all);
+      expect(reads.length, readsBeforeReselect);
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
       await tester.pumpAndSettle();
-      expect(find.text('Напитки'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('category-overview')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SupercategoryPage), findsOneWidget);
+      expect(find.byType(CategoryProductsPage), findsNothing);
+      expect(tester.takeException(), isNull);
+    }, () => client).whenComplete(semantics.dispose);
+  });
+
+  testWidgets('the category sheet reveals a distant selection at large text',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final semantics = tester.ensureSemantics();
+    final categories = [
+      for (var index = 0; index < 40; index++)
+        CategoryRef(
+          id: 100 + index,
+          name: index == 39
+              ? 'Светлое с длинным названием категории'
+              : 'Категория $index',
+          parentId: 3,
+          parentName: 'Безалкогольное пиво',
+          needsParentContext: index == 39,
+        ),
+    ];
+    final unexpected = <String>[];
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.dark(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: CategoryProductsPage(
+              categoryId: 139,
+              title: 'Светлое',
+              businessId: 1,
+              categories: categories,
+              initialItems: _products.take(1).toList(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(categories.last.label), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      await tester.pumpAndSettle();
+      final selected = find.byKey(const ValueKey('category-menu-139'));
+      expect(selected.hitTestable(), findsOneWidget);
       expect(
         tester
-            .getSemantics(find.descendant(
-              of: strip,
-              matching: find.text('Все'),
-            ))
+            .getSemantics(find.text(categories.last.label).last)
             .flagsCollection
             .isSelected,
         Tristate.isTrue,
       );
-    }, () => client).whenComplete(semantics.dispose);
+      await tester.tap(selected);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('category-product-0')), findsOneWidget);
+      expect(unexpected, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+        () => MockClient((request) async {
+              unexpected.add('$request');
+              throw StateError('Unexpected request: $request');
+            })).whenComplete(semantics.dispose);
   });
 }
 

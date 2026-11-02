@@ -1,210 +1,39 @@
 ---
 name: flutter-setup-localization
-description: Add `flutter_localizations` and `intl` dependencies, enable "generate true" in `pubspec.yaml`, and create an `l10n.yaml` configuration file. Use when initializing localization support for a new Flutter project.
-metadata:
-  model: models/gemini-3.1-pro-preview
-  last_modified: Tue, 21 Apr 2026 21:27:35 GMT
+description: Use when changing Flutter locale support, translated messages, or locale-sensitive date and number formatting.
 ---
-# Internationalizing Flutter Applications
+# Flutter localization
 
-## Contents
-- [Core Concepts](#core-concepts)
-- [Setup Workflow](#setup-workflow)
-- [Implementation Workflow](#implementation-workflow)
-- [Advanced Formatting](#advanced-formatting)
-- [Examples](#examples)
+## Scope before setup
 
-## Core Concepts
-Flutter handles internationalization (i18n) and localization (l10n) via the `flutter_localizations` and `intl` packages. The standard approach uses App Resource Bundle (`.arb`) files to define localized strings, which are then compiled into a generated `AppLocalizations` class for type-safe access within the widget tree.
+Read `pubspec.yaml` and the `MaterialApp` in `lib/main.dart`. This project already has `flutter_localizations`, `intl`, global Material/Widgets delegates and ru/en supported locales. Much application copy is inline; built-in widget localization does not translate that copy. A copy or date-format fix is not permission to introduce an ARB/code-generation migration.
 
-## Setup Workflow
+For formatting-only work, reuse `intl` and the existing locale policy. Below the app's localization scope, obtain the active locale with `Localizations.localeOf(context).toString()` and pass it to `DateFormat`/`NumberFormat`. Keep time-zone and money-unit behavior unchanged. Check existing date-symbol initialization before adding any. Do not loosen package constraints to `intl:any` or repeat dependency installation.
 
-Copy and track this checklist when initializing internationalization in a Flutter project:
+## Only for an explicitly requested ARB pipeline
 
-- [ ] **Task Progress**
-  - [ ] 1. Add dependencies to `pubspec.yaml`.
-  - [ ] 2. Enable the `generate` flag.
-  - [ ] 3. Create the `l10n.yaml` configuration file.
-  - [ ] 4. Configure `MaterialApp` or `CupertinoApp`.
+1. Agree the source locale, translated locales and copy scope; do not invent translations. Enable `generate: true` under the existing `flutter:` section of `pubspec.yaml`.
+2. Create `l10n.yaml` with source output, for example:
 
-### 1. Add Dependencies
-Add the required localization packages to the project. Execute the following commands in the terminal:
-```bash
-flutter pub add flutter_localizations --sdk=flutter
-flutter pub add intl:any
-```
+   ```yaml
+   arb-dir: lib/l10n
+   template-arb-file: app_ru.arb
+   output-localization-file: app_localizations.dart
+   ```
 
-Verify your `pubspec.yaml` includes the following under `dependencies`:
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  flutter_localizations:
-    sdk: flutter
-  intl: any
-```
+   On this Flutter 3.41+ project, omit the obsolete `synthetic-package` option. Do not use `synthetic-package: true` or `package:flutter_gen`.
+3. Define matching keys and metadata in `app_ru.arb` and the approved translations. For plurals, include the locale's required categories and `other`; give placeholders types and descriptions. For example:
 
-### 2. Enable Code Generation
-Open `pubspec.yaml` and enable the `generate` flag within the `flutter` section to automate localization tasks:
-```yaml
-flutter:
-  generate: true
-```
+   ```json
+   {
+     "items": "{count, plural, one{{count} товар} few{{count} товара} many{{count} товаров} other{{count} товара}}",
+     "@items": {"placeholders": {"count": {"type": "int"}}}
+   }
+   ```
 
-### 3. Create Configuration File
-Create a new file named `l10n.yaml` in the root directory of the Flutter project. Define the input directory, template file, and output file:
-```yaml
-arb-dir: lib/l10n
-template-arb-file: app_en.arb
-output-localization-file: app_localizations.dart
-synthetic-package: true
-```
+4. Run `flutter gen-l10n`. Import the generated source as `package:naliv_delivery/l10n/app_localizations.dart`. If `output-dir` is chosen, update the import to that actual source path. Never edit generated Dart by hand.
+5. Use `AppLocalizations.localizationsDelegates` and `.supportedLocales` in the existing app without discarding its navigator, observers, themes or entry gate. Consume messages below that scope; preserve any additional delegates.
 
-### 4. Configure the App Entry Point
-Import the generated localizations and the `flutter_localizations` library in your `main.dart`. Inject the delegates and supported locales into your `MaterialApp` or `CupertinoApp`.
+Test approved locales, placeholder/plural boundaries, long text and fallback behavior in existing widget fixtures; validate only synthetic content. Run the affected test via `dart run tool/design_harness.dart check <existing-test-path>`.
 
-```dart
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart'; // Adjust path if synthetic-package is false
-
-// ... inside build method
-return MaterialApp(
-  localizationsDelegates: const [
-    AppLocalizations.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  supportedLocales: const [
-    Locale('en'), // English
-    Locale('es'), // Spanish
-  ],
-  home: const MyHomePage(),
-);
-```
-
-## Implementation Workflow
-
-Follow this workflow when adding or modifying localized content.
-
-### 1. Define ARB Files
-*   **If creating NEW content:** Add the base string to the template file (`lib/l10n/app_en.arb`). Include a description for context.
-*   **If EDITING existing content:** Locate the key in all supported `.arb` files and update the values.
-
-```json
-{
-  "helloWorld": "Hello World!",
-  "@helloWorld": {
-    "description": "The conventional newborn programmer greeting"
-  }
-}
-```
-
-Create corresponding files for other locales (e.g., `app_es.arb`):
-```json
-{
-  "helloWorld": "¡Hola Mundo!"
-}
-```
-
-### 2. Generate Localization Classes
-Run the following command to trigger code generation:
-```bash
-flutter pub get
-```
-*Feedback Loop:* Run validator -> review terminal output for ARB syntax errors -> fix missing commas or mismatched placeholders -> re-run `flutter pub get`.
-
-### 3. Consume Localized Strings
-Access the localized strings in your widget tree using `AppLocalizations.of(context)`. Ensure the widget calling this is a descendant of `MaterialApp`.
-
-```dart
-Text(AppLocalizations.of(context)!.helloWorld)
-```
-
-## Advanced Formatting
-
-Use placeholders for dynamic data, plurals, and conditional selects.
-
-### Placeholders
-Define parameters within curly braces and specify their type in the metadata object.
-```json
-"hello": "Hello {userName}",
-"@hello": {
-  "description": "A message with a single parameter",
-  "placeholders": {
-    "userName": {
-      "type": "String",
-      "example": "Bob"
-    }
-  }
-}
-```
-
-### Plurals
-Use the `plural` syntax to handle quantity-based string variations. The `other` case is mandatory.
-```json
-"nWombats": "{count, plural, =0{no wombats} =1{1 wombat} other{{count} wombats}}",
-"@nWombats": {
-  "description": "A plural message",
-  "placeholders": {
-    "count": {
-      "type": "num",
-      "format": "compact"
-    }
-  }
-}
-```
-
-### Selects
-Use the `select` syntax for conditional strings, such as gendered text.
-```json
-"pronoun": "{gender, select, male{he} female{she} other{they}}",
-"@pronoun": {
-  "description": "A gendered message",
-  "placeholders": {
-    "gender": {
-      "type": "String"
-    }
-  }
-}
-```
-
-## Examples
-
-### Complete `l10n.yaml`
-```yaml
-arb-dir: lib/l10n
-template-arb-file: app_en.arb
-output-localization-file: app_localizations.dart
-synthetic-package: true
-use-escaping: true
-```
-
-### Complete Widget Implementation
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
-class GreetingWidget extends StatelessWidget {
-  final String userName;
-  final int notificationCount;
-
-  const GreetingWidget({
-    super.key, 
-    required this.userName, 
-    required this.notificationCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Column(
-      children: [
-        Text(l10n.hello(userName)),
-        Text(l10n.nWombats(notificationCount)),
-      ],
-    );
-  }
-}
-```
+Reference: [generated localization source migration](https://docs.flutter.dev/release/breaking-changes/flutter-generate-i10n-source).

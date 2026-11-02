@@ -254,4 +254,180 @@ void main() {
     expect(await accepted, isTrue);
     expect(await AddressStorageService.getSelectedAddress(), nextAddress);
   });
+
+  test('malformed book entries do not block editing a valid stored address',
+      () async {
+    final valid = {
+      ..._address,
+      'id': 'device_fixture',
+      'device_local': true,
+      'lat': '49.8047',
+      'lon': '73.1094',
+    };
+    final malformed = <String>[
+      '{broken-json',
+      jsonEncode(['not', 'an', 'address']),
+      jsonEncode({'address': 'Invalid coordinate', 'lat': 'NaN', 'lon': 73}),
+    ];
+    await store.setValue('StringList', 'flutter.profile_local_addresses',
+        <String>[malformed[0], jsonEncode(valid), ...malformed.skip(1)]);
+    await store.setValue(
+        'String', 'flutter.selected_address', jsonEncode(valid));
+
+    expect(
+      await AddressStorageService.saveBookAddress({
+        ...valid,
+        'apartment': '46Б',
+      }, replacing: valid),
+      isTrue,
+    );
+
+    final book = await AddressStorageService.getBookSnapshot();
+    expect(book.unreadableEntries, 3);
+    final saved = book.localAddresses.single;
+    expect(saved['id'], 'device_fixture');
+    expect(saved['address'], 'Тестовый адрес, 16');
+    expect(saved['lat'], 49.8047);
+    expect(saved['lon'], 73.1094);
+    expect(saved['point'], {'lat': 49.8047, 'lon': 73.1094});
+    expect(saved['apartment'], '46Б');
+    expect(book.selectedAddress, saved);
+    final raw =
+        (await store.getAll())['flutter.profile_local_addresses']! as List;
+    expect(raw.where(malformed.contains), malformed);
+  });
+
+  test('malformed history entries do not prevent selecting a valid address',
+      () async {
+    final malformed = ['{broken-history', jsonEncode(false)];
+    await store.setValue('StringList', 'flutter.address_history', <String>[
+      malformed[0],
+      jsonEncode(_address),
+      malformed[1],
+    ]);
+    final next = {
+      ..._address,
+      'id': 502,
+      'address': 'Новый адрес, 22',
+      'lat': '49.81',
+      'lon': '73.12',
+    };
+
+    expect(await AddressStorageService.selectBookAddress(next), isTrue);
+
+    final history = await AddressStorageService.getAddressHistory();
+    expect(history.map((item) => item['id']), [502, 501]);
+    expect(history.first['point'], {'lat': 49.81, 'lon': 73.12});
+    expect((await AddressStorageService.getSelectedAddress())?['lat'], 49.81);
+    final raw = (await store.getAll())['flutter.address_history']! as List;
+    expect(raw.where(malformed.contains), malformed);
+  });
+
+  test('malformed original entries survive removal of a valid local address',
+      () async {
+    final local = {
+      ..._address,
+      'id': 'device_fixture',
+      'device_local': true,
+    };
+    final malformedBook = [
+      '{broken-book',
+      jsonEncode({'address': 'Impossible point', 'lat': 91, 'lon': 73}),
+    ];
+    final malformedHistory = ['{broken-history', jsonEncode(7)];
+    await store.setValue('StringList', 'flutter.profile_local_addresses',
+        <String>[jsonEncode(local), ...malformedBook]);
+    await store.setValue('StringList', 'flutter.address_history',
+        <String>[...malformedHistory, jsonEncode(local)]);
+    await store.setValue(
+        'String', 'flutter.selected_address', jsonEncode(local));
+
+    expect(await AddressStorageService.removeBookAddress(local), isTrue);
+
+    final book = await AddressStorageService.getBookSnapshot();
+    expect(book.localAddresses, isEmpty);
+    expect(book.hiddenIds, isEmpty);
+    expect(book.selectedAddress, isNull);
+    expect(await AddressStorageService.getAddressHistory(), isEmpty);
+    final persisted = await store.getAll();
+    expect(persisted['flutter.profile_local_addresses'], malformedBook);
+    expect(persisted['flutter.address_history'], malformedHistory);
+  });
+
+  test('history reads keep valid neighbors of malformed saved entries',
+      () async {
+    final raw = <String>[
+      '{broken-history',
+      jsonEncode({
+        ..._address,
+        'lat': '49.8047',
+        'lon': '73.1094',
+      }),
+      jsonEncode(null),
+      jsonEncode({'address': 'Bad point', 'lat': 'Infinity', 'lon': 73}),
+    ];
+    await store.setValue('StringList', 'flutter.address_history', raw);
+
+    final history = await AddressStorageService.getAddressHistory();
+
+    expect(history, hasLength(1));
+    expect(history.single['id'], 501);
+    expect(history.single['address'], 'Тестовый адрес, 16');
+    expect(history.single['lat'], 49.8047);
+    expect(history.single['lon'], 73.1094);
+    expect((await store.getAll())['flutter.address_history'], raw);
+    expect(
+        (await AddressStorageService.getBookSnapshot()).unreadableEntries, 3);
+  });
+
+  test(
+      'book reads normalize valid coordinate strings without rewriting storage',
+      () async {
+    final raw = <String>[
+      jsonEncode({
+        ..._address,
+        'lat': ' 49.8047 ',
+        'lon': '73.1094',
+      }),
+    ];
+    await store.setValue('StringList', 'flutter.profile_local_addresses', raw);
+
+    final book = await AddressStorageService.getBookSnapshot();
+
+    expect(book.localAddresses.single['lat'], 49.8047);
+    expect(book.localAddresses.single['lon'], 73.1094);
+    expect(
+        book.localAddresses.single['point'], {'lat': 49.8047, 'lon': 73.1094});
+    expect((await store.getAll())['flutter.profile_local_addresses'], raw);
+  });
+
+  test(
+      'history capacity limits valid addresses without deleting corrupt originals',
+      () async {
+    final unreadable = ['{broken-history', jsonEncode(false)];
+    await store.setValue('StringList', 'flutter.address_history', <String>[
+      unreadable[0],
+      for (var i = 0; i < 10; i++)
+        jsonEncode({
+          ..._address,
+          'id': i,
+          'address': 'Сохранённый адрес $i',
+        }),
+      unreadable[1],
+    ]);
+
+    expect(
+        await AddressStorageService.selectBookAddress({
+          ..._address,
+          'id': 502,
+          'address': 'Новый адрес, 22',
+        }),
+        isTrue);
+
+    final history = await AddressStorageService.getAddressHistory();
+    expect(history.map((item) => item['id']), [502, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    final raw = (await store.getAll())['flutter.address_history']! as List;
+    expect(raw, hasLength(12));
+    expect(raw.where(unreadable.contains), unreadable);
+  });
 }

@@ -13,6 +13,7 @@ import 'package:naliv_delivery/pages/promotion_items_page.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/utils/liked_storage_service.dart';
@@ -171,7 +172,10 @@ void main() {
   testWidgets('likes persist only after success and stay business-scoped',
       (tester) async {
     SharedPreferences.setMockInitialValues({'auth_token': 'mock-token'});
+    await AuthService.notifySessionChanged();
+    await AuthService.bindAuthenticatedIdentity('mock-user');
     final liked = LikedItemsProvider();
+    addTearDown(liked.dispose);
     final unexpected = <String>[];
     var toggles = 0;
     await http.runWithClient(() async {
@@ -184,6 +188,11 @@ void main() {
         liked: liked,
       ));
       final heart = find.byKey(const ValueKey('promotion-like-0'));
+      await Scrollable.ensureVisible(
+        tester.element(heart),
+        alignment: .3,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(heart);
       await tester.pumpAndSettle();
       expect(liked.isLiked(7, 17), isFalse);
@@ -295,7 +304,10 @@ Widget _app(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: cart ?? CartProvider()),
-        ChangeNotifierProvider.value(value: liked ?? LikedItemsProvider()),
+        if (liked == null)
+          ChangeNotifierProvider(create: (_) => LikedItemsProvider())
+        else
+          ChangeNotifierProvider.value(value: liked),
         ChangeNotifierProvider(create: (_) => BusinessProvider()),
       ],
       child: MaterialApp(

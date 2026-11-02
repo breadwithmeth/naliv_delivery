@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/services/push_provider.dart';
 import '../test/support/design_surfaces.dart';
 import '../test/support/remaining_milestone_fixture.dart';
+import 'design/fixture_options.dart' show FixtureOptions;
+import 'design/surface_manifest.dart';
 
 void main() {
   // Initialize the binding *inside* the HTTP zone so scheduled frames inherit the
   // strict fixture client. Preferences remain in memory, not the device account.
   http.runWithClient(() {
+    NotificationService.installProvider(InMemoryPushProvider());
     WidgetsFlutterBinding.ensureInitialized();
     // This entry point is fixture-only; no device credentials or consent are read.
     // Synthetic credentials only; the strict transport rejects unknown requests.
@@ -18,33 +23,59 @@ void main() {
     // ignore: invalid_use_of_visible_for_testing_member
     SharedPreferences.setMockInitialValues({
       ...surfaceFixturePreferences,
-    }..removeWhere((key, _) =>
-        query['guest'] == '1' && key == 'auth_token'));
-    RemainingMilestoneFixture.paymentScenario =
-        PaymentFixtureScenario.values.firstWhere(
-      (value) => value.name == query['payment'],
-      orElse: () => PaymentFixtureScenario.completed,
-    );
-    final selected = query['surface'];
-    runApp(selected != null && surfaceIds.contains(selected)
-        ? LayoutBuilder(
-            builder: (context, constraints) => DesignSurfaceApp(
-              surface: selected,
-              brightness: query['theme'] == 'light'
-                  ? Brightness.light
-                  : Brightness.dark,
-              size: constraints.biggest,
-              textScaler:
-                  TextScaler.linear(double.tryParse(query['scale'] ?? '') ?? 1),
-              viewInsets: EdgeInsets.only(
-                  bottom: double.tryParse(query['keyboard'] ?? '') ?? 0),
-              cardScenario: CardFixtureScenario.values.firstWhere(
-                (value) => value.name == query['cards'],
-                orElse: () => CardFixtureScenario.loaded,
+    }..removeWhere((key, _) => query['guest'] == '1' && key == 'auth_token'));
+    try {
+      final options = FixtureOptions.parse(query,
+          cardScenarios: CardFixtureScenario.values.map((value) => value.name),
+          paymentScenarios:
+              PaymentFixtureScenario.values.map((value) => value.name));
+      RemainingMilestoneFixture.paymentScenario =
+          PaymentFixtureScenario.values.byName(options.payment);
+      final selected = options.surface;
+      runApp(selected != null
+          ? LayoutBuilder(
+              builder: (context, constraints) => DesignSurfaceApp(
+                surface: selected,
+                brightness: options.theme == 'light'
+                    ? Brightness.light
+                    : Brightness.dark,
+                size: constraints.biggest,
+                textScaler: TextScaler.linear(options.textScale),
+                viewInsets: EdgeInsets.only(bottom: options.keyboardInset),
+                cardScenario: CardFixtureScenario.values.byName(options.cards),
+              ),
+            )
+          : const _FixtureGallery());
+    } on FormatException catch (error) {
+      runApp(MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          appBar: AppBar(title: const Text('Fixture configuration')),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    liveRegion: true,
+                    label: 'Invalid fixture configuration',
+                    child: const Text('Invalid fixture configuration'),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(error.message),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => runApp(const _FixtureGallery()),
+                    child: const Text('Open fixture gallery'),
+                  ),
+                ],
               ),
             ),
-          )
-        : const _FixtureGallery());
+          ),
+        ),
+      ));
+    }
   },
       () => SurfaceFixtureClient(
             onUnexpectedRequest: (message) => FlutterError.reportError(

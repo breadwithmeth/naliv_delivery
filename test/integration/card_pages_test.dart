@@ -12,6 +12,8 @@ import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/utils/order_payment_guard.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -284,10 +286,12 @@ void main() {
             200);
       }
       if (request.method == 'GET' && request.url.path == '/api/bonuses') {
-        return http.Response(jsonEncode({
-          'success': true,
-          'data': {'totalBonuses': 0, 'bonusHistory': <Object>[]},
-        }), 200);
+        return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': {'totalBonuses': 0, 'bonusHistory': <Object>[]},
+            }),
+            200);
       }
       throw StateError('Unexpected request: ${request.method} ${request.url}');
     });
@@ -300,8 +304,8 @@ void main() {
             'payable_amount': 1200,
           }),
           cart: cart);
-      await _showControl(tester,
-          find.byKey(const ValueKey('payment-card-server-a')));
+      await _showControl(
+          tester, find.byKey(const ValueKey('payment-card-server-a')));
       await tester.tap(find.byKey(const ValueKey('payment-card-server-a')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
@@ -351,8 +355,8 @@ void main() {
             'business_id': 1,
             'payable_amount': 1200,
           }));
-      await _showControl(tester,
-          find.byKey(const ValueKey('payment-card-server-a')));
+      await _showControl(
+          tester, find.byKey(const ValueKey('payment-card-server-a')));
       await tester.tap(find.byKey(const ValueKey('payment-card-server-a')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
@@ -395,8 +399,8 @@ void main() {
             'business_id': 1,
             'payable_amount': 1200,
           }));
-      await _showControl(tester,
-          find.byKey(const ValueKey('payment-card-server-a')));
+      await _showControl(
+          tester, find.byKey(const ValueKey('payment-card-server-a')));
       await tester.tap(find.byKey(const ValueKey('payment-card-server-a')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
@@ -538,8 +542,8 @@ void main() {
               : const PaymentMethodPage(orderData: {'order_id': 902}),
         );
         unauthorized = true;
-        await _showControl(tester,
-            find.byKey(const ValueKey('refresh-card-list')));
+        await _showControl(
+            tester, find.byKey(const ValueKey('refresh-card-list')));
         await tester.tap(find.byKey(const ValueKey('refresh-card-list')));
         await tester.pumpAndSettle();
         final prefix = profile ? 'saved-card' : 'payment-card';
@@ -573,7 +577,8 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('bank collection summaries display without becoming charge identities',
+  testWidgets(
+      'bank collection summaries display without becoming charge identities',
       (tester) async {
     final chargedIds = <String>[];
     final client = MockClient((request) async {
@@ -591,21 +596,26 @@ void main() {
       if (request.method == 'POST' &&
           request.url.path == '/api/orders/902/pay') {
         chargedIds.add(jsonDecode(request.body)['card_id'] as String);
-        return http.Response(jsonEncode({
-          'success': false,
-          'data': {'payment_status': 'failed'},
-        }), 200);
+        return http.Response(
+            jsonEncode({
+              'success': false,
+              'data': {'payment_status': 'failed'},
+            }),
+            200);
       }
       throw StateError('Unexpected request: ${request.method} ${request.url}');
     });
     await http.runWithClient(() async {
       await _pumpPage(tester, const ProfileCardsPage());
-      expect(find.byKey(const ValueKey('saved-card-bank-safe')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('saved-card-bank-safe')), findsOneWidget);
       expect(find.text('****1234'), findsOneWidget);
       expect(find.text('4111111111111111'), findsNothing);
       await _pumpPage(
-          tester, const PaymentMethodPage(orderData: {
-            'order_id': 902, 'payable_amount': 1200,
+          tester,
+          const PaymentMethodPage(orderData: {
+            'order_id': 902,
+            'payable_amount': 1200,
           }));
       expect(find.byKey(const ValueKey('card-read-partial')), findsOneWidget);
       await tester.scrollUntilVisible(
@@ -632,7 +642,8 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets('resume refreshes a loaded bank collection without claiming binding success',
+  testWidgets(
+      'resume refreshes a loaded bank collection without claiming binding success',
       (tester) async {
     var cards = <Object?>[
       {'halyk_id': 'bank-existing', 'card_mask': '****4444'},
@@ -648,20 +659,21 @@ void main() {
     });
     await http.runWithClient(() async {
       await _pumpPage(tester, const ProfileCardsPage());
-      expect(find.byKey(const ValueKey('saved-card-bank-existing')), findsOneWidget);
+      expect(find.byKey(const ValueKey('saved-card-bank-existing')),
+          findsOneWidget);
       cards = [
         {'halyk_id': 'bank-existing', 'card_mask': '****4949'},
         {'halyk_id': 'bank-refreshed', 'card_mask': '****1234'},
       ];
-      tester.binding
-          .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      tester.binding
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
       expect(reads, 2);
       expect(find.text('****4949'), findsOneWidget);
-      expect(find.byKey(const ValueKey('saved-card-bank-refreshed')), findsOneWidget);
-      expect(find.text('Новая карта сохранена и готова к оплате'), findsNothing);
+      expect(find.byKey(const ValueKey('saved-card-bank-refreshed')),
+          findsOneWidget);
+      expect(
+          find.text('Новая карта сохранена и готова к оплате'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);
@@ -676,24 +688,28 @@ void main() {
       throw StateError('Unexpected request: ${request.method} ${request.url}');
     });
     await http.runWithClient(() async {
-      await _pumpPage(tester, const PaymentMethodPage(
-        orderData: {
-          'order_id': 'server-summary',
-          'total_amount': 26340,
-          'cost_summary': {'total_sum': 26370.25},
-        },
-        displayAmount: 26340,
-        amountNotice: 'Сервер подтвердил другую сумму: 26 370,25 ₸',
-      ));
+      await _pumpPage(
+          tester,
+          const PaymentMethodPage(
+            orderData: {
+              'order_id': 'server-summary',
+              'total_amount': 26340,
+              'cost_summary': {'total_sum': 26370.25},
+            },
+            displayAmount: 26340,
+            amountNotice: 'Сервер подтвердил другую сумму: 26 370,25 ₸',
+          ));
       expect(find.text('26\u00a0370,25 ₸'), findsOneWidget);
       expect(find.text('26\u00a0340 ₸'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
-      await _pumpPage(tester, const PaymentMethodPage(orderData: {
-        'order_id': 'explicit-server-total',
-        'payable_amount': 27000.5,
-        'total_amount': 26340,
-        'cost_summary': {'total_sum': 26370.25},
-      }));
+      await _pumpPage(
+          tester,
+          const PaymentMethodPage(orderData: {
+            'order_id': 'explicit-server-total',
+            'payable_amount': 27000.5,
+            'total_amount': 26340,
+            'cost_summary': {'total_sum': 26370.25},
+          }));
       expect(find.text('27\u00a0000,5 ₸'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
@@ -751,5 +767,123 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('account switch cannot launch a late prior-account bank form',
+      (tester) async {
+    await AuthService.bindAuthenticatedIdentity('card-account-a');
+    addTearDown(() => AuthService.bindAuthenticatedIdentity(null));
+    final link = Completer<http.Response>();
+    final unknown = <String>[];
+    var launches = 0;
+    var linkRequests = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        expect(request.url.queryParameters, {'source': 'halyk'});
+        return request.headers['authorization'] == 'Bearer fixture-only'
+            ? _response([_card('account-a-card')])
+            : http.Response('unavailable', 503);
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/payments/generate-add-card-link' &&
+          request.headers['authorization'] == 'Bearer fixture-only') {
+        linkRequests++;
+        return link.future;
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected card ownership request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    addTearDown(() async {
+      if (!link.isCompleted) link.complete(http.Response('{}', 503));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await http.runWithClient(() async {
+      await _pumpPage(tester, ProfileCardsPage(openCardForm: (_) async {
+        launches++;
+        return true;
+      }));
+      await tester.tap(find.byKey(const ValueKey('add-card-button')));
+      await tester.pump();
+      expect(linkRequests, 1);
+      await AuthService.saveToken('fixture-account-b');
+      await AuthService.bindAuthenticatedIdentity('card-account-b');
+      link.complete(http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              'addCardLink': 'https://fixture-bank.example/account-a-only',
+            },
+          }),
+          200));
+      await tester.pumpAndSettle();
+      expect(launches, 0);
+      expect(find.byKey(const ValueKey('saved-card-account-a-card')),
+          findsNothing);
+    }, () => client);
+  });
+
+  testWidgets(
+      'late prior-account payment completion stays durable without navigating the new account',
+      (tester) async {
+    await AuthService.bindAuthenticatedIdentity('payment-account-a');
+    addTearDown(() => AuthService.bindAuthenticatedIdentity(null));
+    const orderId = 'private-late-payment-ownership';
+    final payment = Completer<http.Response>();
+    final unknown = <String>[];
+    var posts = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        expect(request.url.queryParameters, {'source': 'halyk'});
+        return request.headers['authorization'] == 'Bearer fixture-only'
+            ? _response([_card('account-a-card')])
+            : http.Response('unavailable', 503);
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/orders/$orderId/pay' &&
+          request.headers['authorization'] == 'Bearer fixture-only') {
+        posts++;
+        return payment.future;
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected payment ownership request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    addTearDown(() async {
+      if (!payment.isCompleted) payment.complete(http.Response('{}', 503));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.binding.setSurfaceSize(null);
+    });
+    await http.runWithClient(() async {
+      await _pumpPage(
+          tester,
+          const PaymentMethodPage(orderData: {
+            'order_id': orderId,
+            'payable_amount': 1200,
+          }));
+      await tester.tap(find.byKey(const ValueKey('pay-order-button')));
+      await tester.pump();
+      expect(posts, 1);
+      await AuthService.saveToken('fixture-account-b');
+      await AuthService.bindAuthenticatedIdentity('payment-account-b');
+      payment.complete(http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {'payment_status': 'completed'},
+          }),
+          200));
+      await tester.pumpAndSettle();
+      expect(find.byType(PaymentSuccessPage), findsNothing);
+      expect(
+          find.byKey(const ValueKey('payment-payable-amount')), findsNothing);
+      await AuthService.saveToken('fixture-only');
+      await AuthService.bindAuthenticatedIdentity('payment-account-a');
+      expect(
+          await OrderPaymentGuard.read(orderId), OrderPaymentState.completed);
+      expect(posts, 1);
+    }, () => client);
   });
 }

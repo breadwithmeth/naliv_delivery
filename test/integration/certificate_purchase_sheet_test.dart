@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/certificates/ui/certificates_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,8 +63,11 @@ bool _canPurchase(WidgetTester tester) =>
     null;
 
 void main() {
-  setUp(() =>
-      SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'}));
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'});
+    await AuthService.notifySessionChanged();
+    await AuthService.bindAuthenticatedIdentity('certificate-fixture-user');
+  });
 
   testWidgets(
       'failed cards read disables purchase and retry recovers real selection',
@@ -327,6 +331,79 @@ void main() {
       expect(find.text('****1234'), findsOneWidget);
       expect(find.text('4111111111111111'), findsNothing);
       expect(purchases, 1);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+      'pending purchase survives certificates page recreation and recovers only by status',
+      (tester) async {
+    var charges = 0;
+    var statusReads = 0;
+    final unknown = <String>[];
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/certificates') {
+        return _json({
+          'success': true,
+          'data': {'certificates': <Object>[]},
+        });
+      }
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        expect(request.url.queryParameters, {'source': 'halyk'});
+        return _cards([_card('durable-card')]);
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/certificates/purchase') {
+        charges++;
+        expect(jsonDecode(request.body), {
+          'amount': 10000,
+          'payment_type': 'card',
+          'halyk_card_id': 'durable-card',
+        });
+        return _json({
+          'success': true,
+          'data': {
+            'purchase_id': 'page-retained-purchase',
+            'payment_status': 'pending',
+          },
+        });
+      }
+      if (request.method == 'GET' &&
+          request.url.path ==
+              '/api/certificates/purchases/page-retained-purchase/status') {
+        statusReads++;
+        return _json({
+          'success': true,
+          'data': {'payment_status': 'pending'},
+        });
+      }
+      unknown.add('${request.method} ${request.url}');
+      throw StateError('Unexpected certificate request');
+    });
+    addTearDown(() => expect(unknown, isEmpty));
+    await http.runWithClient(() async {
+      await _pump(tester);
+      await _tap(tester, 'certificate-purchase-submit');
+      expect(find.byKey(const ValueKey('certificate-purchase-pending')),
+          findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await _pump(tester);
+      expect(find.byKey(const ValueKey('certificate-purchase-pending')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('certificate-purchase-submit')),
+          findsNothing);
+      expect(
+          tester
+              .widget<TextField>(
+                  find.byKey(const ValueKey('certificate-purchase-amount')))
+              .controller!
+              .text,
+          '10000');
+      await _tap(tester, 'certificate-refresh-status');
+      expect(statusReads, greaterThanOrEqualTo(1));
+      expect(charges, 1);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);

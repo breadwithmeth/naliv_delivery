@@ -106,7 +106,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _showAuthForm = false;
   int _currentPage = 0;
   Map<String, dynamic>? _profileSetupUser;
-
+  AuthSession? _profileSetupSession;
 
   Timer? _autoSlideTimer;
   Timer? _resumeTimer;
@@ -307,11 +307,12 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final data = await ApiService.verifyAuthCode(phone, code);
       if (data != null && mounted) {
-        await NotificationService.instance.syncTokenWithServerIfNeeded();
-        if (!mounted) return;
+        final session = await AuthService.captureSession();
+        if (!mounted || session == null || !session.isCurrent) return;
+        unawaited(NotificationService.instance.syncTokenWithServerIfNeeded());
         if (ModalRoute.of(context)?.isCurrent != true) return;
         if (widget.completionMode == LoginCompletionMode.returnAuthenticated) {
-          await _continueReauthentication();
+          await _continueReauthentication(session);
         } else {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -344,16 +345,26 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _continueReauthentication() async {
-    final userInfo = await ApiService.getFullInfo();
-    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+  Future<void> _continueReauthentication(AuthSession session) async {
+    final userInfo =
+        await ApiService.getFullInfo(credentialToken: session.token);
+    if (!mounted ||
+        !session.isCurrent ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
     final user = userInfo?['user'];
     if (user is! Map) {
       throw StateError('Не удалось подтвердить профиль. Повторите вход.');
     }
     await AuthService.refreshIdentity(verifiedInfo: userInfo);
-    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    if (!mounted ||
+        !session.isCurrent ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
     if (ProfileSetupPage.isRequiredFor(userInfo)) {
+      _profileSetupSession = session;
       setState(() => _profileSetupUser = Map<String, dynamic>.from(user));
     } else {
       Navigator.of(context).pop<bool>(true);
@@ -362,11 +373,21 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _completeProfileSetup(
       Map<String, dynamic>? refreshedUserInfo) async {
-    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    final session = _profileSetupSession;
+    if (!mounted ||
+        session == null ||
+        !session.isCurrent ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
     if (refreshedUserInfo?['user'] is Map &&
         !ProfileSetupPage.isRequiredFor(refreshedUserInfo)) {
       await AuthService.refreshIdentity(verifiedInfo: refreshedUserInfo);
-      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+      if (!mounted ||
+          !session.isCurrent ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
       Navigator.of(context).pop<bool>(true);
       return;
     }
@@ -569,7 +590,8 @@ class _LoginPageState extends State<LoginPage> {
                 Text(
                   slide.subtitle,
                   textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(color: palette.textSecondary),
+                  style:
+                      AppTypography.body.copyWith(color: palette.textSecondary),
                 ),
               ],
             ),
@@ -578,7 +600,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
 
   Widget _authFormView() {
     final palette = context.palette;
@@ -807,13 +828,19 @@ class _LoginPageState extends State<LoginPage> {
     Key? key,
   }) {
     final palette = context.palette;
+    final foreground =
+        onPressed == null ? palette.textSecondary : palette.textPrimary;
     return SizedBox(
       key: key,
       width: double.infinity,
       height: MediaQuery.textScalerOf(context).scale(16) * 1.3 + 26,
-      child: AppGlassPanel(
-        tint: onPressed == null ? palette.accentFaint : palette.accentSoft,
+      child: AppSurface(
+        fill: Color.alphaBlend(
+          onPressed == null ? palette.accentFaint : palette.accentSoft,
+          palette.surface,
+        ),
         radius: _showAuthForm ? AppRadii.lg : AppRadii.pill,
+        clip: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(
               _showAuthForm ? AppRadii.lg : AppRadii.pill),
@@ -825,13 +852,13 @@ class _LoginPageState extends State<LoginPage> {
                     height: 23,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: palette.textOnAccent,
+                      color: foreground,
                     ),
                   )
                 : Text(
                     label,
                     style: AppTypography.titleMedium.copyWith(
-                      color: palette.textOnAccent,
+                      color: foreground,
                     ),
                   ),
           ),
@@ -839,7 +866,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
 }
 
 class _SlideData {

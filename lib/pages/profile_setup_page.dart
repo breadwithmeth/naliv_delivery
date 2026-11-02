@@ -4,6 +4,7 @@ import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/design/typography.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
 import '../ui/app_icon.dart';
 import '../ui/surfaces.dart';
 
@@ -54,12 +55,18 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   DateTime? _dateOfBirth;
   int _sex = 0;
   bool _isSaving = false;
+  late final int _ownerRevision;
+  late final Future<AuthSession?> _session;
+  bool _sessionInvalidated = false;
 
   static const int _minimumAge = 18;
 
   @override
   void initState() {
     super.initState();
+    _ownerRevision = AuthService.credentialRevision;
+    _session = AuthService.captureSession();
+    AuthService.sessionRevision.addListener(_onSessionChanged);
     final user = widget.initialUser;
     _nameController = TextEditingController(
       text: ProfileSetupPage._stringValue(
@@ -77,8 +84,19 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
 
   @override
   void dispose() {
+    AuthService.sessionRevision.removeListener(_onSessionChanged);
     _nameController.dispose();
     super.dispose();
+  }
+
+  void _onSessionChanged() {
+    if (!mounted || _ownerRevision == AuthService.credentialRevision) return;
+    setState(() {
+      _sessionInvalidated = true;
+      _nameController.clear();
+      _dateOfBirth = null;
+      _isSaving = false;
+    });
   }
 
   static int _parseSex(dynamic rawSex) {
@@ -144,6 +162,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Future<void> _save() async {
+    if (_isSaving ||
+        _sessionInvalidated ||
+        _ownerRevision != AuthService.credentialRevision) {
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     final dateOfBirth = _dateOfBirth;
@@ -158,6 +181,17 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     }
 
     setState(() => _isSaving = true);
+    final session = await _session;
+    if (!mounted ||
+        _sessionInvalidated ||
+        session == null ||
+        !session.isCurrent) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        _showMessage('Учётная запись изменилась. Откройте профиль заново.');
+      }
+      return;
+    }
     final fullName = _nameController.text.trim();
     final split = _splitName(fullName);
     final result = await ApiService.updateUserProfile(
@@ -166,19 +200,23 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       lastName: split.lastName,
       dateOfBirth: _formatDate(dateOfBirth),
       sex: _sex,
+      credentialToken: session.token,
     );
 
-    if (!mounted) return;
+    if (!mounted || !session.isCurrent || _sessionInvalidated) return;
     if (!result.success) {
       setState(() => _isSaving = false);
       _showMessage(result.message);
       return;
     }
 
-    final refreshedInfo = await ApiService.getFullInfo();
-    if (!mounted) return;
+    final refreshedInfo =
+        await ApiService.getFullInfo(credentialToken: session.token);
+    if (!mounted || !session.isCurrent || _sessionInvalidated) return;
     await widget.onCompleted(refreshedInfo);
-    if (mounted) setState(() => _isSaving = false);
+    if (mounted && session.isCurrent && !_sessionInvalidated) {
+      setState(() => _isSaving = false);
+    }
   }
 
   void _showMessage(String message) {
@@ -345,23 +383,27 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _saveButton() {
-    return AppGlassPanel(
+    final palette = context.palette;
+    return AppSurface(
       radius: AppRadii.pill,
-      tint: context.palette.accentSoft,
+      fill: Color.alphaBlend(palette.accentSoft, palette.surface),
+      clip: true,
       child: TextButton(
         key: const ValueKey('profile-setup-save'),
-        onPressed: _isSaving ? null : _save,
+        onPressed: _isSaving || _sessionInvalidated ? null : _save,
         style: TextButton.styleFrom(
           minimumSize: const Size(44, 48),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          foregroundColor: Colors.black,
+          foregroundColor: palette.textPrimary,
+          disabledForegroundColor: palette.textSecondary,
         ),
         child: _isSaving
-            ? const SizedBox(
+            ? SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
+                  color: palette.textPrimary,
                   semanticsLabel: 'Сохраняем профиль',
                 ),
               )

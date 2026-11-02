@@ -225,6 +225,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
       final position = await (widget.actions?.locate?.call() ??
           _locationService.getCurrentPosition(
+            permissionResult: result,
             accuracy: LocationAccuracy.low,
             timeLimit: const Duration(seconds: 10),
           ));
@@ -524,24 +525,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
           child: Column(
             children: [
               for (final city in _cities) ...[
-                AppGlassPanel(
-                  tint: city.name == _selectedCity
-                      ? palette.accentFaint
-                      : palette.surface.withValues(alpha: .75),
+                AppSurface(
+                  fill: city.name == _selectedCity
+                      ? Color.alphaBlend(palette.accentFaint, palette.surface)
+                      : palette.surface,
                   radius: AppRadii.lg,
-                  child: RadioListTile<String>(
-                    key: ValueKey('onboarding-city-${city.id}'),
-                    value: city.name,
-                    enabled: !_saving && !_loadingCities,
-                    activeColor: palette.accent,
-                    title: Text(city.name, style: AppTypography.titleMedium),
-                    subtitle: _deliveryLabel(city) == null
-                        ? null
-                        : Text(_deliveryLabel(city)!,
-                            style: AppTypography.body),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.md,
+                  clip: true,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: RadioListTile<String>(
+                      key: ValueKey('onboarding-city-${city.id}'),
+                      value: city.name,
+                      enabled: !_saving && !_loadingCities,
+                      activeColor: palette.accent,
+                      title: Text(city.name, style: AppTypography.titleMedium),
+                      subtitle: _deliveryLabel(city) == null
+                          ? null
+                          : Text(_deliveryLabel(city)!,
+                              style: AppTypography.body),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.md,
+                      ),
                     ),
                   ),
                 ),
@@ -557,9 +562,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _message(_saveError!, error: true),
           const SizedBox(height: AppSpacing.xl),
         ],
-        AppGlassPanel(
+        AppSurface(
           radius: AppRadii.pill,
-          tint: palette.accentSoft,
+          fill: Color.alphaBlend(palette.accentSoft, palette.surface),
+          clip: true,
           child: TextButton(
             key: const ValueKey('onboarding-continue'),
             onPressed: _saving || _loadingCities || !_validSelection
@@ -568,7 +574,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
             style: TextButton.styleFrom(
               minimumSize: const Size(44, 48),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              foregroundColor: Colors.black,
+              foregroundColor: palette.textPrimary,
+              disabledForegroundColor: palette.textSecondary,
             ),
             child: Text(_saving ? 'Сохраняем…' : 'Продолжить',
                 style: AppTypography.titleMedium),
@@ -656,16 +663,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _message(_saveError!, error: true),
         ],
         const SizedBox(height: AppSpacing.huge),
-        AppGlassPanel(
+        AppSurface(
           radius: AppRadii.pill,
-          tint: context.palette.accentSoft,
+          fill: Color.alphaBlend(
+              context.palette.accentSoft, context.palette.surface),
+          clip: true,
           child: TextButton(
             key: const ValueKey('onboarding-complete'),
             onPressed: _saving || _loadingConsent ? null : _complete,
             style: TextButton.styleFrom(
               minimumSize: const Size(44, 48),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              foregroundColor: Colors.black,
+              foregroundColor: context.palette.textPrimary,
+              disabledForegroundColor: context.palette.textSecondary,
             ),
             child: Text(_saving ? 'Сохраняем…' : 'Начать пользоваться',
                 style: AppTypography.titleMedium),

@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:naliv_delivery/utils/app_navigator.dart';
@@ -14,29 +11,38 @@ import '../pages/help_chat_page.dart';
 import '../pages/login_page.dart';
 import 'auth_service.dart';
 import 'chat_api_service.dart';
-import 'onesignal_web_bridge_stub.dart'
-    if (dart.library.js_interop) 'onesignal_web_bridge_web.dart';
+import 'onesignal_push_provider.dart';
+import 'push_provider.dart';
 
 class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
-  static NotificationService get instance => _instance;
-  NotificationService._internal()
-      : _navigatorKey = AppNavigator.key,
-        _resolveIdentity = AuthService.refreshIdentity,
-        _chatServiceFactory = ChatApiService.new,
-        _authenticate = null;
+  static NotificationService? _instance;
+  static NotificationService get instance =>
+      _instance ??= NotificationService();
 
-  @visibleForTesting
-  NotificationService.forTesting({
-    required GlobalKey<NavigatorState> navigatorKey,
-    required Future<String?> Function() resolveIdentity,
-    required ChatApiService Function() chatServiceFactory,
+  // Root composition can replace the provider without changing auth consumers.
+  static VoidCallback installProvider(PushProvider provider) {
+    final previous = _instance;
+    final installed = NotificationService(provider: provider);
+    _instance = installed;
+    return () {
+      if (identical(_instance, installed)) _instance = previous;
+      installed.dispose();
+    };
+  }
+
+  NotificationService({
+    PushProvider? provider,
+    GlobalKey<NavigatorState>? navigatorKey,
+    Future<String?> Function()? resolveIdentity,
+    ChatApiService Function()? chatServiceFactory,
     Future<bool> Function(NavigatorState)? authenticate,
-  })  : _navigatorKey = navigatorKey,
-        _resolveIdentity = resolveIdentity,
-        _chatServiceFactory = chatServiceFactory,
+  })  : _provider = provider ?? OneSignalPushProvider(),
+        _navigatorKey = navigatorKey ?? AppNavigator.key,
+        _resolveIdentity = resolveIdentity ?? AuthService.refreshIdentity,
+        _chatServiceFactory = chatServiceFactory ?? ChatApiService.new,
         _authenticate = authenticate;
 
+  final PushProvider _provider;
   final GlobalKey<NavigatorState> _navigatorKey;
   final Future<String?> Function() _resolveIdentity;
   final ChatApiService Function() _chatServiceFactory;
@@ -51,7 +57,8 @@ class NotificationService {
   bool _navigationReady = false;
   bool _handlingClick = false;
 
-  Stream<SupportNotificationTarget> get supportUpdates => _supportUpdates.stream;
+  Stream<SupportNotificationTarget> get supportUpdates =>
+      _supportUpdates.stream;
 
   VoidCallback registerSupportPage(
       bool Function(String identity, String sessionId) isVisible) {
@@ -59,288 +66,261 @@ class NotificationService {
     return () => _supportPages.remove(isVisible);
   }
 
-  static const String _oneSignalAndroidAppId =
-      '3da3fda3-1598-4617-970f-62621f3263ee';
-  static const String _oneSignalIOSAppId =
-      'f9a3bf44-4a96-4859-99a9-37aa2b579577';
   static const String _deviceIdKey = 'onesignal_device_id';
-
   bool _isInitialized = false;
-  bool _webPushSupported = false;
-  String? _webSubscriptionId;
-  String? _webPushToken;
-  String? _webOneSignalId;
-  String? _mobileOneSignalId;
-  OnPushSubscriptionChangeObserver? _pushSubscriptionObserver;
-  OnNotificationPermissionChangeObserver? _permissionObserver;
-  OnUserChangeObserver? _userObserver;
+  bool _disposed = false;
+  bool _observingSession = false;
+  Future<void>? _initialization;
+  Future<void>? _effects;
+  Future<bool>? _pendingSync;
+  int _pendingSyncRevision = -1;
+  int _observedRevision = -1;
+  AuthSession? _providerSession;
+  bool _providerIdentityKnown = false;
 
-  bool get _isWeb => kIsWeb;
-  bool get _isAndroid =>
-      !_isWeb && defaultTargetPlatform == TargetPlatform.android;
-  bool get _isIOS => !_isWeb && defaultTargetPlatform == TargetPlatform.iOS;
-  bool get _isMobilePushSupported => _isAndroid || _isIOS;
-  String get _mobileOneSignalAppId =>
-      _isIOS ? _oneSignalIOSAppId : _oneSignalAndroidAppId;
-
-  bool get isWebVapidKeyConfigured => _isWeb;
-
-  String? get oneSignalId => _isWeb
-      ? _webSubscriptionId
-      : _isMobilePushSupported
-          ? OneSignal.User.pushSubscription.id
-          : null;
-
-  String? get pushToken => _isWeb
-      ? _webPushToken
-      : _isMobilePushSupported
-          ? OneSignal.User.pushSubscription.token
-          : null;
-
+  bool get isWebVapidKeyConfigured => _provider.isWeb;
+  String? get oneSignalId => _provider.current.subscriptionId;
+  String? get pushToken => _provider.current.pushToken;
   String? get subscriptionId => oneSignalId;
 
-  Future<void> initialize() async {
-    if (_isInitialized) return;
+  Future<void> initialize() => _ensureInitialized();
 
-    if (_isWeb) {
-      try {
-        _webPushSupported = await OneSignalWebBridge.initialize();
-        await OneSignalWebBridge.setChangeHandler(() {
-          unawaited(syncSubscriptionWithBackend());
-        });
-        await OneSignalWebBridge.setNotificationHandler((data, clicked) {
+  Future<void> _ensureInitialized({bool synchronize = true}) {
+    if (_disposed) return Future.error(StateError('Push service is disposed'));
+    if (_isInitialized) return Future.value();
+    final pending = _initialization;
+    if (pending != null) return pending;
+    if (!_observingSession) {
+      _observedRevision = AuthService.credentialRevision;
+      AuthService.sessionRevision.addListener(_onSessionChanged);
+      _observingSession = true;
+    }
+    late final Future<void> operation;
+    operation = Future<void>.sync(() => _initialize(synchronize: synchronize))
+        .whenComplete(() {
+      if (identical(_initialization, operation)) _initialization = null;
+    });
+    _initialization = operation;
+    return operation;
+  }
+
+  Future<void> _initialize({required bool synchronize}) async {
+    await _provider.initialize(
+      onChange: () {
+        if (!_disposed) unawaited(syncSubscriptionWithBackend());
+      },
+      onNotification: (data, clicked) {
+        if (!_disposed) {
           unawaited(handleNotificationData(data, clicked: clicked));
-        });
-        await _refreshWebSubscription();
-        debugPrint(
-          'OneSignal web initialized: supported=$_webPushSupported, subscription=$subscriptionId',
-        );
-      } catch (e) {
-        debugPrint('OneSignal web initialization error: $e');
-      }
+        }
+      },
+    );
+    if (_disposed) return;
+    _isInitialized = true;
+    if (synchronize) {
+      scheduleMicrotask(() {
+        if (!_disposed) unawaited(syncSubscriptionWithBackend());
+      });
+    }
+  }
 
-      _isInitialized = true;
-      unawaited(syncSubscriptionWithBackend(ensureInitialized: false));
-      return;
+  Future<T> _serialize<T>(Future<T> Function() operation) {
+    Future<T> run() async {
+      if (_disposed) throw StateError('Push service is disposed');
+      return operation();
     }
 
-    if (!_isMobilePushSupported) {
-      debugPrint('OneSignal mobile push is not supported on this platform');
-      _isInitialized = true;
-      return;
+    final previous = _effects;
+    final result =
+        previous == null ? Future<T>.sync(run) : previous.then((_) => run());
+    late final Future<void> tail;
+    void release() {
+      if (identical(_effects, tail)) _effects = null;
     }
 
-    try {
-      if (kDebugMode) {
-        OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+    tail = result.then<void>((_) => release(),
+        onError: (Object _, StackTrace __) => release());
+    _effects = tail;
+    return result;
+  }
+
+  void _onSessionChanged() {
+    final revision = AuthService.credentialRevision;
+    if (_disposed || revision == _observedRevision) return;
+    _observedRevision = revision;
+    if (!AuthService.isEndingSession) {
+      final previous = _providerSession;
+      if (previous != null) {
+        unawaited(_queueCleanup(previous.token));
       }
-
-      await OneSignal.initialize(_mobileOneSignalAppId);
-      await OneSignal.User.setLanguage('ru');
-      _setupEventHandlers();
-
-      _isInitialized = true;
-      debugPrint('OneSignal initialized: appId=$_mobileOneSignalAppId');
-      unawaited(syncSubscriptionWithBackend(ensureInitialized: false));
-    } catch (e) {
-      debugPrint('OneSignal initialization error: $e');
+      unawaited(syncTokenWithServerIfNeeded());
     }
   }
 
   Future<bool> enablePushNotifications() async {
-    if (_isWeb) {
-      await initialize();
-
-      try {
-        final granted = await OneSignalWebBridge.requestPermission();
-        _webPushSupported = granted || _webPushSupported;
-        await _refreshWebSubscription();
-        unawaited(syncSubscriptionWithBackend());
-        debugPrint(
-          'OneSignal web permission: $granted, subscription: $subscriptionId',
-        );
-        return granted;
-      } catch (e) {
-        debugPrint('OneSignal web permission request error: $e');
-        return false;
-      }
-    }
-
-    if (!_isMobilePushSupported) {
-      debugPrint('OneSignal mobile push is not supported on this platform');
-      return false;
-    }
-
-    await initialize();
-
     try {
-      final granted = await OneSignal.Notifications.requestPermission(false);
-      if (granted) {
-        await OneSignal.User.pushSubscription.optIn();
-      }
+      await initialize();
+      final granted = await _serialize(_provider.requestPermission);
       unawaited(syncSubscriptionWithBackend());
-      debugPrint(
-        'OneSignal permission: $granted, subscription: $subscriptionId',
-      );
       return granted;
-    } catch (e) {
-      debugPrint('OneSignal permission request error: $e');
+    } catch (error) {
+      debugPrint('Push permission unavailable: $error');
       return false;
     }
   }
 
-  Future<bool> syncTokenWithServerIfNeeded() async {
-    if (!_isWeb && !_isMobilePushSupported) {
-      debugPrint('OneSignal push is not supported on this platform');
-      return false;
+  Future<bool> syncTokenWithServerIfNeeded() => _requestSync();
+
+  Future<bool> _requestSync() {
+    if (_disposed || !_provider.supported || AuthService.isEndingSession) {
+      return Future.value(false);
     }
-
-    await initialize();
-
-    final externalId = await _resolveExternalId();
-    if (externalId == null || externalId.isEmpty) {
-      debugPrint('OneSignal external id skipped: user is not authenticated');
-      return false;
+    final revision = AuthService.credentialRevision;
+    if (_pendingSync != null && _pendingSyncRevision == revision) {
+      return _pendingSync!;
     }
-
-    try {
-      if (_isWeb) {
-        final synced = await OneSignalWebBridge.login(externalId);
-        await _refreshWebSubscription();
-        final backendSynced = await syncSubscriptionWithBackend(
-          externalIdOverride: externalId,
-        );
-        debugPrint(
-          'OneSignal web external id ${synced ? 'set' : 'skipped'}: $externalId',
-        );
-        return synced && backendSynced;
+    var captureFailed = false;
+    final captured = AuthService.captureSession().catchError((Object error) {
+      captureFailed = true;
+      debugPrint('Push credential capture unavailable: $error');
+      return null;
+    });
+    _pendingSyncRevision = revision;
+    final operation = _serialize(() async {
+      try {
+        final session = await captured;
+        bool current() =>
+            !_disposed &&
+            !captureFailed &&
+            !AuthService.isEndingSession &&
+            AuthService.credentialRevision == revision &&
+            (session == null || session.isCurrent);
+        if (!current()) return false;
+        await _ensureInitialized(synchronize: false);
+        if (!current()) return false;
+        final identity =
+            session == null ? null : await AuthService.refreshIdentity();
+        if (!current()) return false;
+        if (session != null && identity == null) return false;
+        if (session == null &&
+            (!_providerIdentityKnown || _providerSession != null)) {
+          await _provider.logout();
+          _providerSession = null;
+          _providerIdentityKnown = true;
+          if (!current()) return false;
+        }
+        if (session != null &&
+            (!_providerIdentityKnown ||
+                _providerSession?.revision != session.revision ||
+                _providerSession?.token != session.token)) {
+          _providerIdentityKnown = false;
+          _providerSession = session;
+          await _provider.login(identity!);
+          _providerIdentityKnown = true;
+          if (!current()) {
+            await _provider.logout();
+            _providerSession = null;
+            _providerIdentityKnown = true;
+            return false;
+          }
+        }
+        final snapshot = await _provider.readSubscription();
+        if (!current()) return false;
+        final id = snapshot.subscriptionId;
+        if (id == null || id.isEmpty) return false;
+        final deviceId = await _getStableDeviceId();
+        if (!current()) return false;
+        final result = await ApiService.upsertOneSignalSubscription({
+          'subscriptionId': id,
+          'onesignalId': snapshot.oneSignalId,
+          'externalId': identity,
+          'deviceId': deviceId,
+          'deviceType': _provider.deviceType,
+          'permissionGranted': snapshot.permissionGranted,
+          'optedIn': snapshot.optedIn,
+        }, authToken: session?.token);
+        return current() && result;
+      } catch (error) {
+        debugPrint('Push synchronization unavailable: $error');
+        return false;
       }
-
-      await OneSignal.login(externalId);
-      final backendSynced = await syncSubscriptionWithBackend(
-        externalIdOverride: externalId,
-      );
-      debugPrint('OneSignal external id set: $externalId');
-      return backendSynced;
-    } catch (e) {
-      debugPrint('OneSignal external id error: $e');
+    }).catchError((Object error) {
+      debugPrint('Push synchronization unavailable: $error');
       return false;
-    }
+    });
+    _pendingSync = operation;
+    unawaited(operation.then<void>((_) {
+      if (identical(_pendingSync, operation)) _pendingSync = null;
+    }, onError: (Object _, StackTrace __) {
+      if (identical(_pendingSync, operation)) _pendingSync = null;
+    }));
+    return operation;
   }
 
   Future<void> subscribeToTopic(String topic) async {
     await initialize();
-
-    if (_isWeb) {
-      if (!await OneSignalWebBridge.addTag(_topicTag(topic), 'true')) {
-        throw StateError('Could not subscribe to notification topic');
-      }
-      return;
-    }
-
-    if (!_isMobilePushSupported) return;
-    await OneSignal.User.addTagWithKey(_topicTag(topic), 'true');
+    await _serialize(() => _provider.addTag(_topicTag(topic), 'true'));
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
     await initialize();
-
-    if (_isWeb) {
-      if (!await OneSignalWebBridge.removeTag(_topicTag(topic))) {
-        throw StateError('Could not unsubscribe from notification topic');
-      }
-      return;
-    }
-
-    if (!_isMobilePushSupported) return;
-    await OneSignal.User.removeTag(_topicTag(topic));
+    await _serialize(() => _provider.removeTag(_topicTag(topic)));
   }
 
   Future<void> clearAllNotifications() async {
-    if (!_isMobilePushSupported) return;
     await initialize();
-    await OneSignal.Notifications.clearAll();
+    await _serialize(_provider.clearNotifications);
   }
 
-  Future<int> getBadgeCount() async {
-    return 0;
-  }
+  Future<int> getBadgeCount() async => 0;
 
   Future<void> setBadgeCount(int count) async {
     await initialize();
-
-    if (_isWeb) {
-      await OneSignalWebBridge.addTag('badge_count', count.toString());
-      return;
-    }
-
-    if (!_isMobilePushSupported) return;
-    await OneSignal.User.addTagWithKey('badge_count', count.toString());
+    await _serialize(() => _provider.addTag('badge_count', count.toString()));
   }
 
-  Future<void> logoutUser() async {
+  Future<void> logoutUser({required String? authToken}) {
     _pendingSupport = null;
     _pendingDestination = null;
     _handledSupportClicks.clear();
-    await initialize();
-
-    if (_isWeb) {
-      await _refreshWebSubscription();
-    }
-    final currentSubscriptionId = subscriptionId;
-    if (currentSubscriptionId != null && currentSubscriptionId.isNotEmpty) {
-      await ApiService.deleteOneSignalSubscription(currentSubscriptionId);
-    }
-
-    if (_isWeb) {
-      await OneSignalWebBridge.logout();
-      _webSubscriptionId = null;
-      _webPushToken = null;
-      _webOneSignalId = null;
-      return;
-    }
-
-    if (!_isMobilePushSupported) return;
-    await OneSignal.logout();
-    _mobileOneSignalId = null;
+    return _queueCleanup(authToken);
   }
+
+  Future<void> _queueCleanup(String? authToken) => _serialize(() async {
+        try {
+          await _ensureInitialized(synchronize: false);
+          final snapshot = await _provider.readSubscription();
+          final id = snapshot.subscriptionId;
+          if (authToken != null && id != null && id.isNotEmpty) {
+            await ApiService.deleteOneSignalSubscription(id,
+                authToken: authToken);
+          }
+          await _provider.logout();
+          _providerSession = null;
+          _providerIdentityKnown = true;
+        } catch (error) {
+          debugPrint('Push cleanup unavailable: $error');
+        }
+      }).catchError((Object error) {
+        debugPrint('Push cleanup unavailable: $error');
+      });
 
   Future<String?> getCurrentSubscriptionId() async {
     await initialize();
-    if (_isWeb) {
-      await _refreshWebSubscription();
-    }
-    return subscriptionId;
+    return (await _provider.readSubscription()).subscriptionId;
   }
 
-  void _setupEventHandlers() {
-    OneSignal.Notifications.addClickListener((event) {
-      unawaited(handleNotificationData(
-        event.notification.additionalData ?? <String, dynamic>{},
-      ));
-    });
-    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      unawaited(handleNotificationData(
-        event.notification.additionalData ?? <String, dynamic>{},
-        clicked: false,
-      ));
-    });
-
-    _pushSubscriptionObserver ??= (_) {
-      unawaited(syncSubscriptionWithBackend());
-    };
-    OneSignal.User.pushSubscription.addObserver(_pushSubscriptionObserver!);
-
-    _permissionObserver ??= (_) {
-      unawaited(syncSubscriptionWithBackend());
-    };
-    OneSignal.Notifications.addPermissionObserver(_permissionObserver!);
-
-    _userObserver ??= (state) {
-      _mobileOneSignalId = state.current.onesignalId;
-      unawaited(syncSubscriptionWithBackend());
-    };
-    OneSignal.User.addObserver(_userObserver!);
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    if (_observingSession) {
+      AuthService.sessionRevision.removeListener(_onSessionChanged);
+    }
+    _provider.dispose();
+    _supportPages.clear();
+    _pendingSupport = null;
+    _pendingDestination = null;
+    unawaited(_supportUpdates.close());
   }
 
   // Only route metadata is used. Message contents and credentials always come
@@ -349,13 +329,17 @@ class NotificationService {
     Map<String, dynamic> data, {
     bool clicked = true,
   }) async {
+    if (_disposed) return;
     final target = SupportNotificationTarget.tryParse(data);
     if (target != null) {
       if (!clicked) {
+        final revision = AuthService.credentialRevision;
         final identity = await _resolveIdentity();
         if (identity != null &&
             target.acceptsIdentity(identity) &&
-            await ChatApiService.ownsSession(target.sessionId, identity)) {
+            await ChatApiService.ownsSession(target.sessionId, identity) &&
+            !_disposed &&
+            revision == AuthService.credentialRevision) {
           _supportUpdates.add(target);
         }
         return;
@@ -377,6 +361,7 @@ class NotificationService {
   Future<void> resumePendingNavigation({
     Future<void> Function(AppDestination)? openDestination,
   }) async {
+    if (_disposed) return;
     if (openDestination != null) _openDestination = openDestination;
     _navigationReady = true;
     final navigator = _navigatorKey.currentState;
@@ -403,11 +388,11 @@ class NotificationService {
                   completionMode: LoginCompletionMode.returnAuthenticated,
                 ),
               ))
-            : await _authenticate!(navigator);
-        if (authenticated != true || !navigator.mounted) return;
+            : await _authenticate(navigator);
+        if (_disposed || authenticated != true || !navigator.mounted) return;
         identity = await _resolveIdentity();
       }
-      if (identity == null || !navigator.mounted) return;
+      if (_disposed || identity == null || !navigator.mounted) return;
       final revision = AuthService.sessionRevision.value;
       if (!target.acceptsIdentity(identity) ||
           !await ChatApiService.ownsSession(target.sessionId, identity)) {
@@ -419,11 +404,13 @@ class NotificationService {
         }
         return;
       }
-      if (revision != AuthService.sessionRevision.value) return;
+      if (_disposed || revision != AuthService.sessionRevision.value) return;
       final clickKey = '$identity:${target.sessionId}:${target.messageId}';
       if (!_handledSupportClicks.add(clickKey)) return;
       _supportUpdates.add(target);
-      if (_supportPages.any((page) => page(identity!, target.sessionId))) return;
+      if (_supportPages.any((page) => page(identity!, target.sessionId))) {
+        return;
+      }
       unawaited(navigator.push<void>(MaterialPageRoute(
         settings: RouteSettings(name: '/support/${target.sessionId}'),
         builder: (_) => HelpChatPage(
@@ -441,56 +428,7 @@ class NotificationService {
     }
   }
 
-  Future<String?> _resolveExternalId() async {
-    return AuthService.refreshIdentity();
-  }
-
-  Future<void> _refreshWebSubscription() async {
-    if (!_isWeb) return;
-    _webSubscriptionId = await OneSignalWebBridge.getSubscriptionId();
-    _webPushToken = await OneSignalWebBridge.getPushToken();
-    _webOneSignalId = await OneSignalWebBridge.getOneSignalId();
-  }
-
-  Future<bool> syncSubscriptionWithBackend({
-    String? externalIdOverride,
-    bool ensureInitialized = true,
-  }) async {
-    if (!_isWeb && !_isMobilePushSupported) {
-      return false;
-    }
-
-    if (ensureInitialized) {
-      await initialize();
-    }
-
-    if (_isWeb) {
-      await _refreshWebSubscription();
-    }
-
-    final currentSubscriptionId = subscriptionId;
-    if (currentSubscriptionId == null || currentSubscriptionId.isEmpty) {
-      debugPrint('OneSignal backend sync skipped: subscription id is empty');
-      return false;
-    }
-
-    final externalId = externalIdOverride ?? await _resolveExternalId();
-    final payload = <String, dynamic>{
-      'subscriptionId': currentSubscriptionId,
-      'onesignalId': _isWeb ? _webOneSignalId : _mobileOneSignalId,
-      'externalId': externalId,
-      'deviceId': await _getStableDeviceId(),
-      'deviceType': _deviceType,
-      'permissionGranted': await _permissionGranted(),
-      'optedIn': await _optedIn(),
-    };
-
-    final synced = await ApiService.upsertOneSignalSubscription(payload);
-    debugPrint(
-      'OneSignal backend sync ${synced ? 'completed' : 'failed'}: subscription=$currentSubscriptionId',
-    );
-    return synced;
-  }
+  Future<bool> syncSubscriptionWithBackend() => _requestSync();
 
   Future<String> _getStableDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -500,7 +438,9 @@ class NotificationService {
     }
 
     final generated = _generateUuidV4();
-    await prefs.setString(_deviceIdKey, generated);
+    if (!await prefs.setString(_deviceIdKey, generated)) {
+      throw StateError('Could not save push device identifier');
+    }
     return generated;
   }
 
@@ -526,40 +466,14 @@ class NotificationService {
     }
   }
 
-  String get _deviceType {
-    if (_isWeb) return 'web';
-    if (_isIOS) return 'ios';
-    if (_isAndroid) return 'android';
-    return defaultTargetPlatform.name;
-  }
-
-  Future<bool> _permissionGranted() async {
-    if (_isWeb) {
-      return OneSignalWebBridge.getPermissionGranted();
-    }
-    if (_isMobilePushSupported) {
-      return OneSignal.Notifications.permission;
-    }
-    return false;
-  }
-
   Future<PushPermissionState> getPermissionState() async {
     await initialize();
+    final snapshot = await _provider.readSubscription();
     return PushPermissionState(
-      supported: _isMobilePushSupported || (_isWeb && _webPushSupported),
-      permissionGranted: await _permissionGranted(),
-      optedIn: await _optedIn(),
+      supported: _provider.supported,
+      permissionGranted: snapshot.permissionGranted,
+      optedIn: snapshot.optedIn,
     );
-  }
-
-  Future<bool> _optedIn() async {
-    if (_isWeb) {
-      return OneSignalWebBridge.getOptedIn();
-    }
-    if (_isMobilePushSupported) {
-      return OneSignal.User.pushSubscription.optedIn ?? false;
-    }
-    return false;
   }
 
   String _topicTag(String topic) => 'notification_$topic';
@@ -601,7 +515,9 @@ class SupportNotificationTarget {
     if (data['type'] != 'support_message' && data['type'] != 'chat_message') {
       return null;
     }
-    if (data.keys.any((key) => key.toLowerCase().contains('token'))) return null;
+    if (data.keys.any((key) => key.toLowerCase().contains('token'))) {
+      return null;
+    }
     final session = identifier(data['session_id'] ?? data['sessionId']);
     final rawMessage = identifier(data['message_id'] ?? data['messageId']);
     final message = rawMessage == null ? null : int.tryParse(rawMessage);

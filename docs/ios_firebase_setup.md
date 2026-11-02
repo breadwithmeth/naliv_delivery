@@ -1,154 +1,32 @@
-# iOS Push Notifications Setup для Firebase
+# iOS push notifications: OneSignal and APNs
 
-## 🍎 Настройка iOS для Firebase Push Notifications
+The current client uses OneSignal. Do not add `Firebase.configure()`, FlutterFire Messaging or a second token-registration implementation based on this document's former Firebase examples.
 
-### 1. Подготовка в Apple Developer Account
+## Registered source identities
 
-#### Создание App ID с Push Notifications:
-1. Войдите в [Apple Developer Console](https://developer.apple.com/account/)
-2. Перейдите в "Certificates, Identifiers & Profiles"
-3. В разделе "Identifiers" найдите ваш App ID
-4. Убедитесь, что включена опция "Push Notifications"
-5. Если не включена - отредактируйте и включите
+| Item | Existing value |
+|---|---|
+| Team | `W922PUY77B` |
+| Runner bundle ID | `com.example.nalivDelivery` |
+| Notification extension | `com.example.nalivDelivery.OneSignalNotificationServiceExtension` |
+| Shared App Group | `group.com.example.nalivDelivery.onesignal` |
+| Associated domain | `app.gradusy24.kz` |
 
-#### Создание APNs ключа (рекомендуется):
-1. В разделе "Keys" создайте новый ключ
-2. Дайте ему имя (например, "Naliv Push Notifications")
-3. Выберите "Apple Push Notifications service (APNs)"
-4. Скачайте файл ключа (.p8)
-5. Запомните Key ID и Team ID
+These values agree across the Xcode project, app/extension entitlements, OneSignal overrides and checked-in AASA. Despite the historical `com.example` name, do not rename a registered app during configuration cleanup.
 
-### 2. Настройка в Firebase Console
+## Apple-account and build prerequisites
 
-#### Добавление iOS приложения:
-1. Откройте [Firebase Console](https://console.firebase.google.com/)
-2. Выберите ваш проект
-3. Нажмите "Add app" → iOS
-4. Введите Bundle ID: `naliv_delivery` (или ваш Bundle ID)
-5. Скачайте `GoogleService-Info.plist`
+1. Confirm Push Notifications and the shared App Group for the existing app/extension IDs in the Apple Developer account. Provision both targets with their existing team.
+2. Configure the corresponding APNs provider/key in the existing OneSignal application. Private `.p8` material belongs in the provider dashboard, not the repository or app bundle.
+3. Build with **Xcode 26+** for the availability-gated native glass source. Runner and the notification extension currently deploy to iOS **15.2**; older supported systems use the Flutter shader path.
+4. Before moving to the Xcode 27/iOS 27 SDK, complete and exercise Flutter's manual UIScene migration, preserving both generated plugin and `NativeLiquidGlassPlugin` registration. This custom AppDelegate is not eligible for the stock automatic migration. This is a next-SDK gate, not a reproduced Xcode 26 startup failure.
+5. Run `flutter pub get` before the Apple build so `Flutter/Generated.xcconfig` supplies the shared app/extension marketing and build versions from `pubspec.yaml`. The extension uses that version input without importing Runner's Pods configuration.
+6. Inspect the exported archive: extension frameworks belong in **Frameworks**, the `.appex` belongs in Runner's **PlugIns**, app/extension versions must agree, and signed entitlements/profiles must contain the intended App Group and APNs environment.
 
-#### Загрузка APNs ключа:
-1. В Firebase Console перейдите в Project Settings
-2. Вкладка "Cloud Messaging"
-3. В разделе "iOS app configuration"
-4. Загрузите ваш APNs ключ (.p8 файл)
-5. Введите Key ID и Team ID
+Do not change source `aps-environment=development` to `production` blindly. Automatic signing/provisioning determines the exported environment; inspect the signed archive and profile. The dormant `GoogleService-Info.plist` is not evidence of active Firebase initialization or a credential leak.
 
-### 3. Файлы проекта (уже настроены)
+## Acceptance
 
-#### ✅ Обновленные файлы:
-- `ios/Runner/AppDelegate.swift` - добавлена поддержка Firebase Messaging
-- `ios/Runner/Info.plist` - настроены background modes
-- `ios/Runner/Runner.entitlements` - настроен aps-environment
-- `ios/Podfile` - указана минимальная версия iOS 12.0
+Use an authorized signed device and the existing publisher to check permission, subscription/account binding, foreground/background delivery, cold-start taps and unlock behavior. Also exercise glass appearance, resizing/theme changes, taps and disposal. No Apple compilation, signing, APNs delivery or native-glass runtime acceptance is established by a Windows test run or fixture screenshot.
 
-#### ✅ Должен присутствовать:
-- `ios/Runner/GoogleService-Info.plist` ✅ (уже есть)
-
-### 4. Проверка настройки
-
-#### Запуск приложения:
-```bash
-cd /Users/shrvse/naliv_delivery
-flutter run
-```
-
-#### Проверка в логах:
-Должны появиться сообщения:
-- `🔔 Инициализация сервиса уведомлений...`
-- `📱 FCM Token: [длинный токен]`
-- `Firebase registration token: [токен]`
-
-### 5. Тестирование уведомлений
-
-#### Через Firebase Console:
-1. Перейдите в "Cloud Messaging"
-2. Нажмите "Send your first message"
-3. Введите заголовок и текст
-4. Выберите iOS приложение
-5. Отправьте тестовое сообщение
-
-#### Через код (для разработки):
-```dart
-import 'package:naliv_delivery/services/notification_service.dart';
-
-// Получить токен
-final token = NotificationService.instance.fcmToken;
-print('FCM Token для тестирования: $token');
-```
-
-### 6. Режимы работы
-
-#### Development (Разработка):
-- `aps-environment: development` в entitlements
-- Работает только на реальных устройствах
-- Использует development APNs сервер
-
-#### Production (Продакшн):
-- `aps-environment: production` в entitlements
-- Работает на всех устройствах
-- Использует production APNs сервер
-
-### 7. Troubleshooting
-
-#### Уведомления не приходят:
-1. ✅ Проверьте Bundle ID в Firebase и Xcode
-2. ✅ Убедитесь, что APNs ключ загружен в Firebase
-3. ✅ Проверьте, что приложение запущено на реальном устройстве
-4. ✅ Убедитесь, что разрешения на уведомления предоставлены
-
-#### FCM токен не генерируется:
-1. ✅ Проверьте наличие GoogleService-Info.plist
-2. ✅ Убедитесь, что Firebase.configure() вызывается
-3. ✅ Проверьте подключение к интернету
-
-#### Ошибки сборки:
-```bash
-# Очистить и пересобрать
-cd ios
-rm -rf Pods Podfile.lock
-pod install
-cd ..
-flutter clean
-flutter pub get
-flutter run
-```
-
-### 8. Финальный чек-лист
-
-- [ ] App ID с Push Notifications создан в Apple Developer
-- [ ] APNs ключ создан и скачан (.p8 файл)
-- [ ] iOS приложение добавлено в Firebase Console
-- [ ] APNs ключ загружен в Firebase Console
-- [ ] GoogleService-Info.plist добавлен в проект
-- [ ] AppDelegate.swift обновлен
-- [ ] aps-environment настроен в entitlements
-- [ ] Pod dependencies установлены
-- [ ] Приложение тестируется на реальном устройстве
-- [ ] FCM токен генерируется
-- [ ] Тестовое уведомление отправлено и получено
-
-### 9. Bundle ID для проекта
-
-**Текущий Bundle ID:** проверьте в `ios/Runner.xcodeproj`
-
-```bash
-# Проверить Bundle ID
-grep -r "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/
-```
-
-### 10. Дополнительные возможности
-
-#### Расширенные уведомления:
-- Rich notifications (изображения, видео)
-- Actionable notifications (кнопки)
-- Custom sounds
-
-#### Аналитика:
-- Отслеживание доставки уведомлений
-- Метрики открытий
-- A/B тестирование уведомлений
-
----
-
-**Важно:** iOS уведомления работают только на реальных устройствах, не на симуляторе!
+References: [Flutter UIScene migration](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate), [Apple APNs entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/aps-environment).

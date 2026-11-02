@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
 import 'promotion_engine.dart';
+import 'bottle_allocation.dart';
 import '../core/quantity.dart';
 
 class SmartCartSelection {
@@ -67,8 +68,8 @@ class SmartCartSelection {
     return null;
   }
 
-  bool isWithdrawnBottleRelation(int relationId) => bottleVariants.any(
-      (bottle) =>
+  bool isWithdrawnBottleRelation(int relationId) =>
+      bottleVariants.any((bottle) =>
           bottle.relationId == relationId &&
           volumeForBottle(bottle) == withdrawnBottleVolume);
 
@@ -83,9 +84,7 @@ class SmartCartSelection {
 
   static bool isExplicitWithdrawnBottleVariant(Map<String, dynamic> variant) {
     final nested = variant['variant'];
-    final data = nested is Map
-        ? Map<String, dynamic>.from(nested)
-        : variant;
+    final data = nested is Map ? Map<String, dynamic>.from(nested) : variant;
     if (!looksBottleLikeVariant(data)) return false;
     final amount = variantParentItemAmount(variant) ??
         _extractVolumeFromText(
@@ -217,13 +216,22 @@ class SmartCartSelection {
   }
 
   Map<int, int> giftBottleBreakdown(double paidLiters,
-      {Map<int, int>? retainedCounts, Map<int, int>? availableCounts}) {
+      {Map<int, int>? retainedCounts,
+      Map<int, int>? availableCounts,
+      DateTime? now}) {
     final promotions = [
       for (final promotion
           in item.promotions ?? const <item_model.ItemPromotion>[])
-        if (promotion.isActive) promotion.toJson(),
+        promotion.toJson(),
     ];
-    final gift = subtractPromotionFreeQuantity(paidLiters, promotions);
+    final gift =
+        subtractPromotionFreeQuantity(paidLiters, promotions, now: now);
+    return _giftBottleBreakdownForQuantity(gift,
+        retainedCounts: retainedCounts, availableCounts: availableCounts);
+  }
+
+  Map<int, int> _giftBottleBreakdownForQuantity(double gift,
+      {Map<int, int>? retainedCounts, Map<int, int>? availableCounts}) {
     if (retainedCounts != null) {
       final volume = litersForCounts(retainedCounts);
       if (retainedCounts.entries.any((entry) =>
@@ -298,71 +306,23 @@ class SmartCartSelection {
       if (find(0, target)) return result;
       throw StateError('Нельзя точно распределить выбранный объём по таре');
     }
-    final best = List<int>.filled(target + 1, target + 1);
-    final previous = List<int>.filled(target + 1, -1);
-    best[0] = 0;
-    // Preserve the existing fewest-bottles policy, not a new cheapest-tariff rule.
-    for (var amount = 1; amount <= target; amount++) {
-      for (var index = 0; index < volumes.length; index++) {
-        final volume = volumes[index];
-        if (amount >= volume && best[amount - volume] + 1 < best[amount]) {
-          best[amount] = best[amount - volume] + 1;
-          previous[amount] = index;
-        }
-      }
-    }
-    if (previous[target] < 0) {
+    final counts = minimumBottleCounts(target, volumes);
+    if (counts == null) {
       throw StateError('Нельзя точно распределить выбранный объём по таре');
     }
     final result = <int, int>{};
-    for (var cursor = target; cursor > 0;) {
-      final index = previous[cursor];
-      final bottle = filteredBottles[index];
-      result[bottle.relationId] = (result[bottle.relationId] ?? 0) + 1;
-      cursor -= volumes[index];
+    for (var index = 0; index < counts.length; index++) {
+      if (counts[index] > 0) {
+        result[filteredBottles[index].relationId] = counts[index];
+      }
     }
     return result;
   }
 
-  static List<CartItem> withGiftContainers(Iterable<CartItem> paidItems) {
-    final result = <CartItem>[];
-    for (final group in CartDisplayGroup.groupItems(paidItems)) {
-      final selection = group.selection;
-      final issue = group._paidAllocationIssue;
-      if (issue != null) {
-        throw StateError(issue);
-      }
-      final rows = [
-        for (final item in group.items)
-          if (item.quantity > 0) item,
+  static List<CartItem> withGiftContainers(Iterable<CartItem> paidItems) => [
+        for (final group in CartDisplayGroup.groupItems(paidItems))
+          ...group.evaluate().physicalItems,
       ];
-      if (selection != null && selection.usesPourFlow && rows.isNotEmpty) {
-        final gifts = selection.giftBottleBreakdown(group.totalQuantity,
-            retainedCounts: group.retainedGiftBottleCounts);
-        for (final entry in gifts.entries) {
-          final bottle = selection.bottleVariants.firstWhereOrNull(
-              (candidate) => candidate.relationId == entry.key);
-          if (bottle == null || entry.value == 0) continue;
-          final volume = selection.volumeForBottle(bottle) * entry.value;
-          final index = rows.indexWhere((row) => row.selectedVariants.any(
-              (variant) => variantRelationId(variant) == bottle.relationId));
-          if (index >= 0) {
-            rows[index] = rows[index].copyWith(bottledGiftQuantity: volume);
-          } else {
-            rows.add(rows.first.copyWith(
-              quantity: 0,
-              bottledGiftQuantity: volume,
-              stepQuantity: selection.volumeForBottle(bottle),
-              selectedVariants: selection.buildVariantMaps(
-                  bottle: bottle, baseVariants: group.baseVariants),
-            ));
-          }
-        }
-      }
-      result.addAll(rows);
-    }
-    return result;
-  }
 
   String volumeLabel(double value) =>
       '${value.toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '')} л';
@@ -576,6 +536,7 @@ class CartDisplayGroup {
     required this.items,
     required this.itemSnapshot,
     required this.baseVariants,
+    required this.selection,
   });
 
   final String key;
@@ -583,8 +544,10 @@ class CartDisplayGroup {
   final item_model.Item? itemSnapshot;
   final List<Map<String, dynamic>> baseVariants;
 
-  SmartCartSelection? get selection =>
-      itemSnapshot == null ? null : SmartCartSelection(itemSnapshot!);
+  final SmartCartSelection? selection;
+
+  CartGroupEvaluation evaluate({DateTime? now}) =>
+      CartGroupEvaluation._(this, now ?? DateTime.now());
 
   int get itemId => items.first.itemId;
   String get name => items.first.name;
@@ -598,13 +561,12 @@ class CartDisplayGroup {
 
   double get totalQuantity =>
       items.fold<double>(0, (sum, item) => sum + item.quantity);
-  double get optionsTotal => CartItem.calculatePrice(items).optionsTotal;
+  double get optionsTotal => evaluate().price.optionsTotal;
   double get subtotalBeforePromotions =>
-      CartItem.calculatePrice(items).subtotalBeforePromotions;
-  double get totalPrice => CartItem.calculatePrice(items).totalPrice;
-  double get freeQuantity =>
-      subtractPromotionFreeQuantity(totalQuantity, promotions);
-  double get totalOrderQuantity => totalQuantity + freeQuantity;
+      evaluate().price.subtotalBeforePromotions;
+  double get totalPrice => evaluate().price.totalPrice;
+  double get freeQuantity => evaluate().freeQuantity;
+  double get totalOrderQuantity => evaluate().totalOrderQuantity;
   bool get hasWithdrawnBottles {
     final currentSelection = selection;
     if (retainedGiftBottleCounts?.entries.any((entry) =>
@@ -618,36 +580,7 @@ class CartDisplayGroup {
         SmartCartSelection.isExplicitWithdrawnBottleVariant(variant)));
   }
 
-  bool get canIncrease {
-    final currentSelection = selection;
-    if (hasWithdrawnBottles || allocationIssue != null) return false;
-    if (currentSelection?.containerIssue != null ||
-        currentSelection?.quantityIssue != null) {
-      return false;
-    }
-    var step = currentSelection?.defaultStepQuantity ?? items.first.stepQuantity;
-    if (currentSelection?.usesPourFlow == true) {
-      final counts = paidBottleCounts;
-      var batches = 0;
-      for (final count in counts.values) {
-        if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
-      }
-      if (batches == 0) return false;
-      step = totalQuantity / batches;
-    }
-    final nextPaid = totalQuantity + step;
-    final physical =
-        nextPaid + subtractPromotionFreeQuantity(nextPaid, promotions);
-    if (maxAmount != null && physical > maxAmount! + 0.0000001) return false;
-    if (currentSelection?.usesPourFlow == true) {
-      try {
-        currentSelection!.giftBottleBreakdown(nextPaid);
-      } on StateError {
-        return false;
-      }
-    }
-    return step.isFinite && step > 0;
-  }
+  bool get canIncrease => evaluate().canIncrease;
 
   Map<int, int>? get retainedGiftBottleCounts {
     for (final item in items) {
@@ -656,60 +589,13 @@ class CartDisplayGroup {
     return null;
   }
 
-  List<CartItem> get physicalItems =>
-      SmartCartSelection.withGiftContainers(items);
-  String? get _paidAllocationIssue {
-    if (itemSnapshot == null &&
-        freeQuantity > 0 &&
-        items.any((item) => item.selectedVariants
-            .any(SmartCartSelection.looksBottleLikeVariant))) {
-      return 'Магазин не передал данные тары для подарочного объёма.';
-    }
-    if (selection?.usesPourFlow == true &&
-        totalQuantity > 0 &&
-        paidBottleCounts.isEmpty) {
-      return 'Объём напитка должен совпадать с целыми бутылками.';
-    }
-    return null;
-  }
+  List<CartItem> get physicalItems => evaluate().physicalItems;
 
-  String? get allocationIssue {
-    final issue = _paidAllocationIssue;
-    if (issue != null) return issue;
-    try {
-      if (selection?.usesPourFlow == true) {
-        selection!.giftBottleBreakdown(totalQuantity,
-            retainedCounts: retainedGiftBottleCounts);
-      }
-      return null;
-    } on StateError catch (error) {
-      return error.message.toString();
-    }
-  }
+  String? get allocationIssue => evaluate().allocationIssue;
 
-  List<Map<String, dynamic>> toJsonForOrder() {
-    final issue = _paidAllocationIssue;
-    if (issue != null) throw StateError(issue);
-    if (selection?.usesPourFlow == true) {
-      return [
-        for (final item in physicalItems) item.toJsonForOrder(freeQuantity: 0),
-      ];
-    }
-    var paid = 0.0;
-    var allocatedFree = 0.0;
-    final result = <Map<String, dynamic>>[];
-    for (final item in items) {
-      if (item.quantity <= 0) continue;
-      paid += item.quantity;
-      final free = subtractPromotionFreeQuantity(paid, promotions);
-      result.add(item.toJsonForOrder(freeQuantity: free - allocatedFree));
-      allocatedFree = free;
-    }
-    return result;
-  }
+  List<Map<String, dynamic>> toJsonForOrder() => evaluate().toJsonForOrder();
 
-  Map<int, int> get bottleCounts =>
-      _bottleCounts(physicalItems, physical: true);
+  Map<int, int> get bottleCounts => evaluate().bottleCounts;
   Map<int, int> get paidBottleCounts => _bottleCounts(items, physical: false);
 
   Map<int, int> _bottleCounts(Iterable<CartItem> rows,
@@ -754,53 +640,23 @@ class CartDisplayGroup {
     return counts;
   }
 
-  String? get bottleBreakdownLabel {
-    final currentSelection = selection;
-    if (currentSelection == null || !currentSelection.usesPourFlow) {
-      return null;
-    }
-
-    final parts = <String>[];
-    final sortedItems = physicalItems.toList()
-      ..sort((left, right) {
-        final leftVolume = _bottleVolumeForCartItem(left, currentSelection);
-        final rightVolume = _bottleVolumeForCartItem(right, currentSelection);
-        return rightVolume.compareTo(leftVolume);
-      });
-
-    for (final item in sortedItems) {
-      final volume = _bottleVolumeForCartItem(item, currentSelection);
-      if (volume <= 0) {
-        continue;
-      }
-      final ratio = item.physicalQuantity / volume;
-      if ((ratio - ratio.round()).abs() > 0.0000001) return 'Некорректная тара';
-      final count = ratio.round();
-      if (count <= 0) {
-        continue;
-      }
-      parts.add('$count× ${currentSelection.volumeLabel(volume)}');
-    }
-
-    if (parts.isEmpty) {
-      return null;
-    }
-
-    return parts.join(' • ');
-  }
+  String? get bottleBreakdownLabel => evaluate().bottleBreakdownLabel;
 
   static List<CartDisplayGroup> groupItems(Iterable<CartItem> items) {
     final grouped = <String, List<CartItem>>{};
+    final selections = <String, SmartCartSelection>{};
     for (final item in items) {
-      final key = displayKeyForCartItem(item);
+      final snapshot = SmartCartSelection.itemSnapshotFromCartItem(item);
+      final selection = snapshot == null ? null : SmartCartSelection(snapshot);
+      final key = _displayKeyForSelection(item, selection);
       grouped.putIfAbsent(key, () => <CartItem>[]).add(item);
+      if (selection != null) selections.putIfAbsent(key, () => selection);
     }
 
     final result = grouped.entries.map((entry) {
       final groupItems = entry.value.toList(growable: false);
-      final snapshot = _resolveItemSnapshot(groupItems);
-      final currentSelection =
-          snapshot == null ? null : SmartCartSelection(snapshot);
+      final currentSelection = selections[entry.key];
+      final snapshot = currentSelection?.item;
       final baseVariants = currentSelection == null
           ? SmartCartSelection.normalizeVariantMaps(groupItems
               .first.selectedVariants
@@ -812,9 +668,10 @@ class CartDisplayGroup {
 
       return CartDisplayGroup._(
         key: entry.key,
-        items: groupItems,
+        items: List<CartItem>.unmodifiable(groupItems),
         itemSnapshot: snapshot,
         baseVariants: baseVariants,
+        selection: currentSelection,
       );
     }).toList(growable: false);
 
@@ -824,6 +681,11 @@ class CartDisplayGroup {
   static String displayKeyForCartItem(CartItem item) {
     final snapshot = SmartCartSelection.itemSnapshotFromCartItem(item);
     final selection = snapshot == null ? null : SmartCartSelection(snapshot);
+    return _displayKeyForSelection(item, selection);
+  }
+
+  static String _displayKeyForSelection(
+      CartItem item, SmartCartSelection? selection) {
     final baseVariants = selection == null
         ? item.selectedVariants
             .where((variant) =>
@@ -835,16 +697,6 @@ class CartDisplayGroup {
         .toList(growable: false)
       ..sort();
     return '${item.itemId}|${keys.join(';')}';
-  }
-
-  static item_model.Item? _resolveItemSnapshot(List<CartItem> items) {
-    for (final item in items) {
-      final snapshot = SmartCartSelection.itemSnapshotFromCartItem(item);
-      if (snapshot != null) {
-        return snapshot;
-      }
-    }
-    return null;
   }
 
   static double _bottleVolumeForCartItem(
@@ -859,4 +711,250 @@ class CartDisplayGroup {
     }
     return 0;
   }
+}
+
+class CartGroupEvaluation {
+  CartGroupEvaluation._(this.group, this.now)
+      : paidItems = List<CartItem>.unmodifiable(
+            group.items.map((item) => item.copyWith()));
+
+  final CartDisplayGroup group;
+  final DateTime now;
+  final List<CartItem> paidItems;
+  late final double totalQuantity =
+      paidItems.fold<double>(0, (sum, item) => sum + item.quantity);
+  late final PromotionEvaluation promotion = evaluatePromotion(
+      paidQuantity: totalQuantity, promotions: group.promotions, now: now);
+  double get freeQuantity => promotion.freeQuantity;
+  double get totalOrderQuantity => totalQuantity + freeQuantity;
+  late final Map<int, int> paidBottleCounts = Map<int, int>.unmodifiable(
+      group._bottleCounts(paidItems, physical: false));
+  late final (List<CartItem>, String?) _projection = _project();
+  String? get allocationIssue => _projection.$2;
+
+  late final double incrementStep = _incrementStep();
+  double _incrementStep() {
+    if (group.selection?.usesPourFlow != true) {
+      return group.selection?.defaultStepQuantity ??
+          paidItems.first.stepQuantity;
+    }
+    var batches = 0;
+    for (final count in paidBottleCounts.values) {
+      if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
+    }
+    return batches == 0 ? 0 : totalQuantity / batches;
+  }
+
+  late final double nextOrderQuantity = totalQuantity +
+      incrementStep +
+      subtractPromotionFreeQuantity(
+          totalQuantity + incrementStep, group.promotions,
+          now: now);
+
+  late final bool canIncrease = _canIncrease();
+  bool _canIncrease() {
+    final selection = group.selection;
+    if (group.hasWithdrawnBottles ||
+        allocationIssue != null ||
+        selection?.containerIssue != null ||
+        selection?.quantityIssue != null ||
+        !incrementStep.isFinite ||
+        incrementStep <= 0 ||
+        (group.maxAmount != null &&
+            nextOrderQuantity > group.maxAmount! + 0.0000001)) {
+      return false;
+    }
+    if (selection?.usesPourFlow == true) {
+      try {
+        selection!.giftBottleBreakdown(totalQuantity + incrementStep, now: now);
+      } on StateError {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  List<CartItem> get physicalItems {
+    final issue = allocationIssue;
+    if (issue != null) throw StateError(issue);
+    return _projection.$1;
+  }
+
+  (List<CartItem>, String?) _project() {
+    final selection = group.selection;
+    if (group.itemSnapshot == null &&
+        freeQuantity > 0 &&
+        paidItems.any((item) => item.selectedVariants
+            .any(SmartCartSelection.looksBottleLikeVariant))) {
+      return (
+        const [],
+        'Магазин не передал данные тары для подарочного объёма.'
+      );
+    }
+    if (selection?.usesPourFlow == true &&
+        totalQuantity > 0 &&
+        paidBottleCounts.isEmpty) {
+      return (const [], 'Объём напитка должен совпадать с целыми бутылками.');
+    }
+    final rows = [
+      for (final item in paidItems)
+        if (item.quantity > 0) item,
+    ];
+    if (selection?.usesPourFlow == true && rows.isNotEmpty) {
+      try {
+        final gifts = selection!._giftBottleBreakdownForQuantity(freeQuantity,
+            retainedCounts: group.retainedGiftBottleCounts);
+        for (final entry in gifts.entries) {
+          if (entry.value == 0) continue;
+          final bottle = selection.bottleVariants.firstWhereOrNull(
+              (candidate) => candidate.relationId == entry.key);
+          if (bottle == null) continue;
+          final volume = selection.volumeForBottle(bottle) * entry.value;
+          final index = rows.indexWhere((row) => row.selectedVariants.any(
+              (variant) =>
+                  SmartCartSelection.variantRelationId(variant) == entry.key));
+          if (index >= 0) {
+            rows[index] = rows[index].copyWith(bottledGiftQuantity: volume);
+          } else {
+            rows.add(rows.first.copyWith(
+              quantity: 0,
+              bottledGiftQuantity: volume,
+              stepQuantity: selection.volumeForBottle(bottle),
+              selectedVariants: selection.buildVariantMaps(
+                  bottle: bottle, baseVariants: group.baseVariants),
+            ));
+          }
+        }
+      } on StateError catch (error) {
+        return (const [], error.message.toString());
+      }
+    }
+    return (List<CartItem>.unmodifiable(rows), null);
+  }
+
+  late final CartPriceBreakdown price = _calculatePrice();
+
+  CartPriceBreakdown _calculatePrice() {
+    var productSubtotal = 0.0;
+    var options = 0.0;
+    var paid = 0.0;
+    for (final item in physicalItems) {
+      final rate = item.paidUnitPrice;
+      productSubtotal += rate * item.quantity;
+      paid += applyPromotionsToPaidBaseTotal(
+          unitPrice: rate,
+          quantity: item.quantity,
+          promotions: group.promotions,
+          now: now);
+      options += item.optionsTotalForSelection(group.selection);
+    }
+    final unitPrice = totalQuantity > 0 ? productSubtotal / totalQuantity : 0.0;
+    return (
+      productSubtotal: productSubtotal,
+      optionsTotal: options,
+      discount: productSubtotal - paid,
+      freeQuantity: freeQuantity,
+      subtotalBeforePromotions:
+          productSubtotal + unitPrice * freeQuantity + options,
+      totalPrice: paid + options,
+    );
+  }
+
+  late final Map<int, int> bottleCounts = Map<int, int>.unmodifiable(
+      group._bottleCounts(physicalItems, physical: true));
+  late final Map<int, int> giftBottleCounts = Map<int, int>.unmodifiable({
+    for (final entry in bottleCounts.entries)
+      if (entry.value > (paidBottleCounts[entry.key] ?? 0))
+        entry.key: entry.value - (paidBottleCounts[entry.key] ?? 0),
+  });
+
+  late final String? bottleBreakdownLabel = _bottleBreakdownLabel();
+
+  String? _bottleBreakdownLabel() {
+    final selection = group.selection;
+    if (selection == null || !selection.usesPourFlow) return null;
+    final rows = physicalItems.toList()
+      ..sort((left, right) =>
+          CartDisplayGroup._bottleVolumeForCartItem(right, selection).compareTo(
+              CartDisplayGroup._bottleVolumeForCartItem(left, selection)));
+    final parts = <String>[];
+    for (final row in rows) {
+      final volume = CartDisplayGroup._bottleVolumeForCartItem(row, selection);
+      if (volume <= 0) continue;
+      final ratio = row.physicalQuantity / volume;
+      if ((ratio - ratio.round()).abs() > 0.0000001) return 'Некорректная тара';
+      if (ratio.round() > 0) {
+        parts.add('${ratio.round()}× ${selection.volumeLabel(volume)}');
+      }
+    }
+    return parts.isEmpty ? null : parts.join(' • ');
+  }
+
+  List<Map<String, dynamic>> toJsonForOrder() {
+    final issue = allocationIssue;
+    if (issue != null) throw StateError(issue);
+    if (group.selection?.usesPourFlow == true) {
+      return [
+        for (final item in physicalItems) item.toJsonForOrder(freeQuantity: 0),
+      ];
+    }
+    var paid = 0.0;
+    var allocatedFree = 0.0;
+    final result = <Map<String, dynamic>>[];
+    for (final item in paidItems) {
+      if (item.quantity <= 0) continue;
+      paid += item.quantity;
+      final free =
+          subtractPromotionFreeQuantity(paid, group.promotions, now: now);
+      result.add(item.toJsonForOrder(freeQuantity: free - allocatedFree));
+      allocatedFree = free;
+    }
+    return result;
+  }
+}
+
+class CartEvaluation {
+  CartEvaluation(Iterable<CartDisplayGroup> source, {DateTime? now})
+      : now = now ?? DateTime.now() {
+    groups = List<CartGroupEvaluation>.unmodifiable(
+        source.map((group) => group.evaluate(now: this.now)));
+    activeGroups = List<CartGroupEvaluation>.unmodifiable(
+        groups.where((group) => group.totalQuantity > 0.0000001));
+  }
+
+  final DateTime now;
+  late final List<CartGroupEvaluation> groups;
+  late final List<CartGroupEvaluation> activeGroups;
+  late final CartPriceBreakdown price = _calculatePrice();
+  double get totalPrice => price.totalPrice;
+
+  CartPriceBreakdown _calculatePrice() {
+    var productSubtotal = 0.0;
+    var optionsTotal = 0.0;
+    var discount = 0.0;
+    var freeQuantity = 0.0;
+    var subtotalBeforePromotions = 0.0;
+    var total = 0.0;
+    for (final group in groups) {
+      final current = group.price;
+      productSubtotal += current.productSubtotal;
+      optionsTotal += current.optionsTotal;
+      discount += current.discount;
+      freeQuantity += current.freeQuantity;
+      subtotalBeforePromotions += current.subtotalBeforePromotions;
+      total += current.totalPrice;
+    }
+    return (
+      productSubtotal: productSubtotal,
+      optionsTotal: optionsTotal,
+      discount: discount,
+      freeQuantity: freeQuantity,
+      subtotalBeforePromotions: subtotalBeforePromotions,
+      totalPrice: total,
+    );
+  }
+
+  List<Map<String, dynamic>> toJsonForOrder() => [
+        for (final group in activeGroups) ...group.toJsonForOrder(),
+      ];
 }

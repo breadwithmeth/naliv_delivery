@@ -40,15 +40,21 @@ void processUserPayload(Map<String, dynamic> json) {
     'profile':
         {'name': String name, 'email': String email} &&
         final Map<String, dynamic> profile,
-    'tags': [
-      String primaryTag,
-      ...,
-    ], // Matches at least 1 element, ignores rest
+    'tags': [String primaryTag, ...] && final List<Object?> tags,
   }) {
     // Read optional/omitted fields directly from the validated submap.
     // Map patterns check for key existence (containsKey), so an omitted key
     // fails matching even if typed as String?.
-    final avatarUrl = profile['avatarUrl'] as String?;
+    final avatarUrl = switch (profile['avatarUrl']) {
+      final String? value => value,
+      _ => throw FormatException('avatarUrl must be String or null'),
+    };
+    // A rest pattern does not validate the remaining elements.
+    for (final tag in tags) {
+      if (tag is! String) {
+        throw FormatException('Every tag must be a String');
+      }
+    }
     print(
       'User $name ($id, $email, avatar: $avatarUrl) - Primary tag: $primaryTag',
     );

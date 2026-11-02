@@ -2,16 +2,37 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Design: capture and compare both themes",
+      "label": "Design: harness doctor",
       "type": "shell",
-      "command": "dart run tool/verify_surface.dart all --theme both",
+      "command": "dart run tool/design_harness.dart doctor",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
-      "label": "Verify: integration and important regressions",
+      "label": "Design: cached Figma frames",
       "type": "shell",
-      "command": "flutter test --concurrency=1",
+      "command": "dart run tool/design_harness.dart refs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Design: capture and compare both themes",
+      "type": "shell",
+      "command": "dart run tool/design_harness.dart capture all --theme both",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Design: adaptive catalogue and checkout captures",
+      "type": "shell",
+      "command": "dart run tool/design_harness.dart capture catalog,all_products,checkout_delivery,checkout_pickup --theme both --capture-only --width 320 --text-scale 2",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Verify: full tests, coverage, and analysis",
+      "type": "shell",
+      "command": "dart run tool/design_harness.dart check --full",
       "options": { "cwd": "${workspaceFolder}" },
       "group": "test",
       "problemMatcher": []
@@ -19,16 +40,30 @@
     {
       "label": "Verify: analyze app, tests, and tools",
       "type": "shell",
-      "command": "dart analyze lib test integration_test tool",
+      "command": "dart run tool/design_harness.dart check",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
       "label": "Verify: native shopping end-to-end",
       "type": "shell",
-      "command": "flutter test integration_test/shopping_e2e_test.dart -d windows",
+      "command": "dart run tool/design_harness.dart check --native",
       "options": { "cwd": "${workspaceFolder}" },
       "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Design: build release fixture",
+      "type": "shell",
+      "command": "dart run tool/design_harness.dart build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Design: serve release fixture",
+      "type": "shell",
+      "command": "dart run tool/design_harness.dart serve",
+      "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     }
   ]

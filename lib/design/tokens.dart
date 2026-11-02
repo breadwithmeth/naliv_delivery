@@ -82,7 +82,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.success,
     required this.error,
     required this.divider,
-    required this.glassTint,
     required this.shadow,
   });
 
@@ -125,9 +124,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// 1px separators.
   final Color divider;
 
-  /// Tint layered over blurred content in glass panels (`#EDEDED @ 17%` on dark).
-  final Color glassTint;
-
   /// Shadow colour for [AppShadows].
   final Color shadow;
 
@@ -148,7 +144,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
     success: Color(0xFF7EF34B),
     error: Color(0xFFFF3636),
     divider: Color(0xFF1E1E1E),
-    glassTint: Color(0x2BEDEDED),
     shadow: Color(0x29000000),
   );
 
@@ -169,7 +164,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
     success: Color(0xFF64DC30),
     error: Color(0xFFFF3636),
     divider: Color(0xFFEDEDED),
-    glassTint: Color(0x29FFFFFF),
     shadow: Color(0x29000000),
   );
 
@@ -191,7 +185,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? success,
     Color? error,
     Color? divider,
-    Color? glassTint,
     Color? shadow,
   }) {
     return AppPalette(
@@ -211,7 +204,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
       success: success ?? this.success,
       error: error ?? this.error,
       divider: divider ?? this.divider,
-      glassTint: glassTint ?? this.glassTint,
       shadow: shadow ?? this.shadow,
     );
   }
@@ -237,7 +229,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
       success: mix(success, other.success),
       error: mix(error, other.error),
       divider: mix(divider, other.divider),
-      glassTint: mix(glassTint, other.glassTint),
       shadow: mix(shadow, other.shadow),
     );
   }
@@ -246,12 +237,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
 /// Elevation. The design's shadows are almost all one recipe — `radius 8, offset (0, 4)`
 /// (1417 of 1706 drop shadows); the rest are one-off illustration effects and stay inline.
 abstract final class AppShadows {
-  /// The design's single shadow recipe: `#000000 @ 16 %`, blur 8, offset (0, 4). It is what
-  /// separates a floating control from the page — in the light theme the 40 px discs are
-  /// `#FFFFFF @ 75 %` on a white background and are legible only because of this shadow.
-  ///
-  /// The frames give it to the discs and to the round cart button; the pill-shaped CTAs carry
-  /// none, so it is applied per widget rather than globally.
   static List<BoxShadow> control(AppPalette palette) => [
         BoxShadow(
           color: palette.shadow,
