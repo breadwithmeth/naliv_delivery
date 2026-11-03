@@ -162,75 +162,171 @@ void main() {
   testWidgets('pour summary and first bottle remain exposed before buying',
       (tester) async {
     final cart = await _newCart(tester);
-    await _mount(
-        tester,
-        cart,
-        Builder(builder: (context) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-                padding: const EdgeInsets.only(top: 48, bottom: 34)),
-            child: ProductDetailPage(item: capturedPourSurfaceItem()),
-          );
-        }));
+    await _mount(tester, cart, Builder(builder: (context) {
+      return MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(padding: const EdgeInsets.only(top: 48, bottom: 34)),
+        child: ProductDetailPage(item: capturedPourSurfaceItem()),
+      );
+    }));
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpAndSettle();
     final buy = find.byKey(const ValueKey('configuration-save'));
-    final summary = find.byKey(
-        const ValueKey('configuration-price-breakdown'));
-    final firstBottle = find.byKey(
-        const ValueKey('configuration-bottle-2710-plus'));
+    final summary = find.byKey(const ValueKey('configuration-volume'));
+    final firstBottle =
+        find.byKey(const ValueKey('configuration-bottle-2710-plus'));
+    expect(_text(tester, 'configuration-volume'), '1 л · 1 бутылка');
     expect(tester.getBottomRight(summary).dy,
         lessThanOrEqualTo(tester.getTopLeft(buy).dy));
     expect(tester.getBottomRight(firstBottle).dy,
         lessThanOrEqualTo(tester.getTopLeft(buy).dy));
+    // One list of bottles: no composition paragraphs.
+    expect(find.byKey(const ValueKey('configuration-price-breakdown')),
+        findsNothing);
+    expect(find.textContaining('Оплачено'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('3+1 preview cart reopen and stepping retain paid litres only',
+  testWidgets('3+1 selects 4 l and the fourth litre is an optional bonus',
       (tester) async {
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     await _tap(tester, 'configuration-bottle-93101-plus');
     await _tap(tester, 'configuration-bottle-93101-plus');
+    expect(_text(tester, 'configuration-volume'), '3 л · 3 бутылки');
+    expect(_text(tester, 'configuration-total'), formatTenge(3300));
+    expect(find.byKey(const ValueKey('configuration-gift')), findsNothing);
     expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('configuration-total')))
-            .data,
-        formatTenge(3400));
+        find.descendant(
+            of: find.byKey(const ValueKey('configuration-bonus')),
+            matching: find.text('+1 л в подарок')),
+        findsOneWidget);
+    await _tap(tester, 'configuration-bonus');
+    expect(_text(tester, 'configuration-volume'), '4 л · 4 бутылки');
+    expect(_text(tester, 'configuration-bottle-93101'), '4');
+    expect(_text(tester, 'configuration-total'), formatTenge(3400));
     expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('configuration-volume')))
-            .data,
-        '4 л');
+        find.descendant(
+            of: find.byKey(const ValueKey('configuration-gift')),
+            matching: find.text('1 л в подарок')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
+    expect(_text(tester, 'configuration-hint'), 'До подарка: 4 л');
     await _tap(tester, 'configuration-save');
     expect(cart.getTotalPrice(), 3400);
     expect(cart.toJsonForOrder().single['amount'], 4);
     await _mount(tester, cart, const CartPage());
     await _tap(tester, 'cart-edit-${cart.activeDisplayGroups.single.key}');
-    expect(
-        tester
-            .widget<Text>(
-                find.byKey(const ValueKey('configuration-bottle-93101')))
-            .data,
-        '3');
-    expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('configuration-total')))
-            .data,
-        formatTenge(3400));
+    expect(_text(tester, 'configuration-bottle-93101'), '4');
+    expect(_text(tester, 'configuration-total'), formatTenge(3400));
     await _tap(tester, 'configuration-save');
     await tester.tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
     await tester.pumpAndSettle();
     final group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 4);
+    expect(group.totalQuantity, 5);
     expect(group.freeQuantity, 1);
     expect(group.bottleCounts, {93101: 5});
     expect(group.totalPrice, 4500);
     expect(cart.toJsonForOrder().single['amount'], 5);
   });
 
-  testWidgets('impossible whole gift allocation visibly refuses saving',
+  testWidgets('3+1 bonus can be declined: three litres stay a paid order',
+      (tester) async {
+    final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
+    final cart = await _newCart(tester);
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-bottle-93101-plus');
+    await _tap(tester, 'configuration-bottle-93101-plus');
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsOneWidget);
+    await _tap(tester, 'configuration-save');
+    final group = cart.activeDisplayGroups.single;
+    expect(group.bottleCounts, {93101: 3});
+    expect(group.freeQuantity, 0);
+    expect(group.totalPrice, 3300);
+    expect(cart.toJsonForOrder().single['amount'], 3);
+  });
+
+  testWidgets('mixed one and one-and-a-half litre bottles share the 3+1 gift',
+      (tester) async {
+    final item = syntheticThreePlusOneSurfaceItem();
+    final cart = await _newCart(tester);
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    // The first one-litre bottle is preset; two 1.5 l bottles make it 4 l.
+    await _tap(tester, 'configuration-bottle-93103-plus');
+    expect(_text(tester, 'configuration-volume'), '2.5 л · 2 бутылки');
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
+    expect(_text(tester, 'configuration-hint'), 'До подарка: 1.5 л');
+    await _tap(tester, 'configuration-bottle-93103-plus');
+    expect(_text(tester, 'configuration-volume'), '4 л · 3 бутылки');
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('configuration-gift')),
+            matching: find.text('1 л в подарок')),
+        findsOneWidget);
+    expect(_text(tester, 'configuration-total'), formatTenge(3340));
+    await _tap(tester, 'configuration-save');
+    final group = cart.activeDisplayGroups.single;
+    expect(group.bottleCounts, {93101: 1, 93103: 2});
+    expect(group.freeQuantity, 1);
+    expect(group.totalPrice, 3340);
+    expect(cart.toJsonForOrder().map((row) => row['amount']), [1.0, 3.0]);
+  });
+
+  testWidgets('the bonus goes into the bottle size picked most',
+      (tester) async {
+    final item = Item(
+      itemId: 1,
+      name: 'Разливное пиво',
+      price: 1000,
+      amount: 12,
+      quantity: 1,
+      unit: 'л.',
+      options: [
+        ItemOption(
+            optionId: 1,
+            name: 'Тара',
+            required: 1,
+            selection: 'SINGLE',
+            optionItems: [
+              _option(11, 'Бутылка 1 л ПЭТ', 50, amount: 1),
+              _option(12, 'Бутылка 1 л стекло', 80, amount: 1),
+            ]),
+      ],
+      promotions: [_threePlusOne()],
+    );
+    final cart = await _newCart(tester);
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-bottle-12-plus');
+    await _tap(tester, 'configuration-bottle-12-plus');
+    expect(_text(tester, 'configuration-bottle-11'), '1');
+    expect(_text(tester, 'configuration-bottle-12'), '2');
+    await _tap(tester, 'configuration-bonus');
+    expect(_text(tester, 'configuration-bottle-11'), '1');
+    expect(_text(tester, 'configuration-bottle-12'), '3');
+  });
+
+  testWidgets('without stock for the bonus litre only the short hint remains',
+      (tester) async {
+    final item = _pourItem(amount: 3, promotions: [_threePlusOne()]);
+    final cart = await _newCart(tester);
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    await _tap(tester, 'configuration-bottle-1-plus');
+    await _tap(tester, 'configuration-bottle-1-plus');
+    expect(_text(tester, 'configuration-volume'), '3 л · 3 бутылки');
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
+    expect(_text(tester, 'configuration-hint'), 'До подарка: 1 л');
+    expect(
+        tester
+            .widget<IconButton>(
+                find.byKey(const ValueKey('configuration-bottle-1-plus')))
+            .onPressed,
+        isNull);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.bottleCounts, {1: 3});
+  });
+
+  testWidgets('a gift that is not a whole bottle never blocks saving',
       (tester) async {
     final item = _pourItem(onlyTwoLitres: true, promotions: [
       ItemPromotion(
@@ -243,15 +339,27 @@ void main() {
     ]);
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
+    // 2 l: one litre short of the gift and no one-litre bottle to offer.
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
+    expect(_text(tester, 'configuration-hint'), 'До подарка: 1 л');
+    await _tap(tester, 'configuration-bottle-2-plus');
+    expect(_text(tester, 'configuration-volume'), '4 л · 2 бутылки');
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('configuration-gift')),
+            matching: find.text('1 л в подарок')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('configuration-feedback')), findsNothing);
     expect(
         tester
             .widget<FilledButton>(
                 find.byKey(const ValueKey('configuration-save')))
             .onPressed,
-        isNull);
-    expect(
-        find.byKey(const ValueKey('configuration-feedback')), findsOneWidget);
-    expect(cart.items, isEmpty);
+        isNotNull);
+    expect(_text(tester, 'configuration-total'), formatTenge(3240));
+    await _tap(tester, 'configuration-save');
+    expect(cart.getTotalPrice(), 3240); // 3 × 1000 + 2 × 120.
+    expect(cart.toJsonForOrder().single['amount'], 4);
   });
 
   testWidgets('zero stock never adds a configuration or allocates bottles',
@@ -506,29 +614,32 @@ void main() {
       ],
       promotions: [promotion],
     );
-    final savedRow = CartItem(
-      itemId: item.itemId,
-      name: item.name,
-      price: item.price,
-      quantity: 3,
-      stepQuantity: 3,
-      maxAmount: 0,
-      selectedVariants: [_map(bottle, required: 1)],
-      promotions: [promotion.toJson()],
-      giftBottleCounts: const {93: 1},
-      itemData: item.toJson(),
-    );
+    // Saved by an earlier build: one paid three-litre bottle plus a retained gift bottle.
+    final savedRow = {
+      ...CartItem(
+        itemId: item.itemId,
+        name: item.name,
+        price: item.price,
+        quantity: 3,
+        stepQuantity: 3,
+        maxAmount: 0,
+        selectedVariants: [_map(bottle, required: 1)],
+        promotions: [promotion.toJson()],
+        itemData: item.toJson(),
+      ).toJson(),
+      'giftBottleCounts': {'93': 1},
+    };
     SharedPreferences.setMockInitialValues({
       'cart_items': jsonEncode({
         'business_id': 1,
-        'items': [savedRow.toJson()],
+        'items': [savedRow],
       }),
     });
     final cart = CartProvider();
     addTearDown(cart.dispose);
     await cart.loadCart();
     final group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 3);
+    expect(group.totalQuantity, 6);
     expect(group.freeQuantity, 3);
     expect(group.bottleCounts, {93: 2});
     expect(group.totalPrice, 3300);
@@ -536,7 +647,8 @@ void main() {
     final semantics = tester.ensureSemantics();
     try {
       await _mount(tester, cart, const CartPage());
-      await tester.tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
+      await tester
+          .tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
       await tester.pumpAndSettle();
       expect(cart.items.map((row) => row.toJson()).toList(), before);
       await _tap(tester, 'cart-edit-${group.key}');
@@ -544,6 +656,7 @@ void main() {
       await _tap(tester, 'configuration-back');
       expect(cart.items.map((row) => row.toJson()).toList(), before);
       await _tap(tester, 'cart-edit-${group.key}');
+      await _tap(tester, 'configuration-bottle-93-minus');
       await _tap(tester, 'configuration-bottle-93-minus');
       await _tap(tester, 'configuration-save');
       expect(cart.items, isEmpty);
@@ -557,6 +670,17 @@ void main() {
     }
   });
 }
+
+String _text(WidgetTester tester, String key) =>
+    tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+
+ItemPromotion _threePlusOne() => ItemPromotion(
+    promotionId: 3,
+    name: '3+1',
+    discountType: 'SUBTRACT',
+    discountValue: 0,
+    baseAmount: 3,
+    addAmount: 1);
 
 Future<CartProvider> _newCart(WidgetTester tester) async {
   final cart = CartProvider();

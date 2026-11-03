@@ -6,39 +6,49 @@ import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/product_grid.dart';
 import '../../../utils/cart_provider.dart';
 import '../../product/product_navigation.dart';
 import '../catalog_data_source.dart';
-
 import '../catalog_view_data.dart';
 import 'category_switcher.dart';
 
-/// A complete leaf category with prefetched items and scroll-driven pagination.
+/// The products of a parent category or of one of its children, with scroll-driven pagination.
 ///
-/// Columns adapt to viewport width and inherited text scaling. The floating
-/// cart button carries the running total without a persistent navigation bar.
+/// [group] is the parent whose children are the filter chips. Opened for the parent the page
+/// reads «Вино» with chips «Все · Аперитив · Белое …»; opened for a child it reads «Белое»
+/// with the parent as context and the same chips, the child selected. Switching chips swaps
+/// the grid in place and remembers every list already loaded, so going back never refetches.
+///
+/// Columns adapt to viewport width and inherited text scaling. The floating cart button carries
+/// the running total without a persistent navigation bar.
 class CategoryProductsPage extends StatefulWidget {
   const CategoryProductsPage({
     required this.categoryId,
     required this.title,
     required this.businessId,
+    this.group,
     this.initialItems,
     this.initialHasMore,
     this.onSearch,
-    this.categories = const [],
     this.onCart,
     super.key,
   });
 
+  /// The category shown first: [group] itself, or one of its children.
   final int categoryId;
+
+  /// Used while [categoryId] cannot be found in [group].
   final String title;
   final int businessId;
-  final List<CategoryRef> categories;
 
-  /// Items already fetched by a parent screen, so opening a section does not refetch.
+  /// The parent category; its children are the filter chips. Null shows a plain list.
+  final CategoryRef? group;
+
+  /// Items already fetched by a parent screen for [categoryId], so opening a section does not
+  /// refetch.
   final List<ProductView>? initialItems;
 
   /// Whether a prefetched first page continues. Without this metadata,
@@ -54,24 +64,38 @@ class CategoryProductsPage extends StatefulWidget {
   State<CategoryProductsPage> createState() => _CategoryProductsPageState();
 }
 
+/// The paginated list of one category.
+class _Feed {
+  List<ProductView>? items;
+  bool failed = false;
+  bool loadingMore = false;
+  bool moreFailed = false;
+  bool hasMore = false;
+  int page = 1;
+}
+
 class _CategoryProductsPageState extends State<CategoryProductsPage> {
   final _scroll = ScrollController();
-  List<ProductView>? _items;
-  bool _failed = false;
-  bool _loadingMore = false;
-  bool _moreFailed = false;
-  bool _hasMore = false;
-  int _page = 1;
+  final _feeds = <int, _Feed>{};
+  late int _selectedId;
+
+  _Feed get _feed => _feeds[_selectedId]!;
 
   @override
   void initState() {
     super.initState();
-    _items = widget.initialItems;
-    _hasMore = widget.initialHasMore ?? false;
-    _page = _items == null ? 1 : 2;
+    _selectedId = widget.categoryId;
+    final feed = _feeds[_selectedId] = _Feed();
+    final initial = widget.initialItems;
+    if (initial != null) {
+      feed
+        ..items = initial
+        ..hasMore = widget.initialHasMore ?? false
+        ..page = 2;
+    }
     _scroll.addListener(_onScroll);
-    if (_items == null) {
-      _load();
+    if (initial == null) {
+      _load(_selectedId);
     } else {
       _checkForMore();
     }
@@ -84,111 +108,167 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
   }
 
   void _onScroll() {
-    if (_hasMore &&
-        !_loadingMore &&
-        !_moreFailed &&
+    final feed = _feeds[_selectedId];
+    if (feed != null &&
+        feed.hasMore &&
+        !feed.loadingMore &&
+        !feed.moreFailed &&
         _scroll.position.pixels >= _scroll.position.maxScrollExtent - 240) {
-      _loadMore();
+      _loadMore(_selectedId);
     }
   }
 
   void _checkForMore() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scroll.hasClients || !_hasMore || _moreFailed) return;
+      final feed = _feeds[_selectedId];
+      if (!mounted ||
+          !_scroll.hasClients ||
+          feed == null ||
+          !feed.hasMore ||
+          feed.moreFailed) {
+        return;
+      }
       _onScroll();
     });
   }
 
-  Future<void> _load() async {
+  Future<void> _load(int id) async {
+    final feed = _feeds.putIfAbsent(id, _Feed.new);
     setState(() {
-      _failed = false;
-      _items = null;
-      _hasMore = false;
-      _page = 1;
+      feed
+        ..failed = false
+        ..items = null
+        ..hasMore = false
+        ..page = 1;
     });
     try {
-      final result = await CatalogDataSource(businessId: widget.businessId)
-          .itemsPage(widget.categoryId);
+      final result =
+          await CatalogDataSource(businessId: widget.businessId).itemsPage(id);
       if (!mounted) return;
       setState(() {
-        _items = result.items;
-        _hasMore = result.hasMore;
-        _page = 2;
+        feed
+          ..items = result.items
+          ..hasMore = result.hasMore
+          ..page = 2;
       });
-      _checkForMore();
+      if (id == _selectedId) _checkForMore();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _failed = true);
+      setState(() => feed.failed = true);
     }
   }
 
-  Future<void> _loadMore() async {
-    if (_loadingMore || !_hasMore) return;
+  Future<void> _loadMore(int id) async {
+    final feed = _feeds[id];
+    if (feed == null || feed.loadingMore || !feed.hasMore) return;
     setState(() {
-      _loadingMore = true;
-      _moreFailed = false;
+      feed
+        ..loadingMore = true
+        ..moreFailed = false;
     });
     try {
       final result = await CatalogDataSource(businessId: widget.businessId)
-          .itemsPage(widget.categoryId, page: _page);
+          .itemsPage(id, page: feed.page);
       if (!mounted) return;
       setState(() {
-        _items = [...?_items, ...result.items];
-        _hasMore = result.hasMore;
-        _page++;
-        _loadingMore = false;
+        feed
+          ..items = [...?feed.items, ...result.items]
+          ..hasMore = result.hasMore
+          ..page += 1
+          ..loadingMore = false;
       });
-      _checkForMore();
+      if (id == _selectedId) _checkForMore();
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadingMore = false;
-        _moreFailed = true;
+        feed
+          ..loadingMore = false
+          ..moreFailed = true;
       });
     }
   }
 
-  void _openCategory(CategoryRef category) {
-    if (category.id == widget.categoryId) return;
-    Navigator.of(context).pushReplacement<void, void>(
-      MaterialPageRoute(
-        builder: (_) => CategoryProductsPage(
-          categoryId: category.id,
-          title: category.label,
-          businessId: widget.businessId,
-          categories: widget.categories,
-          onSearch: widget.onSearch,
-          onCart: widget.onCart,
-        ),
+  void _select(CategoryChipItem chip) {
+    if (chip.id == _selectedId) return;
+    setState(() => _selectedId = chip.id);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    final feed = _feeds[chip.id];
+    if (feed == null) {
+      _load(chip.id);
+    } else {
+      _checkForMore();
+    }
+  }
+
+  /// The group's own entry, or one of its children, for the selected id.
+  CategoryRef? get _selectedRef {
+    final group = widget.group;
+    if (group == null) return null;
+    if (group.id == _selectedId) return group;
+    for (final child in group.children) {
+      if (child.id == _selectedId) return child;
+    }
+    return null;
+  }
+
+  String get _title => _selectedRef?.name ?? widget.title;
+
+  /// A child reads under its parent; the parent itself under the supercategory.
+  String? get _subtitle {
+    final group = widget.group;
+    final selected = _selectedRef;
+    if (group == null || selected == null) return null;
+    return selected.id == group.id ? group.parentName : group.name;
+  }
+
+  List<CategoryChipItem> get _chips {
+    final group = widget.group;
+    if (group == null || !group.hasChildren) return const [];
+    return [
+      CategoryChipItem(
+        id: group.id,
+        label: 'Все',
+        semanticLabel: 'Все: ${group.name}',
       ),
-    );
-  }
-
-  String get _selectedLabel {
-    for (final category in widget.categories) {
-      if (category.id == widget.categoryId) return category.label;
-    }
-    return widget.title;
+      for (final child in group.children) CategoryChipItem.fromCategory(child),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
+    final chips = _chips;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: LiquidGlassDock(
+        child: FrostedDock(
           content: Column(
             children: [
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
                 child: AppTopBar(
-                  title: _selectedLabel,
+                  title: _title,
+                  subtitle: _subtitle,
                   onBack: () => Navigator.of(context).maybePop(),
                   onSearch: widget.onSearch,
                 ),
               ),
               const SizedBox(height: AppSpacing.huge),
+              if (chips.isNotEmpty)
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 840),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                      child: CategoryChipRow(
+                        key: const ValueKey('category-chips'),
+                        items: chips,
+                        selectedId: _selectedId,
+                        onSelected: _select,
+                      ),
+                    ),
+                  ),
+                ),
               Expanded(child: _body()),
             ],
           ),
@@ -209,35 +289,37 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
   }
 
   Widget _body() {
-    final items = _items;
+    final id = _selectedId;
+    final feed = _feed;
+    final items = feed.items;
     Widget? footer;
-    if (_failed) {
+    if (feed.failed) {
       footer = AppErrorState(
         message: 'Не удалось загрузить товары',
-        onRetry: _load,
+        onRetry: () => _load(id),
       );
     } else if (items == null) {
       footer = const SizedBox(
         height: 200,
         child: Center(child: CircularProgressIndicator()),
       );
-    } else if (items.isEmpty && !_hasMore) {
+    } else if (items.isEmpty && !feed.hasMore) {
       footer = const AppEmptyState(title: 'В этой категории пока нет товаров');
-    } else if (_hasMore) {
+    } else if (feed.hasMore) {
       footer = Center(
-        child: _loadingMore
+        child: feed.loadingMore
             ? const Padding(
                 padding: EdgeInsets.all(AppSpacing.huge),
                 child: CircularProgressIndicator(),
               )
             : TextButton(
-                onPressed: _loadMore,
+                onPressed: () => _loadMore(id),
                 style: TextButton.styleFrom(
                   minimumSize: const Size(
                       AppSpacing.touchTarget, AppSpacing.touchTarget),
                 ),
                 child: Text(
-                  _moreFailed ? 'Повторить загрузку' : 'Показать ещё',
+                  feed.moreFailed ? 'Повторить загрузку' : 'Показать ещё',
                 ),
               ),
       );
@@ -256,15 +338,6 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
             AppCartButton.clearanceFor(context) +
                 MediaQuery.paddingOf(context).bottom,
           ),
-          header: widget.categories.isEmpty
-              ? null
-              : CategorySwitcher(
-                  categories: widget.categories,
-                  selectedCategoryId: widget.categoryId,
-                  selectedLabel: _selectedLabel,
-                  onCategory: _openCategory,
-                  onOverview: () => Navigator.of(context).maybePop(),
-                ),
           footer: footer,
           itemCount: items?.length ?? 0,
           itemBuilder: (context, index) {

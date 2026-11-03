@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/kitchen_policy.dart';
 import '../core/like_action.dart';
 import '../core/product_view.dart';
 import '../design/theme.dart';
@@ -14,7 +15,7 @@ import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
-import '../ui/liquid_glass_dock.dart';
+import '../ui/frosted_dock.dart';
 import '../ui/product_card.dart';
 import '../ui/product_grid.dart';
 import '../utils/api.dart';
@@ -81,7 +82,10 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     final initial = widget.initialItems;
     if (initial != null) {
       // A supplied list is complete. Keep its models, order and missing fields intact.
-      _items = initial.map(ProductView.fromItem).toList(growable: false);
+      _items = initial
+          .where((item) => KitchenPolicy.allowsItem(item, widget.businessId))
+          .map(ProductView.fromItem)
+          .toList(growable: false);
       _terms = _itemTerms(_items!);
     } else {
       _loadItems();
@@ -130,7 +134,8 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
           final item = item_model.Item.fromJson(
             Map<String, dynamic>.from(raw),
           );
-          if (_isSellablePromotionItem(item)) {
+          if (_isSellablePromotionItem(item) &&
+              KitchenPolicy.allowsItem(item, businessId)) {
             items.add(ProductView.fromItem(item));
           }
         }
@@ -234,7 +239,7 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: LiquidGlassDock(
+        child: FrostedDock(
           content: Column(
             children: [
               Padding(

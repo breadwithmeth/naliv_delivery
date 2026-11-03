@@ -134,43 +134,22 @@ The server accepts only GET/HEAD, binds loopback, and serves only the fixture-ma
 
 ## Floating material
 
-`LiquidGlassDock` surrounds the entire cart badge/icon/amount and keeps controls sharp
-above its underlay. The page itself is drawn from its GPU snapshot by Flutter's own image
-painter, so it cannot depend on a per-device orientation measurement; the shader runs
-only over the glass and its 14 px shadow ring and samples that snapshot: a
-per-pixel-rotated 21-tap frost, rim-concentrated Snell refraction, mild
-dispersion, Fresnel with a crisp top streak, and dithering. A theme base tint plus
-adaptive shadow-lift/highlight-crush keep text readable without flattening the scene.
-There is no per-frame CPU readback. A single **4 × 2** paired probe at
-`LiquidGlassDock.warmUp` compares the shader with Flutter's normal image painter in
-the same image; a vertically reversed offscreen read-back cannot reverse the decision, and
-a wrong measurement can at worst mirror the glass's refraction. The measured value is
-logged once (`adb logcat -s flutter`).
-`flutter test integration_test/liquid_glass_orientation_test.dart -d <android>`
-compares the page and glass against an unsampled reference on the device's real renderer.
-Release 1.2.116 also initializes every application uniform in that paired probe and
-keeps pixels outside the glass/shadow transparent, preventing undefined CanvasKit probe
-output or an exterior sampled page from overwriting the upright painter. Actual host
-pixel regressions and the Windows renderer suite cover these boundaries. The
-375/768/1280 px release-fixture review includes both themes; strict production-bundle
-reads and cart recovery are recorded separately in
-[current verification evidence](docs/redesign/STATUS.md#app-wide-correctness-ownership-and-performance--2026-11-02).
-Neither the physical Huawei nor the S25 Ultra was retested.
+`FrostedDock` (`lib/ui/frosted_dock.dart`) is a standard translucent bottom bar (like X/YouTube): the page runs
+full-bleed behind it in a `RepaintBoundary`, one `BackdropFilter` blur (sigma 20) covers
+only the bar's rectangle, and a theme tint (light white 76%, dark near-black 66%) plus a
+0.5 px top hairline finish it. The cart stamp projects above it through `DockOverhang`
+and stays sharp. With `MediaQuery.highContrast` the bar is an opaque surface. There is
+no shader, page snapshot, warm-up or loading state, and no native/platform-view path.
 
 Decorative headers/chips are ordinary
 `AppSurface`/`AppSectionAction` controls, not imitation glass.
 
-`AppCartButton` keeps the floating full-width capsule but uses a 56 px cart stamp
-and 72 px minimum control height, excluding margins. Filled counts/amounts are
-centered; large totals scale to one line. Scroll clearance follows inherited text
-scaling, so the final page content remains reachable above the dock.
+`AppCartButton` shows a 60 px brand stamp for an empty cart and a compact orange
+capsule (count, «Корзина», total) once filled; the label drops before the total at
+narrow/large-text widths. Scroll clearance follows inherited text scaling, so the
+final page content remains reachable above the dock.
 
-iOS 26+ selects Apple's actual `UIGlassEffect`; older iOS and other supported Flutter
-renderers use the shader. The native bridge requires **Xcode 26+** to compile. Apple
-composition/lifecycle acceptance remains unexercised on this Windows workstation;
-required Apple commands and checks are in [the design plan](docs/redesign/PLAN.md).
-Do not put platform views into the Flutter-sampled underlay. These renderer paths are
-not a claim of pixel-identical output or Apple-native material on non-Apple targets.
+Platform views must not be placed under the bar: Flutter cannot blur them.
 
 The catalogue/category/card-space and confirmation cutover is implemented and exercised
 in strict Windows and release-web fixtures, including narrow/large-text/keyboard states.

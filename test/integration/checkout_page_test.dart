@@ -22,6 +22,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../support/bottling_surface_items.dart';
 import '../support/preferences_store.dart';
 
+const _cities = <Map<String, dynamic>>[
+  {'id': 2, 'name': 'Караганда'},
+  {'id': 4, 'name': 'Темиртау'},
+];
+
+// The server sends only city_id: the address deliberately names no city.
+const _temirtauStore = <String, dynamic>{
+  'id': 1,
+  'name': 'Градусы24 Мира',
+  'address': 'Мира 86а',
+  'lat': 50.05,
+  'lon': 72.96,
+  'city_id': 4,
+};
+
+const _temirtauAddress = <String, dynamic>{
+  'address': 'Темиртау, Мира, 5',
+  'street': 'Мира',
+  'house': '5',
+  'city': 'Темиртау',
+  'lat': 50.06,
+  'lon': 72.97,
+};
+
 const _address = <String, dynamic>{
   'address': 'Караганда, Тестовая, 16',
   'street': 'Тестовая',
@@ -71,6 +95,9 @@ class _Fixture {
   final business = BusinessProvider();
   final creates = <Map<String, dynamic>>[];
   final unknown = <String>[];
+  List<Map<String, dynamic>> cities = [
+    {'id': 1, 'name': 'Караганда'}
+  ];
   Future<http.Response> Function(http.Request)? quote;
   Future<http.Response> Function(http.Request)? promo;
   Future<http.Response> Function(http.Request)? certificate;
@@ -92,8 +119,9 @@ class _Fixture {
   String accountId = 'checkout-fixture-user';
   final allowedCredentials = {'Bearer fixture-only'};
 
-  Future<void> initialize({bool empty = false}) async {
-    await business.setSelectedBusiness(
+  Future<void> initialize(
+      {bool empty = false, Map<String, dynamic>? store}) async {
+    await business.setSelectedBusiness(store ??
         {'id': 1, 'name': 'Градусы24', 'address': 'Караганда, Магазин, 1'});
     await cart.bindBusiness(1);
     if (!empty) {
@@ -233,11 +261,7 @@ class _Fixture {
       case ('GET', '/api/users/cities'):
         return _json({
           'success': true,
-          'data': {
-            'cities': [
-              {'id': 1, 'name': 'Караганда'}
-            ]
-          }
+          'data': {'cities': cities}
         });
       case ('GET', '/api/businesses'):
         return _json({
@@ -963,7 +987,7 @@ void main() {
         Item.fromJson(Map<String, dynamic>.from(sample['item'] as Map));
     final fixture = _Fixture();
     await fixture.initialize(empty: true);
-    expect(fixture.cart.syncItemBottleCounts(item, [], {3094: 1, 3095: 1}),
+    expect(fixture.cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 1}),
         isTrue);
     final itemSubtotal = fixture.cart.getTotalPrice();
     expect(itemSubtotal, 2990);
@@ -1014,7 +1038,7 @@ void main() {
     final fixture = _Fixture();
     await fixture.initialize(empty: true);
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
-    expect(fixture.cart.syncItemBottleCounts(item, [], {93101: 3}), isTrue);
+    expect(fixture.cart.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
     expect(fixture.cart.getTotalPrice(), 3400);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
@@ -1024,12 +1048,14 @@ void main() {
           find.byKey(ValueKey('checkout-containers-${group.key}'));
       expect(
           find.descendant(
-              of: containers, matching: find.text(formatTenge(300))),
+              of: containers, matching: find.text(formatTenge(400))),
           findsOneWidget);
+      expect(find.textContaining('Тара для подарочного'), findsNothing);
+      final gift = find.byKey(ValueKey('checkout-gift-${group.key}'));
       expect(
-          find.descendant(
-              of: containers, matching: find.text(formatTenge(100))),
+          find.descendant(of: gift, matching: find.textContaining('в подарок')),
           findsOneWidget);
+      expect(find.textContaining('Напиток — бесплатно'), findsNothing);
       await _show(tester, 'checkout-mode-pickup');
       await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
       await tester.pumpAndSettle();
@@ -1100,7 +1126,7 @@ void main() {
           settle: false,
           page: CheckoutPage(
             initialAddress: _address,
-            addressPicker: (_, __, ___) async =>
+            addressPicker: (_, __, ___, {city, fallbackCenter}) async =>
                 {..._address, 'address': 'Другой адрес', 'lat': 50.0},
           ));
       expect(_enabled(tester), isFalse);
@@ -1821,6 +1847,147 @@ void main() {
       expect(find.byKey(const ValueKey('checkout-submit')), findsNothing);
       expect(find.byKey(const ValueKey('checkout-empty')), findsOneWidget);
       expect(fixture.creates, isEmpty);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('address picker is bound to the selected store city and location',
+      (tester) async {
+    final fixture = _Fixture()..cities = _cities;
+    await fixture.initialize(store: _temirtauStore);
+    final calls = <({
+      Map<String, dynamic>? address,
+      bool detailsFirst,
+      String? city,
+      ({double lat, double lon})? center,
+    })>[];
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: CheckoutPage(
+          addressPicker: (_, address, detailsFirst,
+              {city, fallbackCenter}) async {
+            calls.add((
+              address: address,
+              detailsFirst: detailsFirst,
+              city: city,
+              center: fallbackCenter,
+            ));
+            return _temirtauAddress;
+          },
+        ),
+      );
+      expect(_enabled(tester), isFalse);
+      expect(find.text('г. Темиртау'), findsOneWidget);
+      await _show(tester, 'checkout-address');
+      await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      await tester.pumpAndSettle();
+      final call = calls.single;
+      expect(call.city, 'Темиртау');
+      expect(call.center, (lat: 50.05, lon: 72.96));
+      expect(call.address, isNull);
+      expect(call.detailsFirst, isFalse);
+      expect(_enabled(tester), isTrue);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['business_id'], 1);
+      expect(body['lat'], 50.06);
+      expect(body['lon'], 72.97);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'an address in another city blocks the order until one in the store city is chosen',
+      (tester) async {
+    final fixture = _Fixture()..cities = _cities;
+    await fixture.initialize(store: _temirtauStore);
+    var quotes = 0;
+    fixture.quote = (_) async {
+      quotes++;
+      return _quote(800);
+    };
+    final calls = <({
+      Map<String, dynamic>? address,
+      bool detailsFirst,
+      String? city,
+    })>[];
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: CheckoutPage(
+          initialAddress: const {..._address, 'city': 'Караганда'},
+          addressPicker: (_, address, detailsFirst,
+              {city, fallbackCenter}) async {
+            calls.add((
+              address: address,
+              detailsFirst: detailsFirst,
+              city: city,
+            ));
+            return _temirtauAddress;
+          },
+        ),
+      );
+      await _show(tester, 'checkout-address-city-mismatch');
+      expect(find.byKey(const ValueKey('checkout-address-city-mismatch')),
+          findsOneWidget);
+      expect(find.textContaining('магазин доставляет по г. Темиртау'),
+          findsOneWidget);
+      expect(_enabled(tester), isFalse);
+      expect(quotes, 0);
+      expect(find.byKey(const ValueKey('checkout-quote-error')), findsNothing);
+
+      await tester
+          .tap(find.byKey(const ValueKey('checkout-address-city-action')));
+      await tester.pumpAndSettle();
+      final call = calls.single;
+      expect(call.city, 'Темиртау');
+      expect(call.address, isNull, reason: 'wrong-city address is not reused');
+      expect(call.detailsFirst, isFalse);
+      expect(find.byKey(const ValueKey('checkout-address-city-mismatch')),
+          findsNothing);
+      expect(quotes, 1);
+      expect(_enabled(tester), isTrue);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      expect(fixture.creates.single['lat'], 50.06);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'an address without a known city is not blocked by the store city',
+      (tester) async {
+    final fixture = _Fixture()..cities = _cities;
+    await fixture.initialize(store: _temirtauStore);
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      expect(find.text('г. Темиртау'), findsOneWidget);
+      expect(find.byKey(const ValueKey('checkout-address-city-mismatch')),
+          findsNothing);
+      expect(_enabled(tester), isTrue);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'an address in the store city matches regardless of the city spelling',
+      (tester) async {
+    final fixture = _Fixture()..cities = _cities;
+    await fixture.initialize(store: _temirtauStore);
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: const CheckoutPage(
+            initialAddress: {..._address, 'city': 'г. Темиртау'}),
+      );
+      expect(find.byKey(const ValueKey('checkout-address-city-mismatch')),
+          findsNothing);
+      expect(_enabled(tester), isTrue);
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });

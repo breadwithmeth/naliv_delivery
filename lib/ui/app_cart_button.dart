@@ -3,15 +3,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../core/money.dart';
+import '../design/motion.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
-import 'liquid_glass_dock.dart';
+import 'frosted_dock.dart';
+import 'motion_widgets.dart';
 
 /// The sharp, accessible foreground of the single floating cart dock.
 ///
-/// `LiquidGlassDock` supplies the full-bleed frosted bar this sits in.
+/// `FrostedDock` supplies the full-bleed frosted bar this sits in.
 /// An empty cart shows a compact brand stamp that rises [stampOverhang] above
 /// the bar. Once the cart has items the stamp becomes one orange capsule with
 /// the item count and the total, so the destination and its value read as a
@@ -54,7 +56,7 @@ class AppCartButton extends StatelessWidget {
   static double clearanceFor(BuildContext context) =>
       stampOverhang +
       _barHeight(context) +
-      LiquidGlassDock.basePadding +
+      FrostedDock.basePadding +
       AppSpacing.xl;
 
   bool get _filled => itemCount > 0 && total != null;
@@ -63,6 +65,9 @@ class AppCartButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!visible) return const SizedBox.shrink();
     final overhang = _filled ? 0.0 : stampOverhang;
+    final content = _filled
+        ? _capsule(context, key: const ValueKey('filled'))
+        : _stamp(context, key: const ValueKey('empty'));
     return DockOverhang(
       extent: overhang,
       child: Semantics(
@@ -79,21 +84,22 @@ class AppCartButton extends StatelessWidget {
               padding: EdgeInsets.only(top: _filled ? _topPadding : 0),
               child: Align(
                 alignment: Alignment.topCenter,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(
-                      scale: Tween(begin: .92, end: 1.0).animate(animation),
-                      child: child,
-                    ),
-                  ),
-                  child: _filled
-                      ? _capsule(context, key: const ValueKey('filled'))
-                      : _stamp(context, key: const ValueKey('empty')),
-                ),
+                child: AppMotion.reduced(context)
+                    ? content
+                    : AnimatedSwitcher(
+                        duration: AppMotion.pop,
+                        switchInCurve: AppMotion.out,
+                        switchOutCurve: AppMotion.leave,
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale:
+                                Tween(begin: .92, end: 1.0).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                        child: content,
+                      ),
               ),
             ),
           ),
@@ -180,19 +186,25 @@ class AppCartButton extends StatelessWidget {
                         Positioned(
                           right: -4,
                           top: -2,
-                          child: Container(
-                            constraints: const BoxConstraints(
-                                minWidth: 18, minHeight: 18),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: AppRadii.pillAll,
-                            ),
-                            child: Text(
-                              count,
-                              style: AppTypography.base(size: 11, weight: 700)
-                                  .copyWith(color: palette.accent, height: 1.2),
+                          child: Bump<int>(
+                            value: itemCount,
+                            shouldBump: (previous, next) => next > previous,
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                  minWidth: 18, minHeight: 18),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: AppRadii.pillAll,
+                              ),
+                              child: Text(
+                                count,
+                                style: AppTypography.base(size: 11, weight: 700)
+                                    .copyWith(
+                                        color: palette.accent, height: 1.2),
+                              ),
                             ),
                           ),
                         ),
@@ -214,8 +226,9 @@ class AppCartButton extends StatelessWidget {
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(
-                        formatTenge(total!),
+                      child: AnimatedCount(
+                        text: formatTenge(total!),
+                        value: total!,
                         maxLines: 1,
                         softWrap: false,
                         style: totalStyle,

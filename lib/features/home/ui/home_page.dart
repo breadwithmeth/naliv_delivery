@@ -9,8 +9,10 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
+import '../../../ui/motion_widgets.dart';
 import '../../../ui/surfaces.dart';
+import '../../../ui/text_width_cache.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/product_grid.dart';
 import '../home_view_data.dart';
@@ -66,134 +68,140 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: LiquidGlassDock(
-          content: SingleChildScrollView(
-            padding: EdgeInsets.only(
-              top: AppSpacing.huge,
-              bottom: AppCartButton.clearanceFor(context) + bottomInset,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ContentWidth(
-                  child: KeyedSubtree(
-                    key: const ValueKey('home-header'),
-                    child: data.signedIn
-                        ? _HomeHeader(
-                            onCallCenter: onCallCenter,
-                            onBonusHistory: onBonusHistory,
-                            onLiked: onLiked,
-                            onNotifications: onNotifications,
-                            onProfile: onProfile,
-                          )
-                        : Row(
-                            children: [
-                              const _HomeBrandMark(),
-                              const SizedBox(width: AppSpacing.xl),
-                              Expanded(
-                                child: KeyedSubtree(
-                                  key: const ValueKey('home-store-card'),
-                                  child: _StoreCard(
-                                      data: data,
-                                      onTap: onStore,
-                                      onProfile: onProfile),
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-                if (data.signedIn) ...[
-                  const SizedBox(height: AppSpacing.xl),
-                  _ContentWidth(
-                    child: KeyedSubtree(
-                      key: const ValueKey('home-store-card'),
-                      child: _StoreCard(
-                          data: data, onTap: onStore, onProfile: onProfile),
-                    ),
-                  ),
-                ],
-                if (data.activeOrder case final order?) ...[
-                  const SizedBox(height: AppSpacing.xl),
-                  _ContentWidth(
-                    child: KeyedSubtree(
-                      key: const ValueKey('home-active-order'),
-                      child: _ActiveOrderCard(
-                        order: order,
-                        onTap: onActiveOrder == null
-                            ? null
-                            : () => onActiveOrder!(order),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.huge),
-                _ContentWidth(
-                  child: KeyedSubtree(
-                    key: const ValueKey('home-search-field'),
-                    child: _SearchField(onTap: onSearch),
-                  ),
-                ),
-                if (data.banners.isNotEmpty) ...[
-                  const SizedBox(height: 18),
-                  KeyedSubtree(
-                    key: const ValueKey('home-banner-carousel'),
-                    child: _BannerCarousel(
-                      banners: data.banners,
-                      onTap: onPromo,
-                    ),
-                  ),
-                ],
-                if (data.promoCard case final promo?) ...[
-                  const SizedBox(height: AppSpacing.huge),
-                  _ContentWidth(
-                    child: KeyedSubtree(
-                      key: const ValueKey('home-promo-card'),
-                      child: _PromoCard(
-                        promo: promo,
-                        onTap: onCategory == null
-                            ? null
-                            : () => onCategory!(
-                                  HomeCategory(
-                                    id: promo.id,
-                                    title: promo.title,
-                                    imageUrl: promo.imageUrl,
-                                    fill: promo.fill,
+        child: FrostedDock(
+          content: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: AppSpacing.huge),
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-header'),
+                        child: data.signedIn
+                            ? _HomeHeader(
+                                onCallCenter: onCallCenter,
+                                onBonusHistory: onBonusHistory,
+                                onLiked: onLiked,
+                                onNotifications: onNotifications,
+                                onProfile: onProfile,
+                              )
+                            : Row(
+                                children: [
+                                  const _HomeBrandMark(),
+                                  const SizedBox(width: AppSpacing.xl),
+                                  Expanded(
+                                    child: KeyedSubtree(
+                                      key: const ValueKey('home-store-card'),
+                                      child: _StoreCard(
+                                          data: data,
+                                          onTap: onStore,
+                                          onProfile: onProfile),
+                                    ),
                                   ),
-                                ),
+                                ],
+                              ),
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.huge),
-                _ContentWidth(
-                  child: KeyedSubtree(
-                    key: const ValueKey('home-category-grid'),
-                    child: _CategoryGrid(
-                      categories: data.categories,
-                      onTap: onCategory,
+                    if (data.signedIn) ...[
+                      const SizedBox(height: AppSpacing.xl),
+                      _ContentWidth(
+                        child: KeyedSubtree(
+                          key: const ValueKey('home-store-card'),
+                          child: _StoreCard(
+                              data: data, onTap: onStore, onProfile: onProfile),
+                        ),
+                      ),
+                    ],
+                    if (data.activeOrder case final order?) ...[
+                      const SizedBox(height: AppSpacing.xl),
+                      _ContentWidth(
+                        child: KeyedSubtree(
+                          key: const ValueKey('home-active-order'),
+                          child: _ActiveOrderCard(
+                            order: order,
+                            onTap: onActiveOrder == null
+                                ? null
+                                : () => onActiveOrder!(order),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.huge),
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-search-field'),
+                        child: _SearchField(onTap: onSearch),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.huge),
-                _ContentWidth(
-                  child: KeyedSubtree(
-                    key: const ValueKey('home-bonus-card'),
-                    child: _BonusCard(
-                      data: data,
-                      onHistory: onBonusHistory,
-                      onSignIn: onSignIn,
+                    if (data.banners.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      KeyedSubtree(
+                        key: const ValueKey('home-banner-carousel'),
+                        child: _BannerCarousel(
+                          banners: data.banners,
+                          onTap: onPromo,
+                        ),
+                      ),
+                    ],
+                    if (data.promoCard case final promo?) ...[
+                      const SizedBox(height: AppSpacing.huge),
+                      _ContentWidth(
+                        child: KeyedSubtree(
+                          key: const ValueKey('home-promo-card'),
+                          child: _PromoCard(
+                            promo: promo,
+                            onTap: onCategory == null
+                                ? null
+                                : () => onCategory!(
+                                      HomeCategory(
+                                        id: promo.id,
+                                        title: promo.title,
+                                        imageUrl: promo.imageUrl,
+                                        fill: promo.fill,
+                                      ),
+                                    ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.huge),
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-category-grid'),
+                        child: _CategoryGrid(
+                          categories: data.categories,
+                          onTap: onCategory,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.huge),
+                    _ContentWidth(
+                      child: KeyedSubtree(
+                        key: const ValueKey('home-bonus-card'),
+                        child: _BonusCard(
+                          data: data,
+                          onHistory: onBonusHistory,
+                          onSignIn: onSignIn,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: data.signedIn ? 32 : 24),
+                  ],
                 ),
-                SizedBox(height: data.signedIn ? 32 : 24),
-                _ProductSections(
-                  sections: data.productSections,
-                  onCategory: onCategory,
-                  productBuilder: productBuilder,
+              ),
+              _ProductSections(
+                sections: data.productSections,
+                onCategory: onCategory,
+                productBuilder: productBuilder,
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: AppCartButton.clearanceFor(context) + bottomInset,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           dock: cartDock ??
               AppCartButton(
@@ -769,6 +777,9 @@ class _BannerCard extends StatelessWidget {
             ? Image.network(
                 banner.imageUrl!,
                 fit: BoxFit.cover,
+                cacheWidth:
+                    (width * MediaQuery.devicePixelRatioOf(context)).ceil(),
+                frameBuilder: fadeInImageFrame,
                 loadingBuilder: (context, child, progress) => progress == null
                     ? child
                     : _fallback(context, title, subtitle),
@@ -783,9 +794,11 @@ class _BannerCard extends StatelessWidget {
       label: label.isEmpty ? null : label,
       child: onTap == null
           ? card
-          : InkWell(
-              onTap: onTap,
-              child: card,
+          : PressScale(
+              child: InkWell(
+                onTap: onTap,
+                child: card,
+              ),
             ),
     );
   }
@@ -843,57 +856,60 @@ class _PromoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadii.lgAll,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        child: ConstrainedBox(
-          // The kitchen panel keeps the reference composition even when its
-          // optional artwork has not been supplied by the selected store.
-          constraints: const BoxConstraints(minHeight: 160),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: _NetworkFill(
-                  imageUrl: promo.imageUrl,
-                  fallback: promo.fill ?? palette.surface,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.xxxl),
-                child: AppSurface(
-                  fill: promo.imageUrl?.isNotEmpty == true
-                      ? palette.surface.withValues(alpha: .9)
-                      : Colors.transparent,
-                  padding: promo.imageUrl?.isNotEmpty == true
-                      ? const EdgeInsets.all(AppSpacing.md)
-                      : EdgeInsets.zero,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        promo.title,
-                        style: AppTypography.headline
-                            .copyWith(color: palette.textPrimary),
-                      ),
-                      if (promo.subtitle.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 150),
-                          child: Text(
-                            promo.subtitle,
-                            style: AppTypography.label
-                                .copyWith(color: palette.textPrimary),
-                          ),
-                        ),
-                      ],
-                    ],
+    return PressScale(
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.lgAll,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          child: ConstrainedBox(
+            // The kitchen panel keeps the reference composition even when its
+            // optional artwork has not been supplied by the selected store.
+            constraints: const BoxConstraints(minHeight: 160),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: _NetworkFill(
+                    imageUrl: promo.imageUrl,
+                    fallback: promo.fill ?? palette.surface,
                   ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xxxl),
+                  child: AppSurface(
+                    fill: promo.imageUrl?.isNotEmpty == true
+                        ? palette.surface.withValues(alpha: .9)
+                        : Colors.transparent,
+                    padding: promo.imageUrl?.isNotEmpty == true
+                        ? const EdgeInsets.all(AppSpacing.md)
+                        : EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          promo.title,
+                          style: AppTypography.headline
+                              .copyWith(color: palette.textPrimary),
+                        ),
+                        if (promo.subtitle.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 150),
+                            child: Text(
+                              promo.subtitle,
+                              style: AppTypography.label
+                                  .copyWith(color: palette.textPrimary),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -961,14 +977,8 @@ class _CategoryGrid extends StatelessWidget {
     for (final category in categories) {
       for (final word in category.title.split(_whitespace)) {
         if (word.isEmpty) continue;
-        final painter = TextPainter(
-          text: TextSpan(text: word, style: style),
-          textDirection: textDirection,
-          textScaler: textScaler,
-          maxLines: 1,
-        )..layout();
-        if (painter.width > widest) widest = painter.width;
-        painter.dispose();
+        final width = TextWidthCache.of(word, style, textScaler, textDirection);
+        if (width > widest) widest = width;
       }
     }
     return widest <= columnWidth ? 1.0 : (columnWidth / widest).clamp(.85, 1.0);
@@ -991,33 +1001,36 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadii.lgAll,
-      child: SizedBox(
-        width: width,
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadii.lg),
-              child: SizedBox(
-                width: width,
-                height: width,
-                child: _NetworkFill(
-                  imageUrl: category.imageUrl,
-                  fallback: category.fill ?? palette.accent,
+    return PressScale(
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.lgAll,
+        child: SizedBox(
+          width: width,
+          child: Column(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                child: SizedBox(
+                  width: width,
+                  height: width,
+                  child: _NetworkFill(
+                    imageUrl: category.imageUrl,
+                    fallback: category.fill ?? palette.accent,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 9),
-            _CategoryCaption(
-              title: category.title,
-              style: AppTypography.label.copyWith(
-                color: palette.textPrimary,
-                fontSize: AppTypography.label.fontSize! * captionScale,
+              const SizedBox(height: 9),
+              _CategoryCaption(
+                title: category.title,
+                style: AppTypography.label.copyWith(
+                  color: palette.textPrimary,
+                  fontSize: AppTypography.label.fontSize! * captionScale,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1175,21 +1188,18 @@ class _ProductSections extends StatelessWidget {
   final Widget Function(BuildContext context, ProductView product)?
       productBuilder;
 
+  /// Sections are built as they scroll into view, so the long tail of product rails
+  /// (and their images) costs nothing until the user reaches it.
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (var index = 0; index < sections.length; index++) ...[
-          _ProductSection(
-            section: sections[index],
-            onCategory: onCategory,
-            productBuilder: productBuilder,
-          ),
-          if (index != sections.length - 1) const SizedBox(height: 32),
-        ],
-      ],
-    );
-  }
+  Widget build(BuildContext context) => SliverList.separated(
+        itemCount: sections.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 32),
+        itemBuilder: (context, index) => _ProductSection(
+          section: sections[index],
+          onCategory: onCategory,
+          productBuilder: productBuilder,
+        ),
+      );
 }
 
 class _ProductSection extends StatelessWidget {
@@ -1255,10 +1265,17 @@ class _NetworkFill extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = imageUrl?.trim();
     if (url == null || url.isEmpty) return ColoredBox(color: fallback);
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => ColoredBox(color: fallback),
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) => Image.network(
+        url,
+        fit: BoxFit.cover,
+        cacheWidth: constraints.hasBoundedWidth
+            ? (constraints.maxWidth * pixelRatio).ceil()
+            : null,
+        frameBuilder: fadeInImageFrame,
+        errorBuilder: (_, __, ___) => ColoredBox(color: fallback),
+      ),
     );
   }
 }

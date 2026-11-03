@@ -6,6 +6,9 @@ description: Use when changing Naliv screens, Figma fidelity, adaptive layouts, 
 # Naliv design loop
 
 Use the existing active-route fixtures; visual similarity is not interaction proof.
+
+**REQUIRED SUB-SKILL:** for any change to how a screen looks, also follow naliv-real-data-ui-pass. Minimum before saying "done": before/after captures of every changed screen in both themes (real stores via `tool/design/real_data_browser.js` where reachable as a guest, real-shaped fixtures otherwise), every changed control exercised with its visible result checked, Figma sizes taken from `.figma_cache/spec/` with each override named, and `check --full --native` plus `build --tracked` passed. Fixtures alone once passed every check while the screen was rejected as a mess.
+
 Read `.omp/AGENTS.md` for shared safety rules and `README.md` for harness/platform details. Run commands from the repository root.
 
 ## Scope the change
@@ -59,6 +62,6 @@ try {
 }
 ```
 
-`capture` resets viewport geometry: pass adaptive width again. Repeat for dark; inspect controls and reflow. Review logs/JSON evidence, not stale artifacts. Shader refraction, blur and Apple-native glass require distinct renderer proof; see README's floating-material limits.
+`capture` resets viewport geometry: pass adaptive width again. Repeat for dark; inspect controls and reflow. Review logs/JSON evidence, not stale artifacts. The bottom bar is `FrostedDock` (one `BackdropFilter`); never reintroduce per-frame page snapshots or shaders without frame-time proof (`real_data_browser.js` scroll timing).
 
 After smoke proof, update existing `docs/redesign/STATUS.md` evidence. Fixture captures never establish authenticated production acceptance; deployment output requires a separate `build --tracked` and guarded smoke. Stop only owned services and remove only owned probes.

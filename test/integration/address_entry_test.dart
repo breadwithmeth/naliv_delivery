@@ -7,14 +7,16 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/pages/map_address_page.dart';
 import 'package:naliv_delivery/pages/profile_addresses_page.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
+import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Map<String, dynamic> _feature(String street) => {
+Map<String, dynamic> _feature(String street, {String city = 'Караганда'}) => {
       'type': 'Feature',
       'geometry': {
         'type': 'Point',
@@ -23,7 +25,7 @@ Map<String, dynamic> _feature(String street) => {
       'properties': {
         'geocoding': {
           'country': 'Казахстан',
-          'city': 'Караганда',
+          'city': city,
           'street': street,
           'housenumber': '16',
         }
@@ -238,7 +240,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('address_entrance')), '2А');
     await tester.enterText(find.byKey(const Key('address_floor')), '');
-    await tester.tap(find.text('Изменить на карте'));
+    await tester.tap(find.text('Изменить'));
     await tester.pumpAndSettle();
     expect(find.byType(AddressDetailsPage), findsOneWidget);
     expect(find.text('Новый адрес, 22'), findsOneWidget);
@@ -311,5 +313,294 @@ void main() {
       client.close();
       await _dispose(tester);
     }
+  });
+
+  group('city scoped to the selected store', () {
+    const temirtau = (lat: 50.0549, lon: 72.9590);
+
+    Future<void> pumpHelperEntry(
+      WidgetTester tester,
+      Future<void> Function(BuildContext) open,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+                onPressed: () => open(context), child: const Text('Открыть')),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Открыть'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    MockClient strictAddressApi(
+      List<Uri> seen,
+      http.Response Function(Uri uri) answer,
+    ) =>
+        MockClient((request) async {
+          if (request.method != 'GET' ||
+              (request.url.path != '/api/addresses/reverse' &&
+                  request.url.path != '/api/addresses/search')) {
+            throw StateError(
+                'Unexpected request: ${request.method} ${request.url}');
+          }
+          seen.add(request.url);
+          return answer(request.url);
+        });
+
+    http.Response reverseOf(List<Map<String, dynamic>> features) =>
+        http.Response(jsonEncode({'success': true, 'data': features}), 200,
+            headers: {'content-type': 'application/json'});
+
+    testWidgets('text search uses the given city, not the onboarding city',
+        (tester) async {
+      final seen = <Uri>[];
+      final client = strictAddressApi(
+          seen,
+          (uri) => uri.path == '/api/addresses/search'
+              ? _searchResponse([_feature('Тестовая', city: 'Темиртау')])
+              : throw StateError('Unexpected reverse lookup'));
+      await http.runWithClient(() async {
+        await tester.binding.setSurfaceSize(const Size(375, 812));
+        await tester.pumpWidget(MaterialApp(
+            theme: AppTheme.dark(),
+            home: const AddressSearchPage(selectedCity: 'Темиртау')));
+        await tester.pump();
+        expect(find.text('Ищем адреса в г. Темиртау'), findsOneWidget);
+        await tester.enterText(
+            find.byKey(const Key('address_search_field')), 'Тестовая');
+        await tester.pump(const Duration(milliseconds: 350));
+        await tester.pump();
+        expect(seen, hasLength(1));
+        final query = seen.single.queryParameters['query']!;
+        expect(query, contains('Темиртау'));
+        expect(query, isNot(contains('Караганда')));
+        expect(find.text('Тестовая, 16'), findsOneWidget);
+        expect(find.text('г. Темиртау'), findsOneWidget);
+        await _dispose(tester);
+      }, () => client);
+    });
+
+    testWidgets(
+        'map reverse lookup resolves inside the given city and passes it to search',
+        (tester) async {
+      final seen = <Uri>[];
+      final client = strictAddressApi(
+          seen,
+          (uri) => uri.path == '/api/addresses/reverse'
+              ? reverseOf([
+                  _feature('Чужая улица'),
+                  _feature('Местная улица', city: 'Темиртау'),
+                ])
+              : throw StateError('Unexpected search'));
+      await http.runWithClient(() async {
+        await tester.binding.setSurfaceSize(const Size(375, 812));
+        await tester.pumpWidget(MaterialApp(
+            theme: AppTheme.light(),
+            home: MapAddressPage(
+              initialLat: temirtau.lat,
+              initialLon: temirtau.lon,
+              city: 'Темиртау',
+              tileProvider: _RasterTiles(),
+            )));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Местная улица, 16'), findsOneWidget);
+        expect(find.text('Чужая улица, 16'), findsNothing);
+        expect(find.text('Адрес в г. Темиртау'), findsOneWidget);
+        expect(find.text('г. Темиртау'), findsOneWidget);
+        expect(
+            tester
+                .widget<FilledButton>(
+                    find.byKey(const Key('address_map_confirm')))
+                .onPressed,
+            isNotNull);
+
+        await tester.tap(find.byKey(const Key('address_map_search')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(
+            tester
+                .widget<AddressSearchPage>(find.byType(AddressSearchPage))
+                .selectedCity,
+            'Темиртау');
+        await _dispose(tester);
+      }, () => client);
+    });
+
+    testWidgets(
+        'device location outside the given city explains it and keeps manual selection usable',
+        (tester) async {
+      final seen = <Uri>[];
+      final client = strictAddressApi(seen, (uri) {
+        if (uri.path != '/api/addresses/reverse') {
+          throw StateError('Unexpected search');
+        }
+        final lat = double.parse(uri.queryParameters['lat']!);
+        return reverseOf([
+          lat > 50
+              ? _feature('Местная улица', city: 'Темиртау')
+              : _feature('Чужая улица'),
+        ]);
+      });
+      await http.runWithClient(() async {
+        await tester.binding.setSurfaceSize(const Size(375, 812));
+        await tester.pumpWidget(MaterialApp(
+            theme: AppTheme.dark(),
+            home: MapAddressPage(
+              initialLat: temirtau.lat,
+              initialLon: temirtau.lon,
+              city: 'Темиртау',
+              tileProvider: _RasterTiles(),
+              locate: () async =>
+                  const AddressLocateResult.found(LatLng(49.8047, 73.1094)),
+            )));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('Местная улица, 16'), findsOneWidget);
+        expect(seen, hasLength(1));
+
+        await tester.tap(find.byKey(const Key('address_locate')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+
+        expect(
+            find.text(
+                'Вы сейчас не в г. Темиртау. Магазин доставляет только по г. Темиртау — найдите адрес поиском или передвиньте карту.'),
+            findsOneWidget);
+        expect(find.text('Чужая улица, 16'), findsNothing);
+        expect(
+            tester
+                .widget<FilledButton>(
+                    find.byKey(const Key('address_map_confirm')))
+                .onPressed,
+            isNull);
+        expect(find.byKey(const Key('address_map_search')), findsOneWidget);
+        expect(
+            tester
+                .widget<IconButton>(find.byKey(const Key('address_locate')))
+                .onPressed,
+            isNotNull);
+        await _dispose(tester);
+      }, () => client);
+    });
+
+    testWidgets(
+        'map opens on the fallback centre when the saved address is in another city',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'onboarding_selected_city': 'Караганда',
+        'selected_address': jsonEncode({
+          'address': 'Старый адрес, 1',
+          'city': 'Караганда',
+          'lat': 49.8047,
+          'lon': 73.1094,
+        }),
+      });
+      final client = strictAddressApi(
+          <Uri>[],
+          (uri) => uri.path == '/api/addresses/reverse'
+              ? reverseOf([_feature('Местная улица', city: 'Темиртау')])
+              : throw StateError('Unexpected search'));
+      await http.runWithClient(() async {
+        await pumpHelperEntry(
+            tester,
+            (context) => AddressSelectionModalHelper.show(context,
+                city: ' Темиртау ',
+                fallbackCenter: temirtau,
+                tileProvider: _RasterTiles()));
+        final page = tester.widget<MapAddressPage>(find.byType(MapAddressPage));
+        expect(page.initialLat, temirtau.lat);
+        expect(page.initialLon, temirtau.lon);
+        expect(page.city, 'Темиртау');
+        expect(page.initialAddress, isNull);
+        await _dispose(tester);
+      }, () => client);
+    });
+
+    testWidgets('a saved address in the given city still centres the map',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'onboarding_selected_city': 'Караганда',
+        'selected_address': jsonEncode({
+          'address': 'Местный адрес, 1',
+          'city': 'Темиртау',
+          'lat': 50.06,
+          'lon': 72.97,
+        }),
+      });
+      final client = strictAddressApi(
+          <Uri>[],
+          (uri) => uri.path == '/api/addresses/reverse'
+              ? reverseOf([_feature('Местная улица', city: 'Темиртау')])
+              : throw StateError('Unexpected search'));
+      await http.runWithClient(() async {
+        await pumpHelperEntry(
+            tester,
+            (context) => AddressSelectionModalHelper.show(context,
+                city: 'Темиртау',
+                fallbackCenter: temirtau,
+                tileProvider: _RasterTiles()));
+        final page = tester.widget<MapAddressPage>(find.byType(MapAddressPage));
+        expect(page.initialLat, 50.06);
+        expect(page.initialLon, 72.97);
+        await _dispose(tester);
+      }, () => client);
+    });
+
+    testWidgets(
+        'without a city the onboarding flow keeps the saved address centre',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'onboarding_selected_city': 'Темиртау',
+        'selected_address': jsonEncode({
+          'address': 'Старый адрес, 1',
+          'city': 'Караганда',
+          'lat': 49.8047,
+          'lon': 73.1094,
+        }),
+      });
+      final client = strictAddressApi(
+          <Uri>[],
+          (uri) => uri.path == '/api/addresses/reverse'
+              ? reverseOf([_feature('Тестовый адрес', city: 'Темиртау')])
+              : throw StateError('Unexpected search'));
+      await http.runWithClient(() async {
+        await pumpHelperEntry(
+            tester,
+            (context) => AddressSelectionModalHelper.show(context,
+                fallbackCenter: temirtau, tileProvider: _RasterTiles()));
+        final page = tester.widget<MapAddressPage>(find.byType(MapAddressPage));
+        expect(page.initialLat, 49.8047);
+        expect(page.initialLon, 73.1094);
+        expect(page.city, isNull);
+        await _dispose(tester);
+      }, () => client);
+    });
+
+    testWidgets('without any address the given city centres the map',
+        (tester) async {
+      final client = strictAddressApi(
+          <Uri>[],
+          (uri) => uri.path == '/api/addresses/reverse'
+              ? reverseOf([_feature('Местная улица', city: 'Темиртау')])
+              : throw StateError('Unexpected search'));
+      await http.runWithClient(() async {
+        await pumpHelperEntry(
+            tester,
+            (context) => AddressSelectionModalHelper.show(context,
+                city: 'Темиртау', tileProvider: _RasterTiles()));
+        final page = tester.widget<MapAddressPage>(find.byType(MapAddressPage));
+        expect(page.initialLat, 50.0549);
+        expect(page.initialLon, 72.9590);
+        await _dispose(tester);
+      }, () => client);
+    });
   });
 }

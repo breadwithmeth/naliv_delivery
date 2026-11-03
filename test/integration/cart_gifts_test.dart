@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../support/bottling_surface_items.dart';
 
 void main() {
-  testWidgets('gift litres stay visible when paid bottle quantity changes',
+  testWidgets('the gift is a short chip that follows the picked bottles',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final cart = CartProvider();
@@ -19,7 +19,7 @@ void main() {
         cart.syncItemBottleCounts(
             syntheticThreePlusOneSurfaceItem(onlyOneLitre: true),
             [],
-            {93101: 3}),
+            {93101: 4}),
         isTrue);
     await tester.pumpWidget(ChangeNotifierProvider.value(
       value: cart,
@@ -31,13 +31,27 @@ void main() {
     await tester.pump();
     final row = find.byKey(const ValueKey('cart-row-0'));
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 4);
-    expect(cart.activeDisplayGroups.single.totalQuantity, 3);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 1);
+    expect(cart.activeDisplayGroups.single.evaluate().totalQuantity, 3);
+    expect(find.descendant(of: row, matching: find.text('1 л в подарок')),
+        findsOneWidget);
+    expect(find.textContaining('Тара для подарка'), findsNothing);
     await tester.tap(
         find.descendant(of: row, matching: find.byIcon(Icons.add_rounded)));
     await tester.pump();
     expect(cart.activeDisplayGroups.single.bottleCounts, {93101: 5});
-    expect(cart.activeDisplayGroups.single.totalQuantity, 4);
+    expect(cart.activeDisplayGroups.single.totalQuantity, 5);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 1);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 5);
+    for (var step = 0; step < 3; step++) {
+      await tester.tap(
+          find.descendant(of: row, matching: find.byIcon(Icons.add_rounded)));
+      await tester.pump();
+    }
+    expect(cart.activeDisplayGroups.single.bottleCounts, {93101: 8});
+    expect(cart.activeDisplayGroups.single.freeQuantity, 2);
+    expect(find.descendant(of: row, matching: find.text('2 л в подарок')),
+        findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

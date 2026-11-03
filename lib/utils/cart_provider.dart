@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
+import 'package:naliv_delivery/core/kitchen_policy.dart';
 
 import 'smart_cart.dart';
 import 'promotion_engine.dart';
@@ -14,6 +15,10 @@ enum CartSaveStatus { saved, pending, failed, restoreFailed }
 class CartProvider extends ChangeNotifier {
   static const double _quantityEpsilon = 0.0000001;
   static const _storageKey = 'cart_items';
+
+  /// 2 stores pour rows as the physical litres the customer picked. Earlier states (no version)
+  /// stored paid litres plus retained gift bottles and are migrated on restore.
+  static const _stateVersion = 2;
   int? _businessId;
   bool _loaded = false;
   bool _restoreFailed = false;
@@ -151,15 +156,12 @@ class CartProvider extends ChangeNotifier {
       return false;
     }
     if (snapshot != null) {
+      if (_refusesKitchen(snapshot)) return false;
       final selection = SmartCartSelection(snapshot);
       if (selection.containerIssue != null ||
           selection.quantityIssue != null ||
           normalizedItem.selectedVariants
-              .any(selection.isWithdrawnBottleVariant) ||
-          normalizedItem.giftBottleCounts?.entries.any((entry) =>
-                  entry.value > 0 &&
-                  selection.isWithdrawnBottleRelation(entry.key)) ==
-              true) {
+              .any(selection.isWithdrawnBottleVariant)) {
         return false;
       }
       final ratio = normalizedItem.quantity / normalizedItem.stepQuantity;
@@ -185,6 +187,12 @@ class CartProvider extends ChangeNotifier {
     if (!_canMutate) return false;
     final rows = items.map(_normalizeItem).toList(growable: false);
     if (rows.isEmpty) return false;
+    if (rows.any((row) {
+      final snapshot = row.snapshotItem;
+      return snapshot != null && _refusesKitchen(snapshot);
+    })) {
+      return false;
+    }
     final groups = CartDisplayGroup.groupItems(rows);
     if (groups.length != 1) return false;
     final group = groups.single;
@@ -212,11 +220,9 @@ class CartProvider extends ChangeNotifier {
         displayGroups.firstWhereOrNull((entry) => entry.key == group.key);
     if (selection != null &&
         !_fitsStock(selection, group.key,
-            (current?.totalQuantity ?? 0) + evaluated.totalQuantity,
-            retainedGiftCounts: group.retainedGiftBottleCounts)) {
+            (current?.totalQuantity ?? 0) + group.totalQuantity)) {
       return false;
     }
-    if (current != null && group.retainedGiftBottleCounts != null) return false;
     for (final row in rows) {
       _addItemInternal(row);
     }
@@ -271,6 +277,11 @@ class CartProvider extends ChangeNotifier {
     return true;
   }
 
+  /// The kitchen is sold by one store only; a cart bound to any other store never takes it in.
+  bool _refusesKitchen(item_model.Item item) =>
+      KitchenPolicy.isKitchenItem(item) &&
+      !KitchenPolicy.isAvailableForBusiness(_businessId);
+
   bool _requiredVariantsSelected(List<Map<String, dynamic>> variants) {
     for (final variant in variants) {
       if (variant['required'] != 1) continue;
@@ -301,7 +312,6 @@ class CartProvider extends ChangeNotifier {
         // promotions. Historical repeat rows do not replace catalogue metadata.
         _items[index] = newItem.copyWith(
           quantity: existing.quantity + newItem.quantity,
-          giftBottleCounts: existing.giftBottleCounts,
         );
       } else {
         existing.quantity += newItem.quantity;
@@ -392,6 +402,7 @@ class CartProvider extends ChangeNotifier {
   List<Map<String, dynamic>> toJsonForOrder() => evaluate().toJsonForOrder();
 
   String _serializedState({int? businessId, bool empty = false}) => jsonEncode({
+        'version': _stateVersion,
         'business_id': empty ? businessId : (businessId ?? _businessId),
         'items': empty
             ? const <Object>[]
@@ -459,7 +470,8 @@ class CartProvider extends ChangeNotifier {
       if (reload) await prefs.reload();
       final jsonString = prefs.getString(_storageKey);
       if (_revision != revision || _disposed) return;
-      final rows = <CartItem>[];
+      var rows = <CartItem>[];
+      var migratedLegacy = false;
       int? storedBusinessId;
       if (jsonString != null) {
         final decoded = jsonDecode(jsonString);
@@ -467,9 +479,26 @@ class CartProvider extends ChangeNotifier {
         if (rawRows is! List) {
           throw const FormatException('Неверный формат сохранённой корзины');
         }
+        final legacyGifts = Map<CartItem, Map<int, int>>.identity();
         for (final raw in rawRows) {
-          rows.add(_normalizeItem(
-              CartItem.fromJson(Map<String, dynamic>.from(raw as Map))));
+          final map = Map<String, dynamic>.from(raw as Map);
+          final row = _normalizeItem(CartItem.fromJson(map));
+          rows.add(row);
+          final gifts = map['giftBottleCounts'];
+          if (gifts is Map) {
+            legacyGifts[row] = {
+              for (final entry in gifts.entries)
+                int.parse(entry.key.toString()): (entry.value as num).toInt(),
+            };
+          }
+        }
+        if (decoded is! Map || decoded['version'] != _stateVersion) {
+          final migrated = CartDisplayGroup.migrateLegacyPourRows(rows,
+              legacyGifts: legacyGifts);
+          migratedLegacy = migrated.length != rows.length ||
+              migrated.indexed
+                  .any((entry) => !identical(entry.$2, rows[entry.$1]));
+          rows = migrated;
         }
         if (decoded is Map) {
           storedBusinessId = _storeId(decoded['business_id']);
@@ -479,6 +508,11 @@ class CartProvider extends ChangeNotifier {
           if (ids.length == 1) storedBusinessId = _storeId(ids.single);
         }
       }
+      // Kitchen rows of a cart bound to another store must never become submittable.
+      final droppedKitchen =
+          !KitchenPolicy.isAvailableForBusiness(storedBusinessId) &&
+              rows.any(KitchenPolicy.isKitchenCartItem);
+      if (droppedKitchen) rows.removeWhere(KitchenPolicy.isKitchenCartItem);
       final changed = jsonString != null ||
           _items.isNotEmpty ||
           _businessId != null ||
@@ -495,7 +529,11 @@ class CartProvider extends ChangeNotifier {
       _loaded = true;
       _restoreFailed = false;
       _setSaveStatus(CartSaveStatus.saved);
-      if (changed && !_disposed) notifyListeners();
+      if ((droppedKitchen || migratedLegacy) && !_disposed) {
+        _persistAndNotify();
+      } else if (changed && !_disposed) {
+        notifyListeners();
+      }
     } catch (error) {
       // Keep both the last published rows and unread persisted bytes intact.
       // No ordinary edit or save retry may overwrite them until explicit recovery.
@@ -563,10 +601,15 @@ class CartProvider extends ChangeNotifier {
     await ensureLoaded();
     if (!_canMutate) return false;
     final rows = replacement.map(_normalizeItem).toList(growable: false);
+    if (!KitchenPolicy.isAvailableForBusiness(businessId) &&
+        rows.any(KitchenPolicy.isKitchenCartItem)) {
+      return false;
+    }
     if (!canReplaceItems(rows)) return false;
     return _enqueuePersistence(() async {
       final revision = _revision;
       final state = jsonEncode({
+        'version': _stateVersion,
         'business_id': businessId,
         'items': rows.map((row) => row.toJson()).toList(growable: false),
       });
@@ -737,7 +780,7 @@ class CartProvider extends ChangeNotifier {
 
     final selection = group.selection!;
     if (selection.usesPourFlow) {
-      final counts = evaluated.paidBottleCounts;
+      final counts = evaluated.bottleCounts;
       var batches = 0;
       for (final count in counts.values) {
         if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
@@ -839,38 +882,35 @@ class CartProvider extends ChangeNotifier {
   double _legacyItemStep(CartItem item) =>
       item.stepQuantity > 0 ? item.stepQuantity : 1.0;
 
-  double _orderQuantity(SmartCartSelection selection, double paid,
+  double _orderQuantity(SmartCartSelection selection, double quantity,
           {DateTime? now}) =>
-      paid +
-      subtractPromotionFreeQuantity(
-          paid,
-          [
-            for (final promotion in selection.item.promotions ??
-                const <item_model.ItemPromotion>[])
-              promotion.toJson(),
-          ],
-          now: now);
+      // A pour selection counts physical litres, gift included; anything else counts paid units.
+      selection.usesPourFlow
+          ? quantity
+          : quantity +
+              subtractPromotionFreeQuantity(
+                  quantity,
+                  [
+                    for (final promotion in selection.item.promotions ??
+                        const <item_model.ItemPromotion>[])
+                      promotion.toJson(),
+                  ],
+                  now: now);
 
-  bool _fitsStock(SmartCartSelection selection, String key, double paid,
-      {String? previousKey, Map<int, int>? retainedGiftCounts}) {
+  bool _fitsStock(SmartCartSelection selection, String key, double quantity,
+      {String? previousKey}) {
     final evaluation = evaluate();
     final opened = evaluation.groups
         .firstWhereOrNull((entry) => entry.group.key == (previousKey ?? key));
-    final orderQuantity = _orderQuantity(selection, paid, now: evaluation.now);
+    final orderQuantity =
+        _orderQuantity(selection, quantity, now: evaluation.now);
     // Availability constrains fresh demand, never the customer's ability to
     // reduce or remove quantities that were actually restored from persistence.
     if (opened != null &&
-        paid <= opened.totalQuantity + 0.0000001 &&
+        (selection.usesPourFlow ||
+            quantity <= opened.totalQuantity + 0.0000001) &&
         orderQuantity <= opened.totalOrderQuantity + 0.0000001) {
       return true;
-    }
-    if (selection.usesPourFlow) {
-      try {
-        selection.giftBottleBreakdown(paid,
-            retainedCounts: retainedGiftCounts, now: evaluation.now);
-      } on StateError {
-        return false;
-      }
     }
     final reserved = evaluation.activeGroups
         .where((entry) =>
@@ -908,6 +948,7 @@ class CartProvider extends ChangeNotifier {
         (selection.containerIssue != null || selection.quantityIssue != null)) {
       return false;
     }
+    if (!reduction && _refusesKitchen(selection.item)) return false;
     if (variants.any(selection.isWithdrawnBottleVariant)) return false;
     if (previousKey != null &&
         previousKey != key &&
@@ -922,7 +963,7 @@ class CartProvider extends ChangeNotifier {
     if (selection.usesPourFlow) {
       if (reduction && opened.totalQuantity > 0) {
         final counts = SmartCartSelection.scaledBottleCounts(
-            opened.paidBottleCounts, targetQuantity / opened.totalQuantity);
+            opened.bottleCounts, targetQuantity / opened.totalQuantity);
         if (counts != null) {
           return _syncPourFlowBottleCounts(selection, variants, counts,
               previousBaseVariants: previousBaseVariants);
@@ -989,7 +1030,7 @@ class CartProvider extends ChangeNotifier {
     }
     final opened = displayGroups
         .firstWhereOrNull((group) => group.key == (previousKey ?? key));
-    final existingCounts = opened?.paidBottleCounts ?? const <int, int>{};
+    final existingCounts = opened?.bottleCounts ?? const <int, int>{};
     for (final entry in bottleCounts.entries) {
       if (selection.isWithdrawnBottleRelation(entry.key) &&
           entry.value > (existingCounts[entry.key] ?? 0)) {
@@ -998,35 +1039,8 @@ class CartProvider extends ChangeNotifier {
     }
     final totalLiters = selection.litersForCounts(bottleCounts);
     if (opened == null && selection.containerIssue != null) return false;
-    Map<int, int>? retainedGifts;
-    final evaluatedOpened = opened?.evaluate();
-    if (opened != null &&
-        evaluatedOpened!.freeQuantity > 0 &&
-        evaluatedOpened.allocationIssue == null) {
-      final nextGift =
-          _orderQuantity(selection, totalLiters, now: evaluatedOpened.now) -
-              totalLiters;
-      retainedGifts = SmartCartSelection.scaledBottleCounts(
-          evaluatedOpened.giftBottleCounts,
-          nextGift / evaluatedOpened.freeQuantity);
-      if (retainedGifts != null) {
-        try {
-          selection.giftBottleBreakdown(totalLiters,
-              retainedCounts: retainedGifts);
-        } on StateError {
-          retainedGifts = null;
-        }
-      }
-    }
-    if (retainedGifts?.entries.any((entry) =>
-            selection.isWithdrawnBottleRelation(entry.key) &&
-            entry.value >
-                (opened?.retainedGiftBottleCounts?[entry.key] ?? 0)) ==
-        true) {
-      return false;
-    }
-    if (!_fitsStock(selection, key, totalLiters,
-        previousKey: previousKey, retainedGiftCounts: retainedGifts)) {
+    if (opened == null && _refusesKitchen(selection.item)) return false;
+    if (!_fitsStock(selection, key, totalLiters, previousKey: previousKey)) {
       return false;
     }
     var persistedSelection = selection;
@@ -1075,7 +1089,6 @@ class CartProvider extends ChangeNotifier {
             quantity: persistedSelection.volumeForBottle(bottle) *
                 bottleCounts[bottle.relationId]!,
             stepQuantity: persistedSelection.volumeForBottle(bottle),
-            giftBottleCounts: retainedGifts,
             image: selection.item.image,
             selectedVariants: persistedSelection.buildVariantMaps(
                 bottle: bottle, baseVariants: variants),
@@ -1230,23 +1243,7 @@ class CartProvider extends ChangeNotifier {
 
   void _persistAndNotify() {
     _revision++;
-    final groups = CartDisplayGroup.groupItems(_items);
-    var repairedGiftAllocation = false;
-    // A paid-volume mutation can change the gift threshold. Retained repeat-
-    // order capacity is valid only for the unchanged gift volume.
-    for (final group in groups) {
-      if (group.retainedGiftBottleCounts == null ||
-          group.allocationIssue == null) {
-        continue;
-      }
-      for (final item in group.items) {
-        final index = _items.indexOf(item);
-        _items[index] = item.copyWith(clearGiftBottleCounts: true);
-      }
-      repairedGiftAllocation = true;
-    }
-    _cacheDisplayGroups(
-        repairedGiftAllocation ? CartDisplayGroup.groupItems(_items) : groups);
+    _cacheDisplayGroups(CartDisplayGroup.groupItems(_items));
     _saveCart();
     notifyListeners();
   }

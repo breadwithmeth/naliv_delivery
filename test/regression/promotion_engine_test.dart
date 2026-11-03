@@ -148,12 +148,11 @@ void main() {
 
     test('refuses a candidate that the canonical best award would enlarge', () {
       final promotions = [_subtract(1, 2, 1), _subtract(2, 3, 1)];
-      expect(
-          subtractPromotionPaidQuantityForPhysicalQuantity(5, promotions),
+      expect(subtractPromotionPaidQuantityForPhysicalQuantity(5, promotions),
           isNull);
       for (var paid = 0; paid <= 16; paid++) {
-        final physical = paid +
-            subtractPromotionFreeQuantity(paid.toDouble(), promotions);
+        final physical =
+            paid + subtractPromotionFreeQuantity(paid.toDouble(), promotions);
         final restored = subtractPromotionPaidQuantityForPhysicalQuantity(
             physical, promotions);
         expect(restored, paid.toDouble());
@@ -178,6 +177,96 @@ void main() {
       expect(at.nextGiftIn, 0);
       expect(at.freeQuantity, 1);
       expect(at.physicalQuantity, 3);
+    });
+  });
+
+  group('physical pour gift', () {
+    final threePlusOne = [_subtract(1, 3, 1)];
+
+    test('gift is floor(litres / (base + add)) * add; the rest is paid', () {
+      for (final (litres, gift) in [
+        (0.0, 0.0),
+        (3.0, 0.0),
+        (3.999, 0.0),
+        (4.0, 1.0),
+        (7.0, 1.0),
+        (8.0, 2.0),
+        (12.0, 3.0),
+      ]) {
+        final result = evaluatePhysicalGift(
+            physicalQuantity: litres, promotions: threePlusOne);
+        expect(result.giftQuantity, gift, reason: '$litres l');
+        expect(result.paidQuantity, litres - gift, reason: '$litres l');
+        expect(
+            subtractPromotionGiftWithinPhysicalQuantity(litres, threePlusOne),
+            gift);
+      }
+    });
+
+    test('it agrees with the inverse wherever the inverse exists', () {
+      for (final promotions in [
+        threePlusOne,
+        [_subtract(1, 2, 1), _subtract(2, 3, 1)],
+        [_subtract(1, 6, 2), _subtract(2, 3, 1)],
+      ]) {
+        for (var litres = 0; litres <= 30; litres++) {
+          final paid = subtractPromotionPaidQuantityForPhysicalQuantity(
+              litres.toDouble(), promotions);
+          if (paid == null) continue;
+          expect(
+              litres -
+                  subtractPromotionGiftWithinPhysicalQuantity(
+                      litres.toDouble(), promotions),
+              paid,
+              reason: '$litres l');
+        }
+      }
+    });
+
+    test('the bonus offer exists only when the added litres cost nothing', () {
+      PhysicalGiftEvaluation at(double litres, List<Map<String, dynamic>> p) =>
+          evaluatePhysicalGift(physicalQuantity: litres, promotions: p);
+      expect(at(0, threePlusOne).bonusQuantity, isNull);
+      expect(at(0, threePlusOne).nextGiftIn, 4);
+      expect(at(2, threePlusOne).bonusQuantity, isNull);
+      expect(at(2, threePlusOne).nextGiftIn, 2);
+      expect(at(3, threePlusOne).bonusQuantity, 1);
+      expect(at(3, threePlusOne).nextGiftIn, 1);
+      expect(at(4, threePlusOne).bonusQuantity, isNull);
+      expect(at(4, threePlusOne).nextGiftIn, 4);
+      expect(at(7, threePlusOne).bonusQuantity, 1);
+      expect(at(8, threePlusOne).bonusQuantity, isNull);
+      final sixPlusTwo = [_subtract(1, 6, 2)];
+      expect(at(6, sixPlusTwo).bonusQuantity, 2);
+      expect(at(5, sixPlusTwo).bonusQuantity, isNull);
+      expect(at(5, sixPlusTwo).nextGiftIn, 3);
+    });
+
+    test('the offer follows the customer-best promotion, not a weaker one', () {
+      final promotions = [_subtract(1, 2, 1), _subtract(2, 3, 1)];
+      final two =
+          evaluatePhysicalGift(physicalQuantity: 2, promotions: promotions);
+      expect(two.bonusQuantity, 1); // 2+1 completes at 3 l.
+      final three =
+          evaluatePhysicalGift(physicalQuantity: 3, promotions: promotions);
+      expect(three.giftQuantity, 1);
+      expect(three.bonusQuantity, isNull); // 3+1 alone would add no gift here.
+      expect(three.nextGiftIn, 3);
+    });
+
+    test('ties prefer the larger gift; ended promotions give nothing', () {
+      final tie = evaluatePhysicalGift(
+          physicalQuantity: 8,
+          promotions: [_subtract(1, 6, 2), _subtract(2, 3, 1)]);
+      expect(tie.giftQuantity, 2);
+      expect(tie.award?.label, '6+2');
+      final ended = evaluatePhysicalGift(physicalQuantity: 8, promotions: [
+        _subtract(1, 3, 1, endDate: '2000-01-01T00:00:00.000Z'),
+      ]);
+      expect(ended.giftQuantity, 0);
+      expect(ended.award, isNull);
+      expect(ended.nextGiftIn, isNull);
+      expect(ended.bonusQuantity, isNull);
     });
   });
 

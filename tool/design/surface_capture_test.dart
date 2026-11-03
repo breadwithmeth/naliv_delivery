@@ -6,7 +6,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:naliv_delivery/ui/liquid_glass_dock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test/support/design_surfaces.dart';
@@ -22,8 +21,6 @@ Future<void> _loadCaptureAssets() async {
   final icons = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   await icons.load();
-  // Use the same cached material future as mounted docks, outside the fake clock.
-  await LiquidGlassDock.warmUp();
 }
 
 void main() {

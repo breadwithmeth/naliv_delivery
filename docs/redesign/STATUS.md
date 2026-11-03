@@ -5,10 +5,91 @@ its original author in the loop: **every question that needs a human answer is l
 the default I am proceeding on**, so nothing blocks unnecessarily, and nothing gets decided
 silently either.
 
-Last updated: 2026-11-02. Current source release: **1.2.116+12116**. The latest Figma composition restoration is recorded first below; the earlier correctness release and its APK evidence are historical. Client corrections F1–F11, dark/light themes, inherited text scaling, floating cart-only navigation and genuine glass remain preserved. Physical Huawei/S25 Ultra, Apple-native glass, bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
+Last updated: 2026-11-03. Current source release: **1.2.116+12116**. The latest Figma composition restoration is recorded first below; the earlier correctness release and its APK evidence are historical. Client corrections F1–F11, dark/light themes, inherited text scaling, floating cart-only navigation and genuine glass remain preserved. Physical Huawei/S25 Ultra, Apple-native glass, bank, loyalty-policy, 1C reversal and signed-device push acceptance remain external prerequisites. The clarified gift-container charging policy and `docs/kaspi.txt` remain unchanged.
 
 ---
 ## Current remediation gate
+
+### Saved bank cards were silently dropped — 2026-11-03
+
+- **Cause** (live read with the owner's account, read-only GETs): `GET /user/cards?source=halyk`
+  returns masks as six BIN digits, an ASCII ellipsis and the last four (`400000...1234`).
+  `SavedCard.safeMask` accepted only `*•xX` masking, so every card was rejected and the
+  page showed no usable card.
+- **Fix:** ellipsis runs are normalised to `••••` before the existing safety checks (digit
+  limits and PAN rejection unchanged). Regression in `saved_card_api_test.dart` failed before
+  the fix. The live response now parses to 5 of 5 chargeable cards and the cards page lists them.
+- **Server inconsistency, not changed:** `/auth/full-info` lists 3 cards for the same account
+  while the Halyk endpoint lists 5, so the profile row summary («3 карты») differs from the
+  cards page. No card was added, removed or charged during the check.
+
+### Smoothness, frosted bar and motion — 2026-11-03
+
+- **Frosted bar.** The liquid-glass shader (per-frame page snapshot, Gaussian pre-blur, fragment
+  shader, native `UIGlassEffect` view) is removed with `flutter_shaders`. `FrostedDock`
+  (`lib/ui/frosted_dock.dart`) is one `BackdropFilter` blur over the bar only, a theme tint and a
+  hairline, X/YouTube-style; high contrast gets an opaque bar.
+- **Rebuilds and layout.** Page-level cart watches became scoped selectors; product cards no
+  longer lay out text per card (`TextWidthCache`), drop `Opacity`/clip layers; rails and the cart
+  list are lazy; home is a `CustomScrollView`; images decode at display size.
+- **Measured** (tracked release, live catalogue, headless Chromium wheel scroll, frames > 25 ms):
+  home 42–45 → 1–2 of ~300; catalogue 66–68 → 0; p90 27.9 → 7.1 ms, both themes, with motion on.
+- **Motion** (`lib/design/motion.dart`, `lib/ui/motion_widgets.dart`, all zero under reduced
+  motion): add pill ↔ stepper swap, direction-aware count slide (cards, cart, product), cart badge
+  bump and total slide, press scale on cards/home tiles, heart pop, chip colour, checkout sliding
+  thumb, bottling bonus/gift appear, image fade-in. Reviewed frame-by-frame at 0–400 ms; that
+  review caught a zero-height checkout thumb (selected mode invisible), fixed before release.
+
+### Draft-beer bottling: pick physical litres — 2026-11-03
+
+- **One rule.** The customer picks physical bottles; a `3+1` promotion means exactly 4 l, with the
+  4th litre an optional bonus. Gift = `floor(T / (base + add)) × add`, paid = `T − gift`, every
+  physical container is charged at its ordinary tariff (policy unchanged), stock is checked against
+  `T`, and the order payload keeps one row per physical bottle variant (`amount` = litres).
+- **Configurator.** Hero, title, litre price, one bottles list (name/volume · «тара 100 ₸» ·
+  stepper). One compact line above the total: «4 л · 4 бутылки», a «1 л в подарок» badge, and either
+  the one-tap «+1 л в подарок» (adds the matching bottle, preferring the size already picked most) or
+  the hint «До подарка: X л». The paid/gift split, per-bottle allocation text and price-composition
+  paragraphs are removed; the whole-bottle gift refusal is gone.
+- **Cart/checkout/repeat.** Cart row: litres, `4× 1 л`, short «1 л в подарок» chip; checkout: one gift
+  line and one «Тара» total. Cart stepper repeats the whole physical set; repeat order maps fulfilled
+  amounts directly. Carts saved by earlier builds (paid litres + retained gift bottles) migrate on
+  restore to the same bottles (`version: 2` state, `giftBottleCounts` dropped).
+- **Evidence.** Rewritten tests: `product_detail_bottling_test`, `bottling_contract_test` (incl. legacy
+  migration), `cart_evaluation/projection/gifts`, `repeat_order_service`, `promotion_engine` (physical
+  gift). Not yet run by the author of this change; the integrating run is the evidence.
+
+### Store-city checkout, address flow, grouped catalogue and kitchen gating — 2026-11-02
+
+- **Address city follows the store.** `lib/services/store_city.dart` resolves the
+  selected store's city from `city_id` (address text as fallback). Checkout passes
+  that city and the store's coordinates to the address picker; search, reverse
+  lookup and the map centre use them instead of the onboarding/location city. An
+  address with a known different city shows «Адрес в другом городе» with a
+  «Выбрать адрес в г. X» action and blocks order creation and quoting; an unknown
+  city is not blocked. Profile address editing keeps the onboarding city.
+- **Checkout and address UI.** Segmented delivery/pickup control; store card with
+  city chip; address card with the street as heading and the city line; grouped
+  details form (Подъезд/Этаж/Квартира + an editable «Комментарий курьеру», sent in
+  the existing `extra` field); unified status rows. Map page: city-scoped search
+  pill, centred pin, bottom card with a pinned confirm and a separate retry
+  action; device location outside the store city is explained. Details and search
+  pages redesigned to match.
+- **Catalogue.** Supercategory pages show one section per parent category (Вино,
+  Пиво баночное и бутылочное, Пиво разливное …) with child chips and a preview
+  rail; tabs list parents only; the sheet groups children under parents; the
+  category page offers «Все» + child chips. The old flat leaf list and its
+  red featured panel are removed.
+- **Kitchen.** `lib/core/kitchen_policy.dart`: supercategory 7 «Кухня» (category
+  tree registered from the API, seed 237) is available only at store 11
+  (Бухар-Жырау 70). Elsewhere it is filtered from home, catalogue, search,
+  favourites, promotions and recommendations, refused at cart ingress, dropped on
+  cart restore and skipped in repeat orders.
+- Live read-only check: Темиртау (store 9) home/search show no kitchen; store 11
+  still shows it; Слабоалкогольные напитки reads as grouped parents.
+- Gate: 638 tests, clean analysis, Windows shopping journey, fixture and tracked web
+  rebuilt. Evidence: `.figma_cache/render/probe/compare_checkout_address.png`,
+  `compare_catalog_kitchen.png`, `after_*`, `final_*`.
 
 ### Card, cart control and add-to-cart follow-up — 2026-11-02
 
@@ -38,8 +119,10 @@ featured rail left dead red space; the floating dock blur was grainy.
   one meta line, bottom-pinned price and a 32 px solid-orange CTA with white glyphs
   inside a 44 px hit area. Rows and rails use one computed extent, so prices and
   actions align; single-item rails start at the left.
-- Featured category panel: title row on top, equal-height cards, a card-styled
-  «Все товары», and category artwork filling its slot instead of floating.
+- Catalogue hierarchy: a supercategory shows one section per parent category (header
+  with «Все», a child chip row, a product rail ending in a card-styled «Все товары»);
+  tabs name parents and scroll to them, the sheet groups children under parents, and
+  the products page filters a parent by «Все» + child chips with the parent as context.
 - Cart/search rows clamp names to two lines and move price/stepper to a second
   line at phone widths. Steppers share the solid accent.
 - Product page: badges beside the title, spec chips instead of a repeated
@@ -1948,6 +2031,7 @@ First-run city/location onboarding, addresses, saved-card add/confirmation, chec
 - `AppEntryGate` still owns first-run `OnboardingPage`. City selection uses the existing supported API/cache and preference keys. Requests fail distinctly from a genuine empty list; valid stale cities remain usable with retry feedback. Manual selection works without location. Location, settings, notifications and telemetry require explicit user action; denial/unsupported services cannot block completion. City and completion writes must succeed before advancing. The unused IP-location path was removed. Public read-only cities supplied the actual `AREA` / `DISTANCE` values; unknown raw enum labels are not displayed.
 - Profile and drawer enter the rebuilt `ProfileAddressesPage`; post-auth address capture uses the same map/search/details flow. Account records and device records are visibly distinct. Editing an account record creates a device copy; removal hides it only on this device. Device records can be added, edited, selected for delivery and removed, with destructive confirmation. No server address CRUD exists or was invented.
 - `MapAddressPage` preserves the production 2GIS template and supports manual search, explicit locate/settings, reverse-geocoding retry and optional delivery details. An unresolved coordinate cannot advance. Debounced search invalidates shortened queries and rejects late success/error replies. Changing the map point preserves typed entrance/floor/apartment. Book/history/selected-address writes are serialized, failed writes attempt rollback and reload persisted state, and selection events emit only after success. SharedPreferences multi-key writes are **not crash-atomic**; rollback/reload failure remains a storage limitation.
+- The address flow can be scoped to one city: `AddressSelectionModalHelper.show(city:, fallbackCenter:)` and `MapAddressPage(city:)` replace the onboarding city for reverse lookup, text search and label extraction (checkout passes the selected store's city). A stored/history address whose known city differs is ignored as the map centre; `fallbackCenter`, then the city's centre, then the onboarding city's centre is used instead. A device fix outside the scoped city shows an explicit «Вы сейчас не в г. X…» message (confirmed with one extra unscoped reverse lookup, only on that failure path) and leaves search and the map usable. The map page is a floating city-aware search pill, a recentre control and a bottom confirmation card (resolved street in bold, city line, retry for unresolved/outside/error states); the details page is a street summary card with «Изменить» plus labelled Подъезд/Этаж/Квартира fields (a row when wide, stacked at narrow width or large text) over a pinned primary action; the search page shows «Ищем адреса в г. X» with street-bold, district/city-secondary results.
 - `ProfileCardsPage`, `AddCardWebViewPage` and `PaymentMethodPage` retain actual hosted-bank and payment contracts. Lists expose loading/empty/read failure/retry; masks and identities come from the server, not fabricated bank metadata. Web reserves its popup before asynchronous link generation. Link/launch/refresh failures remain actionable, duplicate launch is suppressed and pending binding can be cancelled. Bank open/return is **not** success: only a refreshed server ID absent from the baseline confirms binding, even when list size stays unchanged. No unsupported deletion is shown.
 - Payment presentation preserves the existing card and Kaspi calls, order-ID/amount precedence, payload and success routing. The browser fixture exercised selection only; it did not execute payment. Profile refresh after returning from card binding reflects the new synthetic server identity. Address summaries intentionally remain server-only rather than claiming a device edit changed the account.
 

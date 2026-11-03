@@ -198,55 +198,17 @@ class SmartCartSelection {
     return normalizeVariantMaps(result);
   }
 
+  /// The fewest physical bottles that hold exactly [targetLiters]. The litres are what the
+  /// customer picks, gift included, so the only limit besides the container set is the stock.
   Map<int, int> autoBottleBreakdown(double targetLiters) {
     if (!targetLiters.isFinite || targetLiters < 0) {
       throw ArgumentError.value(targetLiters, 'targetLiters');
     }
     if (targetLiters == 0) return const <int, int>{};
-    final promotions = (item.promotions ?? const <item_model.ItemPromotion>[])
-        .where((promotion) => promotion.isActive)
-        .map((promotion) => promotion.toJson())
-        .toList(growable: false);
-    if (targetLiters + subtractPromotionFreeQuantity(targetLiters, promotions) >
-        maxAmount + 0.0000001) {
-      throw StateError('Выбранный объём с подарком превышает остаток');
+    if (targetLiters > maxAmount + 0.0000001) {
+      throw StateError('Выбранный объём превышает остаток');
     }
-    giftBottleBreakdown(targetLiters);
     return _exactBottleBreakdown(targetLiters);
-  }
-
-  Map<int, int> giftBottleBreakdown(double paidLiters,
-      {Map<int, int>? retainedCounts,
-      Map<int, int>? availableCounts,
-      DateTime? now}) {
-    final promotions = [
-      for (final promotion
-          in item.promotions ?? const <item_model.ItemPromotion>[])
-        promotion.toJson(),
-    ];
-    final gift =
-        subtractPromotionFreeQuantity(paidLiters, promotions, now: now);
-    return _giftBottleBreakdownForQuantity(gift,
-        retainedCounts: retainedCounts, availableCounts: availableCounts);
-  }
-
-  Map<int, int> _giftBottleBreakdownForQuantity(double gift,
-      {Map<int, int>? retainedCounts, Map<int, int>? availableCounts}) {
-    if (retainedCounts != null) {
-      final volume = litersForCounts(retainedCounts);
-      if (retainedCounts.entries.any((entry) =>
-              entry.value < 0 || !knownBottleRelationIds.contains(entry.key)) ||
-          (volume - gift).abs() > 0.0000001) {
-        throw StateError('Подарочный объём не совпадает с выбранной тарой.');
-      }
-      return retainedCounts;
-    }
-    try {
-      return _exactBottleBreakdown(gift, availableCounts: availableCounts);
-    } on StateError {
-      throw StateError(
-          'Нельзя точно разлить подарочный объём по доступной таре. Измените оплаченный объём.');
-    }
   }
 
   static Map<int, int>? scaledBottleCounts(
@@ -261,8 +223,7 @@ class SmartCartSelection {
     return result;
   }
 
-  Map<int, int> _exactBottleBreakdown(double targetLiters,
-      {Map<int, int>? availableCounts}) {
+  Map<int, int> _exactBottleBreakdown(double targetLiters) {
     if (targetLiters == 0) return const <int, int>{};
     const precision = 1000000;
     final rawTarget = (targetLiters * precision).round();
@@ -283,29 +244,6 @@ class SmartCartSelection {
     }
     final target = rawTarget ~/ divisor;
     final volumes = rawVolumes.map((volume) => volume ~/ divisor).toList();
-    if (availableCounts != null) {
-      final result = <int, int>{};
-      final failed = <(int, int)>{};
-      bool find(int index, int remaining) {
-        if (remaining == 0) return true;
-        if (index == volumes.length || failed.contains((index, remaining))) {
-          return false;
-        }
-        final bottleId = filteredBottles[index].relationId;
-        final limit = math.min(
-            availableCounts[bottleId] ?? 0, remaining ~/ volumes[index]);
-        for (var count = 0; count <= limit; count++) {
-          if (count > 0) result[bottleId] = count;
-          if (find(index + 1, remaining - count * volumes[index])) return true;
-          result.remove(bottleId);
-        }
-        failed.add((index, remaining));
-        return false;
-      }
-
-      if (find(0, target)) return result;
-      throw StateError('Нельзя точно распределить выбранный объём по таре');
-    }
     final counts = minimumBottleCounts(target, volumes);
     if (counts == null) {
       throw StateError('Нельзя точно распределить выбранный объём по таре');
@@ -318,11 +256,6 @@ class SmartCartSelection {
     }
     return result;
   }
-
-  static List<CartItem> withGiftContainers(Iterable<CartItem> paidItems) => [
-        for (final group in CartDisplayGroup.groupItems(paidItems))
-          ...group.evaluate().physicalItems,
-      ];
 
   String volumeLabel(double value) =>
       '${value.toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '')} л';
@@ -569,12 +502,6 @@ class CartDisplayGroup {
   double get totalOrderQuantity => evaluate().totalOrderQuantity;
   bool get hasWithdrawnBottles {
     final currentSelection = selection;
-    if (retainedGiftBottleCounts?.entries.any((entry) =>
-            entry.value > 0 &&
-            currentSelection?.isWithdrawnBottleRelation(entry.key) == true) ==
-        true) {
-      return true;
-    }
     return items.any((item) => item.selectedVariants.any((variant) =>
         currentSelection?.isWithdrawnBottleVariant(variant) ??
         SmartCartSelection.isExplicitWithdrawnBottleVariant(variant)));
@@ -582,24 +509,16 @@ class CartDisplayGroup {
 
   bool get canIncrease => evaluate().canIncrease;
 
-  Map<int, int>? get retainedGiftBottleCounts {
-    for (final item in items) {
-      if (item.giftBottleCounts != null) return item.giftBottleCounts;
-    }
-    return null;
-  }
-
   List<CartItem> get physicalItems => evaluate().physicalItems;
 
   String? get allocationIssue => evaluate().allocationIssue;
 
   List<Map<String, dynamic>> toJsonForOrder() => evaluate().toJsonForOrder();
 
-  Map<int, int> get bottleCounts => evaluate().bottleCounts;
-  Map<int, int> get paidBottleCounts => _bottleCounts(items, physical: false);
+  /// Physical bottles of a pour group, by container relation.
+  Map<int, int> get bottleCounts => _bottleCounts(items);
 
-  Map<int, int> _bottleCounts(Iterable<CartItem> rows,
-      {required bool physical}) {
+  Map<int, int> _bottleCounts(Iterable<CartItem> rows) {
     final currentSelection = selection;
     if (currentSelection == null || !currentSelection.usesPourFlow) {
       return const <int, int>{};
@@ -627,7 +546,7 @@ class CartDisplayGroup {
         continue;
       }
 
-      final ratio = (physical ? item.physicalQuantity : item.quantity) / volume;
+      final ratio = item.physicalQuantity / volume;
       if ((ratio - ratio.round()).abs() > 0.0000001) return const <int, int>{};
       final count = ratio.round();
       if (count <= 0) {
@@ -711,67 +630,150 @@ class CartDisplayGroup {
     }
     return 0;
   }
+
+  /// Carts saved before pour rows held physical litres stored only the paid litres plus the
+  /// retained gift bottles. Each such group becomes the bottles it represented: the gift bottles
+  /// are added to the physical rows, so the customer keeps the same bottles and the same total.
+  ///
+  /// [legacyGifts] holds each row's old `giftBottleCounts`. A group without a usable record is
+  /// given the gift the old rule derived from its paid litres, with the fewest bottles.
+  static List<CartItem> migrateLegacyPourRows(
+    Iterable<CartItem> rows, {
+    Map<CartItem, Map<int, int>> legacyGifts = const {},
+    DateTime? now,
+  }) {
+    final source = rows.toList(growable: false);
+    final replacements = Map<CartItem, CartItem>.identity();
+    final appended = Map<CartItem, List<CartItem>>.identity();
+    for (final group in groupItems(source)) {
+      final selection = group.selection;
+      if (selection == null || !selection.usesPourFlow) continue;
+      final free = subtractPromotionFreeQuantity(
+          group.totalQuantity, group.promotions,
+          now: now);
+      if (free <= 0.0000001) continue;
+      Map<int, int>? gifts;
+      for (final row in group.items) {
+        final retained = legacyGifts[row];
+        if (retained == null) continue;
+        final valid = retained.entries.every((entry) =>
+                entry.value >= 0 &&
+                selection.knownBottleRelationIds.contains(entry.key)) &&
+            (selection.litersForCounts(retained) - free).abs() <= 0.0000001;
+        if (valid) gifts = retained;
+        break;
+      }
+      if (gifts == null) {
+        try {
+          gifts = selection._exactBottleBreakdown(free);
+        } on StateError {
+          continue;
+        }
+      }
+      final current = {for (final row in group.items) row: row};
+      for (final entry in gifts.entries) {
+        if (entry.value <= 0) continue;
+        final bottle = selection.bottleVariants
+            .firstWhereOrNull((candidate) => candidate.relationId == entry.key);
+        if (bottle == null) continue;
+        final volume = selection.volumeForBottle(bottle) * entry.value;
+        final holder = group.items.firstWhereOrNull((row) =>
+            row.selectedVariants.any((variant) =>
+                SmartCartSelection.variantRelationId(variant) == entry.key));
+        if (holder != null) {
+          final updated = current[holder]!;
+          current[holder] =
+              updated.copyWith(quantity: updated.quantity + volume);
+        } else {
+          appended
+              .putIfAbsent(group.items.last, () => <CartItem>[])
+              .add(group.items.first.copyWith(
+                quantity: volume,
+                stepQuantity: selection.volumeForBottle(bottle),
+                selectedVariants: selection.buildVariantMaps(
+                    bottle: bottle, baseVariants: group.baseVariants),
+              ));
+        }
+      }
+      replacements.addAll(current);
+    }
+    return [
+      for (final row in source) ...[
+        replacements[row] ?? row,
+        ...?appended[row],
+      ],
+    ];
+  }
 }
 
 class CartGroupEvaluation {
   CartGroupEvaluation._(this.group, this.now)
-      : paidItems = List<CartItem>.unmodifiable(
+      : rows = List<CartItem>.unmodifiable(
             group.items.map((item) => item.copyWith()));
 
   final CartDisplayGroup group;
   final DateTime now;
-  final List<CartItem> paidItems;
-  late final double totalQuantity =
-      paidItems.fold<double>(0, (sum, item) => sum + item.quantity);
+
+  /// The persisted rows: paid units for an ordinary item, physical litres (gift included) for a
+  /// pour group, whose gift is derived by [evaluatePhysicalGift] and never stored.
+  final List<CartItem> rows;
+  bool get _pour => group.selection?.usesPourFlow == true;
+  late final double _rowsTotal =
+      rows.fold<double>(0, (sum, item) => sum + item.quantity);
+  late final PhysicalGiftEvaluation? _physicalGift = _pour
+      ? evaluatePhysicalGift(
+          physicalQuantity: _rowsTotal, promotions: group.promotions, now: now)
+      : null;
+
+  /// Paid units; for a pour group the picked litres minus the gift.
+  late final double totalQuantity = _physicalGift?.paidQuantity ?? _rowsTotal;
   late final PromotionEvaluation promotion = evaluatePromotion(
       paidQuantity: totalQuantity, promotions: group.promotions, now: now);
-  double get freeQuantity => promotion.freeQuantity;
-  double get totalOrderQuantity => totalQuantity + freeQuantity;
-  late final Map<int, int> paidBottleCounts = Map<int, int>.unmodifiable(
-      group._bottleCounts(paidItems, physical: false));
+
+  /// The promotion in force for this group, by the rule that applies to it.
+  PromotionAward? get award => _physicalGift?.award ?? promotion.award;
+  double get freeQuantity =>
+      _physicalGift?.giftQuantity ?? promotion.freeQuantity;
+
+  /// Units the customer takes home, gift included.
+  double get totalOrderQuantity =>
+      _pour ? _rowsTotal : totalQuantity + freeQuantity;
+  late final Map<int, int> bottleCounts =
+      Map<int, int>.unmodifiable(group._bottleCounts(rows));
   late final (List<CartItem>, String?) _projection = _project();
   String? get allocationIssue => _projection.$2;
 
   late final double incrementStep = _incrementStep();
   double _incrementStep() {
-    if (group.selection?.usesPourFlow != true) {
-      return group.selection?.defaultStepQuantity ??
-          paidItems.first.stepQuantity;
+    if (!_pour) {
+      return group.selection?.defaultStepQuantity ?? rows.first.stepQuantity;
     }
     var batches = 0;
-    for (final count in paidBottleCounts.values) {
+    for (final count in bottleCounts.values) {
       if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
     }
-    return batches == 0 ? 0 : totalQuantity / batches;
+    return batches == 0 ? 0 : _rowsTotal / batches;
   }
 
-  late final double nextOrderQuantity = totalQuantity +
-      incrementStep +
-      subtractPromotionFreeQuantity(
-          totalQuantity + incrementStep, group.promotions,
-          now: now);
+  late final double nextOrderQuantity = _pour
+      ? _rowsTotal + incrementStep
+      : totalQuantity +
+          incrementStep +
+          subtractPromotionFreeQuantity(
+              totalQuantity + incrementStep, group.promotions,
+              now: now);
 
   late final bool canIncrease = _canIncrease();
   bool _canIncrease() {
     final selection = group.selection;
-    if (group.hasWithdrawnBottles ||
+    return !(group.hasWithdrawnBottles ||
         allocationIssue != null ||
         selection?.containerIssue != null ||
         selection?.quantityIssue != null ||
         !incrementStep.isFinite ||
         incrementStep <= 0 ||
         (group.maxAmount != null &&
-            nextOrderQuantity > group.maxAmount! + 0.0000001)) {
-      return false;
-    }
-    if (selection?.usesPourFlow == true) {
-      try {
-        selection!.giftBottleBreakdown(totalQuantity + incrementStep, now: now);
-      } on StateError {
-        return false;
-      }
-    }
-    return true;
+            nextOrderQuantity > group.maxAmount! + 0.0000001));
   }
 
   List<CartItem> get physicalItems {
@@ -784,52 +786,49 @@ class CartGroupEvaluation {
     final selection = group.selection;
     if (group.itemSnapshot == null &&
         freeQuantity > 0 &&
-        paidItems.any((item) => item.selectedVariants
+        rows.any((item) => item.selectedVariants
             .any(SmartCartSelection.looksBottleLikeVariant))) {
       return (
         const [],
         'Магазин не передал данные тары для подарочного объёма.'
       );
     }
-    if (selection?.usesPourFlow == true &&
-        totalQuantity > 0 &&
-        paidBottleCounts.isEmpty) {
+    if (_pour && _rowsTotal > 0 && bottleCounts.isEmpty) {
       return (const [], 'Объём напитка должен совпадать с целыми бутылками.');
     }
-    final rows = [
-      for (final item in paidItems)
+    final live = [
+      for (final item in rows)
         if (item.quantity > 0) item,
     ];
-    if (selection?.usesPourFlow == true && rows.isNotEmpty) {
-      try {
-        final gifts = selection!._giftBottleBreakdownForQuantity(freeQuantity,
-            retainedCounts: group.retainedGiftBottleCounts);
-        for (final entry in gifts.entries) {
-          if (entry.value == 0) continue;
-          final bottle = selection.bottleVariants.firstWhereOrNull(
-              (candidate) => candidate.relationId == entry.key);
-          if (bottle == null) continue;
-          final volume = selection.volumeForBottle(bottle) * entry.value;
-          final index = rows.indexWhere((row) => row.selectedVariants.any(
-              (variant) =>
-                  SmartCartSelection.variantRelationId(variant) == entry.key));
-          if (index >= 0) {
-            rows[index] = rows[index].copyWith(bottledGiftQuantity: volume);
-          } else {
-            rows.add(rows.first.copyWith(
-              quantity: 0,
-              bottledGiftQuantity: volume,
-              stepQuantity: selection.volumeForBottle(bottle),
-              selectedVariants: selection.buildVariantMaps(
-                  bottle: bottle, baseVariants: group.baseVariants),
-            ));
-          }
-        }
-      } on StateError catch (error) {
-        return (const [], error.message.toString());
-      }
+    if (!_pour || freeQuantity <= 0) {
+      return (List<CartItem>.unmodifiable(live), null);
     }
-    return (List<CartItem>.unmodifiable(rows), null);
+    // Which bottle carries the free drink is presentation only. The gift goes to the dearest
+    // litres first (then the largest bottle), so a tariff that replaces the drink price never
+    // costs the customer more than the single rule says.
+    final order = [for (var index = 0; index < live.length; index++) index]
+      ..sort((left, right) {
+        final byPrice =
+            live[right].paidUnitPrice.compareTo(live[left].paidUnitPrice);
+        if (byPrice != 0) return byPrice;
+        final byVolume =
+            CartDisplayGroup._bottleVolumeForCartItem(live[right], selection!)
+                .compareTo(CartDisplayGroup._bottleVolumeForCartItem(
+                    live[left], selection));
+        return byVolume != 0 ? byVolume : left.compareTo(right);
+      });
+    final projected = List<CartItem>.of(live);
+    var remaining = freeQuantity;
+    for (final index in order) {
+      if (remaining <= 0.0000001) break;
+      final take = math.min(live[index].quantity, remaining);
+      final paid = live[index].quantity - take;
+      projected[index] = live[index].copyWith(
+          quantity: paid.abs() <= 0.0000001 ? 0 : paid,
+          bottledGiftQuantity: take);
+      remaining -= take;
+    }
+    return (List<CartItem>.unmodifiable(projected), null);
   }
 
   late final CartPriceBreakdown price = _calculatePrice();
@@ -859,14 +858,6 @@ class CartGroupEvaluation {
       totalPrice: paid + options,
     );
   }
-
-  late final Map<int, int> bottleCounts = Map<int, int>.unmodifiable(
-      group._bottleCounts(physicalItems, physical: true));
-  late final Map<int, int> giftBottleCounts = Map<int, int>.unmodifiable({
-    for (final entry in bottleCounts.entries)
-      if (entry.value > (paidBottleCounts[entry.key] ?? 0))
-        entry.key: entry.value - (paidBottleCounts[entry.key] ?? 0),
-  });
 
   late final String? bottleBreakdownLabel = _bottleBreakdownLabel();
 
@@ -901,7 +892,7 @@ class CartGroupEvaluation {
     var paid = 0.0;
     var allocatedFree = 0.0;
     final result = <Map<String, dynamic>>[];
-    for (final item in paidItems) {
+    for (final item in rows) {
       if (item.quantity <= 0) continue;
       paid += item.quantity;
       final free =
@@ -919,7 +910,7 @@ class CartEvaluation {
     groups = List<CartGroupEvaluation>.unmodifiable(
         source.map((group) => group.evaluate(now: this.now)));
     activeGroups = List<CartGroupEvaluation>.unmodifiable(
-        groups.where((group) => group.totalQuantity > 0.0000001));
+        groups.where((group) => group.totalOrderQuantity > 0.0000001));
   }
 
   final DateTime now;

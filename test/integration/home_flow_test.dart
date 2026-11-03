@@ -118,7 +118,13 @@ void main() {
       tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('home-promo-card')));
+      // Store 2 does not sell the kitchen: no promo card, the tiles are the remaining ones.
+      expect(find.byKey(const ValueKey('home-promo-card')), findsNothing);
+      expect(find.text('Кухня'), findsNothing);
+      await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('home-category-grid')),
+        matching: find.text('Напитки'),
+      ));
       await tester.pumpAndSettle();
       expect(find.byType(SupercategoryPage), findsOneWidget);
       tester.state<NavigatorState>(find.byType(Navigator)).pop();

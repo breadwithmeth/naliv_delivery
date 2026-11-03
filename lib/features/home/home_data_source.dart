@@ -1,3 +1,4 @@
+import '../../core/kitchen_policy.dart';
 import '../../utils/api.dart';
 import '../../utils/order_ui_helpers.dart';
 import '../catalog/catalog_data_source.dart';
@@ -9,9 +10,10 @@ import 'home_view_data.dart';
 ///
 /// * **Category tiles** — `GET /categories/supercategories` returns 7 supercategories
 ///   (Кухня 100, Аксессуары 20, Слабоалкогольные напитки 10, Еда и закуски 9, Крепкие напитки 8,
-///   Табачная продукция 7, Безалкогольные напитки 2). The design's home shows exactly six
-///   tiles plus one large promo card, so the highest-priority supercategory becomes the promo
-///   card and the remaining six become the tiles. Tile artwork is the supercategory's first
+///   Табачная продукция 7, Безалкогольные напитки 2). The design's home shows up to six
+///   tiles plus one large promo card. The promo card is the kitchen supercategory and exists
+///   only where [KitchenPolicy] sells the kitchen; the remaining supercategories, by priority,
+///   become the (up to six) tiles. Tile artwork is the supercategory's first
 ///   category image, because the supercategory objects themselves carry no image field.
 /// * **Banners** — `GET /promotions/active` may return campaigns without cover
 ///   artwork; their real names remain visible against the design's red fill.
@@ -28,7 +30,8 @@ class HomeDataSource {
   // An explicit persisted cart store must never fall back to another store.
   final int? businessId;
   final bool allowDefaultBusiness;
-  final Future<bool> Function(Map<String, dynamic> business)? onBusinessSelected;
+  final Future<bool> Function(Map<String, dynamic> business)?
+      onBusinessSelected;
 
   Future<HomeViewData> load() async {
     final businessesFuture = ApiService.getBusinesses(page: 1, limit: 1000);
@@ -55,11 +58,21 @@ class HomeDataSource {
         throw StateError('Не удалось сохранить выбранный магазин');
       }
       final supercategories = _listOf(core[1], 'supercategories');
-      final ordered = [...supercategories]
-        ..sort((a, b) => _int(b['priority']).compareTo(_int(a['priority'])));
-
-      final promoSuper = ordered.isNotEmpty ? ordered.first : null;
-      final tiles = ordered.skip(1).take(6).toList();
+      // The big promo card is the kitchen and only the kitchen. Where the kitchen is not sold
+      // it simply does not exist; no other category is promoted into its place.
+      final visible = KitchenPolicy.filterSupercategories(
+        supercategories,
+        storeId,
+      );
+      final promoSuper = KitchenPolicy.isAvailableForBusiness(storeId)
+          ? visible.where(_isKitchen).firstOrNull
+          : null;
+      final tiles = ([
+        for (final category in visible)
+          if (!identical(category, promoSuper)) category,
+      ]..sort((a, b) => _int(b['priority']).compareTo(_int(a['priority']))))
+          .take(6)
+          .toList();
       final homeCategories = [
         for (final category in tiles)
           HomeCategory(
@@ -191,6 +204,12 @@ class HomeDataSource {
     ]);
     return sections.whereType<HomeProductSection>().toList(growable: false);
   }
+
+  bool _isKitchen(Map<String, dynamic> supercategory) =>
+      KitchenPolicy.isKitchenSupercategory(
+        id: _int(supercategory['supercategory_id']),
+        name: _string(supercategory['name']),
+      );
 
   int _sectionOrder(String title) {
     final name = title.toLowerCase();

@@ -17,10 +17,10 @@ class CartItem {
   final double price;
   double quantity;
   final double stepQuantity;
-  // Derived gift capacity, never persisted as newly paid drink quantity.
+  // Pour groups persist physical litres in [quantity]; the evaluation splits a row into its paid
+  // part ([quantity]) and the gift it carries ([bottledGiftQuantity]). Persisted rows carry no gift.
   final double bottledGiftQuantity;
   double get physicalQuantity => quantity + bottledGiftQuantity;
-  final Map<int, int>? giftBottleCounts;
   final String? image;
   final String? itemType;
   final String? packagingType;
@@ -36,7 +36,6 @@ class CartItem {
     required this.quantity,
     required this.stepQuantity,
     this.bottledGiftQuantity = 0,
-    this.giftBottleCounts,
     this.image,
     this.itemType,
     this.packagingType,
@@ -53,12 +52,6 @@ class CartItem {
       price: (json['price'] as num).toDouble(),
       quantity: (json['quantity'] as num).toDouble(),
       stepQuantity: (json['stepQuantity'] as num).toDouble(),
-      giftBottleCounts: json['giftBottleCounts'] is Map
-          ? {
-              for (final entry in (json['giftBottleCounts'] as Map).entries)
-                int.parse(entry.key.toString()): (entry.value as num).toInt(),
-            }
-          : null,
       image: json['image'] as String?,
       itemType: json['itemType'] as String?,
       packagingType: json['packagingType'] as String?,
@@ -84,11 +77,6 @@ class CartItem {
       'price': price,
       'quantity': quantity,
       'stepQuantity': stepQuantity,
-      if (giftBottleCounts != null)
-        'giftBottleCounts': {
-          for (final entry in giftBottleCounts!.entries)
-            entry.key.toString(): entry.value,
-        },
       if (image != null) 'image': image,
       if (itemType != null) 'itemType': itemType,
       if (packagingType != null) 'packagingType': packagingType,
@@ -106,8 +94,6 @@ class CartItem {
     double? quantity,
     double? stepQuantity,
     double? bottledGiftQuantity,
-    Map<int, int>? giftBottleCounts,
-    bool clearGiftBottleCounts = false,
     String? image,
     String? itemType,
     String? packagingType,
@@ -124,9 +110,6 @@ class CartItem {
       quantity: quantity ?? this.quantity,
       stepQuantity: stepQuantity ?? this.stepQuantity,
       bottledGiftQuantity: bottledGiftQuantity ?? this.bottledGiftQuantity,
-      giftBottleCounts: clearGiftBottleCounts
-          ? null
-          : (giftBottleCounts ?? this.giftBottleCounts),
       image: image ?? this.image,
       itemType: itemType ?? this.itemType,
       packagingType: packagingType ?? this.packagingType,

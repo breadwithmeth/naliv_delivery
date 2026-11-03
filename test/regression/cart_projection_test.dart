@@ -112,16 +112,15 @@ void main() {
     expect(cart.toJsonForOrder().map((row) => row['amount']), [2.0, 1.0]);
   });
 
-  test('paid-volume changes publish the repaired retained gift allocation', () {
+  test('picked-litre changes re-derive the gift and keep every bottle', () {
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
     final selection = SmartCartSelection(item);
     final row = CartItem(
       itemId: item.itemId,
       name: item.name,
       price: item.price,
-      quantity: 3,
+      quantity: 4,
       stepQuantity: 1,
-      giftBottleCounts: {93101: 1},
       selectedVariants:
           selection.buildVariantMaps(bottle: selection.filteredBottles.single),
       promotions:
@@ -132,6 +131,7 @@ void main() {
     addTearDown(cart.dispose);
     expect(cart.addDisplayGroupItems([row]), isTrue);
     expect(cart.activeDisplayGroups.single.bottleCounts, {93101: 4});
+    expect(cart.activeDisplayGroups.single.freeQuantity, 1);
     expect(cart.getTotalPrice(), 3400);
 
     cart.updateQuantity(item.itemId, 2, row.selectedVariants);
@@ -143,7 +143,8 @@ void main() {
     expect(cart.getTotalPrice(), 2200);
     expect(cart.toJsonForOrder().single['amount'], 2.0);
 
-    cart.updateQuantity(item.itemId, 6, row.selectedVariants);
+    cart.updateQuantity(item.itemId, 8, row.selectedVariants);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 2);
     expect(cart.activeDisplayGroups.single.bottleCounts, {93101: 8});
     expect(cart.getTotalPrice(), 6800);
     expect(cart.toJsonForOrder().single['amount'], 8.0);
@@ -177,13 +178,13 @@ void main() {
     final edited = _flavor(plain, 43);
     final cart = CartProvider();
     addTearDown(cart.dispose);
-    expect(cart.syncItemBottleCounts(item, plain, {93101: 3}), isTrue);
+    expect(cart.syncItemBottleCounts(item, plain, {93101: 4}), isTrue);
     expect(cart.syncItemBottleCounts(item, berry, {93101: 1}), isTrue);
     expect(cart.displayItemCount, 2);
     expect(cart.getTotalPrice(), 4500);
     final before = cart.toJsonForOrder();
 
-    expect(cart.syncItemBottleCounts(item, plain, {93101: 4}), isFalse);
+    expect(cart.syncItemBottleCounts(item, plain, {93101: 5}), isFalse);
     expect(
         cart.syncItemBottleCounts(item, berry, {93101: 3},
             previousBaseVariants: plain),
@@ -193,7 +194,7 @@ void main() {
 
     cart.removeDisplayGroup(cart.activeDisplayGroups.last);
     expect(cart.displayItemCount, 1);
-    expect(cart.syncItemBottleCounts(item, plain, {93101: 4}), isTrue);
+    expect(cart.syncItemBottleCounts(item, plain, {93101: 5}), isTrue);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 5);
     expect(
         cart.syncItemBottleCounts(item, edited, {93101: 3},
@@ -212,7 +213,7 @@ void main() {
     expect(cart.displayGroups.first.totalQuantity, 0);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 1);
     expect(cart.getTotalPrice(), 1100);
-    expect(cart.syncItemBottleCounts(item, edited, {93101: 3}), isTrue);
+    expect(cart.syncItemBottleCounts(item, edited, {93101: 4}), isTrue);
     expect(cart.activeDisplayGroups.map((group) => group.totalOrderQuantity),
         [4.0, 1.0]);
     expect(cart.getTotalPrice(), 4500);

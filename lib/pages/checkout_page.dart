@@ -12,8 +12,9 @@ import '../core/product_view.dart';
 import '../model/category_items.dart';
 import '../core/quantity.dart';
 import '../services/auth_service.dart';
-import '../ui/liquid_glass_dock.dart';
+import '../ui/frosted_dock.dart';
 import '../ui/product_card.dart';
+import '../design/motion.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
@@ -21,9 +22,12 @@ import '../features/cart/ui/cart_page.dart' as feature_cart;
 import '../features/checkout/checkout_contract.dart';
 import '../features/orders/ui/orders_page.dart';
 import '../services/onboarding_service.dart';
+import '../services/store_city.dart';
+import '../ui/app_icon.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
+import '../ui/text_width_cache.dart';
 import '../utils/address_storage_service.dart';
 import '../utils/api.dart';
 import '../utils/app_navigator.dart';
@@ -44,6 +48,18 @@ import 'help_chat_page.dart';
 import 'payment_method_page.dart';
 import 'profile_setup_page.dart';
 
+/// Opens the delivery-address picker. [city] is the selected store's city
+/// (addresses must be searched, reverse-geocoded and validated there) and
+/// [fallbackCenter] the store's coordinates, used when there is no usable
+/// initial address.
+typedef CheckoutAddressPicker = Future<Map<String, dynamic>?> Function(
+  BuildContext context,
+  Map<String, dynamic>? address,
+  bool detailsFirst, {
+  String? city,
+  ({double lat, double lon})? fallbackCenter,
+});
+
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
 
@@ -59,8 +75,7 @@ class CheckoutPage extends StatefulWidget {
 
   final String? initialDeliveryType;
   final Map<String, dynamic>? initialAddress;
-  final Future<Map<String, dynamic>?> Function(
-      BuildContext, Map<String, dynamic>?, bool)? addressPicker;
+  final CheckoutAddressPicker? addressPicker;
   final Future<bool> Function(Uri)? openCardForm;
   final Future<void> Function(String orderId)? onPaymentCompleted;
   final VoidCallback? onCatalog;
@@ -77,6 +92,7 @@ class _CheckoutPageState extends State<CheckoutPage>
   final _entrance = TextEditingController();
   final _floor = TextEditingController();
   final _apartment = TextEditingController();
+  final _comment = TextEditingController();
   final _promo = TextEditingController();
   final _certificate = TextEditingController();
   double _footerHeight = 110;
@@ -88,6 +104,10 @@ class _CheckoutPageState extends State<CheckoutPage>
   Map<String, dynamic>? _promoData;
   Map<String, dynamic>? _certificateData;
   String _mode = 'DELIVERY';
+  String? _storeCity;
+  Map<String, dynamic>? _storeCityBusiness;
+  int _storeCityRequest = 0;
+  Future<void>? _storeCityLoad;
   int _cartSnapshot = -1;
   int? _storeSnapshot;
   int _revision = 0;
@@ -150,6 +170,8 @@ class _CheckoutPageState extends State<CheckoutPage>
   bool get _editingLocked =>
       _busy || _creationUncertain || _created || _cartRestoreFailed;
   bool get _quoteReady => !_delivery || (!_quoting && _quote != null);
+  bool get _addressCityMismatch =>
+      _delivery && addressMatchesCity(_address, _storeCity) == false;
   bool get _canSubmit =>
       _loggedIn == true &&
       _hasItems &&
@@ -166,6 +188,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       !_creationUncertain &&
       !_creationStorageUnavailable &&
       !_created &&
+      !_addressCityMismatch &&
       (!_delivery || _normalizedAddress() != null);
 
   @override
@@ -212,6 +235,7 @@ class _CheckoutPageState extends State<CheckoutPage>
     _business?.removeListener(_dependenciesChanged);
     for (final controller in [
       _entrance,
+      _comment,
       _floor,
       _apartment,
       _promo,
@@ -220,6 +244,33 @@ class _CheckoutPageState extends State<CheckoutPage>
       controller.dispose();
     }
     super.dispose();
+  }
+
+  /// Resolves the selected store's city (the delivery address must be in it).
+  Future<void> _refreshStoreCity() {
+    if (!mounted) return Future.value();
+    final business = _business?.selectedBusiness;
+    if (identical(business, _storeCityBusiness)) {
+      return _storeCityLoad ?? Future.value();
+    }
+    _storeCityBusiness = business;
+    _storeCity = null;
+    return _storeCityLoad = _loadStoreCity(business, ++_storeCityRequest);
+  }
+
+  Future<void> _loadStoreCity(
+      Map<String, dynamic>? business, int request) async {
+    String? city;
+    try {
+      city = await storeCityName(business)
+          .timeout(const Duration(seconds: 4), onTimeout: () => null);
+    } catch (_) {
+      city = null;
+    }
+    if (!mounted || request != _storeCityRequest) return;
+    final wasBlocked = _addressCityMismatch;
+    setState(() => _storeCity = city);
+    if (wasBlocked != _addressCityMismatch) _calculateDelivery();
   }
 
   void _cartSaveChanged() {
@@ -249,7 +300,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       'lines': [
         for (final group in evaluation.activeGroups)
           {
-            'rows': group.paidItems.map((item) => item.toJson()).toList(),
+            'rows': group.rows.map((item) => item.toJson()).toList(),
             'physical': group.toJsonForOrder(),
             'price': group.price.totalPrice,
             'discount': group.price.discount,
@@ -263,6 +314,9 @@ class _CheckoutPageState extends State<CheckoutPage>
 
   void _dependenciesChanged() {
     if (!mounted || _created || _switchingStore) return;
+    if (!identical(_storeCityBusiness, _business?.selectedBusiness)) {
+      _refreshStoreCity();
+    }
     final nextCart = _snapshotCart();
     final nextStore = _businessId;
     if (nextCart == _cartSnapshot && nextStore == _storeSnapshot) return;
@@ -319,6 +373,8 @@ class _CheckoutPageState extends State<CheckoutPage>
           throw StateError('Не удалось восстановить магазин корзины');
         }
       }
+      if (!mounted) return;
+      await _refreshStoreCity();
       if (!mounted) return;
       await _refreshSession(invalidate: false);
     } catch (_) {
@@ -571,6 +627,7 @@ class _CheckoutPageState extends State<CheckoutPage>
     _entrance.text = address['entrance']?.toString() ?? '';
     _floor.text = address['floor']?.toString() ?? '';
     _apartment.text = address['apartment']?.toString() ?? '';
+    _comment.text = address['comment']?.toString() ?? '';
   }
 
   Map<String, dynamic>? _normalizedAddress() {
@@ -587,6 +644,8 @@ class _CheckoutPageState extends State<CheckoutPage>
       'entrance': _entrance.text.trim(),
       'floor': _floor.text.trim(),
       'apartment': _apartment.text.trim(),
+      if (_comment.text.trim().isNotEmpty || _address!.containsKey('comment'))
+        'comment': _comment.text.trim(),
     };
     return AddressStorageService.deliveryAddress(value);
   }
@@ -598,11 +657,25 @@ class _CheckoutPageState extends State<CheckoutPage>
       _addressError = null;
     });
     try {
-      final current = _normalizedAddress() ?? _address;
+      final business = _business?.selectedBusiness;
+      final city = _storeCity ??
+          await storeCityName(business)
+              .timeout(const Duration(seconds: 4), onTimeout: () => null);
+      if (!mounted) return;
+      final center = storeCoordinates(business);
+      // An address from another city is never offered as the starting point:
+      // the picker opens on the store's city instead.
+      final wrongCity = addressMatchesCity(_address, city) == false;
+      final current = wrongCity ? null : (_normalizedAddress() ?? _address);
+      final detailsFirst = !wrongCity && _address != null;
       final selected = widget.addressPicker != null
-          ? await widget.addressPicker!(context, current, _address != null)
+          ? await widget.addressPicker!(context, current, detailsFirst,
+              city: city, fallbackCenter: center)
           : await AddressSelectionModalHelper.show(context,
-              initialAddress: current, openDetailsFirst: _address != null);
+              initialAddress: current,
+              openDetailsFirst: detailsFirst,
+              city: city,
+              fallbackCenter: center);
       if (!mounted || selected == null) return;
       setState(() {
         _setAddress(selected);
@@ -653,11 +726,16 @@ class _CheckoutPageState extends State<CheckoutPage>
     final revision = _revision;
     final address = _normalizedAddress();
     final businessId = _businessId;
-    if (!_delivery || !_hasItems || address == null || businessId == null) {
+    if (!_delivery ||
+        !_hasItems ||
+        address == null ||
+        businessId == null ||
+        _addressCityMismatch) {
       if (mounted) {
         setState(() {
           _quote = null;
           _quoting = false;
+          if (_addressCityMismatch) _quoteError = null;
         });
       }
       return;
@@ -1351,8 +1429,12 @@ class _CheckoutPageState extends State<CheckoutPage>
       _withPricing(() => _buildCheckout(context));
 
   Widget _buildCheckout(BuildContext context) {
-    context.watch<CartProvider>();
-    context.watch<BusinessProvider>();
+    // The page reads the cart only through revision-tracked views and the business only
+    // through the selected store, so those are the only changes that rebuild it.
+    context.select<CartProvider, int>((cart) => cart.contentRevision);
+    context.select<BusinessProvider, Map<String, dynamic>?>(
+      (business) => business.selectedBusiness,
+    );
     return PopScope(
       canPop: !_busy && Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, result) {
@@ -1369,7 +1451,7 @@ class _CheckoutPageState extends State<CheckoutPage>
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: LiquidGlassDock(
+                child: FrostedDock(
                   onDockHeightChanged: (height) {
                     if ((height - _footerHeight).abs() > 0.5) {
                       setState(() => _footerHeight = height);
@@ -1544,294 +1626,652 @@ class _CheckoutPageState extends State<CheckoutPage>
         ),
       );
 
-  Widget _fulfillment() {
-    final palette = context.palette;
-    final details = [
-      if (_entrance.text.trim().isNotEmpty) 'Подъезд ${_entrance.text.trim()}',
-      if (_floor.text.trim().isNotEmpty) 'Этаж ${_floor.text.trim()}',
-      if (_apartment.text.trim().isNotEmpty)
-        'Квартира ${_apartment.text.trim()}',
-    ].join(' · ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AppSurface(
-          radius: 36,
-          padding: const EdgeInsets.all(2),
-          child: LayoutBuilder(builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 300 ||
-                MediaQuery.textScalerOf(context).scale(14) > 14 * 1.2;
-            return Wrap(runSpacing: 4, children: [
-              for (final entry in [
-                ('Доставка', 'DELIVERY'),
-                ('Самовывоз', 'PICKUP')
-              ])
-                SizedBox(
-                  width:
-                      stacked ? constraints.maxWidth : constraints.maxWidth / 2,
-                  child: Semantics(
-                    selected: _mode == entry.$2,
-                    child: TextButton(
-                      key: ValueKey('checkout-mode-${entry.$2.toLowerCase()}'),
-                      onPressed:
-                          _editingLocked ? null : () => _changeMode(entry.$2),
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(44, 44),
-                        foregroundColor: _mode == entry.$2
-                            ? palette.textOnAccent
-                            : palette.textSecondary,
-                        backgroundColor: _mode == entry.$2
-                            ? palette.accent
-                            : Colors.transparent,
-                        shape: const StadiumBorder(),
-                        textStyle: AppTypography.bodyMedium,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 10),
-                      ),
-                      child: Text(entry.$1, textAlign: TextAlign.center),
+  Widget _fulfillment() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _modeSwitch(),
+          const SizedBox(height: 16),
+          _storeCard(),
+          if (_delivery) ...[
+            const SizedBox(height: 12),
+            _addressCard(),
+          ],
+        ],
+      );
+
+  // ---- Fulfilment: mode, store, address ------------------------------------
+
+  bool get _largeText => MediaQuery.textScalerOf(context).scale(14) > 14 * 1.3;
+
+  Widget _modeSwitch() => AppSurface(
+        radius: 36,
+        padding: const EdgeInsets.all(4),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final stacked = constraints.maxWidth < 300 ||
+              MediaQuery.textScalerOf(context).scale(14) > 14 * 1.2;
+          final delivery = _modeSegment(
+              'Доставка', 'DELIVERY', Icons.local_shipping_outlined,
+              paintFill: stacked);
+          final pickup = _modeSegment(
+              'Самовывоз', 'PICKUP', Icons.storefront_outlined,
+              paintFill: stacked);
+          if (stacked) {
+            return Column(children: [
+              SizedBox(width: constraints.maxWidth, child: delivery),
+              const SizedBox(height: 4),
+              SizedBox(width: constraints.maxWidth, child: pickup),
+            ]);
+          }
+          final palette = context.palette;
+          // Side by side, one accent thumb slides between the two segments.
+          return Stack(children: [
+            Positioned.fill(
+              child: AnimatedAlign(
+                alignment: _mode == 'PICKUP'
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                duration: AppMotion.of(context, AppMotion.slide),
+                curve: AppMotion.out,
+                child: SizedBox(
+                  width: (constraints.maxWidth - 4) / 2,
+                  height: double.infinity,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: palette.accent,
+                      borderRadius: BorderRadius.circular(32),
                     ),
                   ),
                 ),
-            ]);
-          }),
-        ),
-        const SizedBox(height: 20),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _selectionTile(
-              key: const ValueKey('checkout-store'),
-              icon: Icons.storefront_outlined,
-              title: _businessId == null
-                  ? 'Выберите магазин'
-                  : _business?.selectedBusinessName ?? 'Магазин №$_businessId',
-              subtitle: _businessId == null
-                  ? 'Магазин сохранённой корзины не определён'
-                  : _business?.selectedBusiness?['address']?.toString() ??
-                      'Магазин для заказа',
-              actionLabel:
-                  _businessId == null ? 'Выбрать магазин' : 'Изменить магазин',
-              onTap: _editingLocked ? null : _selectStore,
+              ),
             ),
-            if (_switchingStore) const LinearProgressIndicator(),
-            if (_cart?.hasUnresolvedBusiness == true)
-              _message(
-                'Магазин старой корзины неизвестен. Товары сохранены: их можно уменьшить или удалить в корзине. Выбор магазина требует отдельного согласия на удаление.',
-                action: TextButton(
-                  onPressed: _editingLocked ? null : () => _openCart(),
-                  style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                  child: const Text('Открыть корзину'),
-                ),
-              ),
-            if (_delivery) ...[
-              _selectionTile(
-                key: const ValueKey('checkout-address'),
-                icon: Icons.location_on_outlined,
-                title: _address == null
-                    ? 'Выберите адрес'
-                    : ApiService.extractAddressLabel(_address!) ??
-                        ApiService.formatAddressSummary(_address),
-                subtitle: _address == null
-                    ? 'Нужен перед подтверждением заказа'
-                    : 'Доставка сейчас',
-                actionLabel:
-                    _address == null ? 'Выбрать адрес' : 'Изменить адрес',
-                onTap: _editingLocked ? null : _pickAddress,
-              ),
-              if (_pickingAddress) const LinearProgressIndicator(),
-              ExpansionTile(
-                key: const ValueKey('checkout-delivery-details'),
-                maintainState: true,
-                initiallyExpanded: _deliveryDetailsExpanded,
-                minTileHeight: 44,
-                tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-                childrenPadding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-                shape: const Border(),
-                collapsedShape: const Border(),
-                iconColor: palette.textSecondary,
-                collapsedIconColor: palette.textSecondary,
-                title: Text(
-                  'Детали доставки',
-                  key: const ValueKey('checkout-delivery-details-toggle'),
-                  style: AppTypography.caption
-                      .copyWith(color: palette.textSecondary),
-                ),
-                subtitle: _deliveryDetailsExpanded
-                    ? null
-                    : Text(
-                        details.isEmpty
-                            ? 'Подъезд, этаж и квартира · необязательно'
-                            : details,
-                        style: AppTypography.caption
-                            .copyWith(color: palette.textSecondary),
-                      ),
-                onExpansionChanged: (expanded) {
-                  setState(() => _deliveryDetailsExpanded = expanded);
-                  if (!expanded) {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  }
-                },
-                children: [
-                  LayoutBuilder(builder: (context, constraints) {
-                    final fields = [
-                      _addressField('Подъезд', _entrance, 'checkout-entrance'),
-                      _addressField('Этаж', _floor, 'checkout-floor'),
-                      _addressField(
-                          'Квартира', _apartment, 'checkout-apartment'),
-                    ];
-                    return constraints.maxWidth < 300 ||
-                            MediaQuery.textScalerOf(context).scale(14) > 20
-                        ? Column(
-                            children: [
-                              for (final (index, field) in fields.indexed) ...[
-                                if (index > 0) const SizedBox(height: 8),
-                                field,
-                              ],
-                            ],
-                          )
-                        : Row(
-                            children: [
-                              for (final (index, field) in fields.indexed) ...[
-                                if (index > 0) const SizedBox(width: 8),
-                                Expanded(child: field),
-                              ],
-                            ],
-                          );
-                  }),
-                  if (_address?['comment']?.toString().trim().isNotEmpty ==
-                      true) ...[
-                    const SizedBox(height: 12),
-                    Text('Комментарий: ${_address!['comment']}',
-                        style: AppTypography.bodySmall),
-                  ],
-                ],
-              ),
-            ],
-          ],
+            Row(children: [
+              Expanded(child: delivery),
+              const SizedBox(width: 4),
+              Expanded(child: pickup),
+            ]),
+          ]);
+        }),
+      );
+
+  /// With [paintFill] the segment draws its own selected fill; otherwise a thumb behind
+  /// the segments does.
+  Widget _modeSegment(String label, String mode, IconData icon,
+      {required bool paintFill}) {
+    final palette = context.palette;
+    final selected = _mode == mode;
+    final foreground = selected ? palette.textOnAccent : palette.textSecondary;
+    final shown =
+        _editingLocked ? foreground.withValues(alpha: .6) : foreground;
+    return Semantics(
+      selected: selected,
+      child: AnimatedContainer(
+        duration: AppMotion.of(context, AppMotion.state),
+        curve: AppMotion.out,
+        decoration: BoxDecoration(
+          color: paintFill && selected ? palette.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(32),
         ),
-        if (_delivery)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: TextButton(
+          key: ValueKey('checkout-mode-${mode.toLowerCase()}'),
+          onPressed: _editingLocked ? null : () => _changeMode(mode),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(44, 48),
+            foregroundColor: foreground,
+            disabledForegroundColor: foreground.withValues(alpha: .6),
+            shape: const StadiumBorder(),
+            textStyle: AppTypography.bodyMedium,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          ),
+          child: TweenAnimationBuilder<Color?>(
+            tween: ColorTween(end: shown),
+            duration: AppMotion.of(context, AppMotion.state),
+            curve: AppMotion.out,
+            builder: (context, color, _) => Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.local_shipping_outlined, color: palette.accent),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Стоимость доставки',
-                          style: AppTypography.bodySmallMedium),
-                      Text(
-                        _quoting
-                            ? 'Рассчитываем…'
-                            : _quote == null
-                                ? 'Не рассчитана'
-                                : _money(_deliveryCost),
-                        style: AppTypography.caption
-                            .copyWith(color: palette.textSecondary),
-                      ),
-                    ],
+                Icon(icon, size: 20, color: color),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: color),
                   ),
                 ),
               ],
             ),
           ),
-        if (_delivery) ...[
-          if (_addressError != null) ...[
+        ),
+      ),
+    );
+  }
+
+  Widget _card(List<Widget> children) => AppSurface(
+        radius: AppRadii.xxl,
+        clip: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      );
+
+  Widget _hairline() =>
+      Divider(height: 1, thickness: 1, color: context.palette.divider);
+
+  Widget _glyphTile(Widget glyph) => Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: context.palette.accentFaint,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: glyph,
+      );
+
+  Widget _headerLine(String text, {bool strong = false}) => Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          text,
+          style:
+              (strong ? AppTypography.bodySmallMedium : AppTypography.bodySmall)
+                  .copyWith(
+                      color: strong
+                          ? context.palette.textPrimary
+                          : context.palette.textSecondary),
+        ),
+      );
+
+  Widget _infoChip(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: context.palette.accentFaint,
+          borderRadius: AppRadii.pillAll,
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: context.palette.accent),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(label,
+                style: AppTypography.labelMedium
+                    .copyWith(color: context.palette.textPrimary)),
+          ),
+        ]),
+      );
+
+  /// Tappable heading of a fulfilment card: glyph, title, supporting lines and
+  /// a visual "change" pill (the whole heading is the hit target).
+  Widget _cardHeader({
+    required Key key,
+    required Widget glyph,
+    required String title,
+    required List<Widget> body,
+    required String actionLabel,
+    required String tooltip,
+    required VoidCallback? onTap,
+  }) {
+    final palette = context.palette;
+    final pill = Opacity(
+      opacity: onTap == null ? .5 : 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+            color: palette.background, borderRadius: AppRadii.pillAll),
+        child: Text(actionLabel,
+            style: AppTypography.labelSemibold
+                .copyWith(color: palette.textPrimary)),
+      ),
+    );
+    return Tooltip(
+      message: tooltip,
+      child: AppSurface(
+        key: key,
+        onTap: onTap,
+        fill: Colors.transparent,
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final inline = constraints.maxWidth >= 260 && !_largeText;
+          final text = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style:
+                      AppTypography.title.copyWith(color: palette.textPrimary)),
+              ...body,
+              if (!inline) ...[
+                const SizedBox(height: 12),
+                Align(alignment: Alignment.centerLeft, child: pill),
+              ],
+            ],
+          );
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              glyph,
+              const SizedBox(width: 12),
+              Expanded(child: text),
+              if (inline) ...[
+                const SizedBox(width: 12),
+                pill,
+              ],
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _storeCard() {
+    final palette = context.palette;
+    final resolved = _businessId != null;
+    final address = _business?.selectedBusiness?['address']?.toString().trim();
+    final city = _storeCity;
+    return _card([
+      _cardHeader(
+        key: const ValueKey('checkout-store'),
+        glyph: _glyphTile(
+            AppIcon(AppIcons.shopGlyph, size: 24, color: palette.accent)),
+        title: !resolved
+            ? 'Выберите магазин'
+            : _business?.selectedBusinessName ?? 'Магазин №$_businessId',
+        body: [
+          _headerLine(!resolved
+              ? 'Магазин сохранённой корзины не определён'
+              : (address == null || address.isEmpty)
+                  ? 'Магазин для заказа'
+                  : address),
+          if (resolved && city != null) ...[
             const SizedBox(height: 8),
-            _message(
-              _addressError!,
-              key: const ValueKey('checkout-address-error'),
-              action: TextButton(
-                key: const ValueKey('checkout-save-address'),
-                onPressed: _editingLocked
-                    ? null
-                    : (_normalizedAddress() == null
-                        ? _pickAddress
-                        : _saveAddress),
-                style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                child: Text(_normalizedAddress() == null
-                    ? 'Выбрать на карте'
-                    : 'Повторить сохранение'),
-              ),
-            ),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              _infoChip(Icons.location_city_outlined, 'г. $city'),
+            ]),
           ],
-          if (_quoting)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Рассчитываем доставку…',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: palette.textSecondary)),
-                  const SizedBox(height: 8),
-                  const LinearProgressIndicator(),
-                ],
-              ),
-            ),
-          if (_quoteError != null) ...[
-            const SizedBox(height: 8),
-            _message(
-              _quoteError!,
-              key: const ValueKey('checkout-quote-error'),
-              action: TextButton(
-                key: const ValueKey('checkout-quote-retry'),
-                onPressed: _editingLocked ? null : _calculateDelivery,
-                style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                child: const Text('Рассчитать ещё раз'),
-              ),
-            ),
-          ],
-          if (_address != null &&
-              _normalizedAddress() == null &&
-              _addressError == null)
-            _message(
-              'У адреса нет точных координат. Выберите его на карте.',
-              action: TextButton(
-                onPressed: _editingLocked ? null : _pickAddress,
-                style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-                child: const Text('Выбрать адрес'),
-              ),
-            ),
         ],
+        actionLabel: resolved ? 'Изменить' : 'Выбрать',
+        tooltip: resolved ? 'Изменить магазин' : 'Выбрать магазин',
+        onTap: _editingLocked ? null : _selectStore,
+      ),
+      if (_switchingStore) const LinearProgressIndicator(),
+      if (!_delivery && resolved)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: _statusRow(
+            'Самовывоз: заберёте заказ в этом магазине. Адрес и доставка не нужны.',
+            icon: Icons.shopping_bag_outlined,
+            key: const ValueKey('checkout-pickup-note'),
+          ),
+        ),
+      if (_cart?.hasUnresolvedBusiness == true)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: _statusRow(
+            'Магазин старой корзины неизвестен. Товары сохранены: их можно уменьшить или удалить в корзине. Выбор магазина требует отдельного согласия на удаление.',
+            tone: _StatusTone.attention,
+            action: _statusAction(
+                'Открыть корзину', _editingLocked ? null : () => _openCart()),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _addressCard() {
+    final palette = context.palette;
+    final hasAddress = _address != null;
+    final city = _storeCity;
+    final details = [
+      if (_entrance.text.trim().isNotEmpty) 'Подъезд ${_entrance.text.trim()}',
+      if (_floor.text.trim().isNotEmpty) 'Этаж ${_floor.text.trim()}',
+      if (_apartment.text.trim().isNotEmpty) 'Кв. ${_apartment.text.trim()}',
+    ].join(' · ');
+    final addressCity = hasAddress && _addressCityMismatch
+        ? (ApiService.extractCityName(_address) ?? city)
+        : city;
+    final statusRows = <Widget>[
+      if (_addressCityMismatch)
+        _statusRow(
+          'Адрес в другом городе — магазин доставляет по г. $city.',
+          key: const ValueKey('checkout-address-city-mismatch'),
+          tone: _StatusTone.attention,
+          icon: Icons.wrong_location_outlined,
+          action: _statusAction(
+            'Выбрать адрес в г. $city',
+            _editingLocked ? null : _pickAddress,
+            key: const ValueKey('checkout-address-city-action'),
+          ),
+        ),
+      if (_addressError != null)
+        _statusRow(
+          _addressError!,
+          key: const ValueKey('checkout-address-error'),
+          tone: _StatusTone.error,
+          action: _statusAction(
+            _normalizedAddress() == null
+                ? 'Выбрать на карте'
+                : 'Повторить сохранение',
+            _editingLocked
+                ? null
+                : (_normalizedAddress() == null ? _pickAddress : _saveAddress),
+            key: const ValueKey('checkout-save-address'),
+          ),
+        ),
+      if (hasAddress && _normalizedAddress() == null && _addressError == null)
+        _statusRow(
+          'У адреса нет точных координат. Выберите его на карте.',
+          tone: _StatusTone.attention,
+          action: _statusAction(
+              'Выбрать адрес', _editingLocked ? null : _pickAddress),
+        ),
+    ];
+    return _card([
+      _cardHeader(
+        key: const ValueKey('checkout-address'),
+        glyph: _glyphTile(
+            AppIcon(AppIcons.location, size: 20, color: palette.accent)),
+        // Stored labels may carry the «• Под. 2, Эт. 7, Кв. 45» summary; the
+        // details have their own fields below, so the heading is the street.
+        title: !hasAddress
+            ? 'Выберите адрес доставки'
+            : (ApiService.extractAddressLabel(_address!) ??
+                    ApiService.formatAddressSummary(_address))
+                .split(' • ')
+                .first,
+        body: [
+          _headerLine(
+            !hasAddress
+                ? (city == null
+                    ? 'Нужен перед подтверждением заказа'
+                    : 'Нужен перед подтверждением заказа. Доставка по г. $city')
+                : addressCity == null
+                    ? 'Доставка сейчас'
+                    : 'г. $addressCity · доставка сейчас',
+          ),
+        ],
+        actionLabel: hasAddress ? 'Изменить' : 'Выбрать',
+        tooltip: hasAddress ? 'Изменить адрес' : 'Выбрать адрес',
+        onTap: _editingLocked ? null : _pickAddress,
+      ),
+      if (_pickingAddress) const LinearProgressIndicator(),
+      if (statusRows.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (index, row) in statusRows.indexed) ...[
+                if (index > 0) const SizedBox(height: 8),
+                row,
+              ],
+            ],
+          ),
+        ),
+      _hairline(),
+      _deliveryDetails(details),
+      _hairline(),
+      _deliveryCostBlock(),
+    ]);
+  }
+
+  Widget _deliveryDetails(String details) {
+    final palette = context.palette;
+    return ExpansionTile(
+      key: const ValueKey('checkout-delivery-details'),
+      maintainState: true,
+      initiallyExpanded: _deliveryDetailsExpanded,
+      minTileHeight: 56,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+      shape: const Border(),
+      collapsedShape: const Border(),
+      iconColor: palette.textSecondary,
+      collapsedIconColor: palette.textSecondary,
+      title: Text(
+        'Детали доставки',
+        key: const ValueKey('checkout-delivery-details-toggle'),
+        style:
+            AppTypography.bodySmallMedium.copyWith(color: palette.textPrimary),
+      ),
+      subtitle: _deliveryDetailsExpanded
+          ? null
+          : Text(
+              details.isEmpty
+                  ? 'Подъезд, этаж, квартира и комментарий · необязательно'
+                  : _comment.text.trim().isEmpty
+                      ? details
+                      : '$details · есть комментарий',
+              style:
+                  AppTypography.caption.copyWith(color: palette.textSecondary),
+            ),
+      onExpansionChanged: (expanded) {
+        setState(() => _deliveryDetailsExpanded = expanded);
+        if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
+      },
+      children: [
+        LayoutBuilder(builder: (context, constraints) {
+          final fields = [
+            _addressField('Подъезд', _entrance, 'checkout-entrance'),
+            _addressField('Этаж', _floor, 'checkout-floor'),
+            _addressField('Квартира', _apartment, 'checkout-apartment'),
+          ];
+          return constraints.maxWidth < 240 || _largeText
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (index, field) in fields.indexed) ...[
+                      if (index > 0) const SizedBox(height: 12),
+                      field,
+                    ],
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (index, field) in fields.indexed) ...[
+                      if (index > 0) const SizedBox(width: 12),
+                      Expanded(child: field),
+                    ],
+                  ],
+                );
+        }),
+        const SizedBox(height: 12),
+        _addressField(
+          'Комментарий курьеру',
+          _comment,
+          'checkout-comment',
+          hint: 'Например: домофон не работает, позвоните',
+          multiline: true,
+        ),
       ],
     );
   }
 
-  Widget _addressField(
-          String label, TextEditingController controller, String key) =>
-      Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: TextField(
-          key: ValueKey(key),
-          controller: controller,
-          enabled: !_editingLocked && _address != null,
-          keyboardType: TextInputType.text,
-          textInputAction: key == 'checkout-apartment'
-              ? TextInputAction.done
-              : TextInputAction.next,
-          onChanged: (_) => setState(() => _addressError = null),
-          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-          scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
-          style: AppTypography.bodySmall,
-          decoration: InputDecoration(
-            labelText: label,
-            filled: true,
-            fillColor: context.palette.surfaceMuted,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+  Widget _deliveryCostBlock() {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.local_shipping_outlined,
+                  size: 20, color: palette.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _summaryRow(
+                  'Стоимость доставки',
+                  _quoting
+                      ? 'Рассчитываем…'
+                      : _quote == null
+                          ? 'Не рассчитана'
+                          : _money(_deliveryCost),
+                ),
+              ),
+            ],
           ),
+          if (_quoting) ...[
+            const SizedBox(height: 8),
+            _statusRow('Рассчитываем доставку…', progress: true),
+          ],
+          if (_quoteError != null) ...[
+            const SizedBox(height: 8),
+            _statusRow(
+              _quoteError!,
+              key: const ValueKey('checkout-quote-error'),
+              tone: _StatusTone.error,
+              action: _statusAction(
+                'Рассчитать ещё раз',
+                _editingLocked ? null : _calculateDelivery,
+                key: const ValueKey('checkout-quote-retry'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _statusRow(
+    String text, {
+    Key? key,
+    _StatusTone tone = _StatusTone.info,
+    IconData? icon,
+    Widget? action,
+    bool progress = false,
+  }) {
+    final palette = context.palette;
+    final tint = tone == _StatusTone.error ? palette.error : palette.accent;
+    final glyph = icon ??
+        switch (tone) {
+          _StatusTone.info => Icons.info_outline,
+          _StatusTone.attention => Icons.error_outline,
+          _StatusTone.error => Icons.error_outline,
+        };
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(tint.withValues(alpha: .12), palette.surface),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(glyph, size: 20, color: tint),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(text,
+                    style: AppTypography.bodySmall
+                        .copyWith(color: palette.textPrimary)),
+                if (progress) ...[
+                  const SizedBox(height: 8),
+                  const ClipRRect(
+                    borderRadius: AppRadii.pillAll,
+                    child: LinearProgressIndicator(minHeight: 4),
+                  ),
+                ],
+                if (action != null) ...[
+                  const SizedBox(height: 8),
+                  action,
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusAction(String label, VoidCallback? onPressed, {Key? key}) {
+    final palette = context.palette;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        key: key,
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          foregroundColor: palette.textPrimary,
+          backgroundColor: palette.background,
+          disabledForegroundColor: palette.textSecondary,
+          shape: const StadiumBorder(),
+          textStyle: AppTypography.bodySmallSemibold,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-      );
+        child: Text(label, textAlign: TextAlign.center),
+      ),
+    );
+  }
+
+  Widget _addressField(
+    String label,
+    TextEditingController controller,
+    String key, {
+    String? hint,
+    bool multiline = false,
+  }) {
+    final palette = context.palette;
+    final enabled = !_editingLocked && _address != null;
+    OutlineInputBorder border(Color color, [double width = 0]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: width == 0
+              ? BorderSide.none
+              : BorderSide(color: color, width: width),
+        );
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(label,
+                style: AppTypography.labelMedium
+                    .copyWith(color: palette.textSecondary)),
+          ),
+          TextField(
+            key: ValueKey(key),
+            controller: controller,
+            enabled: enabled,
+            keyboardType:
+                multiline ? TextInputType.multiline : TextInputType.text,
+            minLines: multiline ? 2 : 1,
+            maxLines: multiline ? 4 : 1,
+            textInputAction: multiline || key == 'checkout-apartment'
+                ? TextInputAction.done
+                : TextInputAction.next,
+            onChanged: (_) => setState(() => _addressError = null),
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
+            style: AppTypography.bodySmall.copyWith(color: palette.textPrimary),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: AppTypography.bodySmall
+                  .copyWith(color: palette.textSecondary),
+              filled: true,
+              fillColor: enabled
+                  ? palette.background
+                  : palette.background.withValues(alpha: .5),
+              border: border(Colors.transparent),
+              enabledBorder: border(Colors.transparent),
+              disabledBorder: border(Colors.transparent),
+              focusedBorder: border(palette.accent, 1.5),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _benefits() {
     final palette = context.palette;
@@ -2158,17 +2598,19 @@ class _CheckoutPageState extends State<CheckoutPage>
       key: ValueKey('checkout-item-${group.key}'),
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: LayoutBuilder(builder: (context, constraints) {
-        final painter = TextPainter(
-          text: TextSpan(
-            text: formatQuantity(group.totalQuantity, perPiece ? '' : unit),
-            style: AppTypography.bodyMedium,
-          ),
-          textDirection: Directionality.of(context),
-          textScaler: MediaQuery.textScalerOf(context),
-        )..layout();
         final controlWidth = math.min(
-            constraints.maxWidth, math.max(108.0, painter.width + 100));
-        painter.dispose();
+          constraints.maxWidth,
+          math.max(
+            108.0,
+            TextWidthCache.of(
+                  formatQuantity(group.totalQuantity, perPiece ? '' : unit),
+                  AppTypography.bodyMedium,
+                  MediaQuery.textScalerOf(context),
+                  Directionality.of(context),
+                ) +
+                100,
+          ),
+        );
         final quantity = SizedBox(
           width: controlWidth,
           child: ProductQuantityControl(
@@ -2242,8 +2684,7 @@ class _CheckoutPageState extends State<CheckoutPage>
     if (selection == null || !selection.usesPourFlow) {
       return const SizedBox.shrink();
     }
-    var paidCost = 0.0;
-    var giftCost = 0.0;
+    var containerCost = 0.0;
     final tariffs = <Widget>[];
     for (final row in group.physicalItems) {
       for (final selected in row.selectedVariants) {
@@ -2254,15 +2695,10 @@ class _CheckoutPageState extends State<CheckoutPage>
         final price = checkoutAmount(variant['price']);
         if (capacity == null || capacity <= 0 || price == null) continue;
         final label = variant['item_name']?.toString() ?? '';
-        final paid = row.quantity / capacity;
-        final gift = row.bottledGiftQuantity / capacity;
-        final count = formatQuantity(paid + gift, 'шт.');
+        final count = formatQuantity(row.physicalQuantity / capacity, 'шт.');
         final replaced =
             variant['price_type']?.toString().toUpperCase() == 'REPLACE';
-        if (!replaced) {
-          paidCost += price * paid;
-          giftCost += price * gift;
-        }
+        if (!replaced) containerCost += price * row.physicalQuantity / capacity;
         tariffs.add(Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
@@ -2280,11 +2716,8 @@ class _CheckoutPageState extends State<CheckoutPage>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ...tariffs,
-        if (paidCost > 0)
-          _summaryRow('Тара для выбранного объёма', _money(paidCost)),
-        if (giftCost > 0)
-          _summaryRow('Тара для подарочного объёма', _money(giftCost)),
-        if (paidCost > 0 || giftCost > 0)
+        if (containerCost > 0) _summaryRow('Тара', _money(containerCost)),
+        if (containerCost > 0)
           Text('Стоимость тары включена в сумму позиции ниже.',
               style: AppTypography.caption
                   .copyWith(color: context.palette.textSecondary)),
@@ -2300,6 +2733,8 @@ class _CheckoutPageState extends State<CheckoutPage>
           child: image?.isNotEmpty == true
               ? Image.network(image!,
                   fit: BoxFit.contain,
+                  cacheWidth:
+                      (44 * MediaQuery.devicePixelRatioOf(context)).ceil(),
                   errorBuilder: (_, __, ___) => Icon(Icons.image_outlined,
                       color: context.palette.textSecondary))
               : Icon(Icons.image_outlined,
@@ -2313,28 +2748,15 @@ class _CheckoutPageState extends State<CheckoutPage>
       key: ValueKey('checkout-gift-${group.key}'),
       padding: const EdgeInsets.only(top: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.redeem_outlined, color: context.palette.accent, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${formatQuantity(group.freeQuantity, unit)} в подарок · ${_money(0)}',
-                  style: AppTypography.bodySmallMedium
-                      .copyWith(color: context.palette.accent),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  group.selection?.usesPourFlow == true
-                      ? 'Напиток — бесплатно. Тара для подарка оплачивается по обычному тарифу и уже включена в сумму позиции.'
-                      : 'Подарок по действующей акции товара',
-                  style: AppTypography.caption
-                      .copyWith(color: context.palette.textSecondary),
-                ),
-              ],
+            child: Text(
+              '${formatQuantity(group.freeQuantity, unit)} в подарок · ${_money(0)}',
+              style: AppTypography.bodySmallMedium
+                  .copyWith(color: context.palette.accent),
             ),
           ),
         ],
@@ -2444,43 +2866,6 @@ class _CheckoutPageState extends State<CheckoutPage>
         }),
       );
 
-  Widget _selectionTile(
-          {required Key key,
-          required IconData icon,
-          required String title,
-          required String subtitle,
-          required String actionLabel,
-          required VoidCallback? onTap}) =>
-      Tooltip(
-        message: actionLabel,
-        child: AppSurface(
-          key: key,
-          onTap: onTap,
-          fill: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            Icon(icon, color: context.palette.accent),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: AppTypography.bodySmallMedium
-                          .copyWith(color: context.palette.textPrimary)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: AppTypography.caption
-                          .copyWith(color: context.palette.textSecondary)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right, color: context.palette.textSecondary),
-          ]),
-        ),
-      );
-
   Widget _message(String text, {Widget? action, Key? key}) => AppSurface(
         key: key,
         fill: context.palette.accentFaint,
@@ -2509,6 +2894,9 @@ class _CheckoutPageState extends State<CheckoutPage>
     }
     if (_loggedIn != true) return 'Войдите для подтверждения';
     if (_businessId == null) return 'Выберите магазин';
+    if (_delivery && _addressCityMismatch) {
+      return 'Выберите адрес в г. $_storeCity';
+    }
     if (_delivery && _normalizedAddress() == null) {
       return 'Выберите адрес доставки';
     }
@@ -2531,15 +2919,15 @@ class _CheckoutPageState extends State<CheckoutPage>
         child: LayoutBuilder(builder: (context, constraints) {
           final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
           final label = _money(_total);
-          final painter = TextPainter(
-            text: TextSpan(text: label, style: AppTypography.headline),
-            textDirection: Directionality.of(context),
-            textScaler: MediaQuery.textScalerOf(context),
-          )..layout();
           final stacked = constraints.maxWidth < 296 ||
               MediaQuery.textScalerOf(context).scale(16) > 20 ||
-              painter.width > constraints.maxWidth - 176;
-          painter.dispose();
+              TextWidthCache.of(
+                    label,
+                    AppTypography.headline,
+                    MediaQuery.textScalerOf(context),
+                    Directionality.of(context),
+                  ) >
+                  constraints.maxWidth - 176;
           final amount = Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2623,7 +3011,7 @@ class _CheckoutStoreSheet extends StatefulWidget {
 
 class _CheckoutStoreSheetState extends State<_CheckoutStoreSheet> {
   List<Map<String, dynamic>>? _stores;
-  List<String> _cities = [];
+  List<OnboardingCity> _cities = [];
   String? _error;
   bool _loading = false;
 
@@ -2653,7 +3041,7 @@ class _CheckoutStoreSheetState extends State<_CheckoutStoreSheet> {
           : null;
       if (!mounted) return;
       setState(() {
-        _cities = cities.map((city) => city.name).toList();
+        _cities = cities;
         _stores = stores;
         if (stores == null) _error = 'Не удалось загрузить магазины';
       });
@@ -2664,24 +3052,7 @@ class _CheckoutStoreSheetState extends State<_CheckoutStoreSheet> {
     }
   }
 
-  String? _city(Map<String, dynamic> store) {
-    final sources = [
-      store['city'],
-      store['city_name'],
-      store['cityName'],
-      store['city_title'],
-      store['cityTitle'],
-      store['address'],
-      store['description']
-    ];
-    for (final source in sources) {
-      final text = '$source'.toLowerCase().replaceAll('ё', 'е');
-      for (final city in _cities) {
-        if (text.contains(city.toLowerCase().replaceAll('ё', 'е'))) return city;
-      }
-    }
-    return null;
-  }
+  String? _city(Map<String, dynamic> store) => storeCityIn(store, _cities);
 
   @override
   Widget build(BuildContext context) {
@@ -2774,3 +3145,6 @@ class _CheckoutStoreSheetState extends State<_CheckoutStoreSheet> {
     ));
   }
 }
+
+/// Emphasis of an inline status row inside the fulfilment cards.
+enum _StatusTone { info, attention, error }

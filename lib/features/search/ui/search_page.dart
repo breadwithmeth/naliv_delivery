@@ -9,7 +9,7 @@ import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_search_field.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
 import '../../../ui/product_row.dart';
 import '../../../core/like_action.dart';
 import '../../../utils/cart_provider.dart';
@@ -184,7 +184,7 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: LiquidGlassDock(
+        child: FrostedDock(
           content: Column(
             children: [
               Padding(

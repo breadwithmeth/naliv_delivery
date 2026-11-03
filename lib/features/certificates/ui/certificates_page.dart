@@ -9,7 +9,7 @@ import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
 import '../../../services/auth_service.dart';
 import '../../../utils/api.dart';
 import '../../../utils/cart_provider.dart';
@@ -232,8 +232,7 @@ class _CertificatesPageState extends State<CertificatesPage>
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final cart = context.watch<CartProvider>();
-    final count = cart.displayItemCount;
+    final onCart = widget.onCart;
 
     return Scaffold(
       body: SafeArea(
@@ -241,7 +240,7 @@ class _CertificatesPageState extends State<CertificatesPage>
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: LiquidGlassDock(
+            child: FrostedDock(
               content: Column(
                 children: [
                   Padding(
@@ -399,12 +398,20 @@ class _CertificatesPageState extends State<CertificatesPage>
                   ),
                 ],
               ),
-              dock: widget.onCart == null
+              dock: onCart == null
                   ? null
-                  : AppCartButton(
-                      itemCount: count,
-                      total: count == 0 ? null : cart.getTotalPrice().round(),
-                      onTap: widget.onCart,
+                  : Selector<CartProvider, (int, int?)>(
+                      selector: (_, cart) => (
+                        cart.displayItemCount,
+                        cart.displayItemCount == 0
+                            ? null
+                            : cart.getTotalPrice().round(),
+                      ),
+                      builder: (_, summary, __) => AppCartButton(
+                        itemCount: summary.$1,
+                        total: summary.$2,
+                        onTap: onCart,
+                      ),
                     ),
             ),
           ),

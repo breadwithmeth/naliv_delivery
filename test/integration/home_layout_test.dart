@@ -4,7 +4,6 @@ import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/home/home_view_data.dart';
 import 'package:naliv_delivery/features/home/ui/home_page.dart';
 import 'package:naliv_delivery/ui/app_cart_button.dart';
-import 'package:naliv_delivery/ui/liquid_glass_dock.dart';
 
 const _fill = Color(0xFFF16800);
 
@@ -57,8 +56,6 @@ Future<void> _pumpHome(
 }
 
 void main() {
-  setUpAll(LiquidGlassDock.warmUp);
-
   group('cart dock', () {
     testWidgets('stays a compact capsule, filled or empty', (tester) async {
       for (final (items, total) in [(0, null), (3, 45300)]) {
@@ -85,7 +82,7 @@ void main() {
             size: size, textScale: scale, cartItems: items, cartTotal: total);
         final scrollable = tester.state<ScrollableState>(find
             .descendant(
-                of: find.byType(SingleChildScrollView),
+                of: find.byType(CustomScrollView),
                 matching: find.byType(Scrollable))
             .first);
         scrollable.position.jumpTo(scrollable.position.maxScrollExtent);

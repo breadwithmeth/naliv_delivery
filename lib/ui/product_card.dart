@@ -9,6 +9,8 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
+import 'motion_widgets.dart';
+import 'text_width_cache.dart';
 
 /// Tells every [ProductCard] below it which optional price lines exist somewhere in the
 /// collection, so each card reserves the same slots and prices and buttons line up.
@@ -276,7 +278,7 @@ class ProductCard extends StatelessWidget {
         );
         final height =
             constraints.hasTightHeight ? constraints.maxHeight : metrics.extent;
-        return SizedBox(
+        final card = SizedBox(
           width: width,
           height: height,
           child: Stack(
@@ -293,16 +295,18 @@ class ProductCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Expanded(
-                          child: Semantics(
-                            label: description,
-                            button: onTap != null,
-                            onTap: onTap,
-                            excludeSemantics: true,
-                            child: InkWell(
+                          child: _pressRegion(
+                            Semantics(
+                              label: description,
+                              button: onTap != null,
                               onTap: onTap,
-                              borderRadius: AppRadii.smAll,
-                              child: _content(
-                                  context, palette, metrics, priceLabel, basis),
+                              excludeSemantics: true,
+                              child: InkWell(
+                                onTap: onTap,
+                                borderRadius: AppRadii.smAll,
+                                child: _content(context, palette, metrics,
+                                    priceLabel, basis),
+                              ),
                             ),
                           ),
                         ),
@@ -336,9 +340,17 @@ class ProductCard extends StatelessWidget {
             ],
           ),
         );
+        return onTap == null
+            ? card
+            : PressScale(wholeSurface: false, child: card);
       },
     );
   }
+
+  /// Only the details area presses the card; the cart control and the trailing action
+  /// are separate buttons and leave the card still.
+  Widget _pressRegion(Widget child) =>
+      onTap == null ? child : PressScaleTrigger(child: child);
 
   Widget _content(
     BuildContext context,
@@ -454,20 +466,25 @@ class ProductCard extends StatelessWidget {
                 (metrics.innerWidth * MediaQuery.devicePixelRatioOf(context))
                     .ceil(),
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => _missingArt(palette),
+            // Paint-time alpha instead of an Opacity layer: no offscreen buffer per card.
+            opacity: available ? null : _dimmedArt,
+            frameBuilder: fadeInImageFrame,
+            errorBuilder: (_, __, ___) => _missingArt(palette, available),
           )
-        : _missingArt(palette);
+        : _missingArt(palette, available);
     return Stack(
       fit: StackFit.expand,
       children: [
-        ClipRRect(
-          borderRadius: AppRadii.mdAll,
-          child: ColoredBox(
+        // The 6 px inset keeps the artwork inside the 8 px corner arc, so a rounded fill
+        // looks the same as clipping it and costs no clip layer per card.
+        DecoratedBox(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: available ? art : Opacity(opacity: .4, child: art),
-            ),
+            borderRadius: AppRadii.mdAll,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: art,
           ),
         ),
         if (discount != null || promo != null || bonus != null)
@@ -535,13 +552,17 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _missingArt(AppPalette palette) => Semantics(
+  static const Animation<double> _dimmedArt = AlwaysStoppedAnimation(.4);
+
+  Widget _missingArt(AppPalette palette, bool available) => Semantics(
         image: true,
         label: 'Нет фото',
         child: Center(
           child: Icon(
             Icons.image_outlined,
-            color: palette.textSecondary,
+            color: available
+                ? palette.textSecondary
+                : palette.textSecondary.withValues(alpha: .4),
             size: 32,
           ),
         ),
@@ -615,7 +636,12 @@ class _CardCta extends StatelessWidget {
   static const double _glyphZone = 36;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AnimatedSwap(
+        stateKey: quantity <= 0,
+        child: _state(context),
+      );
+
+  Widget _state(BuildContext context) {
     final palette = context.palette;
     final disabled = onIncrement == null && onDecrement == null;
     final fill =
@@ -655,15 +681,14 @@ class _CardCta extends StatelessWidget {
       final labelStyle = AppTypography.base(size: 13, weight: 600).copyWith(
           color: enabled ? palette.textPrimary : palette.textSecondary);
       return LayoutBuilder(builder: (context, constraints) {
-        final painter = TextPainter(
-          text: TextSpan(text: 'В корзину', style: labelStyle),
-          textDirection: Directionality.of(context),
-          textScaler: MediaQuery.textScalerOf(context),
-          maxLines: 1,
-        )..layout();
+        final labelWidth = TextWidthCache.of(
+          'В корзину',
+          labelStyle,
+          MediaQuery.textScalerOf(context),
+          Directionality.of(context),
+        );
         final showLabel =
-            painter.width + 18 + 4 + 16 <= constraints.maxWidth - _inset * 2;
-        painter.dispose();
+            labelWidth + 18 + 4 + 16 <= constraints.maxWidth - _inset * 2;
         return Stack(
           children: [
             Positioned(
@@ -722,14 +747,13 @@ class _CardCta extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final slot = constraints.maxWidth - _inset * 2 - _glyphZone * 2;
-        final painter = TextPainter(
-          text: TextSpan(text: withUnit, style: countStyle),
-          textDirection: Directionality.of(context),
-          textScaler: MediaQuery.textScalerOf(context),
-          maxLines: 1,
-        )..layout();
-        final fits = painter.width <= slot;
-        painter.dispose();
+        final fits = TextWidthCache.of(
+              withUnit,
+              countStyle,
+              MediaQuery.textScalerOf(context),
+              Directionality.of(context),
+            ) <=
+            slot;
         final label = fits ? withUnit : formatQuantity(quantity.toDouble(), '');
         return Stack(
           children: [
@@ -740,9 +764,9 @@ class _CardCta extends StatelessWidget {
               bottom: _inset,
               height: pillHeight,
               child: Center(
-                child: Text(
-                  label,
-                  key: ValueKey(label),
+                child: AnimatedCount(
+                  text: label,
+                  value: quantity,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -805,17 +829,17 @@ class ProductQuantityControl extends StatelessWidget {
         : palette.textOnAccent;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final countPainter = TextPainter(
-          text: TextSpan(text: label, style: AppTypography.bodyMedium),
-          textDirection: Directionality.of(context),
-          textScaler: MediaQuery.textScalerOf(context),
-        )..layout();
         final inline = constraints.maxWidth >=
-            AppSpacing.touchTarget * 2 + countPainter.width;
-        countPainter.dispose();
-        final count = Text(
-          label,
-          key: ValueKey(label),
+            AppSpacing.touchTarget * 2 +
+                TextWidthCache.of(
+                  label,
+                  AppTypography.bodyMedium,
+                  MediaQuery.textScalerOf(context),
+                  Directionality.of(context),
+                );
+        final count = AnimatedCount(
+          text: label,
+          value: quantity,
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(color: foreground),
         );
@@ -847,22 +871,25 @@ class ProductQuantityControl extends StatelessWidget {
                 : palette.accent,
             borderRadius: AppRadii.mdAll,
           ),
-          child: quantity <= 0
-              ? StepTap(
-                  label: 'Добавить',
-                  onTap: onIncrement,
-                  width: double.infinity,
-                  child: Icon(Icons.add, color: foreground, size: 20),
-                )
-              : inline
-                  ? actions
-                  : Column(
-                      children: [
-                        const SizedBox(height: AppSpacing.xxs),
-                        count,
-                        actions,
-                      ],
-                    ),
+          child: AnimatedSwap(
+            stateKey: quantity <= 0,
+            child: quantity <= 0
+                ? StepTap(
+                    label: 'Добавить',
+                    onTap: onIncrement,
+                    width: double.infinity,
+                    child: Icon(Icons.add, color: foreground, size: 20),
+                  )
+                : inline
+                    ? actions
+                    : Column(
+                        children: [
+                          const SizedBox(height: AppSpacing.xxs),
+                          count,
+                          actions,
+                        ],
+                      ),
+          ),
         );
       },
     );

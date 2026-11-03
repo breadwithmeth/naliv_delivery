@@ -1,3 +1,4 @@
+import '../../core/kitchen_policy.dart';
 import '../../core/product_view.dart';
 import '../../model/item.dart';
 import '../../utils/api.dart';
@@ -21,7 +22,8 @@ class CatalogDataSource {
       throw StateError('Не удалось загрузить категории');
     }
     return [
-      for (final entry in raw) _supercategory(entry),
+      for (final entry in KitchenPolicy.filterSupercategories(raw, businessId))
+        _supercategory(entry),
     ];
   }
 
@@ -45,10 +47,14 @@ class CatalogDataSource {
       throw StateError('Не удалось выполнить поиск');
     }
     return (
-      items: [
-        for (final entry in response.data.items)
-          ProductView.fromItem(Item.fromCategoryItem(entry)),
-      ],
+      items: KitchenPolicy.filterItems(
+        [
+          for (final entry in response.data.items)
+            ProductView.fromItem(Item.fromCategoryItem(entry)),
+        ],
+        businessId,
+        (view) => view.source,
+      ),
       page: response.data.pagination.page,
       hasNextPage: response.data.pagination.hasNextPage,
     );
@@ -70,13 +76,17 @@ class CatalogDataSource {
     );
     if (raw == null) throw StateError('Не удалось загрузить избранное');
     final entries = raw['items'];
-    final items = <ProductView>[
-      if (entries is List)
-        for (final entry in entries)
-          if (entry is Map)
-            ProductView.fromItem(
-                Item.fromCategoryItem(entry.cast<String, dynamic>())),
-    ];
+    final items = KitchenPolicy.filterItems(
+      <ProductView>[
+        if (entries is List)
+          for (final entry in entries)
+            if (entry is Map)
+              ProductView.fromItem(
+                  Item.fromCategoryItem(entry.cast<String, dynamic>())),
+      ],
+      businessId,
+      (view) => view.source,
+    );
     final pagination = raw['pagination'];
     var hasMore = false;
     if (pagination is Map) {
@@ -114,6 +124,11 @@ class CatalogDataSource {
     int page = 1,
     int limit = 60,
   }) async {
+    // The kitchen exists only at one store; elsewhere its categories are never requested.
+    if (KitchenPolicy.isKitchenCategoryId(categoryId) &&
+        !KitchenPolicy.isAvailableForBusiness(businessId)) {
+      return (items: const <ProductView>[], hasMore: false);
+    }
     final response = await ApiService.getCategoryItemsTyped(
       categoryId,
       businessId: businessId,
@@ -124,10 +139,14 @@ class CatalogDataSource {
       throw StateError('Не удалось загрузить товары категории');
     }
     return (
-      items: [
-        for (final entry in response.data.items)
-          ProductView.fromItem(Item.fromCategoryItem(entry)),
-      ],
+      items: KitchenPolicy.filterItems(
+        [
+          for (final entry in response.data.items)
+            ProductView.fromItem(Item.fromCategoryItem(entry)),
+        ],
+        businessId,
+        (view) => view.source,
+      ),
       hasMore: response.data.pagination.hasNextPage,
     );
   }
@@ -149,7 +168,6 @@ class CatalogDataSource {
     }
 
     countLeaves(rawCategories);
-    final leaves = <CategoryRef>[];
     List<CategoryRef> parseCategories(
       Iterable<Map<String, dynamic>> entries, {
       int? parentId,
@@ -176,7 +194,6 @@ class CatalogDataSource {
           children: children,
         );
         categories.add(category);
-        if (children.isEmpty) leaves.add(category);
       }
       return categories;
     }
@@ -193,7 +210,6 @@ class CatalogDataSource {
       description: _string(raw['description']),
       imageUrl: _string(raw['img']),
       categories: categories,
-      leaves: leaves,
     );
   }
 

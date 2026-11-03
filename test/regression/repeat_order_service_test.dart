@@ -60,11 +60,10 @@ void main() {
       ]);
     });
 
-    test('repeat reconstructs paid 3+1 from fulfilled four-litre bottle group',
-        () {
+    test('repeat maps the fulfilled four-litre bottle group directly', () {
       final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
       final source = CartProvider();
-      expect(source.syncItemBottleCounts(item, [], {93101: 3}), isTrue);
+      expect(source.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
       final result = RepeatOrderService.buildCartItemsFromOrder({
         'business_id': 7,
         'items': [
@@ -79,7 +78,7 @@ void main() {
       });
       expect(result.skippedItems, isEmpty);
       final group = CartDisplayGroup.groupItems(result.items).single;
-      expect(group.totalQuantity, 3);
+      expect(group.totalQuantity, 4);
       expect(group.freeQuantity, 1);
       expect(group.bottleCounts, {93101: 4});
       expect(
@@ -90,10 +89,12 @@ void main() {
       expect(repeated.getTotalPrice(), 3400);
     });
 
-    test('repeat preserves mixed whole paid and gift container capacities', () {
+    test('repeat preserves mixed container capacities of the picked litres',
+        () {
       final item = syntheticThreePlusOneSurfaceItem();
       final source = CartProvider();
-      expect(source.syncItemBottleCounts(item, [], {93103: 2}), isTrue);
+      expect(
+          source.syncItemBottleCounts(item, [], {93101: 1, 93103: 2}), isTrue);
       final result = RepeatOrderService.buildCartItemsFromOrder({
         'business_id': 7,
         'items': [
@@ -104,15 +105,15 @@ void main() {
       expect(result.skippedItems, isEmpty);
       final repeated = CartProvider();
       expect(repeated.addDisplayGroupItems(result.items), isTrue);
-      expect(repeated.activeDisplayGroups.single.totalQuantity, 3);
+      expect(repeated.activeDisplayGroups.single.totalQuantity, 4);
+      expect(repeated.activeDisplayGroups.single.freeQuantity, 1);
       expect(repeated.activeDisplayGroups.single.bottleCounts,
           {93101: 1, 93103: 2});
       expect(repeated.getTotalPrice(), 3340);
       expect(repeated.toJsonForOrder(), source.toJsonForOrder());
     });
 
-    test(
-        'repeat retains exact noncanonical gift bottles through edit and reload',
+    test('repeat keeps the fulfilled bottles through edit and reload',
         () async {
       final item = capturedPourSurfaceItem(gift: true);
       final result = RepeatOrderService.buildCartItemsFromOrder({
@@ -132,23 +133,28 @@ void main() {
       expect(result.skippedItems, isEmpty);
       final cart = CartProvider();
       expect(cart.addDisplayGroupItems(result.items), isTrue);
-      expect(cart.activeDisplayGroups.single.totalQuantity, 4);
+      expect(cart.activeDisplayGroups.single.totalQuantity, 6);
+      expect(cart.activeDisplayGroups.single.freeQuantity, 2);
       expect(cart.activeDisplayGroups.single.bottleCounts, {3094: 6});
       expect(cart.getTotalPrice(), 4220);
       await SharedPreferences.getInstance();
       final restored = CartProvider();
       await restored.loadCart();
       final group = restored.activeDisplayGroups.single;
-      expect(restored.syncItemBottleCounts(item, [], group.paidBottleCounts),
-          isTrue);
+      expect(
+          restored.syncItemBottleCounts(item, [], group.bottleCounts), isTrue);
       expect(restored.activeDisplayGroups.single.bottleCounts, {3094: 6});
       expect(restored.getTotalPrice(), 4220);
       expect(restored.toJsonForOrder().single['amount'], 6);
     });
 
-    test('repeat refuses impossible paid inverse and whole gift subset', () {
+    test('repeat maps any fulfilled pour litres but refuses withdrawn bottles',
+        () {
       final item = capturedPourSurfaceItem(gift: true);
-      for (final (amount, relation) in [(2, 3094), (6, 3097)]) {
+      for (final (amount, relation, restored) in [
+        (2, 3094, true), // Two litres: no gift, nothing impossible.
+        (6, 3097, false), // The withdrawn three-litre container.
+      ]) {
         final result = RepeatOrderService.buildCartItemsFromOrder({
           'business_id': 7,
           'items': [
@@ -163,48 +169,74 @@ void main() {
             },
           ],
         });
-        expect(result.items, isEmpty);
-        expect(result.skippedItems, [contains(item.name)]);
+        if (restored) {
+          expect(result.skippedItems, isEmpty);
+          expect(result.items.single.quantity, amount);
+        } else {
+          expect(result.items, isEmpty);
+          expect(result.skippedItems, [contains(item.name)]);
+        }
       }
     });
 
-    test('repeat never restores an extra gift from a noncanonical invoice',
-        () {
-      for (final pour in [false, true]) {
-        final snapshot = pour
-            ? syntheticThreePlusOneSurfaceItem(onlyOneLitre: true).toJson()
-            : <String, dynamic>{
-                'item_id': 9401,
-                'name': 'Товар',
-                'price': 1000,
-                'unit': 'шт',
-                'step_quantity': 1,
-                'amount': 20,
-              };
-        snapshot['promotions'] = [
+    test('repeat never restores an extra gift from a noncanonical invoice', () {
+      final snapshot = <String, dynamic>{
+        'item_id': 9401,
+        'name': 'Товар',
+        'price': 1000,
+        'unit': 'шт',
+        'step_quantity': 1,
+        'amount': 20,
+        'promotions': [
           {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
           {'type': 'SUBTRACT', 'base_amount': 3, 'add_amount': 1},
-        ];
-        final original = <String, dynamic>{
-          'business_id': 7,
-          'items': [
-            {
-              'item_id': snapshot['item_id'],
-              'name': snapshot['name'],
-              'amount': 5,
-              'item_data': snapshot,
-              if (pour)
-                'options': [
-                  {'option_item_relation_id': 93101, 'amount': 1},
-                ],
-            },
-          ],
-        };
-        final result = RepeatOrderService.buildCartItemsFromOrder(original);
-        expect(result.items, isEmpty);
-        expect(result.skippedItems, hasLength(1));
-        expect((original['items'] as List).single['amount'], 5);
-      }
+        ],
+      };
+      final original = <String, dynamic>{
+        'business_id': 7,
+        'items': [
+          {
+            'item_id': snapshot['item_id'],
+            'name': snapshot['name'],
+            'amount': 5,
+            'item_data': snapshot,
+          },
+        ],
+      };
+      final result = RepeatOrderService.buildCartItemsFromOrder(original);
+      expect(result.items, isEmpty);
+      expect(result.skippedItems, hasLength(1));
+      expect((original['items'] as List).single['amount'], 5);
+    });
+
+    test(
+        'repeat keeps a pour invoice at the litres fulfilled, never adding a gift',
+        () {
+      final snapshot =
+          syntheticThreePlusOneSurfaceItem(onlyOneLitre: true).toJson();
+      snapshot['promotions'] = [
+        {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
+        {'type': 'SUBTRACT', 'base_amount': 3, 'add_amount': 1},
+      ];
+      final result = RepeatOrderService.buildCartItemsFromOrder({
+        'business_id': 7,
+        'items': [
+          {
+            'item_id': snapshot['item_id'],
+            'name': snapshot['name'],
+            'amount': 5,
+            'item_data': snapshot,
+            'options': [
+              {'option_item_relation_id': 93101, 'amount': 1},
+            ],
+          },
+        ],
+      });
+      expect(result.skippedItems, isEmpty);
+      final cart = CartProvider();
+      expect(cart.addDisplayGroupItems(result.items), isTrue);
+      expect(cart.toJsonForOrder().single['amount'], 5.0);
+      expect(cart.activeDisplayGroups.single.freeQuantity, 1);
     });
 
     test('repeat packaged promotions preserves exact fulfilled physical count',
@@ -240,7 +272,8 @@ void main() {
       expect(cart.getTotalPrice(), 4000);
     });
 
-    test('repeat refuses withdrawn three-litre relations without repricing rows',
+    test(
+        'repeat refuses withdrawn three-litre relations without repricing rows',
         () {
       final item = capturedPourSurfaceItem();
       final result = RepeatOrderService.buildCartItemsFromOrder({

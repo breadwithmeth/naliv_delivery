@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:naliv_delivery/core/kitchen_policy.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
@@ -184,9 +185,13 @@ class RepeatOrderService {
     final skippedItems = <String>[];
 
     for (final orderItem in orderItems) {
+      final kitchenRefused = !KitchenPolicy.isAvailableForBusiness(businessId);
       final cartItem =
-          _cartItemFromOrderItem(orderItem, businessId: businessId);
-      if (cartItem == null) {
+          kitchenRefused && KitchenPolicy.isKitchenOrderLine(orderItem)
+              ? null
+              : _cartItemFromOrderItem(orderItem, businessId: businessId);
+      if (cartItem == null ||
+          (kitchenRefused && KitchenPolicy.isKitchenCartItem(cartItem))) {
         final skippedName = _firstNonEmptyString([
           orderItem['name'],
           orderItem['item_name'],
@@ -205,69 +210,38 @@ class RepeatOrderService {
         skippedItems.add('${group.name}: выбранная тара больше не продаётся');
         continue;
       }
+      if (selection?.usesPourFlow == true) {
+        // Fulfilled rows are the physical bottles, which is what a pour cart stores; the gift is
+        // derived from the litres, so no total is ever impossible.
+        recovered.addAll(group.items);
+        continue;
+      }
       if (selectSubtractPromotion(group.promotions,
               paidQuantity: group.totalQuantity) ==
           null) {
         recovered.addAll(group.items);
         continue;
       }
-      if (selection?.usesPourFlow != true) {
-        if (group.items.any((item) => item.selectedVariants
-            .any(SmartCartSelection.looksBottleLikeVariant))) {
-          skippedItems.add('${group.name}: магазин не передал данные тары');
-          continue;
-        }
-        final paid = subtractPromotionPaidQuantityForPhysicalQuantity(
-            group.totalQuantity, group.promotions);
-        final step = group.items.first.stepQuantity;
-        if (paid == null ||
-            !step.isFinite ||
-            step <= 0 ||
-            (paid / step - (paid / step).round()).abs() > 0.0000001) {
-          skippedItems
-              .add('${group.name}: нельзя точно восстановить количество');
-          continue;
-        }
-        var remaining = paid;
-        for (final row in group.items) {
-          final quantity = remaining < row.quantity ? remaining : row.quantity;
-          if (quantity > 0) recovered.add(row.copyWith(quantity: quantity));
-          remaining -= quantity;
-        }
+      if (group.items.any((item) => item.selectedVariants
+          .any(SmartCartSelection.looksBottleLikeVariant))) {
+        skippedItems.add('${group.name}: магазин не передал данные тары');
         continue;
       }
       final paid = subtractPromotionPaidQuantityForPhysicalQuantity(
           group.totalQuantity, group.promotions);
-      if (paid == null || group.paidBottleCounts.isEmpty) {
-        skippedItems
-            .add('${group.name}: нельзя точно восстановить объём и тару');
+      final step = group.items.first.stepQuantity;
+      if (paid == null ||
+          !step.isFinite ||
+          step <= 0 ||
+          (paid / step - (paid / step).round()).abs() > 0.0000001) {
+        skippedItems.add('${group.name}: нельзя точно восстановить количество');
         continue;
       }
-      try {
-        final gifts = group.selection!
-            .giftBottleBreakdown(paid, availableCounts: group.paidBottleCounts);
-        final giftRows = Map<int, int>.from(gifts);
-        final paidRows = <CartItem>[];
-        for (final row in group.items) {
-          final bottle = group.selection!.filteredBottles.singleWhere(
-              (bottle) => row.selectedVariants.any((variant) =>
-                  SmartCartSelection.variantRelationId(variant) ==
-                  bottle.relationId));
-          final volume = group.selection!.volumeForBottle(bottle);
-          final count = (row.quantity / volume).round();
-          final giftCount = (giftRows[bottle.relationId] ?? 0).clamp(0, count);
-          giftRows[bottle.relationId] =
-              (giftRows[bottle.relationId] ?? 0) - giftCount;
-          final paidQuantity = row.quantity - giftCount * volume;
-          if (paidQuantity > 0) {
-            paidRows.add(
-                row.copyWith(quantity: paidQuantity, giftBottleCounts: gifts));
-          }
-        }
-        recovered.addAll(paidRows);
-      } on StateError {
-        skippedItems
-            .add('${group.name}: нельзя точно восстановить объём и тару');
+      var remaining = paid;
+      for (final row in group.items) {
+        final quantity = remaining < row.quantity ? remaining : row.quantity;
+        if (quantity > 0) recovered.add(row.copyWith(quantity: quantity));
+        remaining -= quantity;
       }
     }
     return RepeatOrderBuildResult(

@@ -15,6 +15,7 @@ import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
+import 'package:naliv_delivery/features/catalog/ui/category_switcher.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,7 +239,7 @@ void main() {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      if (request.url.path == '/api/categories/10/items' &&
+      if (request.url.path == '/api/categories/2/items' &&
           request.url.queryParameters['business_id'] == '1') {
         itemReads++;
         return http.Response(
@@ -277,7 +278,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump();
       expect(itemReads, 1);
-      await tester.tap(find.byKey(const ValueKey('catalog-open-10')));
+      await tester.tap(find.byKey(const ValueKey('catalog-open-2')));
       await tester.pumpAndSettle();
       expect(find.byType(CategoryProductsPage), findsOneWidget);
       final scrollable = find.descendant(
@@ -404,8 +405,7 @@ void main() {
             }));
   });
 
-  testWidgets(
-      'ambiguous leaves open their own products and keep route selection',
+  testWidgets('parents hold their children; every level opens its own products',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -415,14 +415,20 @@ void main() {
       if (request.method != 'GET') {
         throw StateError('Unexpected mutation: $request');
       }
-      Map<String, dynamic> data;
       if (request.url.path == '/api/categories/supercategories') {
-        data = {
+        return _okJson({
           'supercategories': [
             {
               'supercategory_id': 1,
               'name': '  Напитки  ',
               'categories': [
+                {
+                  'category_id': 4,
+                  'name': 'Пусто',
+                  'subcategories': [
+                    {'category_id': 401, 'name': 'Ничего'},
+                  ],
+                },
                 {
                   'category_id': 2,
                   'name': 'Пиво',
@@ -440,33 +446,33 @@ void main() {
               ],
             },
           ],
-        };
-      } else if (request.url.path == '/api/categories/101/items' ||
-          request.url.path == '/api/categories/202/items') {
-        if (request.url.queryParameters['business_id'] != '1') {
-          throw StateError('Unexpected store: $request');
-        }
-        final isAlcoholFree = request.url.path.contains('/202/');
-        reads.add(request.url.path);
-        data = {
-          'items': [
+        });
+      }
+      final match =
+          RegExp(r'^/api/categories/(\d+)/items$').firstMatch(request.url.path);
+      if (match == null || request.url.queryParameters['business_id'] != '1') {
+        throw StateError('Unexpected request: $request');
+      }
+      final id = match.group(1)!;
+      reads.add(id);
+      const names = {
+        '2': 'Разное пиво',
+        '101': 'Светлый лагер',
+        '3': 'Разное безалкогольное',
+        '202': 'Безалкогольный лагер',
+      };
+      return _okJson({
+        'items': [
+          if (names[id] case final name?)
             {
-              'item_id': isAlcoholFree ? 2002 : 1001,
-              'name': isAlcoholFree ? 'Безалкогольный лагер' : 'Светлый лагер',
+              'item_id': int.parse(id) * 10,
+              'name': name,
               'price': 1000,
               'amount': 10,
               'measure': 'шт.',
             },
-          ],
-        };
-      } else {
-        throw StateError('Unexpected request: $request');
-      }
-      return http.Response(
-        jsonEncode({'success': true, 'data': data}),
-        200,
-        headers: {'content-type': 'application/json; charset=utf-8'},
-      );
+        ],
+      });
     });
     await http.runWithClient(() async {
       await tester.pumpWidget(
@@ -482,59 +488,87 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('category-tab-101')));
+
+      // Navigation names parents only. A parent the store has no products for vanishes.
+      expect(find.byKey(const ValueKey('category-tab-2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('category-tab-3')), findsOneWidget);
+      expect(find.byKey(const ValueKey('category-tab-4')), findsNothing);
+      expect(find.byKey(const ValueKey('category-tab-101')), findsNothing);
+      expect(find.text('Пусто'), findsNothing);
+      // The parent previews its products; its child sits inside the same section.
+      expect(find.text('Разное пиво'), findsOneWidget);
+      expect(find.byKey(const ValueKey('category-chip-101')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('category-chip-101')));
+      await tester.pumpAndSettle();
+      expect(find.byType(CategoryProductsPage), findsOneWidget);
+      expect(find.text('Светлый лагер'), findsOneWidget);
+      // The parent is the context of its child, and the child is the chip selected.
+      expect(find.text('Пиво'), findsOneWidget);
+      expect(_selected(tester, 'category-chip-101'), Tristate.isTrue);
+      expect(_selected(tester, 'category-chip-2'), Tristate.isFalse);
+
+      await tester.tap(find.byKey(const ValueKey('category-chip-2')));
+      await tester.pumpAndSettle();
+      expect(find.text('Разное пиво'), findsOneWidget);
+      expect(find.text('Светлый лагер'), findsNothing);
+      expect(find.text('Напитки'), findsOneWidget);
+      expect(_selected(tester, 'category-chip-2'), Tristate.isTrue);
+
+      // Going back to a list that was already loaded never refetches it.
+      await tester.tap(find.byKey(const ValueKey('category-chip-101')));
       await tester.pumpAndSettle();
       expect(find.text('Светлый лагер'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      expect(reads.where((id) => id == '101').length, 1);
+
+      await tester.tap(find.byTooltip('Назад'));
       await tester.pumpAndSettle();
-      final selectedBeer = find.text('Светлое · Пиво').last;
-      expect(tester.getSemantics(selectedBeer).flagsCollection.isSelected,
-          Tristate.isTrue);
-      await tester.tap(selectedBeer);
-      await tester.pumpAndSettle();
-      expect(reads.where((path) => path.contains('/101/')).length, 1);
-      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Светлое · Безалкогольное пиво').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Безалкогольный лагер'), findsOneWidget);
-      expect(find.text('Светлый лагер'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
-      await tester.pumpAndSettle();
-      final readsBeforeReselect = reads.length;
-      final selectedFree = find.text('Светлое · Безалкогольное пиво').last;
-      expect(tester.getSemantics(selectedFree).flagsCollection.isSelected,
-          Tristate.isTrue);
-      await tester.tap(selectedFree);
-      await tester.pumpAndSettle();
-      expect(reads.length, readsBeforeReselect);
-      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('category-overview')));
-      await tester.pumpAndSettle();
-      expect(find.byType(SupercategoryPage), findsOneWidget);
       expect(find.byType(CategoryProductsPage), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('category-tab-3')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('catalog-open-3')).hitTestable(),
+        findsOneWidget,
+      );
+
+      // The sheet lists every parent with its children; the current parent is marked.
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      await tester.pumpAndSettle();
+      expect(_selected(tester, 'category-menu-3'), Tristate.isTrue);
+      expect(_selected(tester, 'category-menu-2'), Tristate.isFalse);
+      expect(find.byKey(const ValueKey('category-menu-101')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('category-menu-202')));
+      await tester.pumpAndSettle();
+      expect(find.byType(CategoryProductsPage), findsOneWidget);
+      expect(find.text('Безалкогольный лагер'), findsOneWidget);
+      expect(find.text('Безалкогольное пиво'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }, () => client).whenComplete(semantics.dispose);
   });
 
-  testWidgets('the category sheet reveals a distant selection at large text',
+  testWidgets('the child chips reveal a distant selection at large text',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final semantics = tester.ensureSemantics();
-    final categories = [
-      for (var index = 0; index < 40; index++)
-        CategoryRef(
-          id: 100 + index,
-          name: index == 39
-              ? 'Светлое с длинным названием категории'
-              : 'Категория $index',
-          parentId: 3,
-          parentName: 'Безалкогольное пиво',
-          needsParentContext: index == 39,
-        ),
-    ];
+    final group = CategoryRef(
+      id: 3,
+      name: 'Безалкогольное пиво',
+      parentName: 'Напитки',
+      children: [
+        for (var index = 0; index < 40; index++)
+          CategoryRef(
+            id: 100 + index,
+            name: index == 39
+                ? 'Светлое с длинным названием категории'
+                : 'Категория $index',
+            parentId: 3,
+            parentName: 'Безалкогольное пиво',
+            needsParentContext: index == 39,
+          ),
+      ],
+    );
     final unexpected = <String>[];
     await http.runWithClient(() async {
       await tester.pumpWidget(
@@ -551,27 +585,17 @@ void main() {
               categoryId: 139,
               title: 'Светлое',
               businessId: 1,
-              categories: categories,
+              group: group,
               initialItems: _products.take(1).toList(),
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('category-tab-139')), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
-      await tester.pumpAndSettle();
-      final selected = find.byKey(const ValueKey('category-menu-139'));
+      final selected = find.byKey(const ValueKey('category-chip-139'));
       expect(selected.hitTestable(), findsOneWidget);
-      expect(
-        tester
-            .getSemantics(find.text(categories.last.label).last)
-            .flagsCollection
-            .isSelected,
-        Tristate.isTrue,
-      );
-      await tester.tap(selected);
-      await tester.pumpAndSettle();
+      expect(_selected(tester, 'category-chip-139'), Tristate.isTrue);
+      expect(find.text('Безалкогольное пиво'), findsOneWidget);
       expect(find.byKey(const ValueKey('category-product-0')), findsOneWidget);
       expect(unexpected, isEmpty);
       expect(tester.takeException(), isNull);
@@ -580,6 +604,105 @@ void main() {
               unexpected.add('$request');
               throw StateError('Unexpected request: $request');
             })).whenComplete(semantics.dispose);
+  });
+
+  testWidgets('a far parent is reached from the grouped sheet at large text',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final client = MockClient((request) async {
+      if (request.method != 'GET') {
+        throw StateError('Unexpected mutation: $request');
+      }
+      if (request.url.path == '/api/categories/supercategories') {
+        return _okJson({
+          'supercategories': [
+            {
+              'supercategory_id': 1,
+              'name': 'Крепкий алкоголь',
+              'categories': [
+                for (var parent = 10; parent < 18; parent++)
+                  {
+                    'category_id': parent,
+                    'name': 'Группа $parent',
+                    'subcategories': [
+                      for (var child = 1; child <= 3; child++)
+                        {
+                          'category_id': parent * 10 + child,
+                          'name': 'Вид $parent-$child',
+                        },
+                    ],
+                  },
+              ],
+            },
+          ],
+        });
+      }
+      final match =
+          RegExp(r'^/api/categories/(\d+)/items$').firstMatch(request.url.path);
+      if (match == null || request.url.queryParameters['business_id'] != '1') {
+        throw StateError('Unexpected request: $request');
+      }
+      final id = int.parse(match.group(1)!);
+      return _okJson({
+        'items': [
+          {
+            'item_id': id,
+            'name': 'Товар $id',
+            'price': 1000,
+            'amount': 10,
+            'measure': 'шт.',
+          },
+        ],
+      });
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: const SupercategoryPage(
+              supercategoryId: 1,
+              businessId: 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      await tester.pumpAndSettle();
+      final last = find.byKey(const ValueKey('category-menu-17'));
+      await tester.scrollUntilVisible(
+        last,
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('catalog-open-17')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<CategorySwitcher>(find.byType(CategorySwitcher))
+            .selectedId,
+        17,
+      );
+      expect(tester.takeException(), isNull);
+    }, () => client);
   });
 }
 
@@ -606,3 +729,12 @@ List<ProductView> get _products => [
           ),
         ),
     ];
+
+Tristate _selected(WidgetTester tester, String key) =>
+    tester.getSemantics(find.byKey(ValueKey(key))).flagsCollection.isSelected;
+
+http.Response _okJson(Map<String, dynamic> data) => http.Response(
+      jsonEncode({'success': true, 'data': data}),
+      200,
+      headers: {'content-type': 'application/json; charset=utf-8'},
+    );

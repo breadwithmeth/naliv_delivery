@@ -153,21 +153,15 @@ class ProductRail extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               height: height + insets.vertical,
-              child: SingleChildScrollView(
+              child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: padding,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var index = 0; index < itemCount; index++) ...[
-                      if (index > 0) SizedBox(width: spacing),
-                      SizedBox(
-                        width: width,
-                        height: height,
-                        child: itemBuilder(context, index),
-                      ),
-                    ],
-                  ],
+                itemCount: itemCount,
+                separatorBuilder: (_, __) => SizedBox(width: spacing),
+                itemBuilder: (context, index) => SizedBox(
+                  width: width,
+                  height: height,
+                  child: itemBuilder(context, index),
                 ),
               ),
             ),

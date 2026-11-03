@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/product_view.dart';
@@ -8,7 +9,7 @@ import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/product_grid.dart';
 import '../../../ui/surfaces.dart';
@@ -19,7 +20,11 @@ import '../catalog_view_data.dart';
 import 'category_products_page.dart';
 import 'category_switcher.dart';
 
-/// A supercategory with one navigable header and a compact preview per category.
+/// A supercategory organised by its parent categories.
+///
+/// Each parent is one section: its name with «Все», a row of its child categories, and a
+/// rail previewing its products. The tabs on top name the parents (never the leaves) and jump
+/// to their sections; the sheet beside them lists every parent with its children beneath.
 class SupercategoryPage extends StatefulWidget {
   const SupercategoryPage({
     required this.supercategoryId,
@@ -46,26 +51,48 @@ class SupercategoryPage extends StatefulWidget {
 }
 
 class _SupercategoryPageState extends State<SupercategoryPage> {
+  /// How far below the viewport's top edge a section counts as the current one.
+  static const double _spyInset = 64;
+
+  /// The product preview of a section is this long at most; «Все» opens the rest.
+  static const int _previewLimit = 12;
+
   final _scroll = ScrollController();
   final _previews = <int, (List<ProductView>, bool)>{};
+  final _sectionKeys = <int, GlobalKey>{};
+
+  /// Parents the store has no products for: hidden from the page and from the navigation.
+  final _empty = <int>{};
+  final _active = ValueNotifier<int?>(null);
   SupercategoryView? _data;
   bool _failed = false;
   bool _loaded = false;
+  bool _jumping = false;
+  bool _spyQueued = false;
+
+  /// The section the customer jumped to; kept at the top while sections above it finish
+  /// loading and change height, until the customer scrolls by hand.
+  int? _anchor;
 
   @override
   void initState() {
     super.initState();
+    _scroll.addListener(_queueSpy);
     _load();
   }
 
   @override
   void dispose() {
     _scroll.dispose();
+    _active.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     _previews.clear();
+    _empty.clear();
+    _sectionKeys.clear();
+    _active.value = null;
     setState(() {
       _failed = false;
       _data = null;
@@ -85,19 +112,52 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     }
   }
 
-  void _openSubcategory(
-    CategoryRef ref, {
+  List<CategoryRef> get _parents => [
+        for (final parent in _data?.categories ?? const <CategoryRef>[])
+          if (!_empty.contains(parent.id)) parent,
+      ];
+
+  GlobalKey _keyFor(int id) => _sectionKeys.putIfAbsent(id, GlobalKey.new);
+
+  CategoryRef? _parentOf(CategoryRef child) {
+    for (final parent in _data?.categories ?? const <CategoryRef>[]) {
+      if (parent.id == child.parentId) return parent;
+    }
+    return null;
+  }
+
+  void _onPreview(CategoryRef parent, List<ProductView> items, bool hasMore) {
+    _previews[parent.id] = (items, hasMore);
+    if (!mounted) return;
+    if (items.isEmpty) setState(() => _empty.add(parent.id));
+    _holdAnchor();
+  }
+
+  void _holdAnchor() {
+    if (_anchor == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final id = _anchor;
+      if (!mounted || id == null || _isAligned(id)) return;
+      final target = _sectionKeys[id]?.currentContext;
+      if (target != null && target.mounted) {
+        Scrollable.ensureVisible(target);
+      }
+    });
+  }
+
+  void _openParent(
+    CategoryRef parent, {
     List<ProductView>? initialItems,
     bool? initialHasMore,
   }) {
-    final preview = _previews[ref.id];
+    final preview = _previews[parent.id];
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CategoryProductsPage(
-          categoryId: ref.id,
-          title: ref.label,
+          categoryId: parent.id,
+          title: parent.name,
           businessId: widget.businessId,
-          categories: _data?.leaves ?? const [],
+          group: parent,
           initialItems: initialItems ?? preview?.$1,
           initialHasMore: initialHasMore ?? preview?.$2,
           onSearch: widget.onSearch,
@@ -107,13 +167,132 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     );
   }
 
+  void _openChild(CategoryRef child) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CategoryProductsPage(
+          categoryId: child.id,
+          title: child.name,
+          businessId: widget.businessId,
+          group: _parentOf(child),
+          onSearch: widget.onSearch,
+          onCart: widget.onCart,
+        ),
+      ),
+    );
+  }
+
+  void _queueSpy() {
+    if (_spyQueued || _jumping) return;
+    _spyQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _spyQueued = false;
+      if (mounted) _updateActive();
+    });
+  }
+
+  /// Marks the section under the top edge of the list as the current one.
+  void _updateActive() {
+    if (_jumping || !_scroll.hasClients) return;
+    final parents = _parents;
+    if (parents.isEmpty) return;
+    final position = _scroll.position;
+    int? next;
+    if (position.pixels <= position.minScrollExtent + 1) {
+      next = parents.first.id;
+    } else if (position.pixels >= position.maxScrollExtent - 1) {
+      next = parents.last.id;
+    } else {
+      final viewport = position.context.storageContext.findRenderObject();
+      if (viewport is! RenderBox || !viewport.attached) return;
+      final top = viewport.localToGlobal(Offset.zero).dy;
+      for (final parent in parents) {
+        final box = _sectionKeys[parent.id]?.currentContext?.findRenderObject();
+        if (box is! RenderBox || !box.attached || !box.hasSize) continue;
+        if (box.localToGlobal(Offset.zero).dy - top <= _spyInset) {
+          next = parent.id;
+        } else if (next != null) {
+          break;
+        }
+      }
+      next ??= parents.first.id;
+    }
+    _active.value = next;
+  }
+
+  /// Brings [parent]'s section to the top. Sections are built lazily, so a far one is first
+  /// approached by the average section height and then aligned once it exists.
+  Future<void> _scrollTo(CategoryRef parent) async {
+    _jumping = true;
+    _anchor = parent.id;
+    _active.value = parent.id;
+    try {
+      for (var attempt = 0; attempt < 8 && mounted; attempt++) {
+        final target = _sectionKeys[parent.id]?.currentContext;
+        if (target != null && target.mounted) {
+          await Scrollable.ensureVisible(
+            target,
+            duration: attempt == 0
+                ? const Duration(milliseconds: 280)
+                : Duration.zero,
+            curve: Curves.easeOutCubic,
+          );
+          await WidgetsBinding.instance.endOfFrame;
+          // Sections built on the way load their previews and change height,
+          // which can shift the target after the scroll; align again until it
+          // stays at the top of the list.
+          if (!mounted || _isAligned(parent.id)) return;
+          continue;
+        }
+        if (!_scroll.hasClients) return;
+        final parents = _parents;
+        final index = parents.indexWhere((entry) => entry.id == parent.id);
+        if (index < 0) return;
+        var built = 0;
+        var total = 0.0;
+        for (final entry in parents) {
+          final box =
+              _sectionKeys[entry.id]?.currentContext?.findRenderObject();
+          if (box is RenderBox && box.hasSize) {
+            built++;
+            total += box.size.height;
+          }
+        }
+        final average = built == 0 ? 520.0 : total / built;
+        final position = _scroll.position;
+        _scroll.jumpTo(
+          (index * average).clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+        await WidgetsBinding.instance.endOfFrame;
+      }
+    } finally {
+      _jumping = false;
+      if (mounted) _queueSpy();
+    }
+  }
+
+  bool _isAligned(int id) {
+    final box = _sectionKeys[id]?.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    if (!_scroll.hasClients) return true;
+    final position = _scroll.position;
+    if (position.pixels >= position.maxScrollExtent - 1) return true;
+    final viewport = RenderAbstractViewport.maybeOf(box);
+    if (viewport == null) return true;
+    final revealed = viewport.getOffsetToReveal(box, 0).offset;
+    return (revealed - position.pixels).abs() <= 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _data;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: LiquidGlassDock(
+        child: FrostedDock(
           content: Column(
             children: [
               Padding(
@@ -152,6 +331,11 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     );
   }
 
+  EdgeInsets get _listPadding => EdgeInsets.only(
+        bottom: AppCartButton.clearanceFor(context) +
+            MediaQuery.paddingOf(context).bottom,
+      );
+
   Widget _body(SupercategoryView? data) {
     Widget? state;
     if (_failed) {
@@ -166,102 +350,133 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
               height: 200,
               child: Center(child: CircularProgressIndicator()),
             );
-    } else if (data.leaves.isEmpty) {
+    } else if (data.categories.isEmpty || _parents.isEmpty) {
       state = const AppEmptyState(title: 'В этой категории пока нет товаров');
     }
-    return ListView.builder(
-      key: const ValueKey('catalog-overview'),
-      controller: _scroll,
-      padding: EdgeInsets.only(
-        bottom: AppCartButton.clearanceFor(context) +
-            MediaQuery.paddingOf(context).bottom,
-      ),
-      itemCount: state == null ? data!.leaves.length + 1 : 1,
-      itemBuilder: (context, index) {
-        if (state != null) return state;
-        final loaded = data!;
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.gutter,
-              0,
-              AppSpacing.gutter,
-              AppSpacing.xl,
+    if (state != null) {
+      return ListView(
+        key: const ValueKey('catalog-overview'),
+        controller: _scroll,
+        padding: _listPadding,
+        children: [state],
+      );
+    }
+    final loaded = data!;
+    final parents = _parents;
+    final hasDescription = loaded.description?.isNotEmpty == true;
+    final offset = hasDescription ? 1 : 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (parents.length > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+            child: ValueListenableBuilder<int?>(
+              valueListenable: _active,
+              builder: (_, active, __) => CategorySwitcher(
+                parents: parents,
+                selectedId: parents.any((parent) => parent.id == active)
+                    ? active!
+                    : parents.first.id,
+                onParent: _scrollTo,
+                onChild: _openChild,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                CategorySwitcher(
-                  categories: loaded.leaves,
-                  selectedCategoryId: loaded.leaves.first.id,
-                  selectedLabel: loaded.leaves.first.label,
-                  onCategory: _openSubcategory,
-                  onOverview: () => _scroll.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 240),
-                    curve: Curves.easeOutCubic,
-                  ),
-                ),
-                if (loaded.description?.isNotEmpty == true) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    loaded.description!,
-                    style: AppTypography.bodySmall
-                        .copyWith(color: context.palette.textSecondary),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }
-        final ref = loaded.leaves[index - 1];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.huge),
-          child: _Section(
-            key: ValueKey(ref.id),
-            category: ref,
-            businessId: widget.businessId,
-            featured: index == 1,
-            initialPreview: _previews[ref.id],
-            onLoaded: (items, hasMore) => _previews[ref.id] = (items, hasMore),
-            onOpen: (items, hasMore) => _openSubcategory(
-              ref,
-              initialItems: items,
-              initialHasMore: hasMore,
-            ),
-            onCart: widget.onCart,
           ),
-        );
-      },
+        Expanded(
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: (notification) {
+              if (notification.dragDetails != null) _anchor = null;
+              return false;
+            },
+            child: ListView.builder(
+              key: const ValueKey('catalog-overview'),
+              controller: _scroll,
+              padding: _listPadding,
+              itemCount: parents.length + offset,
+              findChildIndexCallback: (key) {
+                if (key is! ValueKey<int>) return null;
+                final index = parents.indexWhere((p) => p.id == key.value);
+                return index < 0 ? null : index + offset;
+              },
+              itemBuilder: (context, index) {
+                if (hasDescription && index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.gutter,
+                      AppSpacing.md,
+                      AppSpacing.gutter,
+                      AppSpacing.xl,
+                    ),
+                    child: Text(
+                      loaded.description!,
+                      style: AppTypography.bodySmall
+                          .copyWith(color: context.palette.textSecondary),
+                    ),
+                  );
+                }
+                final parent = parents[index - offset];
+                return Padding(
+                  key: ValueKey<int>(parent.id),
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.md,
+                    bottom: AppSpacing.huge,
+                  ),
+                  child: KeyedSubtree(
+                    key: _keyFor(parent.id),
+                    child: _ParentSection(
+                      parent: parent,
+                      businessId: widget.businessId,
+                      previewLimit: _previewLimit,
+                      initialPreview: _previews[parent.id],
+                      onLoaded: (items, hasMore) =>
+                          _onPreview(parent, items, hasMore),
+                      onOpen: (items, hasMore) => _openParent(
+                        parent,
+                        initialItems: items,
+                        initialHasMore: hasMore,
+                      ),
+                      onOpenChild: _openChild,
+                      onCart: widget.onCart,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _Section extends StatefulWidget {
-  const _Section({
-    required this.category,
+/// One parent category: header, its children as a chip row, and a product rail.
+class _ParentSection extends StatefulWidget {
+  const _ParentSection({
+    required this.parent,
     required this.businessId,
-    this.featured = false,
+    required this.previewLimit,
     this.initialPreview,
     this.onLoaded,
     this.onOpen,
+    this.onOpenChild,
     this.onCart,
-    super.key,
   });
 
-  final CategoryRef category;
+  final CategoryRef parent;
   final int businessId;
-  final bool featured;
+  final int previewLimit;
   final (List<ProductView>, bool)? initialPreview;
   final void Function(List<ProductView>, bool)? onLoaded;
   final void Function(List<ProductView>?, bool?)? onOpen;
+  final ValueChanged<CategoryRef>? onOpenChild;
   final VoidCallback? onCart;
 
   @override
-  State<_Section> createState() => _SectionState();
+  State<_ParentSection> createState() => _ParentSectionState();
 }
 
-class _SectionState extends State<_Section> {
+class _ParentSectionState extends State<_ParentSection> {
   List<ProductView>? _items;
   bool? _hasMore;
   bool _failed = false;
@@ -284,8 +499,9 @@ class _SectionState extends State<_Section> {
       _items = null;
     });
     try {
+      // A parent's products already include those of its children.
       final result = await CatalogDataSource(businessId: widget.businessId)
-          .itemsPage(widget.category.id);
+          .itemsPage(widget.parent.id);
       if (!mounted) return;
       setState(() {
         _items = result.items;
@@ -307,9 +523,19 @@ class _SectionState extends State<_Section> {
     );
   }
 
+  void _openChild(CategoryChipItem chip) {
+    for (final child in widget.parent.children) {
+      if (child.id == chip.id) {
+        widget.onOpenChild?.call(child);
+        return;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = _items;
+    if (items != null && items.isEmpty) return const SizedBox.shrink();
     final open =
         widget.onOpen == null ? null : () => widget.onOpen!(items, _hasMore);
     final Widget content;
@@ -319,21 +545,20 @@ class _SectionState extends State<_Section> {
         onRetry: _load,
       );
     } else if (items == null) {
-      content = const SizedBox(
-        height: 160,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    } else if (items.isEmpty) {
-      content = const AppEmptyState(title: 'В этой категории пока нет товаров');
-    } else if (widget.featured) {
-      return _FeaturedPanel(
-        category: widget.category,
-        items: items,
-        cardBuilder: _card,
-        onOpen: open,
+      content = SizedBox(
+        height: ProductCard.extentFor(context, ProductCard.widthFor(context)),
+        child: const Center(child: CircularProgressIndicator()),
       );
     } else {
-      content = _Grid(items: items, onProductTap: _openProduct);
+      final shown = items.take(widget.previewLimit).toList(growable: false);
+      content = ProductRail(
+        products: shown,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+        itemCount: shown.length + 1,
+        itemBuilder: (context, index) => index == shown.length
+            ? _SeeAllTile(parent: widget.parent, onTap: open)
+            : _card(shown[index]),
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -341,11 +566,21 @@ class _SectionState extends State<_Section> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
           child: _SectionHeader(
-            key: ValueKey('catalog-open-${widget.category.id}'),
-            title: widget.category.label,
+            actionKey: ValueKey('catalog-open-${widget.parent.id}'),
+            title: widget.parent.name,
             onOpen: open,
           ),
         ),
+        if (widget.parent.hasChildren) ...[
+          const SizedBox(height: AppSpacing.sm),
+          CategoryChipRow(
+            items: [
+              for (final child in widget.parent.children)
+                CategoryChipItem.fromCategory(child),
+            ],
+            onSelected: _openChild,
+          ),
+        ],
         const SizedBox(height: AppSpacing.xl),
         content,
       ],
@@ -366,272 +601,94 @@ class _SectionState extends State<_Section> {
       );
 }
 
-/// The featured category: a red panel with the category title row on top, then one
-/// horizontal row of equal-height product cards ending in a "see all" card.
-///
-/// The panel spans the page gutters, so a category with a single product (or none of the
-/// optional artwork) is still filled by the title, the subtitle and the card row. The
-/// category artwork is decoration: it joins the card row at the left when the text scale
-/// leaves room and vanishes without a trace when it is missing or fails to load.
-class _FeaturedPanel extends StatelessWidget {
-  const _FeaturedPanel({
-    required this.category,
-    required this.items,
-    required this.cardBuilder,
+/// A parent's name with the shared «Все» action. The name wraps rather than truncates.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.actionKey,
     this.onOpen,
   });
 
-  final CategoryRef category;
-  final List<ProductView> items;
-  final Widget Function(ProductView item) cardBuilder;
+  final String title;
+  final Key actionKey;
   final VoidCallback? onOpen;
 
-  static const double _inset = AppSpacing.xxxl;
-  static const double _maxArtWidth = 120;
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: onOpen,
+              borderRadius: AppRadii.lgAll,
+              child: ConstrainedBox(
+                constraints:
+                    const BoxConstraints(minHeight: AppSpacing.touchTarget),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    title,
+                    style: AppTypography.headline
+                        .copyWith(color: context.palette.textPrimary),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          AppSectionAction(key: actionKey, label: 'Все', onTap: onOpen),
+        ],
+      );
+}
+
+/// The last card of a preview rail: same size as the products, opening the whole parent.
+class _SeeAllTile extends StatelessWidget {
+  const _SeeAllTile({required this.parent, this.onTap});
+
+  final CategoryRef parent;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final flags = ProductCardLayout.flagsOf(items);
-    final cardWidth = ProductCard.widthFor(context);
-    final extent = ProductCard.extentFor(
-      context,
-      cardWidth,
-      hasOldPrice: flags.hasOldPrice,
-      hasSaving: flags.hasSaving,
-    );
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final showArt = category.imageUrl?.isNotEmpty == true && scale <= 1.3;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-      child: ProductCardLayout(
-        hasOldPrice: flags.hasOldPrice,
-        hasSaving: flags.hasSaving,
-        child: AppSurface(
-          fill: palette.brandRed,
-          radius: AppRadii.xxl,
-          clip: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  _inset,
-                  AppSpacing.md,
-                  _inset,
-                  0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        key: ValueKey('catalog-open-${category.id}'),
-                        onPressed: onOpen,
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.zero,
-                          alignment: Alignment.centerLeft,
-                          minimumSize: const Size(
-                            AppSpacing.touchTarget,
-                            AppSpacing.touchTarget,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                category.label,
-                                style: AppTypography.headline
-                                    .copyWith(color: Colors.white),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            const Icon(Icons.arrow_circle_right, size: 22),
-                          ],
-                        ),
-                      ),
+    return Material(
+      color: palette.surface,
+      borderRadius: AppRadii.lgAll,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: palette.accent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SizedBox.square(
+                    dimension: AppSpacing.touchTarget,
+                    child: Icon(
+                      Icons.arrow_forward,
+                      color: palette.textOnAccent,
                     ),
-                    if (category.description?.isNotEmpty == true)
-                      Text(
-                        category.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySmall
-                            .copyWith(color: Colors.white),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                height: extent,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: _inset),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (showArt) ...[
-                        SizedBox(
-                          width: _maxArtWidth,
-                          height: extent,
-                          child: ClipRRect(
-                            borderRadius: AppRadii.lgAll,
-                            child: Image.network(
-                              category.imageUrl!,
-                              fit: BoxFit.cover,
-                              excludeFromSemantics: true,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                      ],
-                      for (final item in items) ...[
-                        SizedBox(
-                          width: cardWidth,
-                          height: extent,
-                          child: cardBuilder(item),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                      ],
-                      SizedBox(
-                        width: cardWidth * .85,
-                        height: extent,
-                        child: _SeeAllCard(onTap: onOpen),
-                      ),
-                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: _inset),
-            ],
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Все товары',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.base(size: 14, weight: 600)
+                      .copyWith(color: palette.textPrimary),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The trailing card of the featured row: same height as the products, translucent white,
-/// opening the category's full list.
-class _SeeAllCard extends StatelessWidget {
-  const _SeeAllCard({this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withValues(alpha: .14),
-        borderRadius: AppRadii.lgAll,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.arrow_circle_right,
-                      size: 28, color: Colors.white),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Все товары',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.base(size: 14, weight: 600)
-                        .copyWith(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    this.onOpen,
-    super.key,
-  });
-
-  final String title;
-  final VoidCallback? onOpen;
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-        onPressed: onOpen,
-        style: TextButton.styleFrom(
-          foregroundColor: context.palette.textPrimary,
-          padding: EdgeInsets.zero,
-          minimumSize:
-              const Size(AppSpacing.touchTarget, AppSpacing.touchTarget),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: AppTypography.headline
-                    .copyWith(color: context.palette.textPrimary),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            AppSurface(
-              radius: AppRadii.pill,
-              fill: context.palette.accent,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl,
-                vertical: AppSpacing.sm,
-              ),
-              child: Text(
-                'Все',
-                style: AppTypography.bodySmall
-                    .copyWith(color: context.palette.textOnAccent),
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _Grid extends StatelessWidget {
-  const _Grid({required this.items, required this.onProductTap});
-
-  final List<ProductView> items;
-  final ValueChanged<ProductView> onProductTap;
-  @override
-  Widget build(BuildContext context) {
-    return ProductGrid(
-      products: items,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      maxRows: 2,
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Selector<CartProvider, double>(
-          selector: (_, cart) => cart.getCatalogQuantityForKey(item.catalogKey),
-          builder: (context, quantity, _) => ProductCard.fromView(
-            item,
-            onTap: () => onProductTap(item),
-            quantity: quantity,
-            onIncrement: () =>
-                context.read<CartProvider>().incrementCatalogItem(item.source),
-            onDecrement: () =>
-                context.read<CartProvider>().decrementCatalogItem(item.source),
-          ),
-        );
-      },
     );
   }
 }

@@ -67,7 +67,8 @@ class HomeStoreSheet extends StatelessWidget {
                       child: Text(
                         '$city  ${grouped[city]!.length}',
                         style: AppTypography.bodySmallBold.copyWith(
-                          color: grouped[city]!.any((store) => store.id == selectedId)
+                          color: grouped[city]!
+                                  .any((store) => store.id == selectedId)
                               ? palette.accent
                               : palette.textPrimary,
                         ),
@@ -93,37 +94,38 @@ class HomeStoreSheet extends StatelessWidget {
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  const AppIcon(AppIcons.store, size: 18),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(store.name,
-                                            style: AppTypography.bodySmallBold
-                                                .copyWith(
-                                                    color:
-                                                        palette.textPrimary)),
-                                        if (store.address.isNotEmpty)
-                                          Text(store.address,
-                                              style: AppTypography.label
-                                                  .copyWith(
-                                                      color: palette
-                                                          .textSecondary)),
-                                      ],
-                                    ),
+                                  child: Row(
+                                    children: [
+                                      const AppIcon(AppIcons.store, size: 18),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(store.name,
+                                                style: AppTypography
+                                                    .bodySmallBold
+                                                    .copyWith(
+                                                        color: palette
+                                                            .textPrimary)),
+                                            if (store.address.isNotEmpty)
+                                              Text(store.address,
+                                                  style: AppTypography.label
+                                                      .copyWith(
+                                                          color: palette
+                                                              .textSecondary)),
+                                          ],
+                                        ),
+                                      ),
+                                      if (store.id == selectedId)
+                                        Icon(Icons.check,
+                                            color: palette.accent, size: 20),
+                                    ],
                                   ),
-                                  if (store.id == selectedId)
-                                    Icon(Icons.check,
-                                        color: palette.accent, size: 20),
-                                ],
+                                ),
                               ),
                             ),
-                              ),
-                              ),
                           ),
                         ),
                       ),

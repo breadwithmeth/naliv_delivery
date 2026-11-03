@@ -9,7 +9,7 @@ import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
 import '../../../ui/product_row.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/liked_items_provider.dart';
@@ -211,7 +211,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: LiquidGlassDock(
+        child: FrostedDock(
           content: Column(
             children: [
               Padding(

@@ -9,6 +9,9 @@
 /// The rule in force is pinned by `test/regression/bottling_contract_test.dart` and stated to
 /// customers in the FAQ ("for a 2+1 promotion put three bottles in the cart, the third is free"):
 /// **buy `base_amount` paid units → `add_amount` free**, i.e. `free = floor(paid / base) * add`.
+///
+/// Draft beer sold into bottles ("pour") is selected as physical litres instead: the customer picks
+/// `base + add` litres and `add` of them are free (see [evaluatePhysicalGift]).
 library;
 
 import 'package:flutter/foundation.dart';
@@ -84,7 +87,6 @@ class PromotionAward {
   String toString() => 'PromotionAward($label)';
 }
 
-
 /// The best `SUBTRACT` award the customer gets from [promotions] at [paidQuantity].
 PromotionAward? selectSubtractPromotion(
   List<Map<String, dynamic>> promotions, {
@@ -113,8 +115,7 @@ PromotionAward? selectSubtractPromotion(
         (free == bestFree &&
             (add > bestAdd ||
                 (add == bestAdd &&
-                    (base < bestBase ||
-                        (base == bestBase && id < bestId)))));
+                    (base < bestBase || (base == bestBase && id < bestId)))));
     if (!better) continue;
     winner = promotion;
     bestFree = free;
@@ -257,13 +258,142 @@ double? subtractPromotionPaidQuantityForPhysicalQuantity(
     final claims = ((physicalQuantity + 0.0000001) / (base + add)).floor();
     final paid = physicalQuantity - claims * add;
     if (paid < 0) continue;
-    if ((paid + subtractPromotionFreeQuantity(paid, promotions) -
-                physicalQuantity).abs() <= 0.0000001) {
+    if ((paid +
+                subtractPromotionFreeQuantity(paid, promotions) -
+                physicalQuantity)
+            .abs() <=
+        0.0000001) {
       return paid;
     }
   }
   if (!hasAward) return physicalQuantity;
   return null;
+}
+
+/// Gift litres inside [physicalQuantity] litres the customer picked, drawn from the best active
+/// `SUBTRACT` promotion: `floor(physical / (base + add)) * add`.
+///
+/// This is the draft-beer ("pour") rule. The customer selects physical bottles, so a `3+1`
+/// promotion is reached at 4 l: 3 l are paid, the 4th litre is the free bonus. It is the exact
+/// inverse of [subtractPromotionPaidQuantityForPhysicalQuantity]'s claim count.
+double subtractPromotionGiftWithinPhysicalQuantity(
+  double physicalQuantity,
+  List<Map<String, dynamic>> promotions, {
+  DateTime? now,
+}) =>
+    evaluatePhysicalGift(
+            physicalQuantity: physicalQuantity,
+            promotions: promotions,
+            now: now)
+        .giftQuantity;
+
+/// What a surface needs to describe the `N+M` promotion for a pour selection of physical litres.
+@immutable
+class PhysicalGiftEvaluation {
+  const PhysicalGiftEvaluation({
+    required this.physicalQuantity,
+    required this.giftQuantity,
+    this.award,
+    this.nextGiftIn,
+    this.bonusQuantity,
+  });
+
+  /// Litres the customer picked, gift included.
+  final double physicalQuantity;
+
+  /// Litres of [physicalQuantity] that are free.
+  final double giftQuantity;
+
+  /// The winning promotion at [physicalQuantity]; null without an active `SUBTRACT` promotion.
+  final PromotionAward? award;
+
+  /// Litres to add before the gift grows; null without a promotion or when none can be reached.
+  final double? nextGiftIn;
+
+  /// Litres that, added on top, would be entirely free (so the customer may take them at no cost);
+  /// null when no such offer exists.
+  final double? bonusQuantity;
+
+  double get paidQuantity => physicalQuantity - giftQuantity;
+  bool get hasPromotion => award != null;
+}
+
+PhysicalGiftEvaluation evaluatePhysicalGift({
+  required double physicalQuantity,
+  required List<Map<String, dynamic>> promotions,
+  DateTime? now,
+}) {
+  now ??= DateTime.now();
+  final awards = <PromotionAward>[
+    for (final promotion in promotions)
+      if (promotionType(promotion) == 'SUBTRACT' &&
+          isPromotionActive(promotion, now: now) &&
+          _promotionInt(promotion, 'baseAmount', 'base_amount') > 0 &&
+          _promotionInt(promotion, 'addAmount', 'add_amount') > 0)
+        PromotionAward(
+          promotion: promotion,
+          baseAmount: _promotionInt(promotion, 'baseAmount', 'base_amount'),
+          addAmount: _promotionInt(promotion, 'addAmount', 'add_amount'),
+        ),
+  ];
+  if (!physicalQuantity.isFinite || physicalQuantity < 0 || awards.isEmpty) {
+    return PhysicalGiftEvaluation(
+        physicalQuantity: physicalQuantity, giftQuantity: 0);
+  }
+  int claims(PromotionAward award, double litres) =>
+      ((litres + 0.0000001) / (award.baseAmount + award.addAmount)).floor();
+  double giftOf(PromotionAward award, double litres) =>
+      (claims(award, litres) * award.addAmount).toDouble();
+  double bestGift(double litres) {
+    var best = 0.0;
+    for (final award in awards) {
+      final gift = giftOf(award, litres);
+      if (gift > best) best = gift;
+    }
+    return best;
+  }
+
+  int promotionId(PromotionAward award) =>
+      _promotionInt(award.promotion, 'promotionId', 'detail_id');
+  var winner = awards.first;
+  var winnerGift = giftOf(winner, physicalQuantity);
+  for (final award in awards.skip(1)) {
+    final gift = giftOf(award, physicalQuantity);
+    final better = gift > winnerGift ||
+        (gift == winnerGift &&
+            (award.addAmount > winner.addAmount ||
+                (award.addAmount == winner.addAmount &&
+                    (award.baseAmount < winner.baseAmount ||
+                        (award.baseAmount == winner.baseAmount &&
+                            promotionId(award) < promotionId(winner))))));
+    if (!better) continue;
+    winner = award;
+    winnerGift = gift;
+  }
+
+  final gift = bestGift(physicalQuantity);
+  double? nextGiftIn;
+  double? bonus;
+  for (final award in awards) {
+    final setSize = award.baseAmount + award.addAmount;
+    final needed = double.parse(
+        ((claims(award, physicalQuantity) + 1) * setSize - physicalQuantity)
+            .toStringAsFixed(6));
+    final grown = bestGift(physicalQuantity + needed) - gift;
+    if (grown <= 0.0000001) continue;
+    if (nextGiftIn == null || needed < nextGiftIn) nextGiftIn = needed;
+    // The added litres cost nothing when the gift grows by at least as much as they add.
+    if (grown + 0.0000001 >= needed && (bonus == null || needed < bonus)) {
+      bonus = needed;
+    }
+  }
+  return PhysicalGiftEvaluation(
+    physicalQuantity: physicalQuantity,
+    giftQuantity: gift,
+    award: winner,
+    nextGiftIn: nextGiftIn,
+    bonusQuantity: bonus,
+  );
 }
 
 /// What the customer would pay without the gift: the paid units plus the gift at list price.
@@ -378,9 +508,8 @@ double? subtractPromotionBundleTargetQuantity(
     return null;
   }
 
-  final normalizedCurrent = currentQuantity <= subtractPromotionEpsilon
-      ? 0.0
-      : currentQuantity;
+  final normalizedCurrent =
+      currentQuantity <= subtractPromotionEpsilon ? 0.0 : currentQuantity;
   if (direction > 0) {
     final distanceToNextGift = subtractPromotionAmountToNextGift(
       normalizedCurrent,
@@ -435,4 +564,3 @@ bool subtractPromotionUnlocked(
   final remainder = quantity % baseAmount;
   return remainder.abs() <= subtractPromotionEpsilon;
 }
-

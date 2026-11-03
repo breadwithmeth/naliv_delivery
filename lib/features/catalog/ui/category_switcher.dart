@@ -1,26 +1,187 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/motion.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../catalog_view_data.dart';
 
-/// Horizontal category tabs with a complete category sheet at the end of the rail.
-class CategorySwitcher extends StatefulWidget {
-  const CategorySwitcher({
-    required this.categories,
-    required this.selectedCategoryId,
-    required this.selectedLabel,
-    required this.onCategory,
-    required this.onOverview,
+/// One entry of a [CategoryChipRow].
+@immutable
+class CategoryChipItem {
+  const CategoryChipItem({
+    required this.id,
+    required this.label,
+    this.semanticLabel,
+  });
+
+  CategoryChipItem.fromCategory(CategoryRef category)
+      : id = category.id,
+        label = category.name,
+        semanticLabel = category.semanticLabel;
+
+  final int id;
+  final String label;
+  final String? semanticLabel;
+}
+
+/// A single horizontally scrolling row of category chips.
+///
+/// The row never wraps, so a parent with two dozen children stays one tidy line. Chips are
+/// plain type (category photos are sparse and load unreliably, so they are not mixed in);
+/// the selected chip is filled with the accent and scrolled into view whenever it changes.
+class CategoryChipRow extends StatefulWidget {
+  const CategoryChipRow({
+    required this.items,
+    required this.onSelected,
+    this.selectedId,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
     super.key,
   });
 
-  final List<CategoryRef> categories;
-  final int selectedCategoryId;
-  final String selectedLabel;
-  final ValueChanged<CategoryRef> onCategory;
-  final VoidCallback onOverview;
+  final List<CategoryChipItem> items;
+  final ValueChanged<CategoryChipItem> onSelected;
+  final int? selectedId;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  State<CategoryChipRow> createState() => _CategoryChipRowState();
+}
+
+class _CategoryChipRowState extends State<CategoryChipRow> {
+  final _selected = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _revealSelection();
+  }
+
+  @override
+  void didUpdateWidget(CategoryChipRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedId != widget.selectedId) _revealSelection();
+  }
+
+  void _revealSelection() {
+    if (widget.selectedId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selectedContext = _selected.currentContext;
+      if (selectedContext != null) {
+        Scrollable.ensureVisible(
+          selectedContext,
+          alignment: .5,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: widget.padding,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            for (final item in widget.items)
+              Padding(
+                key: item.id == widget.selectedId ? _selected : null,
+                padding: const EdgeInsets.only(right: AppSpacing.md),
+                child: _CategoryChip(
+                  key: ValueKey('category-chip-${item.id}'),
+                  item: item,
+                  selected: item.id == widget.selectedId,
+                  onTap: () => widget.onSelected(item),
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final CategoryChipItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final foreground = selected ? palette.textOnAccent : palette.textPrimary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.semanticLabel ?? item.label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? palette.accent : palette.surface,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        animationDuration: AppMotion.of(context, AppMotion.state),
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: AppSpacing.touchTarget,
+              minHeight: AppSpacing.touchTarget,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xxxl,
+                vertical: AppSpacing.md,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedDefaultTextStyle(
+                    duration: AppMotion.of(context, AppMotion.state),
+                    curve: AppMotion.out,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: AppTypography.base(
+                      size: 14,
+                      weight: selected ? 600 : 500,
+                    ).copyWith(color: foreground),
+                    child: Text(item.label),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tabs for the parent categories of a supercategory, with a grouped sheet of every parent
+/// and its children at the end of the rail.
+///
+/// A parent tab jumps to its section; a child in the sheet opens that child's products.
+class CategorySwitcher extends StatefulWidget {
+  const CategorySwitcher({
+    required this.parents,
+    required this.selectedId,
+    required this.onParent,
+    required this.onChild,
+    super.key,
+  });
+
+  final List<CategoryRef> parents;
+  final int selectedId;
+  final ValueChanged<CategoryRef> onParent;
+  final ValueChanged<CategoryRef> onChild;
 
   @override
   State<CategorySwitcher> createState() => _CategorySwitcherState();
@@ -39,9 +200,7 @@ class _CategorySwitcherState extends State<CategorySwitcher> {
   @override
   void didUpdateWidget(CategorySwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedCategoryId != widget.selectedCategoryId) {
-      _revealSelection();
-    }
+    if (oldWidget.selectedId != widget.selectedId) _revealSelection();
   }
 
   void _revealSelection() {
@@ -49,7 +208,12 @@ class _CategorySwitcherState extends State<CategorySwitcher> {
       if (!mounted) return;
       final selectedContext = _selected.currentContext;
       if (selectedContext != null) {
-        Scrollable.ensureVisible(selectedContext, alignment: .5);
+        Scrollable.ensureVisible(
+          selectedContext,
+          alignment: .5,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        );
       }
     });
   }
@@ -60,26 +224,28 @@ class _CategorySwitcherState extends State<CategorySwitcher> {
     super.dispose();
   }
 
+  String get _selectedName {
+    for (final parent in widget.parents) {
+      if (parent.id == widget.selectedId) return parent.name;
+    }
+    return '';
+  }
+
   Future<void> _showCategories() async {
-    final categoryId = await showModalBottomSheet<int>(
+    final chosen = await showModalBottomSheet<CategoryRef>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _CategorySheet(
-        categories: widget.categories,
-        selectedCategoryId: widget.selectedCategoryId,
+        parents: widget.parents,
+        selectedId: widget.selectedId,
       ),
     );
-    if (!mounted || categoryId == null) return;
-    if (categoryId == -1) {
-      widget.onOverview();
-      return;
-    }
-    if (categoryId == widget.selectedCategoryId) return;
-    for (final category in widget.categories) {
-      if (category.id == categoryId) {
-        widget.onCategory(category);
-        return;
-      }
+    if (!mounted || chosen == null) return;
+    final isParent = widget.parents.any((parent) => parent.id == chosen.id);
+    if (isParent) {
+      widget.onParent(chosen);
+    } else {
+      widget.onChild(chosen);
     }
   }
 
@@ -102,22 +268,20 @@ class _CategorySwitcherState extends State<CategorySwitcher> {
             ),
             child: Row(
               children: [
-                for (final category in widget.categories)
+                for (final parent in widget.parents)
                   Padding(
                     padding: const EdgeInsets.only(right: AppSpacing.xs),
                     child: Semantics(
-                      key: category.id == widget.selectedCategoryId
-                          ? _selected
-                          : null,
-                      selected: category.id == widget.selectedCategoryId,
+                      key: parent.id == widget.selectedId ? _selected : null,
+                      selected: parent.id == widget.selectedId,
                       button: true,
                       child: _CategoryTab(
-                        key: ValueKey('category-tab-${category.id}'),
-                        label: category.label,
-                        selected: category.id == widget.selectedCategoryId,
+                        key: ValueKey('category-tab-${parent.id}'),
+                        label: parent.name,
+                        selected: parent.id == widget.selectedId,
                         light: light,
                         palette: palette,
-                        onTap: () => widget.onCategory(category),
+                        onTap: () => widget.onParent(parent),
                       ),
                     ),
                   ),
@@ -127,7 +291,7 @@ class _CategorySwitcherState extends State<CategorySwitcher> {
         ),
         IconButton(
           key: const ValueKey('category-switch-control'),
-          tooltip: 'Все категории: ${widget.selectedLabel}',
+          tooltip: 'Все категории: $_selectedName',
           onPressed: _showCategories,
           constraints: const BoxConstraints(
             minWidth: AppSpacing.touchTarget,
@@ -174,7 +338,13 @@ class _CategoryTab extends StatelessWidget {
           ),
           child: Center(
             widthFactor: 1,
-            child: DecoratedBox(
+            child: AnimatedContainer(
+              duration: AppMotion.of(context, AppMotion.state),
+              curve: AppMotion.out,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.gutter,
+                vertical: AppSpacing.md,
+              ),
               decoration: BoxDecoration(
                 color: selected
                     ? (light ? Colors.white : palette.surface)
@@ -190,20 +360,15 @@ class _CategoryTab extends StatelessWidget {
                       ]
                     : null,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.gutter,
-                  vertical: AppSpacing.md,
+              child: AnimatedDefaultTextStyle(
+                duration: AppMotion.of(context, AppMotion.state),
+                curve: AppMotion.out,
+                maxLines: 1,
+                softWrap: false,
+                style: (selected ? _selectedStyle : _plainStyle).copyWith(
+                  color: selected ? palette.textPrimary : palette.textSecondary,
                 ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: (selected ? _selectedStyle : _plainStyle).copyWith(
-                    color:
-                        selected ? palette.textPrimary : palette.textSecondary,
-                  ),
-                ),
+                child: Text(label),
               ),
             ),
           ),
@@ -211,14 +376,18 @@ class _CategoryTab extends StatelessWidget {
       );
 }
 
+/// Every parent as a header with its children listed beneath, the current parent marked.
+///
+/// Children wrap onto as many lines as they need, so large text and long names never overflow
+/// and a parent with two dozen children reads as a compact block rather than a tall list.
 class _CategorySheet extends StatefulWidget {
   const _CategorySheet({
-    required this.categories,
-    required this.selectedCategoryId,
+    required this.parents,
+    required this.selectedId,
   });
 
-  final List<CategoryRef> categories;
-  final int selectedCategoryId;
+  final List<CategoryRef> parents;
+  final int selectedId;
 
   @override
   State<_CategorySheet> createState() => _CategorySheetState();
@@ -234,7 +403,7 @@ class _CategorySheetState extends State<_CategorySheet> {
       if (!mounted) return;
       final selectedContext = _selected.currentContext;
       if (selectedContext != null) {
-        Scrollable.ensureVisible(selectedContext, alignment: .5);
+        Scrollable.ensureVisible(selectedContext, alignment: .1);
       }
     });
   }
@@ -272,28 +441,25 @@ class _CategorySheetState extends State<_CategorySheet> {
               ),
               Flexible(
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.gutter,
+                    0,
+                    AppSpacing.gutter,
+                    AppSpacing.huge,
+                  ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ListTile(
-                        key: const ValueKey('category-overview'),
-                        leading: const Icon(Icons.arrow_back),
-                        title: const Text('Обзор каталога'),
-                        onTap: () => Navigator.of(context).pop(-1),
-                      ),
-                      for (final category in widget.categories)
-                        Semantics(
-                          key: category.id == widget.selectedCategoryId
-                              ? _selected
-                              : null,
-                          selected: category.id == widget.selectedCategoryId,
-                          child: ListTile(
-                            key: ValueKey('category-menu-${category.id}'),
-                            title: Text(category.label),
-                            selected: category.id == widget.selectedCategoryId,
-                            trailing: category.id == widget.selectedCategoryId
-                                ? const Icon(Icons.check)
-                                : null,
-                            onTap: () => Navigator.of(context).pop(category.id),
+                      for (final parent in widget.parents)
+                        Padding(
+                          padding:
+                              const EdgeInsets.only(bottom: AppSpacing.xxxl),
+                          child: _SheetGroup(
+                            key: parent.id == widget.selectedId
+                                ? _selected
+                                : ValueKey('category-group-${parent.id}'),
+                            parent: parent,
+                            selected: parent.id == widget.selectedId,
                           ),
                         ),
                     ],
@@ -304,4 +470,83 @@ class _CategorySheetState extends State<_CategorySheet> {
           ),
         ),
       );
+}
+
+class _SheetGroup extends StatelessWidget {
+  const _SheetGroup({
+    required this.parent,
+    required this.selected,
+    super.key,
+  });
+
+  final CategoryRef parent;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          key: ValueKey('category-menu-${parent.id}'),
+          button: true,
+          selected: selected,
+          child: Material(
+            color: selected ? palette.accentFaint : Colors.transparent,
+            borderRadius: AppRadii.xlAll,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(parent),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: AppSpacing.touchTarget,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          parent.name,
+                          style: AppTypography.headline
+                              .copyWith(color: palette.textPrimary),
+                        ),
+                      ),
+                      if (selected) ...[
+                        const SizedBox(width: AppSpacing.md),
+                        Icon(Icons.check, color: palette.accent),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (parent.hasChildren) ...[
+          const SizedBox(height: AppSpacing.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.md,
+              children: [
+                for (final child in parent.children)
+                  _CategoryChip(
+                    key: ValueKey('category-menu-${child.id}'),
+                    item: CategoryChipItem.fromCategory(child),
+                    selected: false,
+                    onTap: () => Navigator.of(context).pop(child),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }

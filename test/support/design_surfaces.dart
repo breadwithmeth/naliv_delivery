@@ -15,6 +15,7 @@ import 'package:naliv_delivery/core/theme_controller.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
+import 'package:naliv_delivery/features/catalog/catalog_view_data.dart';
 import 'package:naliv_delivery/features/catalog/ui/category_products_page.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/certificates/certificate_purchase_session.dart';
@@ -828,6 +829,24 @@ class SurfaceFixtureClient extends MockClient {
                     {'category_id': 12, 'name': 'Розовое'},
                   ],
                 },
+                {
+                  'category_id': 214,
+                  'name': 'Пиво баночное и бутылочное',
+                  'subcategories': [
+                    {'category_id': 219, 'name': 'Безалкогольное'},
+                    {'category_id': 218, 'name': 'Крафтовое'},
+                    {'category_id': 217, 'name': 'Светлое'},
+                    {'category_id': 216, 'name': 'Темное'},
+                  ],
+                },
+                {
+                  'category_id': 215,
+                  'name': 'Пиво разливное',
+                  'subcategories': [
+                    {'category_id': 221, 'name': 'Светлое'},
+                    {'category_id': 220, 'name': 'Темное'},
+                  ],
+                },
               ],
             },
             for (final (id, name) in const [
@@ -852,8 +871,26 @@ class SurfaceFixtureClient extends MockClient {
     if (url.pathSegments.length == 4 &&
         url.pathSegments[1] == 'categories' &&
         url.pathSegments[3] == 'items' &&
-        {'10', '11', '12', '32', '33', '34', '35', '36', '90', '221'}
-            .contains(url.pathSegments[2]) &&
+        {
+          '2',
+          '10',
+          '11',
+          '12',
+          '32',
+          '33',
+          '34',
+          '35',
+          '36',
+          '90',
+          '214',
+          '215',
+          '216',
+          '217',
+          '218',
+          '219',
+          '220',
+          '221',
+        }.contains(url.pathSegments[2]) &&
         const {'1', '2'}.contains(url.queryParameters['business_id']) &&
         url.queryParameters['page'] == '1' &&
         {'10', '24', '60'}.contains(url.queryParameters['limit']) &&
@@ -862,7 +899,20 @@ class SurfaceFixtureClient extends MockClient {
         'success': true,
         'data': {
           'items': [
-            if (const {'10', '11', '12'}.contains(url.pathSegments[2]))
+            if (const {
+              '2',
+              '10',
+              '11',
+              '12',
+              '214',
+              '215',
+              '216',
+              '217',
+              '218',
+              '219',
+              '220',
+              '221'
+            }.contains(url.pathSegments[2]))
               for (var id = 100; id < 109; id++) _sampleItem(id).toJson(),
           ],
         },
@@ -1066,6 +1116,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         initialLon: 73.1094,
         initialAddress: _fixtureAddress,
         tileProvider: _tiles,
+        city: 'Караганда',
         locate: _locateFixtureAddress,
       );
 
@@ -1281,11 +1332,14 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           _surface == 'checkout_pickup' ? 'PICKUP' : 'DELIVERY',
       initialAddress: _fixtureAddress,
       onCatalog: () => _select('catalog'),
-      addressPicker: (context, address, detailsFirst) =>
+      addressPicker: (context, address, detailsFirst,
+              {String? city, ({double lat, double lon})? fallbackCenter}) =>
           AddressSelectionModalHelper.show(
         context,
         initialAddress: address,
         openDetailsFirst: detailsFirst,
+        city: city,
+        fallbackCenter: fallbackCenter,
         tileProvider: _tiles,
         locate: _locateFixtureAddress,
       ),
@@ -1367,6 +1421,16 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         return _withFixtureBack(CategoryProductsPage(
           categoryId: 11,
           title: 'Белое',
+          group: const CategoryRef(
+            id: 2,
+            name: 'Вино',
+            parentName: 'Слабоалкогольные напитки',
+            children: [
+              CategoryRef(id: 10, name: 'Аперитив', parentId: 2),
+              CategoryRef(id: 11, name: 'Белое', parentId: 2),
+              CategoryRef(id: 12, name: 'Розовое', parentId: 2),
+            ],
+          ),
           businessId: _business.selectedBusinessId ?? 1,
           initialItems: _products,
           onSearch: () => _select('search'),
@@ -1470,11 +1534,13 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       case 'address_map':
         return _withFixtureBack(_fixtureMapPage());
       case 'address_details':
-        return _withFixtureBack(const AddressDetailsPage(
+        return _withFixtureBack(AddressDetailsPage(
           address: 'Тестовый адрес, 16',
+          city: 'Караганда',
           initialEntrance: '2',
           initialFloor: '7',
           initialApartment: '45',
+          onChangeAddress: (_) async => null,
         ));
       case 'cards':
         return _withFixtureBack(ProfileCardsPage(

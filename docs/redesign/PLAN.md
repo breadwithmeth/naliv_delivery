@@ -60,10 +60,9 @@ The user's reported defects supersede the previous `DONE` quality conclusions. H
 the October layout departures. Client corrections F1–F11, backend contracts and
 financial safety remain retained. Current visual, interaction and integration
 evidence is recorded in `STATUS.md` and `FIDELITY.md`.
-Active routes/controls are mapped below. The selected material contract is actual native
-Apple `UIGlassEffect` on iOS 26+ and genuine live-backdrop shader refraction elsewhere;
-non-Apple output is not claimed Apple-native/pixel-identical. Xcode 26/Apple runtime
-acceptance is a separate, explicit verification boundary.
+Active routes/controls are mapped below. The selected material contract is a standard
+translucent frosted bar (one `BackdropFilter` blur plus theme tint and a hairline), the
+same on every platform; there is no shader or native/Apple-glass path.
 Real bank/card-account, loyalty policy, 1C reversal and push-provider/device acceptance
 remain external prerequisites. Earlier artwork/grid rules below are historical, not
 constraints overriding required app information or the new usability request.
@@ -72,11 +71,11 @@ constraints overriding required app information or the new usability request.
 
 | Surface | Visible controls and destination/action | Data and states retained |
 |---|---|---|
-| Catalogue overview (`SupercategoryPage`) | Back; search; horizontal category tabs plus complete category sheet; featured rail and section links; real product/configuration and stock-aware add/stepper; floating cart | Selected-business `CatalogDataSource`; lazy section reads/full first-page prefetch; loading, missing supercategory, empty leaf, error/retry, stock/configuration availability; grid fallback for narrow/large text |
-| Category products (`CategoryProductsPage`) | Back/overview; category tabs and selected sheet; sibling replacement; product/detail/quantity; search and cart | Branch/leaf IDs and contextual duplicate labels; prefetched continuity; page-more loading/error/retry; fractional stock/quantity and real source items |
+| Catalogue overview (`SupercategoryPage`) | Back; search; tabs for the supercategory's PARENT categories that scroll to their sections, plus a grouped sheet (parent headers with their children beneath, current parent marked); one section per parent: name, «Все», one scrolling chip row of its children (photo when the API has one, type otherwise) and a product rail ending in «Все товары»; real product/configuration and stock-aware add/stepper; floating cart | Selected-business `CatalogDataSource`; the supercategory tree's top level are the parents; lazy section reads of the parent (the API includes nested children) with full first-page prefetch; a parent without products in the store is hidden from page and tabs; loading, missing supercategory, empty, error/retry, stock/configuration availability; a single parent shows no tabs |
+| Category products (`CategoryProductsPage`) | Back; search; title = category name with its context beneath (parent for a child, supercategory for a parent); pinned chips «Все» + the parent's children that swap the grid in place (loaded lists are cached); product/detail/quantity; cart | `group` parent supplies the chips; prefetched continuity; page-more loading/error/retry per list; fractional stock/quantity and real source items |
 | Shared product card | Photo-first compact identity; current/old price, saving, promotion and bonus; detail and >=44 px quantity/configuration targets; full metadata in detail/semantics | `ProductView`/`presentItem`, no inferred country/ABV/material; three columns at 375, fewer for narrow/large text; compact featured rail and larger recommendation rail |
 | Confirmation (`CheckoutPage`) | Delivery/pickup; address/store change; expandable delivery details; visible bonus/code/certificate controls; order quantity/remove/edit; FAQ; persistent confirm/recovery | Existing cart/store/address and draft controllers; quote/bag/bonus loads; precise breakdown including packaging; exclusivity, invalidation/readiness and durable uncertainty guards; scrolling header with keyboard |
-| Floating glass/cart | Same cart tap/count/total semantics; expanded material covers the badge and total; content can scroll entirely above it | Native capability on iOS 26+; shader samples the live underlay on other supported renderers, while controls stay sharp in a separate foreground; material loading/error states are explicit, not another blur called Liquid Glass |
+| Floating glass/cart | Same cart tap/count/total semantics; the bar covers the badge and total; content can scroll entirely above it | Translucent blur bar on every platform, opaque when `MediaQuery.highContrast`; controls stay sharp in a separate foreground; no loading/error state |
 
 Composition: the red featured rail and three-column catalogue follow Figma at the
 reference width; adaptive layouts reflow rather than shrinking inherited text.
@@ -85,41 +84,20 @@ Decorative chrome does not need a fake glass treatment. Genuine floating materia
 proved against a moving/textured backdrop and both themes, then active-route interactions
 and large-text clearance must be reviewed.
 
-Implemented material contract: `LiquidGlassDock` keeps the sampled scene separate from
-sharp, hit-testable foreground controls. The dock is a full-bleed bottom bar (Figma: flush
+Implemented material contract: `LiquidGlassDock` keeps the page in a `RepaintBoundary`
+full-bleed behind a bar and keeps hit-testable foreground controls above it. The dock is a
+full-bleed bottom bar (Figma: flush
 to the screen bottom under the home-indicator inset, top corners radius 20, no side or
 bottom margin); `LiquidGlassDock` pads its foreground 16 px at the sides and by the bottom
 inset plus 4 px, so page footers only add their own vertical padding (16 top, 12 bottom).
 The 78 px cart stamp declares `DockOverhang` (27 px) and projects above the bar, centered.
 `onDockHeightChanged` reports the bar height without the inset; consumers still add the
-inset. The frost is a real Gaussian (sigma 10, `ImageFilter.blur` into a `toImageSync`
-crop of the dock region, at most 1.5 texels per logical pixel) that `shaders/liquid_glass.frag`
-samples through a curved shell with Snell refraction (IOR 1.45) concentrated in the top rim,
-a fixed 9-tap smoothing (no per-pixel rotation, so no grain), mild dispersion, Fresnel plus
-a crisp top streak, dithering (at most 1/255) and an upward shadow along the top edge only;
-there is no screenshot timer or CPU pixel readback. A theme base tint (light white 62 %,
-dark `#0E0E10` 55 %) plus adaptive shadow-lift/highlight-crush keep sharp text readable
-without flattening the scene into fog. The 2026-10-11 quality pass removed the earlier fog,
-saturation boost and tap-moiré after rendered dock review. Windows runtime checkerboard
-captures in `.figma_cache/harness/optical/` show the bent rim, unchanged scene outside the
-dock, a response to moved scenery and working foreground taps in both themes.
-Ordinary chrome uses `AppSurface`/`AppSectionAction`; the old blur/rim glass API is removed.
-
-On iOS 26+, `NativeLiquidGlassBackdrop` uses `UIVisualEffectView` with `UIGlassEffect`,
-not `UIBlurEffect`. Capability false selects the shader on older iOS; missing registration
-or native failures remain errors. Native source is wired into Runner, but **Windows does
-not prove Xcode compilation, UIKit sampling, native corner/theme updates or disposal**.
-Apple acceptance requires macOS, Xcode 26+ and an iOS 26+ runtime:
-
-```sh
-flutter build ios --simulator --debug --no-codesign -t tool/dev_surface.dart
-flutter run -d <iOS-26-or-newer-simulator-UDID> -t tool/dev_surface.dart
-```
-
-Exercise scrolling imagery, both themes, corner/tint updates, foreground taps and repeated
-mount/disposal; also exercise older supported iOS to prove the shader path. Native press
-reactions are not claimed: the UIKit background is pointer-transparent. Platform views
-cannot be sampled by the Flutter shader; do not put them in its optical underlay.
+inset. The material is a `ClipRRect` + `BackdropFilter(ImageFilter.blur, sigma 20)` over the
+bar rectangle only, tinted light white 76 % / dark `#0E0E10` 66 %, with a 0.5 px
+top-edge hairline; there is no per-frame page snapshot, fragment shader, warm-up,
+platform view or CPU readback. Ordinary chrome uses `AppSurface`/`AppSectionAction`.
+Platform views must not sit under the bar (Flutter cannot blur them). Earlier
+shader/`UIGlassEffect` notes in `STATUS.md` and `FIDELITY.md` are historical.
 
 The dedicated plans below were defined before implementation. Dependencies ordered the work; independent card/domain repairs ran alongside shared presentation work. Integration owned builds, formatters, analysis and tests after shared edits settled. Problem/evidence paragraphs describe the original audit, not the current implemented tree. Current commands, route observations and limits are recorded in `STATUS.md`; diagnostic measurements are in `FIDELITY.md`.
 

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../design/motion.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
@@ -14,7 +15,8 @@ import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
-import '../ui/liquid_glass_dock.dart';
+import '../ui/frosted_dock.dart';
+import '../ui/motion_widgets.dart';
 import '../ui/surfaces.dart';
 import '../utils/api.dart';
 import '../services/auth_service.dart';
@@ -54,13 +56,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late List<Map<String, dynamic>> _openedVariants;
   final Map<int, List<item_model.ItemOptionItem>> _selected = {};
   final Map<int, int> _bottleCounts = {};
-  Map<int, int>? _retainedGiftCounts;
-  double _retainedGiftQuantity = 0;
   double _quantity = 0;
   bool _restored = false;
   bool _openedGroupExists = false;
   bool _expanded = false;
   bool _liked = false;
+  bool _summaryMayAnimate = false;
   bool _liking = false;
   bool _saved = false;
   int? _businessId;
@@ -80,6 +81,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Summary badges that appear after the screen's first frame animate in.
+      _summaryMayAnimate = true;
+    });
     AuthService.sessionRevision.addListener(_sessionChanged);
     _selection = SmartCartSelection(widget.item);
     _view = ProductView.fromItem(widget.item);
@@ -106,16 +111,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final group = _findGroup(cart, _openedVariants);
       _openedGroupExists = group != null;
       if (group != null) {
-        final evaluated = group.evaluate();
         _restoreVariants(group.baseVariants);
         _quantity = group.totalQuantity;
         // Do not infer or rebalance bottles when reopening an exact allocation.
-        _bottleCounts.addAll(group.paidBottleCounts);
-        _retainedGiftCounts = group.selection?.usesPourFlow == true &&
-                evaluated.allocationIssue == null
-            ? evaluated.giftBottleCounts
-            : null;
-        _retainedGiftQuantity = evaluated.freeQuantity;
+        _bottleCounts.addAll(group.bottleCounts);
       } else if (_pour) {
         for (final bottle in _selection.filteredBottles) {
           if (_fitsAvailable(
@@ -260,8 +259,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return math.max(0, stock - reserved);
   }
 
-  bool _fitsAvailable(double paid, double available) =>
-      paid + subtractPromotionFreeQuantity(paid, _promotions) <=
+  bool _fitsAvailable(double quantity, double available) =>
+      // A pour selection is physical litres, gift included; otherwise the gift rides on top.
+      (_pour
+          ? quantity
+          : quantity + subtractPromotionFreeQuantity(quantity, _promotions)) <=
       available + 0.0000001;
 
   Map<String, dynamic> _variant(
@@ -300,10 +302,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         quantity: quantity,
         stepQuantity:
             bottle == null ? _step : _selection.volumeForBottle(bottle),
-        giftBottleCounts: bottle != null && _retainedGiftQuantity > 0
-            ? SmartCartSelection.scaledBottleCounts(
-                _retainedGiftCounts, _free / _retainedGiftQuantity)
-            : null,
         selectedVariants: _selection.buildVariantMaps(
             bottle: bottle, baseVariants: _baseVariants()),
         promotions: _promotions,
@@ -326,7 +324,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String? _allocationIssue;
   double get _total => _price?.totalPrice ?? 0;
   double get _subtotal => _price?.subtotalBeforePromotions ?? 0;
-  double get _free => subtractPromotionFreeQuantity(_amount, _promotions);
+  PhysicalGiftEvaluation get _gift =>
+      evaluatePhysicalGift(physicalQuantity: _amount, promotions: _promotions);
+  double get _free => _pour
+      ? _gift.giftQuantity
+      : subtractPromotionFreeQuantity(_amount, _promotions);
 
   /// Containers this screen lists: the ones the shop offers plus any withdrawn container the
   /// opened cart already holds, so a legacy three-litre row can be reviewed and removed instead of
@@ -335,8 +337,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ..._selection.filteredBottles,
         for (final bottle in _selection.bottleVariants)
           if (!_selection.bottleRelationIds.contains(bottle.relationId) &&
-              ((_bottleCounts[bottle.relationId] ?? 0) > 0 ||
-                  (_retainedGiftCounts?[bottle.relationId] ?? 0) > 0))
+              (_bottleCounts[bottle.relationId] ?? 0) > 0)
             bottle,
       ];
 
@@ -383,8 +384,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return false;
     }
     return !_pour ||
-        _bottleCounts.entries.every((entry) =>
-            entry.value <= (opened.paidBottleCounts[entry.key] ?? 0));
+        _bottleCounts.entries.every(
+            (entry) => entry.value <= (opened.bottleCounts[entry.key] ?? 0));
   }
 
   bool _canIncreaseDraft(CartProvider cart) =>
@@ -472,12 +473,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
     _openedVariants = variants;
     _openedGroupExists = true;
-    final savedGroup = _findGroup(cart, variants);
-    final evaluated = savedGroup?.evaluate();
-    _retainedGiftQuantity = evaluated?.freeQuantity ?? 0;
-    _retainedGiftCounts = savedGroup?.selection?.usesPourFlow == true
-        ? evaluated?.giftBottleCounts
-        : null;
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(true);
     } else {
@@ -521,7 +516,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: LiquidGlassDock(
+          child: FrostedDock(
             content: Stack(
               children: [
                 SingleChildScrollView(
@@ -731,6 +726,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               _selection.containerIssue == null &&
                               _selection.quantityIssue == null))),
               removal: removal,
+              pourSummary: _pourSummary(cart, available),
             ),
             onDockHeightChanged: (height) {
               if ((height - _footerHeight).abs() > 0.5) {
@@ -749,8 +745,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget _unitPrice() {
     final row = _previewItem(1);
-    final base = _pour && _amount > 0 && _price != null
-        ? _price!.productSubtotal / _amount
+    final paidLitres = _pour ? _gift.paidQuantity : _amount;
+    final base = _pour && paidLitres > 0 && _price != null
+        ? _price!.productSubtotal / paidLitres
         : row.paidUnitPrice;
     final price = applyPromotionsToPaidBaseTotal(
         unitPrice: base, quantity: 1, promotions: _promotions);
@@ -769,119 +766,43 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   List<Widget> _bottles(double available) {
-    final bottles = _visibleBottles;
-    final physicalCounts = _allocationIssue == null
-        ? (_previewGroup?.bottleCounts ?? _bottleCounts)
-        : _bottleCounts;
-    final mixParts = <String>[];
-    var replacementTariff = false;
-    for (final bottle in bottles) {
-      final count = physicalCounts[bottle.relationId] ?? 0;
-      if (count <= 0) continue;
-      mixParts.add(
-          '$count× ${_selection.volumeLabel(_selection.volumeForBottle(bottle))}');
-      replacementTariff |= bottle.priceType.toUpperCase() == 'REPLACE';
-    }
-    final mix = mixParts.join(' • ');
-    final promotion =
-        evaluatePromotion(paidQuantity: _amount, promotions: _promotions);
+    final cart = context.read<CartProvider>();
+    final canAdd = _inStock && _canIncreaseDraft(cart);
     return [
-      _heading('Объём и тара'),
-      const SizedBox(height: AppSpacing.md),
-      AppSurface(
-        key: const ValueKey('configuration-price-breakdown'),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: AppSpacing.md,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(_selection.volumeLabel(_amount + _free),
-                    key: const ValueKey('configuration-volume'),
-                    style: AppTypography.title),
-                Text(
-                    'Оплачено: ${_selection.volumeLabel(_amount)} · подарок: ${_selection.volumeLabel(_free)}',
-                    key: const ValueKey('configuration-paid-gift'),
-                    style: AppTypography.bodySmall
-                        .copyWith(color: context.palette.textSecondary)),
-              ],
-            ),
-            if (mix.isNotEmpty)
-              Text(mix,
-                  key: const ValueKey('configuration-physical-bottles'),
-                  style: AppTypography.bodySmall
-                      .copyWith(color: context.palette.textSecondary)),
-            if (_allocationIssue != null)
-              Text(_allocationIssue!,
-                  style: AppTypography.bodySmall
-                      .copyWith(color: context.palette.error))
-            else if (_price != null)
-              Text(
-                  '${replacementTariff ? 'Напиток и тара по тарифам' : 'Напиток'} ${formatTenge(_price!.productSubtotal - _price!.discount)} · '
-                  '${replacementTariff ? 'доплаты' : 'вся тара и дополнения'} ${formatTenge(_price!.optionsTotal)}',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: context.palette.textSecondary)),
-            if (promotion.award != null) ...[
-              const SizedBox(height: AppSpacing.xs),
-              ClipRRect(
-                borderRadius: AppRadii.pillAll,
-                child: LinearProgressIndicator(
-                  key: const ValueKey('configuration-promotion-progress'),
-                  value: promotion.progress,
-                  minHeight: 4,
-                  color: context.palette.accent,
-                  backgroundColor: context.palette.surfaceMuted,
-                ),
-              ),
-              Text(
-                  _free > 0
-                      ? 'Напиток в подарок — 0 ₸; тара включена в расчёт'
-                      : 'До подарка: ${_amountLabel(promotion.nextGiftIn)} оплаченного напитка',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: context.palette.textSecondary)),
-            ],
-          ],
-        ),
-      ),
-      const SizedBox(height: AppSpacing.md),
-      if (_selection.containerIssue != null)
+      if (_selection.containerIssue != null) ...[
         Text(_selection.containerIssue!,
             style: AppTypography.body.copyWith(color: context.palette.error)),
-      for (final bottle in bottles) ...[
+        const SizedBox(height: AppSpacing.md),
+      ],
+      for (final bottle in _visibleBottles) ...[
         AppSurface(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: LayoutBuilder(builder: (context, constraints) {
+            final volume =
+                _selection.volumeLabel(_selection.volumeForBottle(bottle));
+            final name = bottle.itemName.trim();
+            final namesVolume =
+                RegExp(r'\d\s*(мл|ml|л|l)(?![a-zа-я])', caseSensitive: false)
+                    .hasMatch(name);
+            final replaced = bottle.priceType.toUpperCase() == 'REPLACE';
             final identity = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bottle.itemName.trim().isEmpty
-                      ? _selection
-                          .volumeLabel(_selection.volumeForBottle(bottle))
-                      : bottle.itemName,
+                  name.isEmpty ? volume : name,
                   style: AppTypography.bodyMedium
                       .copyWith(color: context.palette.textPrimary),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '${_selection.volumeLabel(_selection.volumeForBottle(bottle))} · '
-                  '${bottle.priceType.toUpperCase() == 'REPLACE' ? 'напиток по тарифу' : 'тара +'} '
-                  '${formatTenge(bottle.price)}'
-                  '${_isOfferedBottle(bottle) ? '' : ' · снята с продажи'}',
+                  [
+                    if (name.isNotEmpty && !namesVolume) volume,
+                    '${replaced ? 'напиток по тарифу' : 'тара'} ${formatTenge(bottle.price)}',
+                    if (!_isOfferedBottle(bottle)) 'снята с продажи',
+                  ].join(' · '),
                   style: AppTypography.bodySmall
                       .copyWith(color: context.palette.textSecondary),
                 ),
-                if ((physicalCounts[bottle.relationId] ?? 0) >
-                    (_bottleCounts[bottle.relationId] ?? 0))
-                  Text(
-                    'Напиток: ${_bottleCounts[bottle.relationId] ?? 0} оплачено · ${(physicalCounts[bottle.relationId] ?? 0) - (_bottleCounts[bottle.relationId] ?? 0)} подарок',
-                    key: ValueKey(
-                        'configuration-bottle-allocation-${bottle.relationId}'),
-                    style: AppTypography.bodySmall
-                        .copyWith(color: context.palette.textSecondary),
-                  ),
               ],
             );
             final stepper = _ConfigurationStepper(
@@ -895,8 +816,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         _feedback = null;
                       })
                   : null,
-              onPlus: _inStock &&
-                      _canIncreaseDraft(context.read<CartProvider>()) &&
+              onPlus: canAdd &&
                       _isOfferedBottle(bottle) &&
                       _fitsAvailable(
                           _amount + _selection.volumeForBottle(bottle),
@@ -929,7 +849,140 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ),
         const SizedBox(height: AppSpacing.md),
       ],
+      if (_allocationIssue != null)
+        Text(_allocationIssue!,
+            style:
+                AppTypography.bodySmall.copyWith(color: context.palette.error)),
     ];
+  }
+
+  static String _bottlesLabel(int count) {
+    final tens = count % 100;
+    final ones = count % 10;
+    final word = tens >= 11 && tens <= 14
+        ? 'бутылок'
+        : ones == 1
+            ? 'бутылка'
+            : ones >= 2 && ones <= 4
+                ? 'бутылки'
+                : 'бутылок';
+    return '$count $word';
+  }
+
+  /// The container that carries the bonus litres: the offered size matching them that the
+  /// customer already picks most.
+  item_model.ItemOptionItem? _bonusBottle(
+      CartProvider cart, PhysicalGiftEvaluation gift, double available) {
+    final extra = gift.bonusQuantity;
+    if (extra == null ||
+        !_inStock ||
+        !_canIncreaseDraft(cart) ||
+        !_fitsAvailable(_amount + extra, available)) {
+      return null;
+    }
+    item_model.ItemOptionItem? best;
+    for (final bottle in _selection.filteredBottles) {
+      if ((_selection.volumeForBottle(bottle) - extra).abs() > 0.000001) {
+        continue;
+      }
+      if (best == null ||
+          (_bottleCounts[bottle.relationId] ?? 0) >
+              (_bottleCounts[best.relationId] ?? 0)) {
+        best = bottle;
+      }
+    }
+    return best;
+  }
+
+  /// One line above the total: litres and bottles, the gift earned, and either the one-tap bonus
+  /// or how far the next gift is.
+  Widget? _pourSummary(CartProvider cart, double available) {
+    if (!_pour || _amount <= 0.0000001) return null;
+    final palette = context.palette;
+    final gift = _gift;
+    final bottles =
+        _bottleCounts.values.fold<int>(0, (sum, count) => sum + count);
+    final bonus = _bonusBottle(cart, gift, available);
+    final next = gift.nextGiftIn;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Wrap(
+        spacing: AppSpacing.md,
+        runSpacing: AppSpacing.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          AnimatedSwap(
+            stateKey:
+                '${_selection.volumeLabel(_amount)} · ${_bottlesLabel(bottles)}',
+            duration: AppMotion.count,
+            scale: 1,
+            child: Text(
+              '${_selection.volumeLabel(_amount)} · ${_bottlesLabel(bottles)}',
+              key: const ValueKey('configuration-volume'),
+              style:
+                  AppTypography.bodyMedium.copyWith(color: palette.textPrimary),
+            ),
+          ),
+          if (gift.giftQuantity > 0)
+            AppearIn(
+              key: const ValueKey('configuration-gift-appear'),
+              animate: _summaryMayAnimate,
+              child: DecoratedBox(
+                key: const ValueKey('configuration-gift'),
+                decoration: BoxDecoration(
+                    color: palette.accent, borderRadius: AppRadii.pillAll),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                  child: AnimatedSwap(
+                    stateKey: _selection.volumeLabel(gift.giftQuantity),
+                    duration: AppMotion.count,
+                    scale: 1,
+                    child: Text(
+                        '${_selection.volumeLabel(gift.giftQuantity)} в подарок',
+                        style: AppTypography.bodySmallMedium
+                            .copyWith(color: palette.textOnAccent)),
+                  ),
+                ),
+              ),
+            ),
+          if (bonus != null)
+            AppearIn(
+              key: const ValueKey('configuration-bonus-appear'),
+              animate: _summaryMayAnimate,
+              child: OutlinedButton(
+                key: const ValueKey('configuration-bonus'),
+                onPressed: () => setState(() {
+                  _bottleCounts[bonus.relationId] =
+                      (_bottleCounts[bonus.relationId] ?? 0) + 1;
+                  _saved = false;
+                  _feedback = null;
+                }),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, AppSpacing.touchTarget),
+                  foregroundColor: palette.accent,
+                  side: BorderSide(color: palette.accent),
+                  shape: const StadiumBorder(),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                ),
+                child: Text(
+                    '+${_selection.volumeLabel(gift.bonusQuantity!)} в подарок'),
+              ),
+            )
+          else if (next != null)
+            AnimatedSwap(
+              stateKey: _selection.volumeLabel(next),
+              duration: AppMotion.count,
+              scale: 1,
+              child: Text('До подарка: ${_selection.volumeLabel(next)}',
+                  key: const ValueKey('configuration-hint'),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: palette.textSecondary)),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _option(item_model.ItemOption option) => Column(
@@ -1067,7 +1120,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       );
 
   // The dock supplies the 16px sides and the safe-area inset below.
-  Widget _footer({required bool enabled, required bool removal}) => Padding(
+  Widget _footer(
+          {required bool enabled,
+          required bool removal,
+          Widget? pourSummary}) =>
+      Padding(
         padding: const EdgeInsets.fromLTRB(0, 16, 0, 12),
         child: LayoutBuilder(builder: (context, constraints) {
           final adaptive = constraints.maxWidth < 320 ||
@@ -1106,6 +1163,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (!_saved && pourSummary != null) pourSummary,
                 if (_saved)
                   AppSurface(
                     radius: AppRadii.pill,

@@ -10,10 +10,12 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
+import '../../../ui/motion_widgets.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/product_grid.dart';
 import '../../../ui/surfaces.dart';
+import '../../../ui/text_width_cache.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/smart_cart.dart';
@@ -225,7 +227,7 @@ class _CartPageState extends State<CartPage> {
           : cart.decrementDisplayGroup(group);
       return;
     }
-    final counts = group.paidBottleCounts;
+    final counts = group.bottleCounts;
     if (group.selection?.usesPourFlow == true) {
       final batches = _batches(group);
       if (batches == 0) return;
@@ -243,10 +245,93 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
+  Widget _recommendationSection(AppPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 32),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+          child: Text(
+            key: const ValueKey('cart-recommendation-heading'),
+            'Вам также может понравиться',
+            style: AppTypography.headline.copyWith(color: palette.textPrimary),
+          ),
+        ),
+        const SizedBox(height: 24),
+        if (_recommendationsLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Center(
+              child: CircularProgressIndicator(
+                key: ValueKey('cart-recommendation-loading'),
+              ),
+            ),
+          )
+        else if (_recommendationsFailed)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: AppSurface(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Не удалось загрузить товары',
+                      style: AppTypography.body
+                          .copyWith(color: palette.textSecondary)),
+                  TextButton(
+                    key: const ValueKey('cart-recommendation-retry'),
+                    onPressed: _retryRecommendations,
+                    child: const Text('Повторить'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ProductRail(
+            key: const ValueKey('cart-recommendation-strip'),
+            products: _recommendations,
+            itemCount: _recommendations.length,
+            itemBuilder: (context, index) {
+              final item = _recommendations[index];
+              // Each card follows only its own quantity instead of every cart change.
+              return Selector<CartProvider, double>(
+                selector: (_, cart) =>
+                    cart.getCatalogQuantityForKey(item.catalogKey),
+                builder: (context, quantity, _) => ProductCard.fromView(
+                  item,
+                  quantity: quantity,
+                  onTap: () => openProduct(
+                    context,
+                    item,
+                    businessId: context.read<CartProvider>().businessId ??
+                        widget.businessId,
+                    onCart: () => Navigator.of(context).maybePop(),
+                  ),
+                  onIncrement: item.available
+                      ? () => context
+                          .read<CartProvider>()
+                          .incrementCatalogItem(item.source)
+                      : null,
+                  onDecrement: () => context
+                      .read<CartProvider>()
+                      .decrementCatalogItem(item.source),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final cart = context.watch<CartProvider>();
+    final cart = context.read<CartProvider>();
+    // Every content change bumps contentRevision, and the page reads nothing else from
+    // the cart, so it rebuilds exactly once per change and never for other notifies.
+    context.select<CartProvider, int>((cart) => cart.contentRevision);
     final evaluated = cart.evaluate();
     final groups = cart.displayGroups;
     final allocationIssue =
@@ -257,6 +342,10 @@ class _CartPageState extends State<CartPage> {
             BonusRules.calculateEligibleSubtotalForEvaluations(
                 evaluated.activeGroups));
     final unresolvedBusiness = cart.hasUnresolvedBusiness;
+    final issueCount = unresolvedBusiness ? 1 : 0;
+    final showRecommendations = _recommendations.isNotEmpty ||
+        _recommendationsLoading ||
+        _recommendationsFailed;
     final matchingBusiness =
         cart.businessId == null || cart.businessId == widget.businessId;
     final footerSpace = _footerHeight +
@@ -266,7 +355,7 @@ class _CartPageState extends State<CartPage> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: LiquidGlassDock(
+          child: FrostedDock(
             onDockHeightChanged: (height) {
               if ((height - _footerHeight).abs() > 0.5) {
                 setState(() => _footerHeight = height);
@@ -307,13 +396,16 @@ class _CartPageState extends State<CartPage> {
                                             child: const Text('В каталог'),
                                           ),
                                   )
-                                : ListView(
+                                : ListView.builder(
                                     key: const ValueKey('cart-scroll'),
                                     padding:
                                         EdgeInsets.only(bottom: footerSpace),
-                                    children: [
-                                      if (unresolvedBusiness)
-                                        Padding(
+                                    itemCount: issueCount +
+                                        groups.length +
+                                        (showRecommendations ? 1 : 0),
+                                    itemBuilder: (context, position) {
+                                      if (position < issueCount) {
+                                        return Padding(
                                           padding: const EdgeInsets.fromLTRB(
                                               16, 0, 16, 16),
                                           child: Text(
@@ -324,134 +416,43 @@ class _CartPageState extends State<CartPage> {
                                             style: AppTypography.body
                                                 .copyWith(color: palette.error),
                                           ),
+                                        );
+                                      }
+                                      final index = position - issueCount;
+                                      if (index == groups.length) {
+                                        return _recommendationSection(palette);
+                                      }
+                                      final group = groups[index];
+                                      return Padding(
+                                        padding: EdgeInsets.fromLTRB(
+                                          AppSpacing.xxxl,
+                                          0,
+                                          AppSpacing.xxxl,
+                                          index == groups.length - 1
+                                              ? 0
+                                              : AppSpacing.xs,
                                         ),
-                                      for (final (index, group)
-                                          in groups.indexed)
-                                        Padding(
-                                          padding: EdgeInsets.fromLTRB(
-                                            AppSpacing.xxxl,
-                                            0,
-                                            AppSpacing.xxxl,
-                                            index == groups.length - 1
-                                                ? 0
-                                                : AppSpacing.xs,
-                                          ),
-                                          child: _CartRow(
-                                            key: ValueKey('cart-row-$index'),
-                                            group: group,
-                                            evaluated: evaluated.groups[index],
-                                            lastBatch: _lastBatch(group),
-                                            onEdit: group.itemSnapshot
-                                                        ?.hasOptions ==
-                                                    true
-                                                ? () =>
-                                                    _editConfiguration(group)
-                                                : null,
-                                            onIncrement: !unresolvedBusiness &&
-                                                    _canIncrement(evaluated,
-                                                        evaluated.groups[index])
-                                                ? () =>
-                                                    _adjustGroup(cart, group, 1)
-                                                : null,
-                                            onDelete: () =>
-                                                _adjustGroup(cart, group, -1),
-                                          ),
+                                        child: _CartRow(
+                                          key: ValueKey('cart-row-$index'),
+                                          group: group,
+                                          evaluated: evaluated.groups[index],
+                                          lastBatch: _lastBatch(group),
+                                          onEdit: group.itemSnapshot
+                                                      ?.hasOptions ==
+                                                  true
+                                              ? () => _editConfiguration(group)
+                                              : null,
+                                          onIncrement: !unresolvedBusiness &&
+                                                  _canIncrement(evaluated,
+                                                      evaluated.groups[index])
+                                              ? () =>
+                                                  _adjustGroup(cart, group, 1)
+                                              : null,
+                                          onDelete: () =>
+                                              _adjustGroup(cart, group, -1),
                                         ),
-                                      if (_recommendations.isNotEmpty ||
-                                          _recommendationsLoading ||
-                                          _recommendationsFailed) ...[
-                                        const SizedBox(height: 32),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: AppSpacing.xxxl),
-                                          child: Text(
-                                            key: const ValueKey(
-                                                'cart-recommendation-heading'),
-                                            'Вам также может понравиться',
-                                            style: AppTypography.headline
-                                                .copyWith(
-                                                    color: palette.textPrimary),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 24),
-                                        if (_recommendationsLoading)
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 24),
-                                            child: Center(
-                                              child: CircularProgressIndicator(
-                                                key: ValueKey(
-                                                    'cart-recommendation-loading'),
-                                              ),
-                                            ),
-                                          )
-                                        else if (_recommendationsFailed)
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 16),
-                                            child: AppSurface(
-                                              padding: const EdgeInsets.all(12),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                      'Не удалось загрузить товары',
-                                                      style: AppTypography.body
-                                                          .copyWith(
-                                                              color: palette
-                                                                  .textSecondary)),
-                                                  TextButton(
-                                                    key: const ValueKey(
-                                                        'cart-recommendation-retry'),
-                                                    onPressed:
-                                                        _retryRecommendations,
-                                                    child:
-                                                        const Text('Повторить'),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          )
-                                        else
-                                          ProductRail(
-                                            key: const ValueKey(
-                                                'cart-recommendation-strip'),
-                                            products: _recommendations,
-                                            itemCount: _recommendations.length,
-                                            itemBuilder: (context, index) {
-                                              final item =
-                                                  _recommendations[index];
-                                              return ProductCard.fromView(
-                                                item,
-                                                quantity: context
-                                                    .watch<CartProvider>()
-                                                    .getCatalogQuantityForKey(
-                                                        item.catalogKey),
-                                                onTap: () => openProduct(
-                                                  context,
-                                                  item,
-                                                  businessId: cart.businessId ??
-                                                      widget.businessId,
-                                                  onCart: () =>
-                                                      Navigator.of(context)
-                                                          .maybePop(),
-                                                ),
-                                                onIncrement: item.available
-                                                    ? () => context
-                                                        .read<CartProvider>()
-                                                        .incrementCatalogItem(
-                                                            item.source)
-                                                    : null,
-                                                onDecrement: () => context
-                                                    .read<CartProvider>()
-                                                    .decrementCatalogItem(
-                                                        item.source),
-                                              );
-                                            },
-                                          ),
-                                      ],
-                                    ],
+                                      );
+                                    },
                                   ),
                   ),
                 ],
@@ -478,7 +479,7 @@ class _CartPageState extends State<CartPage> {
 // is always explicit deletion, even when the batch contains several litres.
 int _batches(CartDisplayGroup group) {
   var batches = 0;
-  for (final count in group.paidBottleCounts.values) {
+  for (final count in group.bottleCounts.values) {
     if (count > 0) batches = batches == 0 ? count : batches.gcd(count);
   }
   return batches;
@@ -545,8 +546,7 @@ class _CartRow extends StatelessWidget {
     final unit = snapshot?.unit?.trim().isNotEmpty == true
         ? snapshot!.unit!.trim()
         : 'шт';
-    final evaluation = evaluated.promotion;
-    final award = evaluation.award;
+    final award = evaluated.award;
     final giftCaption = award == null
         ? null
         : 'За каждые ${formatQuantity(award.baseAmount.toDouble(), unit)} '
@@ -702,13 +702,17 @@ class _CartRow extends StatelessWidget {
                         .copyWith(color: palette.textSecondary)),
               ),
             if (group.freeQuantity > 0)
-              _GiftLine(
-                key: ValueKey('cart-gift-${group.key}'),
-                quantityLabel: formatQuantity(group.freeQuantity, unit),
-                caption: pour
-                    ? '${giftCaption ?? 'Напиток в подарок'}. Тара для подарка оплачивается обычно.'
-                    : giftCaption,
-              ),
+              pour
+                  ? _GiftChip(
+                      key: ValueKey('cart-gift-${group.key}'),
+                      label:
+                          '${formatQuantity(group.freeQuantity, quantityUnitLabel(snapshot?.unit) ?? unit)} в подарок',
+                    )
+                  : _GiftLine(
+                      key: ValueKey('cart-gift-${group.key}'),
+                      quantityLabel: formatQuantity(group.freeQuantity, unit),
+                      caption: giftCaption,
+                    ),
             if (allocationIssue != null)
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
@@ -729,6 +733,35 @@ class _CartRow extends StatelessWidget {
           ],
         );
       }),
+    );
+  }
+}
+
+/// The short gift mark of a bottled drink: the free litres are part of the picked bottles.
+class _GiftChip extends StatelessWidget {
+  const _GiftChip({required this.label, super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(
+            AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: palette.accent,
+          borderRadius: AppRadii.pillAll,
+        ),
+        child: Text(label,
+            key: const ValueKey('cart-gift-label'),
+            style: AppTypography.bodySmallMedium
+                .copyWith(color: palette.textOnAccent)),
+      ),
     );
   }
 }
@@ -838,8 +871,9 @@ class _CartStepper extends StatelessWidget {
           ),
           Expanded(
             child: Center(
-              child: Text(
-                _label,
+              child: AnimatedCount(
+                text: _label,
+                value: quantity,
                 style: style,
               ),
             ),
@@ -986,13 +1020,10 @@ String _cartQuantityLabel(num quantity, String unit) {
       const ['шт', 'pcs', 'piece'].contains(normalized) ? '' : unit);
 }
 
-double _cartTextWidth(BuildContext context, String text, TextStyle style) {
-  final painter = TextPainter(
-    text: TextSpan(text: text, style: style),
-    textDirection: Directionality.of(context),
-    textScaler: MediaQuery.textScalerOf(context),
-  )..layout();
-  final width = painter.width;
-  painter.dispose();
-  return width;
-}
+double _cartTextWidth(BuildContext context, String text, TextStyle style) =>
+    TextWidthCache.of(
+      text,
+      style,
+      MediaQuery.textScalerOf(context),
+      Directionality.of(context),
+    );

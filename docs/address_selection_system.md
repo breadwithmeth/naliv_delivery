@@ -33,6 +33,12 @@ hidden server-address identities and search history in SharedPreferences.
   base label again.
 - Account-derived address caches clear immediately on credential changes and reject
   late prior-account reads. Device-local addresses remain available if refresh fails.
+- Checkout binds the delivery address to the **selected store's** city
+  (`lib/services/store_city.dart`: `city_id` → city name, address text as fallback), not
+  to the onboarding/location city. The picker receives that city and the store's
+  coordinates; an already chosen address whose known city differs is shown as a
+  mismatch and blocks order creation until an address in the store city is picked.
+  An address without a known city is never treated as a mismatch.
 
 ## Verification and limits
 

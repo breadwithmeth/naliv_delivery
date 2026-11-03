@@ -23,10 +23,13 @@ class CategoryRef {
   final String? imageUrl;
   final List<CategoryRef> children;
 
-  /// The readable label, including the parent for otherwise ambiguous leaves.
-  String get label => needsParentContext && parentName != null
-      ? '$name · $parentName'
-      : name;
+  /// Whether this category groups nested categories.
+  bool get hasChildren => children.isNotEmpty;
+
+  /// The accessible name. Several parents own a «Светлое», so the parent is spoken with
+  /// any name that repeats; the visible navigation is grouped and needs no suffix.
+  String get semanticLabel =>
+      needsParentContext && parentName != null ? '$name, $parentName' : name;
 }
 
 @immutable
@@ -35,7 +38,6 @@ class SupercategoryView {
     required this.id,
     required this.name,
     required this.categories,
-    required this.leaves,
     this.description,
     this.imageUrl,
   });
@@ -45,9 +47,7 @@ class SupercategoryView {
   final String? description;
   final String? imageUrl;
 
-  /// The complete category tree, in the API's order.
+  /// The category tree in the API's order. The top-level entries are the parent categories
+  /// the catalogue is organised by; each one's [CategoryRef.children] are its subcategories.
   final List<CategoryRef> categories;
-
-  /// The navigable leaves, retaining their own IDs and parent context.
-  final List<CategoryRef> leaves;
 }

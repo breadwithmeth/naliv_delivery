@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../core/money.dart';
 import '../core/product_view.dart';
 import '../core/quantity.dart';
+import '../design/motion.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
 import 'app_icon_button.dart';
+import 'motion_widgets.dart';
 import 'product_card.dart';
 import 'surfaces.dart';
 
@@ -132,6 +134,7 @@ class ProductRow extends StatelessWidget {
                                     MediaQuery.devicePixelRatioOf(context))
                                 .ceil(),
                             fit: BoxFit.contain,
+                            frameBuilder: fadeInImageFrame,
                             errorBuilder: (_, __, ___) => _missingArt(palette),
                           )
                         : _missingArt(palette),
@@ -167,28 +170,34 @@ class ProductRow extends StatelessWidget {
                     onTap: onLike,
                     excludeSemantics: true,
                     toggled: liked,
-                    child: liked
-                        ? IconButton(
-                            tooltip: 'Убрать из избранного',
-                            onPressed: onLike,
-                            style: IconButton.styleFrom(
-                              minimumSize:
-                                  const Size.square(AppSpacing.touchTarget),
-                              backgroundColor:
-                                  palette.brandRed.withValues(alpha: .25),
+                    child: AnimatedSwap(
+                      stateKey: liked,
+                      duration: AppMotion.pop,
+                      scale: .6,
+                      scaleCurve: AppMotion.overshoot,
+                      child: liked
+                          ? IconButton(
+                              tooltip: 'Убрать из избранного',
+                              onPressed: onLike,
+                              style: IconButton.styleFrom(
+                                minimumSize:
+                                    const Size.square(AppSpacing.touchTarget),
+                                backgroundColor:
+                                    palette.brandRed.withValues(alpha: .25),
+                              ),
+                              icon: Icon(Icons.favorite,
+                                  color: palette.brandRed, size: 20),
+                            )
+                          : AppIconButton(
+                              asset: AppIcons.heart,
+                              tooltip: 'В избранное',
+                              onTap: onLike,
+                              size: AppSpacing.touchTarget,
+                              glyphSize: 20,
+                              fill: palette.surfaceMuted,
+                              color: palette.textPrimary,
                             ),
-                            icon: Icon(Icons.favorite,
-                                color: palette.brandRed, size: 20),
-                          )
-                        : AppIconButton(
-                            asset: AppIcons.heart,
-                            tooltip: 'В избранное',
-                            onTap: onLike,
-                            size: AppSpacing.touchTarget,
-                            glyphSize: 20,
-                            fill: palette.surfaceMuted,
-                            color: palette.textPrimary,
-                          ),
+                    ),
                   ),
                 ),
             ],

@@ -79,7 +79,7 @@ void main() {
               .hitTestable()
               .first);
       expect(find.byType(SupercategoryPage), findsOneWidget);
-      await _tap(tester, find.text('Все товары').first);
+      await _tap(tester, find.byKey(const ValueKey('catalog-open-2')));
       await _tap(
           tester,
           find

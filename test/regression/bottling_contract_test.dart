@@ -76,38 +76,73 @@ Item _boundary(
   return Item.fromJson(payload);
 }
 
+Future<CartProvider> _load(Map<String, dynamic> state) async {
+  SharedPreferences.setMockInitialValues({'cart_items': jsonEncode(state)});
+  final cart = CartProvider();
+  await cart.loadCart();
+  return cart;
+}
+
+Map<String, dynamic> _row(
+  Item item,
+  SmartCartSelection selection,
+  ItemOptionItem bottle,
+  int count, {
+  Map<int, int>? legacyGifts,
+}) =>
+    {
+      ...CartItem(
+        itemId: item.itemId,
+        name: item.name,
+        price: item.price,
+        quantity: selection.volumeForBottle(bottle) * count,
+        stepQuantity: selection.volumeForBottle(bottle),
+        selectedVariants: selection.buildVariantMaps(bottle: bottle),
+        promotions: [
+          for (final promotion in item.promotions ?? const <ItemPromotion>[])
+            promotion.toJson(),
+        ],
+        itemData: item.toJson(),
+        maxAmount: item.amount,
+      ).toJson(),
+      if (legacyGifts != null)
+        'giftBottleCounts': {
+          for (final entry in legacyGifts.entries) '${entry.key}': entry.value,
+        },
+    };
+
+/// A cart saved by the current build: the rows hold the physical bottles picked.
 Future<CartProvider> _restorePersisted(
+    Item item, Map<int, int> bottleCounts) async {
+  final selection = SmartCartSelection(item);
+  return _load({
+    'version': 2,
+    'business_id': 1,
+    'items': [
+      for (final bottle in selection.bottleVariants)
+        if ((bottleCounts[bottle.relationId] ?? 0) > 0)
+          _row(item, selection, bottle, bottleCounts[bottle.relationId]!),
+    ],
+  });
+}
+
+/// A cart saved before pour rows held physical litres: only the paid bottles, plus the gift
+/// bottles retained next to them, and no version marker.
+Future<CartProvider> _restoreLegacy(
   Item item,
   Map<int, int> paidCounts, {
   Map<int, int>? giftCounts,
 }) async {
   final selection = SmartCartSelection(item);
-  final rows = [
-    for (final bottle in selection.bottleVariants)
-      if ((paidCounts[bottle.relationId] ?? 0) > 0)
-        CartItem(
-          itemId: item.itemId,
-          name: item.name,
-          price: item.price,
-          quantity: selection.volumeForBottle(bottle) *
-              paidCounts[bottle.relationId]!,
-          stepQuantity: selection.volumeForBottle(bottle),
-          giftBottleCounts: giftCounts,
-          selectedVariants: selection.buildVariantMaps(bottle: bottle),
-          promotions: [
-            for (final promotion in item.promotions ?? const <ItemPromotion>[])
-              promotion.toJson(),
-          ],
-          itemData: item.toJson(),
-          maxAmount: item.amount,
-        ).toJson(),
-  ];
-  SharedPreferences.setMockInitialValues({
-    'cart_items': jsonEncode({'business_id': 1, 'items': rows}),
+  return _load({
+    'business_id': 1,
+    'items': [
+      for (final bottle in selection.bottleVariants)
+        if ((paidCounts[bottle.relationId] ?? 0) > 0)
+          _row(item, selection, bottle, paidCounts[bottle.relationId]!,
+              legacyGifts: giftCounts),
+    ],
   });
-  final cart = CartProvider();
-  await cart.loadCart();
-  return cart;
 }
 
 void main() {
@@ -134,18 +169,19 @@ void main() {
   });
 
   test(
-      'captured SUBTRACT applies across mixed rows and orders every gifted litre',
+      'captured SUBTRACT gifts litres across mixed rows and orders every picked bottle',
       () {
     final item = Item.fromJson(_captured(1186));
     final cart = CartProvider();
-    expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 1}), isTrue);
+    // 2 × 1 l + 2 × 2 l are 6 picked litres: 2+1 makes two of them free.
+    expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 2}), isTrue);
     final group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 4);
+    expect(group.totalQuantity, 6);
+    expect(group.evaluate().totalQuantity, 4); // paid litres
     expect(group.freeQuantity, 2);
     expect(group.totalOrderQuantity, 6);
     expect(cart.getTotalPrice(), 3980); // 4 × 890 + 2 × 110 + 2 × 100.
     expect(group.subtotalBeforePromotions, 5760);
-    expect(group.paidBottleCounts, {3094: 2, 3095: 1});
     expect(group.bottleCounts, {3094: 2, 3095: 2});
     final order = cart.toJsonForOrder();
     expect(order.map((line) => line['amount']), [2.0, 4.0]);
@@ -160,7 +196,7 @@ void main() {
   });
 
   test(
-      'adopting a current promotion refreshes retained bottles and persisted order volume',
+      'adopting a current promotion re-derives the gift and persists the physical order volume',
       () async {
     final older = Item.fromJson(_captured(1186)..['promotions'] = []);
     final current = Item.fromJson(_captured(1186));
@@ -168,7 +204,7 @@ void main() {
     expect(cart.syncItemBottleCounts(older, [], {3094: 1}), isTrue);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 1);
 
-    expect(cart.syncItemBottleCounts(current, [], {3094: 2, 3095: 1}), isTrue);
+    expect(cart.syncItemBottleCounts(current, [], {3094: 2, 3095: 2}), isTrue);
     expect(cart.getTotalPrice(), 3980);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 6);
     expect(cart.toJsonForOrder().map((row) => row['amount']), [2.0, 4.0]);
@@ -180,16 +216,23 @@ void main() {
     expect(restored.toJsonForOrder().map((row) => row['amount']), [2.0, 4.0]);
   });
 
-  test('3+1 bottles every litre and charges four ordinary one-litre tariffs',
+  test(
+      '3+1 pays three litres, gifts the fourth and charges every ordinary tariff',
       () {
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
     final cart = CartProvider();
+    // Three litres earn nothing: the bonus litre is the customer's choice.
     expect(cart.syncItemBottleCounts(item, [], {93101: 3}), isTrue);
-    final group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 3);
+    var group = cart.activeDisplayGroups.single;
+    expect(group.freeQuantity, 0);
+    expect(group.totalOrderQuantity, 3);
+    expect(group.totalPrice, 3300);
+    expect(cart.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
+    group = cart.activeDisplayGroups.single;
+    expect(group.totalQuantity, 4);
+    expect(group.evaluate().totalQuantity, 3);
     expect(group.freeQuantity, 1);
     expect(group.totalOrderQuantity, 4);
-    expect(group.paidBottleCounts, {93101: 3});
     expect(group.bottleCounts, {93101: 4});
     expect(group.optionsTotal, 400);
     expect(group.totalPrice, 3400);
@@ -207,26 +250,37 @@ void main() {
   });
 
   test(
-      '3+1 keeps a selected one-and-a-half-litre bottle and allocates the gift into a one-litre bottle',
+      '3+1 with mixed one and one-and-a-half litre bottles gifts a litre of the mix',
       () {
     final item = syntheticThreePlusOneSurfaceItem();
     final cart = CartProvider();
     expect(cart.syncItemBottleCounts(item, [], {93103: 2}), isTrue);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 0); // 3 l.
+    expect(cart.syncItemBottleCounts(item, [], {93101: 1, 93103: 2}), isTrue);
     final group = cart.activeDisplayGroups.single;
-    expect(group.paidBottleCounts, {93103: 2});
     expect(group.bottleCounts, {93101: 1, 93103: 2});
+    expect(group.freeQuantity, 1);
+    expect(group.evaluate().totalQuantity, 3);
     expect(group.optionsTotal, 340);
     expect(group.totalPrice, 3340);
     final order = cart.toJsonForOrder();
-    expect(order.map((row) => row['amount']), [3.0, 1.0]);
+    expect(order.map((row) => row['amount']), [1.0, 3.0]);
     expect(
         order.map((row) =>
             (row['options'] as List).single['option_item_relation_id']),
-        [93103, 93101]);
+        [93101, 93103]);
     expect(
         group.physicalItems
             .map((row) => row.physicalQuantity / row.stepQuantity),
-        [2.0, 1.0]);
+        [1.0, 2.0]);
+    // Which bottle carries the free drink is presentation: the litres add up either way.
+    expect(
+        group.physicalItems.fold<double>(0, (sum, row) => sum + row.quantity),
+        3);
+    expect(
+        group.physicalItems
+            .fold<double>(0, (sum, row) => sum + row.bottledGiftQuantity),
+        1);
   });
 
   test('the withdrawn three-litre container is no longer offered', () {
@@ -244,7 +298,6 @@ void main() {
     final item = capturedPourSurfaceItem().copyWith(amount: 0);
     final cart = await _restorePersisted(item, {2713: 2});
     final group = cart.activeDisplayGroups.single;
-    expect(group.paidBottleCounts, {2713: 2});
     expect(group.totalQuantity, 6);
     expect(group.bottleCounts, {2713: 2});
     expect(group.allocationIssue, isNull);
@@ -294,10 +347,10 @@ void main() {
   test('persisted withdrawn gift capacity preserves ordinary tariff and amount',
       () async {
     final item = capturedPourSurfaceItem(gift: true).copyWith(amount: 0);
-    final cart =
-        await _restorePersisted(item, {3097: 2}, giftCounts: {3097: 1});
+    // Nine litres of withdrawn three-litre bottles: 2+1 makes three of them free.
+    final cart = await _restorePersisted(item, {3097: 3});
     final group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 6);
+    expect(group.totalQuantity, 9);
     expect(group.freeQuantity, 3);
     expect(group.bottleCounts, {3097: 3});
     expect(group.optionsTotal, 450);
@@ -308,55 +361,117 @@ void main() {
     expect(restored.activeDisplayGroups.single.bottleCounts, {3097: 3});
     expect(restored.toJsonForOrder().single['amount'], 9);
     restored.decrementDisplayGroup(restored.activeDisplayGroups.single);
-    expect(restored.activeDisplayGroups.single.totalQuantity, 3);
-    expect(restored.activeDisplayGroups.single.totalOrderQuantity, 4);
-    expect(restored.getTotalPrice(), 2930);
+    expect(restored.activeDisplayGroups.single.totalQuantity, 6);
+    expect(restored.activeDisplayGroups.single.freeQuantity, 2);
+    expect(restored.getTotalPrice(), 3860); // 4 × 890 + 2 × 150.
     restored.removeDisplayGroup(restored.activeDisplayGroups.single);
     expect(restored.items, isEmpty);
+  });
+
+  test(
+      'a cart saved with paid litres and retained gift bottles keeps the same bottles',
+      () async {
+    final item = capturedPourSurfaceItem(gift: true).copyWith(amount: 0);
+    final cart = await _restoreLegacy(item, {3097: 2}, giftCounts: {3097: 1});
+    final group = cart.activeDisplayGroups.single;
+    expect(group.bottleCounts, {3097: 3});
+    expect(group.totalQuantity, 9);
+    expect(group.freeQuantity, 3);
+    expect(cart.getTotalPrice(), 5790);
+    expect(cart.toJsonForOrder().single['amount'], 9);
+    // The migrated rows are saved at once in the current format.
+    expect(await cart.ensureSaved(), isTrue);
+    final stored = jsonDecode(
+            (await SharedPreferences.getInstance()).getString('cart_items')!)
+        as Map;
+    expect(stored['version'], 2);
+    expect((stored['items'] as List).single.containsKey('giftBottleCounts'),
+        isFalse);
+    expect(((stored['items'] as List).single as Map)['quantity'], 9);
+    final restored = CartProvider();
+    await restored.loadCart();
+    expect(restored.activeDisplayGroups.single.bottleCounts, {3097: 3});
+    expect(restored.getTotalPrice(), 5790);
+  });
+
+  test(
+      'a legacy gift held in another bottle becomes a physical row of that bottle',
+      () async {
+    final item = syntheticThreePlusOneSurfaceItem();
+    final cart = await _restoreLegacy(item, {93103: 2}, giftCounts: {93101: 1});
+    final group = cart.activeDisplayGroups.single;
+    expect(group.bottleCounts, {93101: 1, 93103: 2});
+    expect(group.freeQuantity, 1);
+    expect(group.totalPrice, 3340);
+    expect(cart.toJsonForOrder().map((row) => row['amount']), [3.0, 1.0]);
+  });
+
+  test(
+      'a legacy cart without retained gifts keeps the gift its paid litres earned',
+      () async {
+    final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
+    final cart = await _restoreLegacy(item, {93101: 3});
+    final group = cart.activeDisplayGroups.single;
+    expect(group.bottleCounts, {93101: 4});
+    expect(group.freeQuantity, 1);
+    expect(group.totalPrice, 3400);
+  });
+
+  test('legacy rows without a gift or without a promotion are left alone',
+      () async {
+    final plain = await _restoreLegacy(
+        syntheticThreePlusOneSurfaceItem(onlyOneLitre: true), {93101: 2});
+    expect(plain.activeDisplayGroups.single.bottleCounts, {93101: 2});
+    expect(plain.getTotalPrice(), 2200);
+    final noPromotion = await _restoreLegacy(
+        Item.fromJson(_captured(1186)..['promotions'] = []), {3094: 3});
+    expect(noPromotion.activeDisplayGroups.single.bottleCounts, {3094: 3});
   });
 
   test('captured 2+1 charges the added bottle at its own ordinary tariff', () {
     final item = Item.fromJson(_captured(1186));
     final cart = CartProvider();
-    expect(cart.syncItemBottleCounts(item, [], {3095: 1}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {3094: 1, 3095: 1}), isTrue);
     final group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 2);
+    expect(group.totalQuantity, 3);
+    expect(group.freeQuantity, 1);
     expect(group.totalOrderQuantity, 3);
     expect(group.bottleCounts, {3094: 1, 3095: 1});
     expect(group.optionsTotal, 210);
     expect(group.totalPrice, 1990);
-    expect(cart.toJsonForOrder().map((row) => row['amount']), [2.0, 1.0]);
+    expect(cart.toJsonForOrder().map((row) => row['amount']), [1.0, 2.0]);
   });
 
-  test(
-      'edit reload and batch stepping never gift previously added capacity again',
+  test('edit reload and batch stepping never gift the picked litres again',
       () async {
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
     final cart = CartProvider();
-    expect(cart.syncItemBottleCounts(item, [], {93101: 3}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
     await SharedPreferences.getInstance();
     final restored = CartProvider();
     await restored.loadCart();
     var group = restored.activeDisplayGroups.single;
-    expect(group.paidBottleCounts, {93101: 3});
     expect(group.bottleCounts, {93101: 4});
-    expect(restored.syncItemBottleCounts(item, [], group.paidBottleCounts),
-        isTrue);
+    expect(group.freeQuantity, 1);
+    expect(restored.syncItemBottleCounts(item, [], group.bottleCounts), isTrue);
     expect(restored.getTotalPrice(), 3400);
     restored.incrementDisplayGroup(restored.activeDisplayGroups.single);
     group = restored.activeDisplayGroups.single;
-    expect(group.totalQuantity, 4);
+    expect(group.totalQuantity, 5);
     expect(group.freeQuantity, 1);
     expect(group.bottleCounts, {93101: 5});
     expect(group.totalPrice, 4500);
     restored.decrementDisplayGroup(group);
-    expect(restored.activeDisplayGroups.single.totalQuantity, 3);
-    restored.decrementDisplayGroup(restored.activeDisplayGroups.single);
     group = restored.activeDisplayGroups.single;
-    expect(group.totalQuantity, 2);
+    expect(group.totalQuantity, 4);
+    expect(group.freeQuantity, 1);
+    expect(group.totalPrice, 3400);
+    restored.decrementDisplayGroup(group);
+    group = restored.activeDisplayGroups.single;
+    expect(group.totalQuantity, 3);
     expect(group.freeQuantity, 0);
-    expect(group.bottleCounts, {93101: 2});
-    expect(group.totalPrice, 2200);
+    expect(group.bottleCounts, {93101: 3});
+    expect(group.totalPrice, 3300);
   });
 
   test(
@@ -374,20 +489,18 @@ void main() {
     final cart = CartProvider();
     expect(cart.syncItemBottleCounts(item, [], {93101: 2}), isTrue);
     expect(cart.getTotalPrice(), 2000);
-    expect(cart.syncItemBottleCounts(item, [], {93101: 3}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
     final group = cart.activeDisplayGroups.single;
     expect(group.optionsTotal, 400);
     expect(group.totalPrice, 3100); // 3000 × .9 + four bottles.
     expect(CartItem.calculatePrice(cart.items).discount, 300);
-    expect(cart.syncItemBottleCounts(item, [], {93101: 6}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {93101: 8}), isTrue);
     expect(cart.activeDisplayGroups.single.freeQuantity, 2);
     expect(cart.activeDisplayGroups.single.bottleCounts, {93101: 8});
     expect(cart.getTotalPrice(), 6200);
   });
 
-  test(
-      'impossible exact gift allocation refuses atomically rather than overfilling',
-      () {
+  test('a gift that is not a whole bottle never blocks the order', () {
     final payload = _boundary(volumes: [2]).toJson();
     payload['promotions'] = [
       ItemPromotion(
@@ -402,11 +515,25 @@ void main() {
     final item = Item.fromJson(payload);
     final selection = SmartCartSelection(item);
     final cart = CartProvider();
-    expect(() => selection.giftBottleBreakdown(2), throwsStateError);
-    expect(() => selection.autoBottleBreakdown(2), throwsStateError);
-    expect(cart.syncItemBottleCounts(item, [], {2710: 1}), isFalse);
-    expect(cart.syncItemSelectionQuantity(item, [], 2), isFalse);
-    expect(cart.items, isEmpty);
+    expect(selection.autoBottleBreakdown(2), {2710: 1});
+    // Four litres in two 2 l bottles: one litre is free, though no bottle holds exactly that.
+    expect(cart.syncItemBottleCounts(item, [], {2710: 2}), isTrue);
+    final group = cart.activeDisplayGroups.single;
+    expect(group.freeQuantity, 1);
+    expect(group.allocationIssue, isNull);
+    expect(group.totalOrderQuantity, 4);
+    expect(group.totalPrice, 8000); // 3 × 2600 + 2 × 100.
+    expect(cart.toJsonForOrder(), [
+      {
+        'item_id': item.itemId,
+        'amount': 4.0,
+        'options': [
+          {'option_item_relation_id': 2710, 'amount': 1}
+        ],
+      },
+    ]);
+    expect(cart.syncItemSelectionQuantity(item, [], 2), isTrue);
+    expect(cart.activeDisplayGroups.single.bottleCounts, {2710: 1});
   });
 
   test(
@@ -414,7 +541,7 @@ void main() {
       () {
     final item = Item.fromJson(_captured(1186));
     final cart = CartProvider();
-    expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 1}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 2}), isTrue);
     final group = cart.activeDisplayGroups.single;
     final selection = SmartCartSelection(item);
     final order = cart.toJsonForOrder();
@@ -437,41 +564,45 @@ void main() {
     expect(group.totalPrice, 4 * 890 + containerCharge);
   });
 
-  test(
-      'batch stepping repeats paid mix and exact already-allocated gift bottles',
+  test('batch stepping repeats the whole picked set and recomputes the gift',
       () {
     final item = Item.fromJson(_captured(1186));
     final cart = CartProvider();
-    expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 1}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 2}), isTrue);
     cart.incrementDisplayGroup(cart.activeDisplayGroups.single);
     var group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 8);
-    expect(group.freeQuantity, 4);
-    expect(group.totalOrderQuantity, 12);
-    expect(group.paidBottleCounts, {3094: 4, 3095: 2});
-    expect(group.bottleCounts, {3094: 4, 3095: 4});
-    expect(group.totalPrice, 7960);
+    expect(group.totalQuantity, 9);
+    expect(group.freeQuantity, 3);
+    expect(group.totalOrderQuantity, 9);
+    expect(group.bottleCounts, {3094: 3, 3095: 3});
+    expect(group.totalPrice, 5970); // 6 × 890 + 3 × 110 + 3 × 100.
     cart.decrementDisplayGroup(group);
     group = cart.activeDisplayGroups.single;
-    expect(group.totalQuantity, 4);
+    expect(group.totalQuantity, 6);
     expect(group.bottleCounts, {3094: 2, 3095: 2});
     expect(group.totalPrice, 3980);
   });
 
-  test('3+1 stock reserves the full four physical litres', () {
+  test('3+1 stock is the picked litres, gift included', () {
     final cart = CartProvider();
     expect(
         cart.syncItemBottleCounts(
             syntheticThreePlusOneSurfaceItem(onlyOneLitre: true, stock: 3),
             [],
-            {93101: 3}),
+            {93101: 4}),
         isFalse);
     expect(cart.items, isEmpty);
     expect(
         cart.syncItemBottleCounts(
-            syntheticThreePlusOneSurfaceItem(onlyOneLitre: true, stock: 4),
+            syntheticThreePlusOneSurfaceItem(onlyOneLitre: true, stock: 3),
             [],
             {93101: 3}),
+        isTrue);
+    expect(
+        cart.syncItemBottleCounts(
+            syntheticThreePlusOneSurfaceItem(onlyOneLitre: true, stock: 4),
+            [],
+            {93101: 4}),
         isTrue);
     final before = cart.toJsonForOrder();
     cart.incrementDisplayGroup(cart.activeDisplayGroups.single);
@@ -703,10 +834,9 @@ void main() {
     final payload = _captured(1186)..['amount'] = 5;
     final item = Item.fromJson(payload);
     final cart = CartProvider();
-    expect(
-        cart.syncItemBottleCounts(item, [], {3094: 2}), isTrue); // 2 + 1 gift.
+    expect(cart.syncItemBottleCounts(item, [], {3094: 5}), isTrue); // 5 litres.
     final before = cart.items.map((item) => item.toJson()).toList();
-    expect(cart.syncItemBottleCounts(item, [], {3094: 4}), isFalse); // 4 + 2.
+    expect(cart.syncItemBottleCounts(item, [], {3094: 6}), isFalse); // 6 > 5.
     expect(cart.items.map((item) => item.toJson()).toList(), before);
     final fractional = _boundary(taste: true, stock: 3);
     final selection = SmartCartSelection(fractional);

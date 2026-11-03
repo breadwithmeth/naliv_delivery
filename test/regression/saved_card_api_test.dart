@@ -53,6 +53,45 @@ void main() {
     }, () => client);
   });
 
+  test('the live Halyk mask style «BIN...last4» is a chargeable saved card',
+      () async {
+    // Shape captured from the production endpoint (digits replaced): six BIN
+    // digits, an ASCII ellipsis, the last four.
+    final client = MockClient((_) async => _json({
+          'success': true,
+          'data': {
+            'cards': [
+              {
+                'halyk_id': '00000000-0000-4000-8000-000000000001',
+                'card_mask': '400000...1234',
+                'payer_name': '',
+                'created_date': '2026-04-15T18:55:37.548162+05:00',
+              },
+              {
+                'halyk_id': '00000000-0000-4000-8000-000000000002',
+                'card_mask': '510000...5678',
+                'payer_name': '',
+                'created_date': '2024-08-01T20:05:16.124151+05:00',
+              },
+            ],
+            'total': 2,
+            'source': 'halyk_api',
+          },
+        }));
+    await http.runWithClient(() async {
+      final result =
+          SavedCard.parse(await ApiService.getUserCards(source: 'halyk'));
+      expect(result.cards.map((card) => card.chargeId), [
+        '00000000-0000-4000-8000-000000000001',
+        '00000000-0000-4000-8000-000000000002',
+      ]);
+      expect(result.cards.map((card) => card.mask),
+          ['400000••••1234', '510000••••5678']);
+      expect(result.rejectedCount, 0);
+      expect(result.complete, isTrue);
+    }, () => client);
+  });
+
   test('only a supplied empty cards list is genuinely empty', () async {
     for (final data in [
       null,

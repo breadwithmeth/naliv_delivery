@@ -19,6 +19,26 @@ remain reducible/removable, including at zero stock. Other capacities, including
 M5 client commands/actual journeys are in `STATUS.md`; bank/loyalty/1C production acceptance is
 not established. The findings and pending labels below are the original audit, not current code.
 
+### Pour model — 2026-11-03 (supersedes the paid/gift pour semantics above)
+
+Draft beer is now selected as **physical bottles**. `T` = Σ count × bottle volume. For the best
+active `SUBTRACT` promotion the gift is `floor(T / (base + add)) × add` litres and the paid litres are
+`T − gift` (3+1: 3 l pays 3, 4 l pays 3 and gifts 1, 8 l gifts 2). Nothing is auto-added: when the
+next `base + add` is at most `add` litres away and a bottle of exactly that volume is offered, the
+configurator shows one «+1 л в подарок» action; otherwise a quiet «До подарка: X л». Price =
+paid litres × litre price + every physical container at its ordinary tariff (G4 unchanged; REPLACE
+tariffs keep their meaning). The order payload still has one row per physical bottle variant with
+`amount` = physical litres; stock is checked against `T`. Which bottle carries the free drink is
+presentation only and never blocks an order (no «нельзя точно разлить подарочный объём»).
+
+Persisted pour rows now hold the physical litres in `CartItem.quantity` (gift is derived, never stored;
+`giftBottleCounts` is gone). The cart state carries `version: 2`; older states (paid litres plus
+retained gift bottles) are migrated on restore to the same physical bottles and re-saved. The cart
+stepper repeats the whole physical set; repeat-order maps fulfilled physical amounts directly.
+Implementation: `evaluatePhysicalGift` in `lib/utils/promotion_engine.dart`,
+`CartGroupEvaluation`/`CartDisplayGroup.migrateLegacyPourRows` in `lib/utils/smart_cart.dart`.
+Sections 2.4 and 4.4 below describe the earlier paid/gift picker.
+
 
 ---
 

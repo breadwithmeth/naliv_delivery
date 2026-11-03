@@ -27,7 +27,7 @@ void main() {
     final item = Item.fromJson(source);
     final cart = CartProvider();
     addTearDown(cart.dispose);
-    expect(cart.syncItemBottleCounts(item, [], {93101: 3}), isTrue);
+    expect(cart.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
     final revision = cart.contentRevision;
     final before = cart.evaluate(now: expiry);
     final group = before.activeGroups.single;
@@ -35,7 +35,6 @@ void main() {
     expect(group.totalQuantity, 3);
     expect(group.freeQuantity, 1);
     expect(group.totalOrderQuantity, 4);
-    expect(group.paidBottleCounts, {93101: 3});
     expect(group.bottleCounts, {93101: 4});
     expect(group.physicalItems.single.quantity, 3);
     expect(group.physicalItems.single.bottledGiftQuantity, 1);
@@ -65,9 +64,10 @@ void main() {
         cart.evaluate(now: expiry.add(const Duration(microseconds: 1)));
     expect(cart.contentRevision, revision);
     expect(after.activeGroups.single.freeQuantity, 0);
-    expect(after.activeGroups.single.bottleCounts, {93101: 3});
-    expect(after.totalPrice, 3300);
-    expect(after.toJsonForOrder().single['amount'], 3.0);
+    expect(after.activeGroups.single.bottleCounts, {93101: 4});
+    // The picked bottles stay; without the promotion all four litres are paid.
+    expect(after.totalPrice, 4400);
+    expect(after.toJsonForOrder().single['amount'], 4.0);
     expect(before.totalPrice, 2830);
     expect(before.toJsonForOrder().single['amount'], 4.0);
     await cart.ensureSaved();

@@ -75,9 +75,8 @@ The Windows optical probe used black/white textured scenery in both themes: shel
 refraction is visible, the scene outside the dock is unchanged, moved scenery changes
 the material image and foreground cart taps work. Evidence is under
 `.figma_cache/harness/optical/`; the disposable probe source was removed.
-This proves the Flutter shader path, **not** UIKit composition. The selected Apple path
-uses [`UIGlassEffect`](https://developer.apple.com/documentation/uikit/uiglasseffect)
-on iOS 26+, with the Apple execution boundary and required checks in `PLAN.md`.
+This proved the former Flutter shader path, which has since been replaced by a plain
+`BackdropFilter` bar; the native `UIGlassEffect` bridge was removed.
 
 Synthetic artwork/metadata, reference differences and screenshots alone do not prove
 authenticated production behavior. Retained catalogue/confirmation boundary regressions

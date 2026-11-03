@@ -14,7 +14,4 @@ import Flutter
 
 func registerPlugins(registry: FlutterPluginRegistry) {
   GeneratedPluginRegistrant.register(with: registry)
-  if let registrar = registry.registrar(forPlugin: NativeLiquidGlassPlugin.registrationKey) {
-    NativeLiquidGlassPlugin.register(with: registrar)
-  }
 }

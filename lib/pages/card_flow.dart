@@ -34,9 +34,12 @@ class SavedCard {
   static final _masking = RegExp(r'[*•xX]');
   static final _panIdentity = RegExp(r'^(?:\d[\s-]?){12,19}$');
 
+  /// Halyk's saved-card list masks the middle with an ellipsis (`400000...1234`).
+  static final _ellipsis = RegExp(r'(?:\.{2,}|…)+');
+
   static String? safeMask(Object? value) {
     if (value is! String) return null;
-    final mask = value.trim();
+    final mask = value.trim().replaceAll(_ellipsis, '••••');
     final digitCount = _digits.allMatches(mask).length;
     return _validMask.hasMatch(mask) &&
             _masking.hasMatch(mask) &&

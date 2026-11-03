@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/money.dart';
 import '../../../core/product_view.dart';
 import '../../../core/quantity.dart';
+import '../../../design/motion.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
@@ -12,12 +13,14 @@ import '../../../model/cart_item.dart';
 import '../../../model/item.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
-import '../../../ui/liquid_glass_dock.dart';
+import '../../../ui/frosted_dock.dart';
+import '../../../ui/motion_widgets.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/liked_items_provider.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/promotion_engine.dart';
+import '../../../utils/smart_cart.dart';
 
 /// Product detail — the design's `Описание товара` frames.
 ///
@@ -52,16 +55,27 @@ class _ProductPageState extends State<ProductPage> {
   bool _justAdded = false;
   bool _expanded = false;
   double _actionBarHeight = 129;
+  late final SmartCartSelection _selection =
+      SmartCartSelection(widget.view.source);
+
   bool _canIncrement(CartProvider cart, double quantity) {
     if (!widget.view.available || cart.hasUnresolvedBusiness) return false;
-    final next = quantity + widget.view.source.effectiveStepQuantity;
+    final pour = _selection.usesPourFlow;
+    // A bottled drink is counted in picked litres, gift included; the cart stepper adds one
+    // smallest bottle.
+    final step = pour
+        ? _selection.minBottleVolume
+        : widget.view.source.effectiveStepQuantity;
+    final next = quantity + step;
     final reserved = cart.activeDisplayGroups
         .where((group) => group.itemId == widget.view.itemId)
         .fold<double>(0, (sum, group) => sum + group.totalOrderQuantity);
-    final current =
-        quantity + subtractPromotionFreeQuantity(quantity, _activePromotions);
-    final required =
-        next + subtractPromotionFreeQuantity(next, _activePromotions);
+    final current = pour
+        ? quantity
+        : quantity + subtractPromotionFreeQuantity(quantity, _activePromotions);
+    final required = pour
+        ? next
+        : next + subtractPromotionFreeQuantity(next, _activePromotions);
     final stock = widget.view.source.amount;
     return stock == null || reserved - current + required <= stock + 0.0000001;
   }
@@ -205,7 +219,7 @@ class _ProductPageState extends State<ProductPage> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: LiquidGlassDock(
+          child: FrostedDock(
             content: ColoredBox(
               color: Theme.of(context).brightness == Brightness.light
                   ? palette.surface
@@ -318,18 +332,24 @@ class _ProductPageState extends State<ProductPage> {
                             tooltip: 'Назад',
                           ),
                           const Spacer(),
-                          AppIconButton(
-                            // The design keeps the outline heart in both states and only tints the
-                            // disc, so no filled glyph is needed here.
-                            asset: AppIcons.heart,
-                            onTap: widget.onLike,
-                            tooltip: 'В избранное',
-                            size: AppSpacing.touchTarget,
-                            glyphSize: 24,
-                            fill: liked
-                                ? palette.brandRed.withValues(alpha: 0.5)
-                                : palette.surface.withValues(alpha: 0.75),
-                            color: liked ? Colors.white : palette.textPrimary,
+                          AnimatedSwap(
+                            stateKey: liked,
+                            duration: AppMotion.pop,
+                            scale: .6,
+                            scaleCurve: AppMotion.overshoot,
+                            child: AppIconButton(
+                              // The design keeps the outline heart in both states and only
+                              // tints the disc, so no filled glyph is needed here.
+                              asset: AppIcons.heart,
+                              onTap: widget.onLike,
+                              tooltip: 'В избранное',
+                              size: AppSpacing.touchTarget,
+                              glyphSize: 24,
+                              fill: liked
+                                  ? palette.brandRed.withValues(alpha: 0.5)
+                                  : palette.surface.withValues(alpha: 0.75),
+                              color: liked ? Colors.white : palette.textPrimary,
+                            ),
                           ),
                         ],
                       ),
@@ -389,6 +409,11 @@ class _Hero extends StatelessWidget {
                 fit: BoxFit.contain,
                 alignment: Alignment.center,
                 filterQuality: FilterQuality.high,
+                frameBuilder: fadeInImageFrame,
+                // The artwork box is height - 104 tall; decode no larger than it.
+                cacheHeight: ((height - 104).clamp(1.0, height) *
+                        MediaQuery.devicePixelRatioOf(context))
+                    .ceil(),
                 semanticLabel: label,
                 errorBuilder: (_, __, ___) => _placeholder,
               ),
@@ -577,8 +602,9 @@ class _QuantityControl extends StatelessWidget {
                 child: Semantics(
                   label:
                       pending ? 'Количество: $_label, ещё не в корзине' : null,
-                  child: Text(
-                    _label,
+                  child: AnimatedCount(
+                    text: _label,
+                    value: quantity,
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
