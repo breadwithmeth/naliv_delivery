@@ -7,6 +7,8 @@ import '../../../design/typography.dart';
 import '../../../pages/card_flow.dart';
 import '../../../pages/card_widgets.dart';
 import '../../../pages/help_chat_page.dart';
+import '../../../ui/frosted_controls.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/web_window.dart';
 import '../certificate_purchase_session.dart';
@@ -28,9 +30,8 @@ Future<Map<String, dynamic>?> showCertificatePurchase(
       isDismissible: false,
       enableDrag: false,
       showDragHandle: false,
-      backgroundColor: Theme.of(context).brightness == Brightness.light
-          ? context.palette.background
-          : context.palette.surface,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       constraints: const BoxConstraints(maxWidth: 640),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
@@ -161,8 +162,22 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
     await _session.purchase();
   }
 
+  /// The sheet is one frosted surface over the page it covers; the fields inside it are
+  /// glass too, but only tint (a [FrostedScope] spares them a second blur each).
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return FrostedSurface(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      shadow: false,
+      tint: dark
+          ? const Color(0xFF141414).withValues(alpha: 0.9)
+          : Colors.white.withValues(alpha: 0.92),
+      child: FrostedScope(child: _content(context)),
+    );
+  }
+
+  Widget _content(BuildContext context) {
     final palette = context.palette;
     if (_session.invalidated) {
       return SafeArea(
@@ -181,6 +196,9 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
     }
     final editable = _session.canPurchase;
     final selectedAmount = CertificatePurchaseSession.parseAmount(_amount.text);
+    final fieldTint = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.07)
+        : palette.surface.withValues(alpha: 0.9);
     return PopScope(
       canPop: !_session.busy,
       child: SafeArea(
@@ -236,20 +254,26 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
                     if (_session.completed)
                       _completedView()
                     else ...[
-                      TextField(
-                        key: const ValueKey('certificate-purchase-amount'),
-                        controller: _amount,
-                        enabled: editable,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        textInputAction: TextInputAction.next,
-                        style: AppTypography.titleRegular,
-                        decoration: _fieldDecoration('Сумма', filled: true)
-                            .copyWith(suffixText: '₸'),
-                        onChanged: (value) {
-                          _session.amountText = value;
-                          setState(() {});
-                        },
+                      _labelled(
+                        'Сумма',
+                        FrostedTextField(
+                          fieldKey:
+                              const ValueKey('certificate-purchase-amount'),
+                          controller: _amount,
+                          enabled: editable,
+                          tint: fieldTint,
+                          semanticLabel: 'Сумма сертификата',
+                          hintText: 'Введите сумму',
+                          suffixText: '₸',
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          textInputAction: TextInputAction.next,
+                          textStyle: AppTypography.titleRegular,
+                          onChanged: (value) {
+                            _session.amountText = value;
+                            setState(() {});
+                          },
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       Wrap(
@@ -284,26 +308,38 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
                       const SizedBox(height: AppSpacing.xl),
                       _cardSection(),
                       const SizedBox(height: AppSpacing.huge),
-                      TextField(
-                        key: const ValueKey('certificate-purchase-recipient'),
-                        controller: _recipient,
-                        enabled: editable,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                        decoration:
-                            _fieldDecoration('Телефон получателя, если дарите'),
-                        onChanged: (value) => _session.recipientLogin = value,
+                      _labelled(
+                        'Телефон получателя',
+                        FrostedTextField(
+                          fieldKey:
+                              const ValueKey('certificate-purchase-recipient'),
+                          controller: _recipient,
+                          enabled: editable,
+                          tint: fieldTint,
+                          semanticLabel: 'Телефон получателя, если дарите',
+                          hintText: 'Если дарите — номер получателя',
+                          keyboardType: TextInputType.phone,
+                          textInputAction: TextInputAction.next,
+                          onChanged: (value) => _session.recipientLogin = value,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
-                      TextField(
-                        key: const ValueKey('certificate-purchase-message'),
-                        controller: _message,
-                        enabled: editable,
-                        minLines: 3,
-                        maxLines: 5,
-                        keyboardType: TextInputType.multiline,
-                        decoration: _fieldDecoration('Сообщение'),
-                        onChanged: (value) => _session.message = value,
+                      _labelled(
+                        'Сообщение',
+                        FrostedTextField(
+                          fieldKey:
+                              const ValueKey('certificate-purchase-message'),
+                          controller: _message,
+                          enabled: editable,
+                          tint: fieldTint,
+                          semanticLabel: 'Сообщение',
+                          hintText: 'Пожелание к подарку',
+                          minLines: 3,
+                          maxLines: 5,
+                          keyboardType: TextInputType.multiline,
+                          borderRadius: AppRadii.xlAll,
+                          onChanged: (value) => _session.message = value,
+                        ),
                       ),
                       if (_session.unconfirmed) ...[
                         const SizedBox(height: AppSpacing.huge),
@@ -325,15 +361,12 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
                       if (!_session.unconfirmed)
                         SizedBox(
                           width: double.infinity,
-                          child: FilledButton(
-                            key: const ValueKey('certificate-purchase-submit'),
+                          child: FrostedButton(
+                            buttonKey:
+                                const ValueKey('certificate-purchase-submit'),
                             onPressed: _canSubmit ? _purchase : null,
-                            style: FilledButton.styleFrom(
-                              shape: const StadiumBorder(),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 14),
-                              minimumSize: const Size(44, 49),
-                            ),
+                            borderRadius: AppRadii.pillAll,
+                            minHeight: 49,
                             child: Text(_session.busy ? 'Покупаем…' : 'Купить'),
                           ),
                         ),
@@ -456,9 +489,11 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
           if (id != null)
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
-                key: const ValueKey('certificate-refresh-status'),
+              child: FrostedButton(
+                buttonKey: const ValueKey('certificate-refresh-status'),
                 onPressed: _session.busy ? null : _session.refreshStatus,
+                borderRadius: AppRadii.pillAll,
+                minHeight: 49,
                 child: Text(
                     _session.busy ? 'Проверяем…' : 'Проверить статус оплаты'),
               ),
@@ -502,9 +537,11 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
         const SizedBox(height: AppSpacing.huge),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            key: const ValueKey('certificate-purchase-done'),
+          child: FrostedButton(
+            buttonKey: const ValueKey('certificate-purchase-done'),
             onPressed: _close,
+            borderRadius: AppRadii.pillAll,
+            minHeight: 49,
             child: const Text('К сертификатам'),
           ),
         ),
@@ -512,30 +549,25 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
     );
   }
 
-  InputDecoration _fieldDecoration(String hint, {bool filled = false}) {
+  /// A caption above a field. The caption is visual only: the field carries the spoken
+  /// label, because a hint vanishes once the user types.
+  Widget _labelled(String label, Widget field) {
     final palette = context.palette;
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: AppTypography.bodyLight.copyWith(color: palette.textSecondary),
-      filled: true,
-      fillColor: Theme.of(context).brightness == Brightness.light
-          ? palette.surface
-          : filled
-              ? palette.background
-              : palette.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: AppRadii.lgAll,
-        borderSide: BorderSide(color: palette.divider),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: AppRadii.lgAll,
-        borderSide: BorderSide(color: palette.divider),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: AppRadii.lgAll,
-        borderSide: BorderSide(color: palette.accent),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 2, bottom: AppSpacing.md),
+            child: Text(
+              label,
+              style: AppTypography.bodySmallMedium
+                  .copyWith(color: palette.textSecondary),
+            ),
+          ),
+        ),
+        field,
+      ],
     );
   }
 }

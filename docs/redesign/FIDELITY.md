@@ -167,19 +167,20 @@ Source: [Russian web guide `6199:59680`](https://www.figma.com/design/pNQjZoaE1v
 
 | Rule (`6192:46527`) | Implementation |
 |---|---|
-| Use only official elements; do not create or modify buttons | Exact SVG exports `button_logo.svg` (`6199:60417`), `button_gold.svg` (`6199:60429`), `logo.svg`, `logo_plate.svg`, `compact.svg`, `gold.svg`; full-width «Button / Gold» composition |
+| Use only official elements; do not create or modify buttons | Exact SVG exports `button_logo.svg` (`6199:60417`), `button_gold.svg` (`6199:60429`), `logo.svg`, `logo_plate.svg`, `gold.svg`; full-width «Button / Gold» composition |
 | Red buttons on white, light or dark backgrounds | Red button in both themes |
-| Kaspi button above others vertically; not smaller than other buttons; height ≥ 48 dp | Only action in the Kaspi footer, full footer width, 52 dp |
-| ≥ 8 dp free zone; recommended radius | 8 dp vertical zone, footer keeps 12 dp horizontally; radius 8 |
+| Kaspi button above others vertically; not smaller than other buttons; height ≥ 48 dp | Only action in the Kaspi dock, full dock width (343 at 375), 52 dp |
+| ≥ 8 dp free zone; recommended radius | 8 dp vertical zone inside the frosted dock, which keeps 16 dp horizontally; radius 8 |
 | No other background colours or effects | Same fill in every state; no splash, overlay, elevation or dimming |
-| Logos with ≥ 20% clear space; basic on light/dark with enough contrast, additional on colored/complex | 20% padding; basic on light, white-plate logo on dark |
-| List: compact logo when the name is text, Gold beside Kaspi.kz, same alignment as other methods | Compact mark aligned with card icons, «Kaspi.kz» as text, Gold at the trailing edge (stacked under the name for narrow/large text) |
+| Logos with ≥ 20% clear space; basic on light/dark with enough contrast, additional on colored/complex | 20% padding (inside a row the row's own padding keeps it: ≥ 10 dp vs. 5.6 dp needed); basic on light, white-plate logo on dark |
+| List: full logo when it fits ≥ 112 dp, Gold beside Kaspi.kz, same alignment as other methods | One method list: Kaspi.kz and saved cards share `PaymentMethodTile` (leading slot at the same left edge, muted subtitle, trailing selection mark). Kaspi shows the full logo at 112 dp with Gold 8 dp after it (no typed name, no compact mark); at very narrow widths Gold wraps under the logo |
 | QR block mandatory elements | Not applicable: the app pays through the Kaspi link, no QR is shown |
-| Recommended process states | Red loader «Готовимся к приему оплаты»; «Подтвердите оплату в приложении»; «Оплата принята» + amount with green mark; «Отмена покупки / Вы не подтвердили покупку» and «Ошибка» with grey cross |
+| Recommended process states | Red loader «Готовимся к приему оплаты»; «Подтвердите оплату» (waiting); «Оплата принята» + amount with green mark; «Отмена покупки / Вы не подтвердили покупку» and other failures with the grey cross, title and one reason |
+| Failure screens (recommended, so app-specific) | Every Kaspi failure uses `PaymentNoticePage` in a `FrostedDock`: refused create, no link, link not opened, thrown error, cancelled purchase, unreadable and pending status. Actions follow the payment guard: settled refusal → «Попробовать снова» (starts one new payment) + «Выбрать другой способ»; uncertain → the same link «Открыть оплату» and/or «Проверить оплату», never a retry (a note says why); support and payment-FAQ links under the actions. The card-binding FAQ banner is shown for card failures only |
 
 | Guide nodes | Applied presentation |
 |---|---|
-| `6199:59691`, `6199:59695`, `6199:60135` | Official SVGs; full logo 112 × 28 on light, white-plate logo `6199:59860` on dark; compact mark beside Kaspi.kz name plus Gold; no unsupported Red/Kredit products |
+| `6199:59691`, `6199:59695`, `6199:60135` | Official SVGs; full logo on light (112 × 28) and the white-plate logo `6199:59860` on dark, scaled uniformly to 112 dp wide; Gold beside it; the compact mark and `compact.svg` are no longer shipped because the list row always has ≥ 220 dp for logo and Gold; no unsupported Red/Kredit products |
 | `6199:60299`, `6199:60336`, `6199:60371` | Logo clear space at least 20% of height; no recoloring, altered internal objects, radius or logo effects |
 | `6199:60414`, `6199:60416` | Official full-width red «Button / Gold» (Logo / White, divider, ProductBadge / Gold); the hug-width compact button `6199:60489` is not stretched |
 | `6199:61045`, `6199:61115`, `6199:61154` | Kaspi first in method selection; one selected charge action; full-width hit-area, 52 ≥ 48 px high, at least 8 px surrounding clearance |

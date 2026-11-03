@@ -3,11 +3,20 @@ import 'package:flutter/material.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import 'app_icon.dart';
+import 'frosted_surface.dart';
 
-/// An ordinary filled icon disc with a centred glyph.
+/// A round glass control with a centred glyph: back, search, like and the other
+/// top-bar actions.
 ///
-/// Top-bar actions default to 40 × 40 with a 17 px glyph. Inline actions can
-/// override the size, fill and radius without adding an optical effect.
+/// The disc is the design's glass: a [FrostedSurface] (`#141414` / white at
+/// ≈75 % over a small backdrop blur, hairline edge, `0 4 8` shadow), so it reads
+/// over a photo, a scrolled list or a plain page alike. Inside a scrolled
+/// frosted header (a [FrostedScope]) it only paints its tint.
+///
+/// [fill] replaces the glass tint. A fully opaque [fill] has nothing to show
+/// through, so the disc is drawn flat without a backdrop blur; list rows that
+/// repeat a button per item use this to stay cheap. The visible disc is
+/// [size] (40 by default); the touch target is never smaller than 44.
 class AppIconButton extends StatelessWidget {
   const AppIconButton({
     required this.asset,
@@ -25,16 +34,36 @@ class AppIconButton extends StatelessWidget {
   final VoidCallback? onTap;
   final double size;
   final double? glyphSize;
+
+  /// Replaces the glass tint, for example soft red for a liked item.
   final Color? fill;
   final Color? color;
   final double? radius;
   final String? tooltip;
 
+  /// Soft red glass for a favourite control that is on. Pair it with
+  /// [AppIcons.heartFilled] and a white glyph.
+  static Color likedFill(AppPalette palette) =>
+      palette.brandRed.withValues(alpha: 0.75);
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final discRadius = radius ?? AppRadii.pill;
-    final fillColor = fill ?? palette.surface;
+    final discRadius = BorderRadius.circular(radius ?? AppRadii.pill);
+    final solid = fill != null && fill!.a >= 0.99;
+    final disc = solid
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: discRadius,
+              boxShadow: AppShadows.control(palette),
+            ),
+          )
+        : FrostedSurface(
+            borderRadius: discRadius,
+            tint: fill,
+            child: const SizedBox.expand(),
+          );
     final glyph = Center(
       child: AppIcon(
         asset,
@@ -42,29 +71,27 @@ class AppIconButton extends StatelessWidget {
         color: color ?? palette.textPrimary,
       ),
     );
-    final button = InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(discRadius),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: AppSpacing.touchTarget,
-          minHeight: AppSpacing.touchTarget,
-        ),
-        child: Center(
-          widthFactor: 1,
-          heightFactor: 1,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(discRadius),
-              boxShadow: AppShadows.control(palette),
+    final button = ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: AppSpacing.touchTarget,
+        minHeight: AppSpacing.touchTarget,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(width: size, height: size, child: disc),
+          // Above the glass, so the ripple is visible; covers the full target.
+          Positioned.fill(
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: discRadius,
+                child: glyph,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: glyph,
           ),
-        ),
+        ],
       ),
     );
     return tooltip == null ? button : Tooltip(message: tooltip!, child: button);

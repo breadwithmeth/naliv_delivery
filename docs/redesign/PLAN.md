@@ -92,9 +92,12 @@ bottom margin); `LiquidGlassDock` pads its foreground 16 px at the sides and by 
 inset plus 4 px, so page footers only add their own vertical padding (16 top, 12 bottom).
 The 78 px cart stamp declares `DockOverhang` (27 px) and projects above the bar, centered.
 `onDockHeightChanged` reports the bar height without the inset; consumers still add the
-inset. The material is a `ClipRRect` + `BackdropFilter(ImageFilter.blur, sigma 20)` over the
-bar rectangle only, tinted light white 76 % / dark `#0E0E10` 66 %, with a 0.5 px
-top-edge hairline; there is no per-frame page snapshot, fragment shader, warm-up,
+inset. The material is a `ClipRRect` + `BackdropFilter(Frost.blur, sigma 18)` over the
+bar rectangle only, tinted with the shared `Frost.tint` (dark `#141414` 72 % / light white
+78 %), with a 0.5 px top-edge hairline; the foreground is a `FrostedScope`, so orange
+glass controls on the bar do not blur again. With items the cart stamp gains a pill (total)
+that grows out from behind it and a count badge; stamp and pill stay centred. There is no
+per-frame page snapshot, fragment shader, warm-up,
 platform view or CPU readback. Ordinary chrome uses `AppSurface`/`AppSectionAction`.
 Platform views must not sit under the bar (Flutter cannot blur them). Earlier
 shader/`UIGlassEffect` notes in `STATUS.md` and `FIDELITY.md` are historical.

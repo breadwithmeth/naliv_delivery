@@ -8,6 +8,7 @@ import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/profile/profile_account.dart';
 import 'package:naliv_delivery/features/profile/ui/profile_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/ui/app_top_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,6 +32,20 @@ Widget _host(ProfilePage page, {TextScaler scaler = TextScaler.noScaling}) =>
         home: page,
       ),
     );
+
+/// Scrolls [target] into view and clear of the floating frosted header, which sits on top of
+/// the scroll view: `ensureVisible` alone may leave it underneath, where taps hit the header.
+Future<void> _reveal(WidgetTester tester, Finder target) async {
+  await tester.scrollUntilVisible(target, 300);
+  await tester.pumpAndSettle();
+  final headerBottom = tester.getBottomLeft(find.byType(AppTopBar)).dy + 8;
+  final top = tester.getTopLeft(target).dy;
+  if (top < headerBottom) {
+    await tester.drag(
+        find.byType(SingleChildScrollView), Offset(0, headerBottom - top));
+    await tester.pumpAndSettle();
+  }
+}
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -150,13 +165,14 @@ void main() {
         ),
         scaler: const TextScaler.linear(1.6)));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Адреса'), 300);
+    await _reveal(tester, find.text('Адреса'));
     await tester.tap(find.text('Адреса'));
     await tester.pumpAndSettle();
     expect(find.text('2 адреса · Новая улица, 22'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Тема оформления'), 300);
-    await tester.tap(find.text('Тема оформления'));
+    await _reveal(tester, find.byKey(const ValueKey('profile-theme-dark')));
+    await tester.tap(find.byKey(const ValueKey('profile-theme-dark')));
     await tester.pumpAndSettle();
+    expect(find.text('Всегда тёмная'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -185,5 +201,119 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(logouts, 1);
+  });
+
+  testWidgets(
+      'settings are grouped into titled sections with the account first',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(ProfilePage(
+      account: _account,
+      onLogout: () async {},
+      onNavigate: (_) async {},
+    )));
+    await tester.pumpAndSettle();
+
+    double top(Finder finder) => tester.getTopLeft(finder).dy;
+    final order = [
+      find.byKey(const ValueKey('profile-name')),
+      find.text('Заказы и покупки'),
+      find.text('Оплата и доставка'),
+      find.text('Приложение'),
+      find.text('Помощь'),
+      find.byKey(const ValueKey('profile-logout')),
+    ];
+    for (final finder in order) {
+      expect(finder, findsOneWidget);
+    }
+    for (var i = 1; i < order.length; i++) {
+      expect(top(order[i]), greaterThan(top(order[i - 1])),
+          reason: 'section $i must follow section ${i - 1}');
+    }
+    for (final title in [
+      'История заказов',
+      'Сертификаты',
+      'Адреса',
+      'Карты',
+      'Тема оформления',
+      'Уведомления',
+      'Сбор информации',
+      'Поддержка',
+      'FAQ',
+    ]) {
+      expect(find.text(title), findsOneWidget, reason: title);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('theme is a three-way choice that persists the picked mode',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(const ProfilePage(account: _account)));
+    await tester.pumpAndSettle();
+    final theme =
+        tester.element(find.byType(ProfilePage)).read<ThemeController>();
+    expect(theme.mode, ThemeMode.system);
+    expect(find.text('Как на устройстве'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('profile-theme-dark')));
+    await tester.pumpAndSettle();
+    expect(theme.mode, ThemeMode.dark);
+    expect(find.text('Всегда тёмная'), findsOneWidget);
+    expect((await SharedPreferences.getInstance()).getString('theme_mode'),
+        'dark');
+
+    await tester.tap(find.byKey(const ValueKey('profile-theme-light')));
+    await tester.pumpAndSettle();
+    expect(theme.mode, ThemeMode.light);
+    expect(find.text('Всегда светлая'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('profile-theme-system')));
+    await tester.pumpAndSettle();
+    expect(theme.mode, ThemeMode.system);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('information collection toggle saves consent and explains itself',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(const ProfilePage(account: _account)));
+    await tester.pumpAndSettle();
+    expect(find.text('Отчёты об ошибках не отправляются'), findsOneWidget);
+    expect(find.textContaining('По умолчанию он выключен'), findsOneWidget);
+
+    await tester.tap(find.text('Сбор информации'));
+    await tester.pumpAndSettle();
+    expect(find.text('Отправляем отчёты об ошибках'), findsOneWidget);
+    expect(
+        (await SharedPreferences.getInstance())
+            .getBool('telemetry_consent_enabled'),
+        isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('profile-telemetry-switch')));
+    await tester.pumpAndSettle();
+    expect(find.text('Отчёты об ошибках не отправляются'), findsOneWidget);
+    expect(
+        (await SharedPreferences.getInstance())
+            .getBool('telemetry_consent_enabled'),
+        isFalse);
+  });
+
+  testWidgets('notification settings are reachable from the app section',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final opened = <AppDestination>[];
+    await tester.pumpWidget(_host(ProfilePage(
+      account: _account,
+      onNavigate: (destination) async => opened.add(destination),
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Уведомления'));
+    await tester.pumpAndSettle();
+    expect(opened, [AppDestination.notifications]);
   });
 }

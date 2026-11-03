@@ -67,8 +67,8 @@ void main() {
       final label = tester.getRect(action);
       expect(label.top, greaterThanOrEqualTo(card.top));
       expect(label.bottom, lessThanOrEqualTo(card.bottom));
-      expect(label.bottom, lessThanOrEqualTo(
-          tester.getRect(find.byType(AppCartButton)).top));
+      expect(label.bottom,
+          lessThanOrEqualTo(tester.getRect(find.byType(AppCartButton)).top));
       expect(tester.takeException(), isNull);
       expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());

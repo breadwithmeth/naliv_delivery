@@ -9,6 +9,7 @@ import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/frosted_dock.dart';
 import '../../../ui/product_row.dart';
 import '../../../utils/cart_provider.dart';
@@ -209,61 +210,60 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: FrostedDock(
-          content: Column(
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                child: AppTopBar(
-                  title: 'Избранное',
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.huge),
-              Expanded(
-                child: _body(_visible),
-              ),
-            ],
+      body: FrostedDock(
+        content: FrostedHeaderLayout(
+          estimatedHeaderHeight: 87,
+          header: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
+            child: AppTopBar(
+              title: 'Избранное',
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
           ),
-          dock: Selector<CartProvider, (int, double?)>(
-            selector: (_, cart) => (
-              cart.displayItemCount,
-              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
-            ),
-            builder: (_, summary, __) => AppCartButton(
-              itemCount: summary.$1,
-              total: summary.$2,
-              onTap: widget.onCart,
-            ),
+          body: (context, topInset) => _body(_visible, topInset),
+        ),
+        dock: Selector<CartProvider, (int, double?)>(
+          selector: (_, cart) => (
+            cart.displayItemCount,
+            cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
+          ),
+          builder: (_, summary, __) => AppCartButton(
+            itemCount: summary.$1,
+            total: summary.$2,
+            onTap: widget.onCart,
           ),
         ),
       ),
     );
   }
 
-  Widget _body(List<ProductView> visible) {
+  Widget _body(List<ProductView> visible, double topInset) {
     if (_failed) {
-      return AppErrorState(
-        message: 'Не удалось загрузить избранное',
-        onRetry: () => _load(reset: true),
+      return Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: AppErrorState(
+          message: 'Не удалось загрузить избранное',
+          onRetry: () => _load(reset: true),
+        ),
       );
     }
     if (_items == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: const Center(child: CircularProgressIndicator()),
+      );
     }
     if (visible.isEmpty && !_hasMore) {
       return LayoutBuilder(builder: (context, constraints) {
         final clearance = AppCartButton.clearanceFor(context) +
             MediaQuery.paddingOf(context).bottom;
         return SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: clearance),
+          padding: EdgeInsets.only(top: topInset, bottom: clearance),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight:
-                  (constraints.maxHeight - clearance).clamp(0, double.infinity),
+              minHeight: (constraints.maxHeight - topInset - clearance)
+                  .clamp(0, double.infinity),
             ),
             child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -284,7 +284,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       controller: _scroll,
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxxl,
-        0,
+        topInset + AppSpacing.xxxl,
         AppSpacing.xxxl,
         AppCartButton.clearanceFor(context) +
             MediaQuery.paddingOf(context).bottom,

@@ -251,7 +251,8 @@ Future<_OpenedConsumer> _openConsumer(
 
 Future<void> _tap(WidgetTester tester, String key) async {
   final finder = find.byKey(ValueKey(key));
-  await tester.ensureVisible(finder);
+  // Mid-viewport: the frosted header of the payment page absorbs taps at the very top.
+  await Scrollable.ensureVisible(tester.element(finder), alignment: .5);
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();

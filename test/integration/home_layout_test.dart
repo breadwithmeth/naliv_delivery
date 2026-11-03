@@ -25,6 +25,7 @@ Future<void> _pumpHome(
   int cartItems = 0,
   num? cartTotal,
   VoidCallback? onCallCenter,
+  bool signedIn = true,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -39,10 +40,11 @@ Future<void> _pumpHome(
       child: child!,
     ),
     home: HomePage(
-      data: const HomeViewData(
+      data: HomeViewData(
         storeName: 'Градусы24 — Бухар Жырау 70',
         storeAddress: 'Караганда, проспект Нуркена Абдирова, 17/2',
-        banners: [],
+        signedIn: signedIn,
+        banners: const [],
         promoCard: null,
         categories: _categories,
       ),
@@ -57,7 +59,7 @@ Future<void> _pumpHome(
 
 void main() {
   group('cart dock', () {
-    testWidgets('stays a compact capsule, filled or empty', (tester) async {
+    testWidgets('stays a compact stamp, filled or empty', (tester) async {
       for (final (items, total) in [(0, null), (3, 45300)]) {
         await _pumpHome(tester,
             size: const Size(375, 812), cartItems: items, cartTotal: total);
@@ -119,6 +121,38 @@ void main() {
           expect(tester.takeException(), isNull,
               reason: 'header overflows at $width px, x$scale text');
         }
+      }
+    });
+
+    testWidgets('floats over the page and frosts once content scrolls under it',
+        (tester) async {
+      for (final signedIn in [true, false]) {
+        await _pumpHome(tester, size: const Size(375, 812), signedIn: signedIn);
+        bool frosted() =>
+            find.byKey(const ValueKey('header-scrim')).evaluate().isNotEmpty;
+
+        // At rest it is an ordinary header on the page, and the first block
+        // starts below it rather than under it.
+        expect(frosted(), isFalse, reason: 'signedIn=$signedIn');
+        final brand = find.byKey(const ValueKey('home-brand-mark'));
+        expect(tester.getTopLeft(brand).dy, greaterThanOrEqualTo(48));
+        final search = find.byKey(const ValueKey('home-search-field'));
+        expect(tester.getTopLeft(search).dy,
+            greaterThan(tester.getBottomLeft(brand).dy));
+        final restBrand = tester.getTopLeft(brand);
+        final restSearch = tester.getTopLeft(search);
+
+        await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+        await tester.pumpAndSettle();
+        expect(frosted(), isTrue, reason: 'signedIn=$signedIn');
+        // The header stays where it is while the page moves beneath it.
+        expect(tester.getTopLeft(brand), restBrand);
+        expect(tester.getTopLeft(search).dy, lessThan(restSearch.dy));
+
+        await tester.drag(find.byType(CustomScrollView), const Offset(0, 3000));
+        await tester.pumpAndSettle();
+        expect(frosted(), isFalse);
+        expect(tester.takeException(), isNull);
       }
     });
   });

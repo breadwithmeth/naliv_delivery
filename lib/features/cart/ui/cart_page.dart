@@ -10,6 +10,7 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/frosted_dock.dart';
 import '../../../ui/motion_widgets.dart';
 import '../../../ui/product_card.dart';
@@ -361,102 +362,103 @@ class _CartPageState extends State<CartPage> {
                 setState(() => _footerHeight = height);
               }
             },
-            content: SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                    child: AppTopBar(
-                      title: 'Корзина',
-                      subtitle: matchingBusiness ? widget.address : null,
-                      onBack: () => Navigator.of(context).maybePop(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Expanded(
-                    child: _loadingCart
-                        ? const AppLoading(key: ValueKey('cart-loading'))
-                        : _cartReadFailed
-                            ? AppErrorState(
-                                key: const ValueKey('cart-load-error'),
-                                message: 'Не удалось восстановить корзину',
-                                onRetry: _retryCart,
-                              )
-                            : groups.isEmpty
-                                ? AppEmptyState(
-                                    title: 'Корзина пуста',
-                                    subtitle:
-                                        'Добавьте товары из каталога, чтобы оформить заказ',
-                                    action: widget.onCatalog == null
-                                        ? null
-                                        : FilledButton(
-                                            onPressed: widget.onCatalog,
-                                            child: const Text('В каталог'),
-                                          ),
-                                  )
-                                : ListView.builder(
-                                    key: const ValueKey('cart-scroll'),
-                                    padding:
-                                        EdgeInsets.only(bottom: footerSpace),
-                                    itemCount: issueCount +
-                                        groups.length +
-                                        (showRecommendations ? 1 : 0),
-                                    itemBuilder: (context, position) {
-                                      if (position < issueCount) {
-                                        return Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                              16, 0, 16, 16),
-                                          child: Text(
-                                            'Магазин сохранённой корзины не определён. '
-                                            'Удалите её товары, чтобы начать заказ в выбранном магазине.',
-                                            key: const ValueKey(
-                                                'cart-business-issue'),
-                                            style: AppTypography.body
-                                                .copyWith(color: palette.error),
-                                          ),
-                                        );
-                                      }
-                                      final index = position - issueCount;
-                                      if (index == groups.length) {
-                                        return _recommendationSection(palette);
-                                      }
-                                      final group = groups[index];
-                                      return Padding(
-                                        padding: EdgeInsets.fromLTRB(
-                                          AppSpacing.xxxl,
-                                          0,
-                                          AppSpacing.xxxl,
-                                          index == groups.length - 1
-                                              ? 0
-                                              : AppSpacing.xs,
-                                        ),
-                                        child: _CartRow(
-                                          key: ValueKey('cart-row-$index'),
-                                          group: group,
-                                          evaluated: evaluated.groups[index],
-                                          lastBatch: _lastBatch(group),
-                                          onEdit: group.itemSnapshot
-                                                      ?.hasOptions ==
-                                                  true
-                                              ? () => _editConfiguration(group)
-                                              : null,
-                                          onIncrement: !unresolvedBusiness &&
-                                                  _canIncrement(evaluated,
-                                                      evaluated.groups[index])
-                                              ? () =>
-                                                  _adjustGroup(cart, group, 1)
-                                              : null,
-                                          onDelete: () =>
-                                              _adjustGroup(cart, group, -1),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                  ),
-                ],
+            content: FrostedHeaderLayout(
+              estimatedHeaderHeight: 87,
+              header: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
+                child: AppTopBar(
+                  title: 'Корзина',
+                  subtitle: matchingBusiness ? widget.address : null,
+                  onBack: () => Navigator.of(context).maybePop(),
+                ),
               ),
+              body: (context, topInset) {
+                if (_loadingCart) {
+                  return Padding(
+                    padding: EdgeInsets.only(top: topInset),
+                    child: const AppLoading(key: ValueKey('cart-loading')),
+                  );
+                }
+                if (_cartReadFailed) {
+                  return Padding(
+                    padding: EdgeInsets.only(top: topInset),
+                    child: AppErrorState(
+                      key: const ValueKey('cart-load-error'),
+                      message: 'Не удалось восстановить корзину',
+                      onRetry: _retryCart,
+                    ),
+                  );
+                }
+                if (groups.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.only(top: topInset),
+                    child: AppEmptyState(
+                      title: 'Корзина пуста',
+                      subtitle:
+                          'Добавьте товары из каталога, чтобы оформить заказ',
+                      action: widget.onCatalog == null
+                          ? null
+                          : FilledButton(
+                              onPressed: widget.onCatalog,
+                              child: const Text('В каталог'),
+                            ),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  key: const ValueKey('cart-scroll'),
+                  padding: EdgeInsets.only(
+                    top: topInset + AppSpacing.md,
+                    bottom: footerSpace,
+                  ),
+                  itemCount: issueCount +
+                      groups.length +
+                      (showRecommendations ? 1 : 0),
+                  itemBuilder: (context, position) {
+                    if (position < issueCount) {
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Text(
+                          'Магазин сохранённой корзины не определён. '
+                          'Удалите её товары, чтобы начать заказ в выбранном магазине.',
+                          key: const ValueKey('cart-business-issue'),
+                          style:
+                              AppTypography.body.copyWith(color: palette.error),
+                        ),
+                      );
+                    }
+                    final index = position - issueCount;
+                    if (index == groups.length) {
+                      return _recommendationSection(palette);
+                    }
+                    final group = groups[index];
+                    return Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.xxxl,
+                        0,
+                        AppSpacing.xxxl,
+                        index == groups.length - 1 ? 0 : AppSpacing.xs,
+                      ),
+                      child: _CartRow(
+                        key: ValueKey('cart-row-$index'),
+                        group: group,
+                        evaluated: evaluated.groups[index],
+                        lastBatch: _lastBatch(group),
+                        onEdit: group.itemSnapshot?.hasOptions == true
+                            ? () => _editConfiguration(group)
+                            : null,
+                        onIncrement: !unresolvedBusiness &&
+                                _canIncrement(
+                                    evaluated, evaluated.groups[index])
+                            ? () => _adjustGroup(cart, group, 1)
+                            : null,
+                        onDelete: () => _adjustGroup(cart, group, -1),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
             dock: !_loadingCart && !_cartReadFailed && groups.isNotEmpty
                 ? _TotalsBar(

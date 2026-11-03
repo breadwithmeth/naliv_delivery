@@ -9,7 +9,8 @@ import 'app_icon_button.dart';
 ///
 /// Measured from `Каталог - Все товары` and `Каталог`: a 343 × 57 block starting at y = 70
 /// (24 px under the status bar), 40 × 40 discs flush with its edges at y + 8, and a title that
-/// stays centred between them and may wrap to two lines («Слабоалкогольные напитки»).
+/// stays centred between them and may wrap to two lines («Слабоалкогольные напитки»). The discs
+/// are [AppIconButton] glass, so they stay legible over whatever scrolls beneath a floating header.
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
     required this.title,
@@ -45,13 +46,9 @@ class AppTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final expandedTitle = MediaQuery.textScalerOf(context).scale(20) > 26;
-    final fill = Theme.of(context).brightness == Brightness.dark
-        ? palette.surface
-        : palette.background;
     final back = showBack
         ? AppIconButton(
             asset: AppIcons.back,
-            fill: fill,
             onTap: backEnabled
                 ? onBack ?? () => Navigator.of(context).maybePop()
                 : null,
@@ -63,7 +60,6 @@ class AppTopBar extends StatelessWidget {
             ? const SizedBox(width: 44)
             : AppIconButton(
                 asset: AppIcons.search,
-                fill: fill,
                 onTap: onSearch,
                 tooltip: 'Поиск',
               ));

@@ -12,6 +12,9 @@ import '../../../services/auth_service.dart';
 import '../../../services/telemetry_consent_service.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/frosted_controls.dart';
+import '../../../ui/frosted_surface.dart';
+import '../../../ui/settings_widgets.dart';
 
 import '../profile_account.dart';
 
@@ -36,6 +39,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
+  static const double _maxWidth = 520;
   bool? _consent;
   bool _consentSaving = false;
   bool _consentLoadFailed = false;
@@ -198,474 +202,322 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final theme = context.watch<ThemeController>();
-    final rows = <_RowSpec>[
-      const _RowSpec(
-          AppIcons.orders, 'История заказов', 'Активные и завершённые заказы',
-          destination: AppDestination.orders),
-      const _RowSpec(
-          AppIcons.certificates, 'Сертификаты', 'Покупка и активация по коду',
-          destination: AppDestination.certificates),
-      const _RowSpec(
-          AppIcons.support, 'Поддержка', 'Вопросы по заказам и оплате',
-          destination: AppDestination.support),
-      const _RowSpec(AppIcons.faq, 'FAQ', 'Вход, доставка, оплата и бонусы',
-          destination: AppDestination.faq),
-      _RowSpec(AppIcons.addresses, 'Адреса',
-          _summary(_account?.addressSummary, 'Войдите, чтобы сохранить адрес'),
-          subtitleSemantics: _account?.addressSummary,
-          destination: AppDestination.addresses),
-      _RowSpec(AppIcons.cards, 'Карты',
-          _summary(_account?.cardsSummary, 'Войдите, чтобы управлять картами'),
-          destination: AppDestination.cards),
-      _RowSpec(
-          AppIcons.analytics,
-          'Сбор информации',
-          _consentLoadFailed
-              ? 'Ошибка настройки · повторить'
-              : _consent == null
-                  ? 'Загрузка настройки…'
-                  : _consentSaving
-                      ? 'Сохраняем настройку…'
-                      : 'Отчёты об ошибках',
-          switchValue: _consent,
-          onSwitch: _consent == null || _consentSaving
-              ? null
-              : (value) async {
-                  setState(() {
-                    _consent = value;
-                    _consentSaving = true;
-                  });
-                  try {
-                    await TelemetryConsentService.setConsent(value);
-                  } catch (_) {
-                    await _loadConsent();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(this.context)
-                        .showSnackBar(const SnackBar(
-                      content: Text('Не удалось сохранить настройку'),
-                    ));
-                  } finally {
-                    if (mounted) setState(() => _consentSaving = false);
-                  }
-                }),
-      _RowSpec(AppIcons.theme, 'Тема оформления',
-          _themeSaving ? 'Сохраняем тему…' : 'Светлая или тёмная',
-          // The design's switch is binary and shows the *effective* theme: following the OS into
-          // dark reads as on, and toggling pins an explicit mode.
-          switchValue: Theme.of(context).brightness == Brightness.dark,
-          onSwitch: _themeSaving
-              ? null
-              : (value) async {
-                  setState(() => _themeSaving = true);
-                  try {
-                    await theme
-                        .setMode(value ? ThemeMode.dark : ThemeMode.light);
-                  } catch (_) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(this.context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Не удалось сохранить тему')),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => _themeSaving = false);
-                  }
-                }),
+    final navigate = widget.onNavigate;
+    VoidCallback? open(AppDestination destination) =>
+        navigate == null ? null : () => _openDestination(destination);
+    final showLogout =
+        (_account != null || _logoutFailed) && widget.onLogout != null;
+
+    final sections = <Widget>[
+      SettingsSection(
+        title: 'Заказы и покупки',
+        children: [
+          SettingsRow(
+            key: const ValueKey('profile-row-orders'),
+            iconAsset: AppIcons.orders,
+            title: 'История заказов',
+            subtitle: 'Активные и завершённые заказы',
+            chevron: true,
+            onTap: open(AppDestination.orders),
+          ),
+          SettingsRow(
+            key: const ValueKey('profile-row-certificates'),
+            iconAsset: AppIcons.certificates,
+            title: 'Сертификаты',
+            subtitle: 'Покупка и активация по коду',
+            chevron: true,
+            onTap: open(AppDestination.certificates),
+          ),
+        ],
+      ),
+      SettingsSection(
+        title: 'Оплата и доставка',
+        children: [
+          SettingsRow(
+            key: const ValueKey('profile-row-addresses'),
+            iconAsset: AppIcons.addresses,
+            title: 'Адреса',
+            subtitle: _summary(
+                _account?.addressSummary, 'Войдите, чтобы сохранить адрес'),
+            subtitleSemantics: _account?.addressSummary,
+            chevron: true,
+            onTap: open(AppDestination.addresses),
+          ),
+          SettingsRow(
+            key: const ValueKey('profile-row-cards'),
+            iconAsset: AppIcons.cards,
+            title: 'Карты',
+            subtitle: _summary(
+                _account?.cardsSummary, 'Войдите, чтобы управлять картами'),
+            chevron: true,
+            onTap: open(AppDestination.cards),
+          ),
+        ],
+      ),
+      SettingsSection(
+        title: 'Приложение',
+        footer: 'Если сбор включён, приложение отправляет разработчикам отчёты '
+            'о сбоях, чтобы ошибки исправлялись быстрее. По умолчанию он '
+            'выключен, настройку можно изменить в любой момент.',
+        children: [
+          SettingsRow(
+            key: const ValueKey('profile-row-theme'),
+            iconAsset: AppIcons.theme,
+            title: 'Тема оформления',
+            subtitle: _themeSaving
+                ? 'Сохраняем тему…'
+                : switch (theme.mode) {
+                    ThemeMode.light => 'Всегда светлая',
+                    ThemeMode.dark => 'Всегда тёмная',
+                    ThemeMode.system => 'Как на устройстве',
+                  },
+            below: SettingsChoice<ThemeMode>(
+              key: const ValueKey('profile-theme-choice'),
+              groupLabel: 'Тема оформления',
+              value: theme.mode,
+              onChanged: _themeSaving ? null : (mode) => _setTheme(theme, mode),
+              options: const [
+                SettingsChoiceOption(
+                  key: ValueKey('profile-theme-light'),
+                  value: ThemeMode.light,
+                  label: 'Светлая',
+                  icon: Icons.light_mode_outlined,
+                ),
+                SettingsChoiceOption(
+                  key: ValueKey('profile-theme-dark'),
+                  value: ThemeMode.dark,
+                  label: 'Тёмная',
+                  icon: Icons.dark_mode_outlined,
+                ),
+                SettingsChoiceOption(
+                  key: ValueKey('profile-theme-system'),
+                  value: ThemeMode.system,
+                  label: 'Авто',
+                  icon: Icons.brightness_auto_outlined,
+                ),
+              ],
+            ),
+          ),
+          SettingsRow(
+            key: const ValueKey('profile-row-notifications'),
+            iconAsset: AppIcons.bell,
+            title: 'Уведомления',
+            subtitle: 'Заказы, акции и доставка',
+            chevron: true,
+            onTap: open(AppDestination.notifications),
+          ),
+          SettingsRow(
+            key: const ValueKey('profile-row-telemetry'),
+            iconAsset: AppIcons.analytics,
+            title: 'Сбор информации',
+            subtitle: _consentLoadFailed
+                ? 'Ошибка настройки · повторить'
+                : _consent == null
+                    ? 'Загрузка настройки…'
+                    : _consentSaving
+                        ? 'Сохраняем настройку…'
+                        : _consent!
+                            ? 'Отправляем отчёты об ошибках'
+                            : 'Отчёты об ошибках не отправляются',
+            switchKey: const ValueKey('profile-telemetry-switch'),
+            switchValue: _consent ?? false,
+            onSwitch: _consent == null || _consentSaving ? null : _setConsent,
+            onTap: _consentLoadFailed ? _loadConsent : null,
+          ),
+        ],
+      ),
+      SettingsSection(
+        title: 'Помощь',
+        children: [
+          SettingsRow(
+            key: const ValueKey('profile-row-support'),
+            iconAsset: AppIcons.support,
+            title: 'Поддержка',
+            subtitle: 'Вопросы по заказам и оплате',
+            chevron: true,
+            onTap: open(AppDestination.support),
+          ),
+          SettingsRow(
+            key: const ValueKey('profile-row-faq'),
+            iconAsset: AppIcons.faq,
+            title: 'FAQ',
+            subtitle: 'Вход, доставка, оплата и бонусы',
+            chevron: true,
+            onTap: open(AppDestination.faq),
+          ),
+        ],
+      ),
+      if (showLogout)
+        SettingsSection(
+          children: [
+            SettingsRow(
+              key: const ValueKey('profile-logout'),
+              iconAsset: AppIcons.logout,
+              title: _loggingOut ? 'Выходим…' : 'Выйти',
+              destructive: true,
+              onTap: _loggingOut ? null : _logout,
+            ),
+          ],
+        ),
     ];
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: Center(
+      body: FrostedHeaderLayout(
+        header: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(
-                    title: 'Профиль',
-                    onBack: () => Navigator.of(context).maybePop(),
-                  ),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _refreshAccount,
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.only(
-                        top: AppSpacing.xl,
-                        bottom: AppSpacing.xl +
-                            MediaQuery.paddingOf(context).bottom,
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xxxl),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedContainer(
-                                duration:
-                                    MediaQuery.disableAnimationsOf(context)
-                                        ? Duration.zero
-                                        : const Duration(milliseconds: 200),
-                                key: const ValueKey('profile-avatar'),
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: palette.accent.withValues(alpha: 0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: AppIcon(AppIcons.avatar, size: 47.5),
-                                ),
-                              ),
-                              if (_account != null) ...[
-                                const SizedBox(width: AppSpacing.xxxl),
-                                Flexible(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _account!.name ?? 'Личный кабинет',
-                                        key: const ValueKey('profile-name'),
-                                        style: AppTypography.titleMedium
-                                            .copyWith(
-                                                color: palette.textPrimary),
-                                      ),
-                                      if (_account!.phone != null)
-                                        Text(
-                                          _account!.phone!,
-                                          style: AppTypography.label.copyWith(
-                                              color: palette.textSecondary),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        if (_account == null && widget.onSignIn != null)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl,
-                                AppSpacing.md, AppSpacing.xxxl, 0),
-                            child: FilledButton(
-                              key: const ValueKey('profile-sign-in'),
-                              onPressed: _signingIn ? null : _signIn,
-                              child: Text(_signingIn
-                                  ? 'Открываем вход…'
-                                  : 'Войти или зарегистрироваться'),
-                            ),
-                          ),
-                        if (_accountLoading)
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(AppSpacing.xxxl,
-                                AppSpacing.md, AppSpacing.xxxl, 0),
-                            child: LinearProgressIndicator(),
-                          ),
-                        if (_accountFailed)
-                          TextButton.icon(
-                            onPressed: _refreshAccount,
-                            icon: const Icon(Icons.refresh),
-                            label:
-                                const Text('Не удалось обновить · повторить'),
-                          ),
-                        const SizedBox(height: AppSpacing.md),
-                        for (var i = 0; i < rows.length; i++) ...[
-                          _ProfileRow(
-                            rowKey: ValueKey('profile-row-$i'),
-                            spec: rows[i],
-                            onTap: rows[i].destination != null
-                                ? widget.onNavigate == null
-                                    ? null
-                                    : () =>
-                                        _openDestination(rows[i].destination!)
-                                : i == 6 && _consentLoadFailed
-                                    ? _loadConsent
-                                    : rows[i].switchValue != null &&
-                                            rows[i].onSwitch != null
-                                        ? () => rows[i]
-                                            .onSwitch!(!rows[i].switchValue!)
-                                        : null,
-                          ),
-                          if (i < rows.length - 1) ...[
-                            const SizedBox(height: AppSpacing.xxs),
-                            if (i < 6) ...[
-                              Divider(
-                                height: 1,
-                                thickness: 1,
-                                indent: AppSpacing.xxxl,
-                                endIndent: AppSpacing.xxxl,
-                                color: palette.divider,
-                              ),
-                              const SizedBox(height: 1),
-                            ],
-                          ],
-                        ],
-                        if ((_account != null || _logoutFailed) &&
-                            widget.onLogout != null) ...[
-                          const SizedBox(height: AppSpacing.xl),
-                          Center(
-                            child: TextButton.icon(
-                              key: const ValueKey('profile-logout'),
-                              onPressed: _loggingOut ? null : _logout,
-                              style: TextButton.styleFrom(
-                                  foregroundColor: palette.error),
-                              icon: AppIcon(AppIcons.logout,
-                                  size: 19, color: palette.error),
-                              label: Text(_loggingOut ? 'Выходим…' : 'Выйти'),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+              child: AppTopBar(
+                title: 'Профиль',
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RowSpec {
-  const _RowSpec(
-    this.icon,
-    this.title,
-    this.subtitle, {
-    this.subtitleSemantics,
-    this.destination,
-    this.switchValue,
-    this.onSwitch,
-  });
-
-  final String icon;
-  final String title;
-  final String subtitle;
-  final String? subtitleSemantics;
-  final AppDestination? destination;
-  final bool? switchValue;
-  final ValueChanged<bool>? onSwitch;
-}
-
-class _ProfileRow extends StatelessWidget {
-  const _ProfileRow({required this.spec, this.onTap, this.rowKey});
-
-  final _RowSpec spec;
-  final VoidCallback? onTap;
-  final Key? rowKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Semantics(
-      button: spec.destination != null,
-      enabled: onTap != null,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-          child: Container(
-            key: rowKey,
-            constraints: const BoxConstraints(minHeight: 58),
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-            decoration:
-                BoxDecoration(borderRadius: BorderRadius.circular(AppRadii.lg)),
-            child: Row(
-              children: [
-                AppIcon(spec.icon, size: 24, color: palette.accent),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        spec.title,
-                        maxLines: null,
-                        style: AppTypography.titleMedium
-                            .copyWith(color: palette.textPrimary),
+        body: (context, topInset) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: RefreshIndicator(
+              edgeOffset: topInset,
+              onRefresh: _refreshAccount,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.xxxl,
+                  topInset + AppSpacing.xxxl,
+                  AppSpacing.xxxl,
+                  AppSpacing.huge + MediaQuery.paddingOf(context).bottom,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _accountHeader(palette),
+                    if (_accountLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: AppSpacing.xl),
+                        child: LinearProgressIndicator(),
                       ),
-                      Text(
-                        spec.subtitle,
-                        semanticsLabel: spec.subtitleSemantics,
-                        maxLines: null,
-                        style: AppTypography.label
-                            .copyWith(color: palette.textSecondary),
+                    if (_accountFailed)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: _refreshAccount,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Не удалось обновить · повторить'),
+                        ),
                       ),
+                    for (final section in sections) ...[
+                      const SizedBox(height: AppSpacing.huge),
+                      section,
                     ],
-                  ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.md),
-                if (spec.destination == null)
-                  _ProfileSwitch(
-                    key: ValueKey(
-                      spec.icon == AppIcons.theme
-                          ? 'profile-theme-switch'
-                          : 'profile-telemetry-switch',
-                    ),
-                    label: spec.title,
-                    value: spec.switchValue ?? false,
-                    onChanged: spec.onSwitch,
-                    themeIcon: spec.icon == AppIcons.theme,
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.xs),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Center(
-                        child: Transform.flip(
-                          flipX: true,
-                          child: AppIcon(
-                            AppIcons.back,
-                            width: 6,
-                            height: 13,
-                            color: palette.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
-}
 
-class _ProfileSwitch extends StatelessWidget {
-  const _ProfileSwitch({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    required this.themeIcon,
-    super.key,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-  final bool themeIcon;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Semantics(
-      label: label,
-      toggled: value,
-      enabled: onChanged != null,
-      child: InkWell(
-        onTap: onChanged == null ? null : () => onChanged!(!value),
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        child: SizedBox(
-          width: 50,
-          height: 48,
-          child: Center(
-            child: AnimatedContainer(
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : const Duration(milliseconds: 150),
-              width: 50,
-              height: 30,
-              padding: const EdgeInsets.all(4),
+  /// Who is signed in, or an invitation to sign in. Left-aligned so the name reads as the
+  /// page's title block, with the sign-in action directly beneath it for guests.
+  Widget _accountHeader(AppPalette palette) {
+    final account = _account;
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    final name =
+        account == null ? 'Вы не вошли' : account.name ?? 'Личный кабинет';
+    final detail = account == null
+        ? 'Войдите, чтобы пользоваться заказами и картами'
+        : account.phone;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            AnimatedContainer(
+              duration:
+                  reduced ? Duration.zero : const Duration(milliseconds: 200),
+              key: const ValueKey('profile-avatar'),
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
-                color:
-                    themeIcon || value ? palette.accentSoft : palette.divider,
-                borderRadius: BorderRadius.circular(AppRadii.pill),
-                border: Border.all(
-                    color: palette.textSecondary.withValues(alpha: 0.25)),
+                color: palette.accent.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
               ),
-              child: AnimatedAlign(
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : const Duration(milliseconds: 150),
-                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: themeIcon
-                      ? DecoratedBox(
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: CustomPaint(
-                            painter: _ThemeGlyphPainter(
-                              dark: value,
-                              color: palette.accentSoft,
-                            ),
-                          ),
-                        )
-                      : const DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                ),
+              child: const Center(child: AppIcon(AppIcons.avatar, size: 38)),
+            ),
+            const SizedBox(width: AppSpacing.xxxl),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    key:
+                        account == null ? null : const ValueKey('profile-name'),
+                    style: AppTypography.headlineMedium
+                        .copyWith(color: palette.textPrimary),
+                  ),
+                  if (detail != null)
+                    Text(
+                      detail,
+                      style: AppTypography.bodySmall
+                          .copyWith(color: palette.textSecondary),
+                    ),
+                ],
               ),
             ),
-          ),
+          ],
         ),
-      ),
+        if (account == null && widget.onSignIn != null) ...[
+          const SizedBox(height: AppSpacing.xxxl),
+          FrostedButton(
+            buttonKey: const ValueKey('profile-sign-in'),
+            onPressed: _signingIn ? null : _signIn,
+            borderRadius: AppRadii.pillAll,
+            minHeight: 49,
+            child: Text(_signingIn
+                ? 'Открываем вход…'
+                : 'Войти или зарегистрироваться'),
+          ),
+        ],
+      ],
     );
   }
-}
 
-class _ThemeGlyphPainter extends CustomPainter {
-  const _ThemeGlyphPainter({required this.dark, required this.color});
-
-  final bool dark;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-    const center = Offset(11, 11);
-    if (dark) {
-      final crescent = Path()
-        ..moveTo(15.5, 15.4)
-        ..cubicTo(10.1, 16.9, 5.3, 12.8, 6.1, 7.4)
-        ..cubicTo(6.5, 4.8, 8.1, 3.1, 10.2, 2.4)
-        ..cubicTo(8.8, 7.7, 12.5, 12.4, 17.3, 12.6)
-        ..cubicTo(16.9, 13.8, 16.3, 14.7, 15.5, 15.4)
-        ..close();
-      canvas.drawPath(crescent, paint..style = PaintingStyle.fill);
-      return;
+  Future<void> _setTheme(ThemeController theme, ThemeMode mode) async {
+    setState(() => _themeSaving = true);
+    try {
+      await theme.setMode(mode);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить тему')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _themeSaving = false);
     }
-
-    paint.style = PaintingStyle.stroke;
-    canvas.drawCircle(center, 3.5, paint);
-    canvas
-      ..drawLine(const Offset(11, 2.5), const Offset(11, 5), paint)
-      ..drawLine(const Offset(11, 17), const Offset(11, 19.5), paint)
-      ..drawLine(const Offset(2.5, 11), const Offset(5, 11), paint)
-      ..drawLine(const Offset(17, 11), const Offset(19.5, 11), paint)
-      ..drawLine(const Offset(5, 5), const Offset(6.7, 6.7), paint)
-      ..drawLine(const Offset(15.3, 15.3), const Offset(17, 17), paint)
-      ..drawLine(const Offset(5, 17), const Offset(6.7, 15.3), paint)
-      ..drawLine(const Offset(15.3, 6.7), const Offset(17, 5), paint);
   }
 
-  @override
-  bool shouldRepaint(_ThemeGlyphPainter oldDelegate) =>
-      dark != oldDelegate.dark || color != oldDelegate.color;
+  Future<void> _setConsent(bool value) async {
+    setState(() {
+      _consent = value;
+      _consentSaving = true;
+    });
+    try {
+      await TelemetryConsentService.setConsent(value);
+    } catch (_) {
+      await _loadConsent();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Не удалось сохранить настройку'),
+      ));
+    } finally {
+      if (mounted) setState(() => _consentSaving = false);
+    }
+  }
 }

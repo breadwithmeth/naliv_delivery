@@ -1,15 +1,17 @@
 library;
 
-import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/product_view.dart';
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
+import '../../bonuses/bonus_account.dart';
+import '../../bonuses/ui/bonus_qr_page.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/frosted_dock.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/motion_widgets.dart';
 import '../../../ui/surfaces.dart';
 import '../../../ui/text_width_cache.dart';
@@ -29,7 +31,6 @@ class HomePage extends StatelessWidget {
     this.onSearch,
     this.onCallCenter,
     this.onLiked,
-    this.onNotifications,
     this.onProfile,
     this.onStore,
     this.onPromo,
@@ -49,7 +50,6 @@ class HomePage extends StatelessWidget {
   final VoidCallback? onSearch;
   final VoidCallback? onCallCenter;
   final VoidCallback? onLiked;
-  final VoidCallback? onNotifications;
   final VoidCallback? onProfile;
   final VoidCallback? onStore;
   final ValueChanged<HomeBanner>? onPromo;
@@ -62,153 +62,171 @@ class HomePage extends StatelessWidget {
   final Widget? cartDock;
   final VoidCallback? onCart;
 
+  /// Gap between the pinned header and the first block of the scrolling body, so
+  /// the header's own bottom padding does not change the resting rhythm.
+  static const _headerBottom = AppSpacing.md;
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Only the side insets are handled here: the header layout owns the top
+    // inset so the status bar can frost together with the header.
     return Scaffold(
       body: SafeArea(
+        top: false,
         bottom: false,
-        child: FrostedDock(
-          content: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: AppSpacing.huge),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-header'),
-                        child: data.signedIn
-                            ? _HomeHeader(
-                                onCallCenter: onCallCenter,
-                                onBonusHistory: onBonusHistory,
-                                onLiked: onLiked,
-                                onNotifications: onNotifications,
-                                onProfile: onProfile,
-                              )
-                            : Row(
-                                children: [
-                                  const _HomeBrandMark(),
-                                  const SizedBox(width: AppSpacing.xl),
-                                  Expanded(
-                                    child: KeyedSubtree(
-                                      key: const ValueKey('home-store-card'),
-                                      child: _StoreCard(
-                                          data: data,
-                                          onTap: onStore,
-                                          onProfile: onProfile),
-                                    ),
-                                  ),
-                                ],
-                              ),
+        child: FrostedHeaderLayout(
+          estimatedHeaderHeight:
+              AppSpacing.huge + (data.signedIn ? 48 : 57) + _headerBottom,
+          header: Padding(
+            padding: const EdgeInsets.only(
+                top: AppSpacing.huge, bottom: _headerBottom),
+            child: _ContentWidth(
+              child: KeyedSubtree(
+                key: const ValueKey('home-header'),
+                child: data.signedIn
+                    ? _HomeHeader(
+                        onCallCenter: onCallCenter,
+                        onLiked: onLiked,
+                        onProfile: onProfile,
+                      )
+                    : Row(
+                        children: [
+                          const _HomeBrandMark(),
+                          const SizedBox(width: AppSpacing.xl),
+                          Expanded(
+                            child: KeyedSubtree(
+                              key: const ValueKey('home-store-card'),
+                              child: _StoreCard(
+                                  data: data,
+                                  onTap: onStore,
+                                  onProfile: onProfile),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    if (data.signedIn) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      _ContentWidth(
-                        child: KeyedSubtree(
-                          key: const ValueKey('home-store-card'),
-                          child: _StoreCard(
-                              data: data, onTap: onStore, onProfile: onProfile),
-                        ),
-                      ),
-                    ],
-                    if (data.activeOrder case final order?) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      _ContentWidth(
-                        child: KeyedSubtree(
-                          key: const ValueKey('home-active-order'),
-                          child: _ActiveOrderCard(
-                            order: order,
-                            onTap: onActiveOrder == null
-                                ? null
-                                : () => onActiveOrder!(order),
+              ),
+            ),
+          ),
+          body: (context, topInset) => FrostedDock(
+            content: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: topInset),
+                      if (data.signedIn) ...[
+                        const SizedBox(height: AppSpacing.xl - _headerBottom),
+                        _ContentWidth(
+                          child: KeyedSubtree(
+                            key: const ValueKey('home-store-card'),
+                            child: _StoreCard(
+                                data: data,
+                                onTap: onStore,
+                                onProfile: onProfile),
                           ),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.huge),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-search-field'),
-                        child: _SearchField(onTap: onSearch),
-                      ),
-                    ),
-                    if (data.banners.isNotEmpty) ...[
-                      const SizedBox(height: 18),
-                      KeyedSubtree(
-                        key: const ValueKey('home-banner-carousel'),
-                        child: _BannerCarousel(
-                          banners: data.banners,
-                          onTap: onPromo,
+                      ],
+                      if (data.activeOrder case final order?) ...[
+                        const SizedBox(height: AppSpacing.xl),
+                        _ContentWidth(
+                          child: KeyedSubtree(
+                            key: const ValueKey('home-active-order'),
+                            child: _ActiveOrderCard(
+                              order: order,
+                              onTap: onActiveOrder == null
+                                  ? null
+                                  : () => onActiveOrder!(order),
+                            ),
+                          ),
+                        ),
+                      ],
+                      SizedBox(
+                          height: data.signedIn
+                              ? AppSpacing.huge
+                              : AppSpacing.huge - _headerBottom),
+                      _ContentWidth(
+                        child: KeyedSubtree(
+                          key: const ValueKey('home-search-field'),
+                          child: _SearchField(onTap: onSearch),
                         ),
                       ),
-                    ],
-                    if (data.promoCard case final promo?) ...[
+                      if (data.banners.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        KeyedSubtree(
+                          key: const ValueKey('home-banner-carousel'),
+                          child: _BannerCarousel(
+                            banners: data.banners,
+                            onTap: onPromo,
+                          ),
+                        ),
+                      ],
+                      if (data.promoCard case final promo?) ...[
+                        const SizedBox(height: AppSpacing.huge),
+                        _ContentWidth(
+                          child: KeyedSubtree(
+                            key: const ValueKey('home-promo-card'),
+                            child: _PromoCard(
+                              promo: promo,
+                              onTap: onCategory == null
+                                  ? null
+                                  : () => onCategory!(
+                                        HomeCategory(
+                                          id: promo.id,
+                                          title: promo.title,
+                                          imageUrl: promo.imageUrl,
+                                          fill: promo.fill,
+                                        ),
+                                      ),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.huge),
                       _ContentWidth(
                         child: KeyedSubtree(
-                          key: const ValueKey('home-promo-card'),
-                          child: _PromoCard(
-                            promo: promo,
-                            onTap: onCategory == null
-                                ? null
-                                : () => onCategory!(
-                                      HomeCategory(
-                                        id: promo.id,
-                                        title: promo.title,
-                                        imageUrl: promo.imageUrl,
-                                        fill: promo.fill,
-                                      ),
-                                    ),
+                          key: const ValueKey('home-category-grid'),
+                          child: _CategoryGrid(
+                            categories: data.categories,
+                            onTap: onCategory,
                           ),
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.huge),
+                      _ContentWidth(
+                        child: KeyedSubtree(
+                          key: const ValueKey('home-bonus-card'),
+                          child: _BonusCard(
+                            data: data,
+                            onHistory: onBonusHistory,
+                            onSignIn: onSignIn,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: data.signedIn ? 32 : 24),
                     ],
-                    const SizedBox(height: AppSpacing.huge),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-category-grid'),
-                        child: _CategoryGrid(
-                          categories: data.categories,
-                          onTap: onCategory,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.huge),
-                    _ContentWidth(
-                      child: KeyedSubtree(
-                        key: const ValueKey('home-bonus-card'),
-                        child: _BonusCard(
-                          data: data,
-                          onHistory: onBonusHistory,
-                          onSignIn: onSignIn,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: data.signedIn ? 32 : 24),
-                  ],
+                  ),
                 ),
-              ),
-              _ProductSections(
-                sections: data.productSections,
-                onCategory: onCategory,
-                productBuilder: productBuilder,
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: AppCartButton.clearanceFor(context) + bottomInset,
+                _ProductSections(
+                  sections: data.productSections,
+                  onCategory: onCategory,
+                  productBuilder: productBuilder,
                 ),
-              ),
-            ],
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: AppCartButton.clearanceFor(context) + bottomInset,
+                  ),
+                ),
+              ],
+            ),
+            dock: cartDock ??
+                AppCartButton(
+                  itemCount: cartItemCount,
+                  total: cartTotal,
+                  onTap: onCart,
+                ),
           ),
-          dock: cartDock ??
-              AppCartButton(
-                itemCount: cartItemCount,
-                total: cartTotal,
-                onTap: onCart,
-              ),
         ),
       ),
     );
@@ -249,24 +267,20 @@ class _HomeBrandMark extends StatelessWidget {
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({
     this.onCallCenter,
-    this.onBonusHistory,
     this.onLiked,
-    this.onNotifications,
     this.onProfile,
   });
 
   final VoidCallback? onCallCenter;
-  final VoidCallback? onBonusHistory;
   final VoidCallback? onLiked;
-  final VoidCallback? onNotifications;
   final VoidCallback? onProfile;
 
   static const _supportLabel = 'Поддержка';
   static const _brandWidth = 48.0;
-  static const _actionCount = 4;
+  static const _actionCount = 2;
 
   /// The support entry keeps its label only when it fits on one line beside the
-  /// four actions. Squeezed into a 360 px phone it used to break mid-word
+  /// actions. Squeezed into a narrow phone it used to break mid-word
   /// ("Поддержк/а"); the phone glyph, tooltip and semantics stay either way.
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -324,15 +338,9 @@ class _HomeHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _HeaderAction(
-                  icon: AppIcons.star, label: 'Бонусы', onTap: onBonusHistory),
-              _HeaderAction(
                   icon: AppIcons.heart,
                   label: 'Избранные товары',
                   onTap: onLiked),
-              _HeaderAction(
-                  icon: AppIcons.bell,
-                  label: 'Настройки уведомлений',
-                  onTap: onNotifications),
               _HeaderAction(
                   icon: AppIcons.user, label: 'Профиль', onTap: onProfile),
             ],
@@ -1107,7 +1115,7 @@ class _BonusCard extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text('${data.bonusBalance}',
+                  Text(bonusNumberLabel(data.bonusBalance!),
                       style: AppTypography.displayBold
                           .copyWith(color: palette.accent)),
                   Text(data.bonusCaption,
@@ -1120,36 +1128,17 @@ class _BonusCard extends StatelessWidget {
                   style: AppTypography.bodySmall
                       .copyWith(color: palette.textSecondary)),
             const SizedBox(height: AppSpacing.xl),
-            AppSurface(
-              fill: palette.surfaceMuted,
-              padding: const EdgeInsets.all(AppSpacing.xxxl),
-              child: Column(
-                children: [
-                  if (data.bonusCardCode case final code?
-                      when code.isNotEmpty) ...[
-                    BarcodeWidget(
-                      barcode: Barcode.qrCode(),
-                      data: code,
-                      drawText: false,
-                      color: palette.textPrimary,
-                      backgroundColor: Colors.transparent,
-                      width: 110,
-                      height: 110,
-                      padding: EdgeInsets.zero,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(data.qrCaption,
-                        textAlign: TextAlign.center,
-                        style: AppTypography.bodySmall
-                            .copyWith(color: palette.textPrimary)),
-                  ] else
-                    Text('QR-код бонусной карты недоступен',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.bodySmall
-                            .copyWith(color: palette.textSecondary)),
-                ],
+            if (data.bonusCardCode case final code? when code.isNotEmpty)
+              _BonusQrTile(data: data, code: code)
+            else
+              AppSurface(
+                fill: palette.surfaceMuted,
+                padding: const EdgeInsets.all(AppSpacing.xxxl),
+                child: Text('QR-код бонусной карты недоступен',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodySmall
+                        .copyWith(color: palette.textSecondary)),
               ),
-            ),
           ] else
             AppSurface(
               fill: palette.surfaceMuted,
@@ -1171,6 +1160,81 @@ class _BonusCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The card's QR: a white scannable tile with the caption under it, and a quiet
+/// expand badge hinting that it opens full screen. The tile is the [Hero] that
+/// grows into [BonusQrPage].
+class _BonusQrTile extends StatelessWidget {
+  const _BonusQrTile({required this.data, required this.code});
+
+  static const heroTag = 'home-bonus-qr';
+  static const _tile = 132.0;
+
+  final HomeViewData data;
+  final String code;
+
+  void _open(BuildContext context) => showBonusQr(
+        context,
+        code: code,
+        heroTag: heroTag,
+        balance: data.bonusBalance,
+        balanceCaption: data.bonusCaption,
+        caption: data.qrCaption,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Semantics(
+      button: true,
+      label: 'QR бонусной карты',
+      hint: 'Открыть QR на весь экран',
+      onTap: () => _open(context),
+      excludeSemantics: true,
+      child: AppSurface(
+        key: const ValueKey('home-bonus-qr'),
+        fill: palette.surfaceMuted,
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        onTap: () => _open(context),
+        child: Stack(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: Column(
+                children: [
+                  SizedBox.square(
+                    dimension: _tile,
+                    child: Hero(tag: heroTag, child: BonusQrPlate(code: code)),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(data.qrCaption,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.bodySmall
+                          .copyWith(color: palette.textPrimary)),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: palette.accentFaint,
+                  shape: BoxShape.circle,
+                ),
+                child: SizedBox.square(
+                  dimension: 30,
+                  child: Icon(Icons.open_in_full_rounded,
+                      size: 15, color: palette.accent),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

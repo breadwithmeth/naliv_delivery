@@ -13,11 +13,12 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-http.Response _account(num balance) => http.Response(
+http.Response _account(num balance, {String? cardCode}) => http.Response(
       jsonEncode({
         'success': true,
         'data': {
           'totalBonuses': balance,
+          if (cardCode != null) 'bonusCard': {'cardUuid': cardCode},
           'bonusHistory': [
             {
               'bonusId': 81,
@@ -80,6 +81,47 @@ void main() {
       expect(reads, 2);
       expect(find.text('200,75 бонусов', findRichText: true), findsOneWidget);
       expect(find.text('−2\u00a0100,75 бонусов'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('the card QR opens full screen from the balance card',
+      (tester) async {
+    final cart = CartProvider();
+    final client = MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.path, '/api/bonuses');
+      return _account(164.5, cardCode: 'card-uuid-7');
+    });
+    await http.runWithClient(() async {
+      await _pump(tester, cart, const BonusHistoryPage());
+      await tester.tap(find.byKey(const ValueKey('bonus-qr-open')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bonus-qr-page')), findsOneWidget);
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('bonus-qr-card-code')))
+              .data,
+          'card-uuid-7');
+      expect(find.byKey(const ValueKey('bonus-qr-balance')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('bonus-qr-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bonus-qr-page')), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('no card code, no QR row', (tester) async {
+    final cart = CartProvider();
+    final client = MockClient((request) async => _account(10));
+    await http.runWithClient(() async {
+      await _pump(tester, cart, const BonusHistoryPage());
+      expect(find.byKey(const ValueKey('bonus-qr-open')), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     cart.dispose();

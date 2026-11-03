@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/certificates/ui/certificates_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/ui/frosted_controls.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,11 @@ http.Response _cards(List<Map<String, Object>> cards) => _json({
 
 Map<String, Object> _card(String id) =>
     {'halyk_id': id, 'card_mask': '**** **** **** 4444'};
+
+/// The visible mask, ignoring the invisible break opportunities that keep it from
+/// wrapping inside a digit group.
+Finder _maskText(String mask) => find.byWidgetPredicate((widget) =>
+    widget is Text && widget.data?.replaceAll('\u200B', '') == mask);
 
 Future<void> _pump(
   WidgetTester tester, {
@@ -107,6 +113,46 @@ void main() {
       expect(find.byKey(const ValueKey('certificate-card-server-card')),
           findsOneWidget);
       expect(_canPurchase(tester), isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+      'amount, recipient and message are glass fields on a frosted sheet',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/certificates') {
+        return _json({
+          'success': true,
+          'data': {'certificates': []}
+        });
+      }
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _cards([_card('server-card')]);
+      }
+      throw StateError('Unexpected request: ${request.method} ${request.url}');
+    });
+    await http.runWithClient(() async {
+      await _pump(tester);
+      for (final key in const [
+        'certificate-purchase-amount',
+        'certificate-purchase-recipient',
+        'certificate-purchase-message',
+      ]) {
+        final field = find.byKey(ValueKey(key));
+        expect(field, findsOneWidget, reason: key);
+        expect(
+            find.ancestor(of: field, matching: find.byType(FrostedTextField)),
+            findsOneWidget,
+            reason: key);
+      }
+      expect(
+          find.ancestor(
+              of: find.byKey(const ValueKey('certificate-purchase-submit')),
+              matching: find.byType(FrostedButton)),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);
@@ -328,7 +374,7 @@ void main() {
       expect(
           find.byKey(const ValueKey('certificate-cards-empty')), findsNothing);
       expect(_canPurchase(tester), isFalse);
-      expect(find.text('****1234'), findsOneWidget);
+      expect(_maskText('****1234'), findsOneWidget);
       expect(find.text('4111111111111111'), findsNothing);
       expect(purchases, 1);
       await tester.pumpWidget(const SizedBox.shrink());

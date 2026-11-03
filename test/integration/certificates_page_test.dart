@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/certificates/ui/certificates_page.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/ui/frosted_controls.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -49,6 +50,43 @@ void main() {
       expect(find.text('Сертификат активирован'), findsNothing);
       expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
           'NOT-FOUND');
+    }, () => client);
+  });
+
+  testWidgets('activation field and button are glass with a gated «Ок»',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/certificates') {
+        return _list([]);
+      }
+      throw StateError('Unexpected request: ${request.method} ${request.url}');
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(_host());
+      await tester.pumpAndSettle();
+
+      final field = find.byKey(const ValueKey('certificate-code-input'));
+      expect(field, findsOneWidget);
+      expect(find.ancestor(of: field, matching: find.byType(FrostedTextField)),
+          findsOneWidget);
+      final ok = find.ancestor(
+          of: find.text('Ок'), matching: find.byType(FrostedButton));
+      expect(ok, findsOneWidget);
+      final button =
+          find.descendant(of: ok, matching: find.byType(FilledButton));
+      expect(tester.widget<FilledButton>(button).onPressed, isNull);
+      // Design: 45 px tall field and 85 px wide button, 12 px apart.
+      expect(tester.getSize(find.byType(FrostedTextField)).height, 45);
+      expect(tester.getSize(ok).width, 85);
+      expect(
+          tester.getTopLeft(ok).dx -
+              tester.getTopRight(find.byType(FrostedTextField)).dx,
+          12);
+
+      await tester.enterText(field, 'AAAA');
+      await tester.pump();
+      expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
+      expect(tester.takeException(), isNull);
     }, () => client);
   });
 

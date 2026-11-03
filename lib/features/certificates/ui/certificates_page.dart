@@ -9,7 +9,9 @@ import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/frosted_controls.dart';
 import '../../../ui/frosted_dock.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../services/auth_service.dart';
 import '../../../utils/api.dart';
 import '../../../utils/cart_provider.dart';
@@ -32,6 +34,7 @@ class CertificatesPage extends StatefulWidget {
 
 class _CertificatesPageState extends State<CertificatesPage>
     with WidgetsBindingObserver {
+  static const double _maxWidth = 560;
   static const _statuses = <String>['active', 'redeemed', 'canceled'];
   static const _statusLabels = <String, String>{
     'active': 'Активные',
@@ -235,188 +238,155 @@ class _CertificatesPageState extends State<CertificatesPage>
     final onCart = widget.onCart;
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: FrostedDock(
-              content: Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                    child: AppTopBar(
-                      title: 'Сертификаты',
-                      onBack: () => Navigator.of(context).maybePop(),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () => _load(),
-                      child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        keyboardDismissBehavior:
-                            ScrollViewKeyboardDismissBehavior.onDrag,
-                        padding: EdgeInsets.only(
-                          bottom: AppCartButton.clearanceFor(context) +
-                              MediaQuery.paddingOf(context).bottom,
-                        ),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xxxl),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Активировать по коду',
-                                  style: AppTypography.title
-                                      .copyWith(color: palette.textPrimary),
-                                ),
-                                const SizedBox(height: AppSpacing.xl),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        constraints:
-                                            const BoxConstraints(minHeight: 45),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 14, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: palette.surface
-                                              .withValues(alpha: 0.75),
-                                          borderRadius: BorderRadius.circular(
-                                              AppRadii.lg),
-                                        ),
-                                        child: Center(
-                                          child: TextField(
-                                            controller: _code,
-                                            textCapitalization:
-                                                TextCapitalization.characters,
-                                            enabled: !_claiming,
-                                            onChanged: (_) {
-                                              if (_claimError != null) {
-                                                setState(
-                                                    () => _claimError = null);
-                                              }
-                                            },
-                                            onSubmitted: (_) => _claim(),
-                                            cursorColor: palette.accent,
-                                            style: AppTypography.base(
-                                                    size: 16, weight: 300)
-                                                .copyWith(
-                                                    color: palette.textPrimary),
-                                            decoration: InputDecoration(
-                                              isDense: true,
-                                              filled: false,
-                                              border: InputBorder.none,
-                                              enabledBorder: InputBorder.none,
-                                              focusedBorder: InputBorder.none,
-                                              contentPadding: EdgeInsets.zero,
-                                              hintText: 'AAAA-AAAA-AAAA-AAAA',
-                                              hintStyle: AppTypography.base(
-                                                      size: 16, weight: 300)
-                                                  .copyWith(
-                                                      color: palette
-                                                          .textSecondary),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.xl),
-                                    ValueListenableBuilder<TextEditingValue>(
-                                      valueListenable: _code,
-                                      builder: (context, value, _) => SizedBox(
-                                        width: 85,
-                                        child: ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                              minHeight: 48),
-                                          child: FilledButton(
-                                            onPressed: _claiming ||
-                                                    value.text.trim().isEmpty
-                                                ? null
-                                                : _claim,
-                                            child: _claiming
-                                                ? const SizedBox(
-                                                    width: 18,
-                                                    height: 18,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                            strokeWidth: 2),
-                                                  )
-                                                : const Text('Ок'),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (_claimError != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                        top: AppSpacing.md),
-                                    child: Text(
-                                      _claimError!,
-                                      key: const ValueKey(
-                                          'certificate-claim-error'),
-                                      style: AppTypography.bodySmall
-                                          .copyWith(color: palette.error),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.huge),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xxxl),
-                            child: _BuyRow(onTap: _buy),
-                          ),
-                          const SizedBox(height: 16),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xxxl),
-                            child: _StatusTabs(
-                              statuses: _statuses,
-                              labels: _statusLabels,
-                              selected: _status,
-                              onSelect: (status) {
-                                if (status == _status) return;
-                                setState(() => _status = status);
-                                _load();
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ..._body(palette),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+      body: FrostedDock(
+        content: FrostedHeaderLayout(
+          header: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _maxWidth),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                child: AppTopBar(
+                  title: 'Сертификаты',
+                  onBack: () => Navigator.of(context).maybePop(),
+                ),
               ),
-              dock: onCart == null
-                  ? null
-                  : Selector<CartProvider, (int, int?)>(
-                      selector: (_, cart) => (
-                        cart.displayItemCount,
-                        cart.displayItemCount == 0
-                            ? null
-                            : cart.getTotalPrice().round(),
-                      ),
-                      builder: (_, summary, __) => AppCartButton(
-                        itemCount: summary.$1,
-                        total: summary.$2,
-                        onTap: onCart,
+            ),
+          ),
+          body: (context, topInset) => Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _maxWidth),
+              child: RefreshIndicator(
+                edgeOffset: topInset,
+                onRefresh: () => _load(),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.only(
+                    top: topInset + AppSpacing.huge,
+                    bottom: AppCartButton.clearanceFor(context) +
+                        MediaQuery.paddingOf(context).bottom,
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxxl),
+                      child: _activation(palette),
+                    ),
+                    const SizedBox(height: AppSpacing.huge),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxxl),
+                      child: _BuyRow(onTap: _buy),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxxl),
+                      child: _StatusTabs(
+                        statuses: _statuses,
+                        labels: _statusLabels,
+                        selected: _status,
+                        onSelect: (status) {
+                          if (status == _status) return;
+                          setState(() => _status = status);
+                          _load();
+                        },
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    ..._body(palette),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
+        dock: onCart == null
+            ? null
+            : Selector<CartProvider, (int, int?)>(
+                selector: (_, cart) => (
+                  cart.displayItemCount,
+                  cart.displayItemCount == 0
+                      ? null
+                      : cart.getTotalPrice().round(),
+                ),
+                builder: (_, summary, __) => AppCartButton(
+                  itemCount: summary.$1,
+                  total: summary.$2,
+                  onTap: onCart,
+                ),
+              ),
       ),
+    );
+  }
+
+  /// «Активировать по коду»: a 45 px glass field and an orange glass «Ок», 12 px apart and
+  /// top-aligned (the design's 246 × 45 + 85 × 45). The button stretches with a field that
+  /// grows under large text so the pair stays one row of equal height.
+  Widget _activation(AppPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Активировать по коду',
+          style: AppTypography.title.copyWith(color: palette.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: FrostedTextField(
+                  fieldKey: const ValueKey('certificate-code-input'),
+                  controller: _code,
+                  enabled: !_claiming,
+                  semanticLabel: 'Код сертификата',
+                  hintText: 'AAAA-AAAA-AAAA-AAAA',
+                  textCapitalization: TextCapitalization.characters,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) {
+                    if (_claimError != null) {
+                      setState(() => _claimError = null);
+                    }
+                  },
+                  onSubmitted: (_) => _claim(),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xl),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _code,
+                builder: (context, value, _) => SizedBox(
+                  width: 85,
+                  child: FrostedButton(
+                    onPressed:
+                        _claiming || value.text.trim().isEmpty ? null : _claim,
+                    padding: EdgeInsets.zero,
+                    child: _claiming
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Ок'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_claimError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.md),
+            child: Text(
+              _claimError!,
+              key: const ValueKey('certificate-claim-error'),
+              style: AppTypography.bodySmall.copyWith(color: palette.error),
+            ),
+          ),
+      ],
     );
   }
 

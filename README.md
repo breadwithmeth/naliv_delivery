@@ -135,19 +135,23 @@ The server accepts only GET/HEAD, binds loopback, and serves only the fixture-ma
 ## Floating material
 
 `FrostedDock` (`lib/ui/frosted_dock.dart`) is a standard translucent bottom bar (like X/YouTube): the page runs
-full-bleed behind it in a `RepaintBoundary`, one `BackdropFilter` blur (sigma 20) covers
-only the bar's rectangle, and a theme tint (light white 76%, dark near-black 66%) plus a
-0.5 px top hairline finish it. The cart stamp projects above it through `DockOverhang`
-and stays sharp. With `MediaQuery.highContrast` the bar is an opaque surface. There is
-no shader, page snapshot, warm-up or loading state, and no native/platform-view path.
+full-bleed behind it in a `RepaintBoundary`, one `BackdropFilter` (the shared `Frost` blur,
+sigma 18) covers only the bar's rectangle, and the shared `Frost.tint` (dark `#141414` 72%,
+light white 78%) plus a 0.5 px top hairline finish it, so the bar, the scrolled header and
+floating controls are one material. The foreground sits in a `FrostedScope`, so controls on
+the bar do not blur twice. The cart stamp projects above it through `DockOverhang` and
+stays sharp. With `MediaQuery.highContrast` the bar is an opaque surface. There is no
+shader, page snapshot, warm-up or loading state, and no native/platform-view path.
 
 Decorative headers/chips are ordinary
 `AppSurface`/`AppSectionAction` controls, not imitation glass.
 
-`AppCartButton` shows a 60 px brand stamp for an empty cart and a compact orange
-capsule (count, «Корзина», total) once filled; the label drops before the total at
-narrow/large-text widths. Scroll clearance follows inherited text scaling, so the
-final page content remains reachable above the dock.
+`AppCartButton` is always the 78 px scalloped brand stamp rising 27 px above the bar. With
+items, an orange glass pill (`Frost.accent`) grows out from behind the stamp's right side
+and hugs the total (SemiBold 20; it scales down only when the dock is too narrow), a 32 px
+`brandRed` badge with the count sits on the stamp's top-left shoulder, and stamp plus pill
+stay centred together. The pill and text scale with the user's text size. Scroll clearance
+(`clearanceFor`) follows it, so the final page content remains reachable above the dock.
 
 Platform views must not be placed under the bar: Flutter cannot blur them.
 

@@ -12,6 +12,7 @@ import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/pages/order_detail_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
+import 'package:naliv_delivery/pages/payment_notice_page.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/order_payment_guard.dart';
@@ -90,6 +91,19 @@ VoidCallback? _payAction(WidgetTester tester) {
   return action.evaluate().isEmpty
       ? null
       : tester.widget<FilledButton>(action).onPressed;
+}
+
+/// The card-binding FAQ banner inside the payment notice. The payment page under the
+/// non-opaque dialog route has its own banner, so the finder is scoped to the notice.
+Finder _noticeFaq() => find.descendant(
+    of: find.byType(PaymentNoticePage),
+    matching: find.text('Не получается добавить карту?'));
+
+/// Dismisses the full-screen payment notice with its own back button.
+Future<void> _dismissNotice(WidgetTester tester) async {
+  await tester.tap(find.descendant(
+      of: find.byType(PaymentNoticePage), matching: find.byTooltip('Назад')));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -424,8 +438,13 @@ void main() {
               OrderPaymentState.completed);
         } else {
           expect(find.byType(PaymentSuccessPage), findsNothing);
-          await tester.tap(find.text('Понятно'));
-          await tester.pumpAndSettle();
+          expect(find.byType(PaymentNoticePage), findsOneWidget);
+          expect(_noticeFaq(), findsNothing);
+          expect(find.byKey(const ValueKey('payment-notice-retry')),
+              outcome == 'refused' ? findsOneWidget : findsNothing);
+          expect(find.byKey(const ValueKey('payment-notice-check')),
+              outcome == 'refused' ? findsNothing : findsOneWidget);
+          await _dismissNotice(tester);
           expect(
               await OrderPaymentGuard.read(orderId),
               outcome == 'refused'
@@ -447,7 +466,8 @@ void main() {
     });
   }
 
-  testWidgets('failed bank opening reopens the accepted link after reload without another pay',
+  testWidgets(
+      'failed bank opening reopens the accepted link after reload without another pay',
       (tester) async {
     const orderId = 'kaspi-reopen-same';
     const link = 'https://fixture-bank.example/pay/accepted-attempt';
@@ -498,9 +518,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(PaymentSuccessPage), findsNothing);
       expect(await OrderPaymentGuard.readKaspiLink(orderId), link);
-      await tester.tap(find.text('Понятно'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('reopen-kaspi-payment')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('payment-notice-reopen')), findsOneWidget);
+      expect(find.byKey(const ValueKey('payment-notice-retry')), findsNothing);
+      await _dismissNotice(tester);
+      expect(
+          find.byKey(const ValueKey('reopen-kaspi-payment')), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       SharedPreferences.resetStatic();
       await _pump(tester, cart, orderData: draft);
@@ -510,15 +533,17 @@ void main() {
       expect(openedLinks, [link, link]);
       expect(creates, 1);
       expect(find.byType(PaymentSuccessPage), findsNothing);
-      tester.binding
-          .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      tester.binding
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
       expect(_payAction(tester), isNull);
-      expect(await OrderPaymentGuard.read(orderId), OrderPaymentState.unconfirmed);
+      expect(
+          await OrderPaymentGuard.read(orderId), OrderPaymentState.unconfirmed);
       completed = true;
-      await tester.ensureVisible(find.byKey(const ValueKey('payment-state-refresh')));
+      await Scrollable.ensureVisible(
+          tester.element(find.byKey(const ValueKey('payment-state-refresh'))),
+          alignment: .5);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('payment-state-refresh')));
       await tester.pumpAndSettle();
       expect(find.byType(PaymentSuccessPage), findsOneWidget);
@@ -538,8 +563,14 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  for (final responseKind in ['network', 'malformed', 'server-unavailable', 'refused']) {
-    testWidgets('Kaspi $responseKind creation preserves the genuine retry boundary',
+  for (final responseKind in [
+    'network',
+    'malformed',
+    'server-unavailable',
+    'refused'
+  ]) {
+    testWidgets(
+        'Kaspi $responseKind creation preserves the genuine retry boundary',
         (tester) async {
       final orderId = 'kaspi-create-$responseKind-boundary';
       final cart = await _cart();
@@ -557,12 +588,16 @@ void main() {
           if (responseKind == 'network') {
             throw http.ClientException('Fixture connection dropped');
           }
-          if (responseKind == 'malformed') return http.Response('{unreadable', 200);
-          return http.Response(jsonEncode({
-            'success': false,
-            'error': 'Fixture refusal',
-            'data': {'payment_status': 'failed'},
-          }), responseKind == 'refused' ? 400 : 503);
+          if (responseKind == 'malformed') {
+            return http.Response('{unreadable', 200);
+          }
+          return http.Response(
+              jsonEncode({
+                'success': false,
+                'error': 'Fixture refusal',
+                'data': {'payment_status': 'failed'},
+              }),
+              responseKind == 'refused' ? 400 : 503);
         }
         throw StateError('Unexpected fixture request: $request');
       });
@@ -571,9 +606,14 @@ void main() {
         await _pump(tester, cart, orderData: draft);
         await tester.tap(find.byKey(const ValueKey('pay-order-button')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Понятно'));
-        await tester.pumpAndSettle();
         final refused = responseKind == 'refused';
+        expect(find.byType(PaymentNoticePage), findsOneWidget);
+        expect(_noticeFaq(), findsNothing);
+        expect(find.byKey(const ValueKey('payment-notice-retry')),
+            refused ? findsOneWidget : findsNothing);
+        expect(find.byKey(const ValueKey('payment-notice-check')),
+            refused ? findsNothing : findsOneWidget);
+        await _dismissNotice(tester);
         expect(await OrderPaymentGuard.read(orderId),
             refused ? OrderPaymentState.ready : OrderPaymentState.unconfirmed);
         expect(_payAction(tester), refused ? isNotNull : isNull);
@@ -599,9 +639,11 @@ void main() {
       if (request.method == 'GET' && request.url.path == '/api/user/cards') {
         return _json({
           'success': true,
-          'data': {'cards': [
-            {'halyk_id': 'bank-card', 'card_mask': '****4444'},
-          ]},
+          'data': {
+            'cards': [
+              {'halyk_id': 'bank-card', 'card_mask': '****4444'},
+            ]
+          },
         });
       }
       mutations++;
@@ -653,14 +695,171 @@ void main() {
       expect(
           await OrderPaymentGuard.read(orderId), OrderPaymentState.unconfirmed);
       expect(find.byType(PaymentSuccessPage), findsNothing);
-      await tester.tap(find.text('Понятно'));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('payment-notice-retry')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('payment-notice-check')), findsOneWidget);
+      await _dismissNotice(tester);
       expect(_payAction(tester), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       SharedPreferences.resetStatic();
       await _pump(tester, cart, orderData: draft);
       expect(_payAction(tester), isNull);
       expect(creates, 1);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+      'cancelled Kaspi purchase offers a retry that starts exactly one new payment',
+      (tester) async {
+    const orderId = 'kaspi-cancel-retry';
+    final cart = await _cart();
+    var creates = 0;
+    final launches = <String>[];
+    const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (call) async {
+      if (call.method == 'launch') {
+        launches.add(call.arguments['url'] as String);
+      }
+      return true;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _json({
+          'success': true,
+          'data': {'cards': <Object>[]},
+        });
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/orders/$orderId/kaspi-qr/pay') {
+        creates++;
+        return _json({
+          'success': true,
+          'data': {
+            'paymentLink': 'https://fixture-bank.example/pay/$creates',
+            'behaviorOptions': {
+              'StatusPollingInterval': 2,
+              'PaymentConfirmationTimeout': 2,
+            },
+          },
+        });
+      }
+      if (request.method == 'GET' &&
+          request.url.path == '/api/orders/$orderId/kaspi-qr/status') {
+        return _json({
+          'success': true,
+          'data': {'payment_status': 'failed'},
+        });
+      }
+      throw StateError('Unexpected fixture request: $request');
+    });
+    await http.runWithClient(() async {
+      final draft = {..._draft, 'order_id': orderId};
+      await _pump(tester, cart, orderData: draft);
+      await tester.tap(find.byKey(const ValueKey('payment-kaspi')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('pay-order-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Отмена покупки'), findsOneWidget);
+      expect(find.text('Вы не подтвердили покупку'), findsOneWidget);
+      expect(_noticeFaq(), findsNothing);
+      expect(find.text('Выбрать другой способ'), findsOneWidget);
+      expect(find.byKey(const ValueKey('payment-notice-check')), findsNothing);
+      expect(creates, 1);
+
+      await tester.tap(find.byKey(const ValueKey('payment-notice-retry')));
+      await tester.pumpAndSettle();
+      expect(creates, 2);
+      expect(launches, [
+        'https://fixture-bank.example/pay/1',
+        'https://fixture-bank.example/pay/2',
+      ]);
+      expect(find.text('Отмена покупки'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('payment-notice-change')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PaymentNoticePage), findsNothing);
+      expect(_payAction(tester), isNotNull);
+      expect(creates, 2);
+      expect(await OrderPaymentGuard.read(orderId), OrderPaymentState.ready);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    cart.dispose();
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+      'unconfirmed Kaspi payment offers only the same link or a status check, never a second charge',
+      (tester) async {
+    const orderId = 'kaspi-pending-check';
+    final cart = await _cart();
+    var creates = 0;
+    var statusReads = 0;
+    var completed = false;
+    var launches = 0;
+    const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (call) async {
+      if (call.method == 'launch') launches++;
+      return true;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _json({
+          'success': true,
+          'data': {'cards': <Object>[]},
+        });
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/orders/$orderId/kaspi-qr/pay') {
+        creates++;
+        return _json({
+          'success': true,
+          'data': {
+            'paymentLink': 'https://fixture-bank.example/pay/$orderId',
+            'behaviorOptions': {
+              'StatusPollingInterval': 2,
+              'PaymentConfirmationTimeout': 2,
+            },
+          },
+        });
+      }
+      if (request.method == 'GET' &&
+          request.url.path == '/api/orders/$orderId/kaspi-qr/status') {
+        statusReads++;
+        return _json({
+          'success': true,
+          'data': {'payment_status': completed ? 'completed' : 'pending'},
+        });
+      }
+      throw StateError('Unexpected fixture request: $request');
+    });
+    await http.runWithClient(() async {
+      final draft = {..._draft, 'order_id': orderId};
+      await _pump(tester, cart, orderData: draft);
+      await tester.tap(find.byKey(const ValueKey('pay-order-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Подтвердите оплату'), findsOneWidget);
+      expect(find.byKey(const ValueKey('payment-notice-retry')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('payment-notice-reopen')), findsOneWidget);
+
+      // «Проверить оплату» asks the server; once Kaspi confirms, the success page opens.
+      completed = true;
+      final readsBefore = statusReads;
+      await tester.tap(find.byKey(const ValueKey('payment-notice-check')));
+      await tester.pumpAndSettle();
+      expect(statusReads, greaterThan(readsBefore));
+      expect(find.byType(PaymentSuccessPage), findsOneWidget);
+      expect(creates, 1);
+      expect(launches, 1);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     cart.dispose();

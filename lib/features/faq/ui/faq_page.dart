@@ -6,6 +6,7 @@ import 'package:naliv_delivery/features/faq/data/faq_repository.dart';
 import 'package:naliv_delivery/features/faq/models/faq.dart';
 import 'package:naliv_delivery/ui/app_search_field.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
+import 'package:naliv_delivery/ui/frosted_surface.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
 
 class FaqPage extends StatefulWidget {
@@ -47,12 +48,17 @@ class _FaqPageState extends State<FaqPage> {
     }
   }
 
+  /// Space the header occupies above the list, so a shortcut can scroll a
+  /// section's heading to just below it rather than underneath.
+  double _topInset = 0;
+
   void _scrollToSection(FaqSection section) {
     final target = _sectionKeys[section.number]?.currentContext;
     if (target == null || !mounted) return;
+    final viewport = Scrollable.maybeOf(target)?.context.size?.height;
     Scrollable.ensureVisible(
       target,
-      alignment: 0,
+      alignment: viewport == null || viewport <= 0 ? 0 : _topInset / viewport,
       duration: const Duration(milliseconds: 250),
     );
   }
@@ -88,12 +94,13 @@ class _FaqPageState extends State<FaqPage> {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: FrostedHeaderLayout(
+            estimatedHeaderHeight: 87,
+            header: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
@@ -118,43 +125,48 @@ class _FaqPageState extends State<FaqPage> {
                       hint: 'Найти вопрос или ответ',
                       onChanged: (value) => setState(() => _query = value),
                     ),
-                  ),
-                Expanded(
-                  child: sections.isEmpty
-                      ? const AppEmptyState(
-                          title: 'Ничего не найдено',
-                          subtitle: 'Попробуйте изменить запрос',
-                        )
-                      : SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            AppSpacing.xxxl,
-                            0,
-                            AppSpacing.xxxl,
-                            AppSpacing.huge +
-                                MediaQuery.paddingOf(context).bottom,
-                          ),
-                          child: Column(
-                            children: [
-                              for (final section in sections)
-                                _Section(
-                                  headerKey: _sectionKeys.putIfAbsent(
-                                    section.number,
-                                    () => GlobalKey(),
-                                  ),
-                                  section: section,
-                                  openKey: _openKey,
-                                  onToggle: (entry) {
-                                    final key = _keyOf(section, entry);
-                                    setState(() =>
-                                        _openKey = _openKey == key ? '' : key);
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                ),
+                  )
+                else
+                  const SizedBox(height: AppSpacing.md),
               ],
             ),
+            body: (context, topInset) {
+              _topInset = topInset;
+              if (sections.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.only(top: topInset),
+                  child: const AppEmptyState(
+                    title: 'Ничего не найдено',
+                    subtitle: 'Попробуйте изменить запрос',
+                  ),
+                );
+              }
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.xxxl,
+                  topInset,
+                  AppSpacing.xxxl,
+                  AppSpacing.huge + MediaQuery.paddingOf(context).bottom,
+                ),
+                child: Column(
+                  children: [
+                    for (final section in sections)
+                      _Section(
+                        headerKey: _sectionKeys.putIfAbsent(
+                          section.number,
+                          () => GlobalKey(),
+                        ),
+                        section: section,
+                        openKey: _openKey,
+                        onToggle: (entry) {
+                          final key = _keyOf(section, entry);
+                          setState(() => _openKey = _openKey == key ? '' : key);
+                        },
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),

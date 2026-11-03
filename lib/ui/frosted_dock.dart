@@ -1,10 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
 import '../design/tokens.dart';
+import 'frosted_surface.dart';
 
 /// A full-bleed frosted bottom bar with a separate sharp foreground.
 ///
@@ -17,12 +17,13 @@ import '../design/tokens.dart';
 /// with [DockOverhang]; that strip belongs to the foreground's layout box, so
 /// the projecting part stays hit-testable, but the bar starts below it.
 ///
-/// The material is the ordinary translucent bar of X or YouTube: the page runs
-/// full-bleed behind it in its own repaint boundary, one [ui.ImageFilter.blur]
-/// backdrop softens only the bar's rectangle, and a theme tint plus a hairline
-/// top edge finish it. With [MediaQueryData.highContrast] the bar is an opaque
-/// surface instead. There is no loading state: the first frame already has its
-/// final geometry.
+/// The material is the app's one [Frost] glass, as on the scrolled header and
+/// floating controls: the page runs full-bleed behind it in its own repaint
+/// boundary, one [Frost.blur] backdrop softens only the bar's rectangle, and
+/// the [Frost.tint] plus a hairline top edge finish it. The foreground sits in
+/// a [FrostedScope], so frosted controls on the bar do not blur a second time.
+/// With [MediaQueryData.highContrast] the bar is an opaque surface instead.
+/// There is no loading state: the first frame already has its final geometry.
 class FrostedDock extends StatefulWidget {
   const FrostedDock({
     required this.content,
@@ -132,7 +133,6 @@ class _FrostedDockState extends State<FrostedDock> {
   @override
   Widget build(BuildContext context) {
     if (widget.dock == null) return widget.content;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return _DockScope(
       overhang: _overhang,
       child: CustomMultiChildLayout(
@@ -157,11 +157,13 @@ class _FrostedDockState extends State<FrostedDock> {
             child: _FrostedBar(
               borderRadius: widget.borderRadius,
               tint: widget.tint,
-              dark: dark,
               opaque: MediaQuery.highContrastOf(context),
             ),
           ),
-          LayoutId(id: _DockSlot.dock, child: widget.dock!),
+          LayoutId(
+            id: _DockSlot.dock,
+            child: FrostedScope(child: widget.dock!),
+          ),
         ],
       ),
     );
@@ -186,32 +188,19 @@ class _FrostedBar extends StatelessWidget {
   const _FrostedBar({
     required this.borderRadius,
     required this.tint,
-    required this.dark,
     required this.opaque,
   });
 
-  /// Blur radius of the backdrop; strong enough that text under the bar reads
-  /// as colour, cheap enough for a bar-sized region.
-  static const double _sigma = 20;
-
-  static final _blur = ui.ImageFilter.blur(
-    sigmaX: _sigma,
-    sigmaY: _sigma,
-    tileMode: TileMode.clamp,
-  );
-
   final BorderRadius borderRadius;
   final Color? tint;
-  final bool dark;
   final bool opaque;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     final edge = CustomPaint(
       painter: _TopEdgePainter(
         borderRadius: borderRadius,
-        color: palette.divider.withValues(alpha: dark ? 0.5 : 0.7),
+        color: Frost.edge(context),
       ),
     );
     if (opaque) {
@@ -223,15 +212,11 @@ class _FrostedBar extends StatelessWidget {
         ),
       );
     }
-    final fill = tint ??
-        (dark
-            ? const Color(0xFF0E0E10).withValues(alpha: 0.66)
-            : Colors.white.withValues(alpha: 0.76));
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
-        filter: _blur,
-        child: ColoredBox(color: fill, child: edge),
+        filter: Frost.blur,
+        child: ColoredBox(color: tint ?? Frost.tint(context), child: edge),
       ),
     );
   }

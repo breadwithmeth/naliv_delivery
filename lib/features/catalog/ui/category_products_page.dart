@@ -7,6 +7,7 @@ import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_dock.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/product_grid.dart';
 import '../../../utils/cart_provider.dart';
@@ -238,10 +239,13 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
   Widget build(BuildContext context) {
     final chips = _chips;
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: FrostedDock(
-          content: Column(
+      body: FrostedDock(
+        content: FrostedHeaderLayout(
+          // Top bar (79) + gap + chip row (44) + bottom gap.
+          estimatedHeaderHeight:
+              chips.isEmpty ? 79 : 79 + AppSpacing.md + 44 + AppSpacing.xl,
+          header: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
                 padding:
@@ -253,13 +257,15 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                   onSearch: widget.onSearch,
                 ),
               ),
-              const SizedBox(height: AppSpacing.huge),
               if (chips.isNotEmpty)
                 Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 840),
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                      padding: const EdgeInsets.only(
+                        top: AppSpacing.md,
+                        bottom: AppSpacing.xl,
+                      ),
                       child: CategoryChipRow(
                         key: const ValueKey('category-chips'),
                         items: chips,
@@ -269,26 +275,26 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                     ),
                   ),
                 ),
-              Expanded(child: _body()),
             ],
           ),
-          dock: Selector<CartProvider, (int, double?)>(
-            selector: (_, cart) => (
-              cart.displayItemCount,
-              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
-            ),
-            builder: (_, summary, __) => AppCartButton(
-              itemCount: summary.$1,
-              total: summary.$2,
-              onTap: widget.onCart,
-            ),
+          body: (context, topInset) => _body(topInset, chips.isNotEmpty),
+        ),
+        dock: Selector<CartProvider, (int, double?)>(
+          selector: (_, cart) => (
+            cart.displayItemCount,
+            cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
+          ),
+          builder: (_, summary, __) => AppCartButton(
+            itemCount: summary.$1,
+            total: summary.$2,
+            onTap: widget.onCart,
           ),
         ),
       ),
     );
   }
 
-  Widget _body() {
+  Widget _body(double topInset, bool hasChips) {
     final id = _selectedId;
     final feed = _feed;
     final items = feed.items;
@@ -333,7 +339,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
           controller: _scroll,
           padding: EdgeInsets.fromLTRB(
             AppSpacing.gutter,
-            0,
+            topInset + (hasChips ? 0 : AppSpacing.huge),
             AppSpacing.gutter,
             AppCartButton.clearanceFor(context) +
                 MediaQuery.paddingOf(context).bottom,

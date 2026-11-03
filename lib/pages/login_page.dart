@@ -15,6 +15,8 @@ import '../features/faq/models/faq.dart';
 import '../features/faq/faq_navigation.dart';
 import '../core/destinations.dart';
 import 'profile_setup_page.dart';
+import '../design/motion.dart';
+import '../ui/otp_code_field.dart';
 
 // Форматирует ввод номера в +7 700 123 45 67
 class PhoneTextInputFormatter extends TextInputFormatter {
@@ -93,7 +95,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
@@ -114,6 +116,13 @@ class _LoginPageState extends State<LoginPage> {
   bool _userInteracting = false;
   int _sendCodeCooldownSeconds = 0;
   String? _sendCodeCooldownPhone;
+
+  /// Length of the SMS code the server sends and `verify-code` accepts.
+  static const _otpLength = 6;
+  final _otpBlockKey = GlobalKey();
+  String _lastCodeText = '';
+  String? _codeError;
+  int _codeErrorShake = 0;
 
   static const _slides = [
     _SlideData(
@@ -141,6 +150,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _codeController.addListener(_onCodeChanged);
     _showAuthForm = widget.startWithPhoneForm;
     if (_showAuthForm) _ensurePhonePrefix();
     _startAutoSlide();
@@ -148,9 +159,11 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoSlideTimer?.cancel();
     _resumeTimer?.cancel();
     _sendCodeCooldownTimer?.cancel();
+    _codeController.removeListener(_onCodeChanged);
     _phoneController.dispose();
     _codeController.dispose();
     _phoneFocusNode.dispose();
@@ -218,29 +231,25 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Код отправлен на $phone'),
-          backgroundColor: context.palette.surface,
-        ));
         setState(() => _codeSent = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _codeFocusNode.requestFocus();
+        });
+        _revealOtp();
       } else {
         if (result.cooldownSeconds != null && result.cooldownSeconds! > 0) {
           _startSendCodeCooldown(
               phone: phone, seconds: result.cooldownSeconds!);
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(result.message),
-          backgroundColor: context.palette.surface,
-        ));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(result.message)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: context.palette.surface,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Не удалось отправить код. Проверьте соединение и попробуйте ещё раз.'),
+        ));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -299,11 +308,13 @@ class _LoginPageState extends State<LoginPage> {
     return '${minutes.toString().padLeft(2, '0')}:${remainder.toString().padLeft(2, '0')}';
   }
 
+  /// Verifies the code once: the guard covers auto-submit on the last digit,
+  /// the keyboard's "done" action and the confirm button racing each other.
   Future<void> _verifyCode() async {
-    if (_codeController.text.trim().length != 6) return;
+    if (_isLoading || _codeController.text.length != _otpLength) return;
     setState(() => _isLoading = true);
     final phone = _normalizedPhone();
-    final code = _codeController.text.trim();
+    final code = _codeController.text;
     try {
       final data = await ApiService.verifyAuthCode(phone, code);
       if (data != null && mounted) {
@@ -324,26 +335,63 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Неверный код или ошибка'),
-            backgroundColor: context.palette.surface,
-          ),
-        );
+        // Wrong code (or a failed request): empty the boxes for a retry, shake
+        // and keep the message next to them instead of in a snack bar.
+        _codeController.clear();
+        setState(() {
+          _codeError = 'Неверный код или ошибка. Попробуйте ещё раз';
+          _codeErrorShake++;
+        });
+        _codeFocusNode.requestFocus();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: context.palette.surface,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Не удалось проверить код. Проверьте соединение и попробуйте ещё раз.'),
+        ));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  void _submitCode() {
+    if (_codeSent && _codeController.text.length == _otpLength) _verifyCode();
+  }
+
+  /// Reacts to every change of the code, whether typed, pasted, autofilled or
+  /// inserted by "Вставить код": the old error goes away and a complete code is
+  /// submitted once.
+  void _onCodeChanged() {
+    final code = _codeController.text;
+    if (code == _lastCodeText) return;
+    _lastCodeText = code;
+    if (!mounted) return;
+    setState(() => _codeError = null);
+    _submitCode();
+  }
+
+  void _resetCodeEntry() {
+    _codeController.clear();
+    _codeError = null;
+  }
+
+  /// Scrolls the boxes and the confirm button above the keyboard.
+  void _revealOtp() {
+    if (!_codeSent) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _otpBlockKey.currentContext;
+      if (!mounted || context == null || !context.mounted) return;
+      Scrollable.ensureVisible(
+        context,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
+  }
+
+  @override
+  void didChangeMetrics() => _revealOtp();
 
   Future<void> _continueReauthentication(AuthSession session) async {
     final userInfo =
@@ -391,10 +439,9 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.of(context).pop<bool>(true);
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text(
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
           'Не удалось подтвердить заполненный профиль. Повторите сохранение.'),
-      backgroundColor: context.palette.surface,
     ));
   }
 
@@ -459,10 +506,10 @@ class _LoginPageState extends State<LoginPage> {
                       Navigator.of(context).canPop()) {
                     Navigator.of(context).pop();
                   } else {
+                    _resetCodeEntry();
                     setState(() {
                       _showAuthForm = false;
                       _codeSent = false;
-                      _codeController.clear();
                     });
                   }
                 },
@@ -611,10 +658,14 @@ class _LoginPageState extends State<LoginPage> {
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Align(
               alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 112, 16, 28),
+              child: AnimatedPadding(
+                // The code step starts higher: the keyboard is already up, and
+                // the boxes and the confirm button must stay above it.
+                duration: AppMotion.of(context, AppMotion.slide),
+                curve: AppMotion.out,
+                padding: EdgeInsets.fromLTRB(16, _codeSent ? 24 : 112, 16, 28),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints: BoxConstraints(maxWidth: _codeSent ? 400 : 560),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -679,29 +730,44 @@ class _LoginPageState extends State<LoginPage> {
                                     : _sendCode,
                               ),
                             ] else ...[
-                              _otpInput(),
-                              const SizedBox(height: 12),
-                              _primaryButton(
-                                key: const ValueKey('confirm-code-button'),
-                                label: 'Подтвердить',
-                                onPressed: _isLoading ||
-                                        _codeController.text.trim().length != 6
-                                    ? null
-                                    : _verifyCode,
+                              AutofillGroup(
+                                // A code is never a credential to save.
+                                onDisposeAction: AutofillContextAction.cancel,
+                                child: Column(
+                                  key: _otpBlockKey,
+                                  children: [
+                                    _otpInput(),
+                                    const SizedBox(height: AppSpacing.xxxl),
+                                    _primaryButton(
+                                      key:
+                                          const ValueKey('confirm-code-button'),
+                                      label: 'Подтвердить',
+                                      onPressed: _isLoading ||
+                                              _codeController.text.length !=
+                                                  _otpLength
+                                          ? null
+                                          : _verifyCode,
+                                    ),
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 17),
                               TextButton(
-                                onPressed: () => setState(() {
-                                  _codeSent = false;
-                                  _codeController.clear();
+                                onPressed: () {
+                                  _resetCodeEntry();
+                                  setState(() => _codeSent = false);
                                   WidgetsBinding.instance
                                       .addPostFrameCallback((_) {
                                     _phoneFocusNode.requestFocus();
                                   });
-                                }),
+                                },
                                 style: TextButton.styleFrom(
                                   foregroundColor: palette.accent,
                                   textStyle: AppTypography.body,
+                                  minimumSize: const Size(
+                                    AppSpacing.touchTarget,
+                                    AppSpacing.touchTarget,
+                                  ),
                                 ),
                                 child: const Text('Изменить номер'),
                               ),
@@ -781,49 +847,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _otpInput() {
-    final palette = context.palette;
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadii.lg),
-      borderSide: BorderSide(color: palette.divider),
-    );
-    return TextFormField(
-      key: const ValueKey('auth-code-input'),
+    return OtpCodeField(
+      fieldKey: const ValueKey('auth-code-input'),
       controller: _codeController,
       focusNode: _codeFocusNode,
-      autofocus: true,
-      autofillHints: const [AutofillHints.oneTimeCode],
-      keyboardType: TextInputType.number,
-      textInputAction: TextInputAction.done,
-      autocorrect: false,
-      enableSuggestions: false,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(6),
-      ],
-      onChanged: (_) {
-        if (mounted) setState(() {});
-        if (!_isLoading && _codeController.text.trim().length == 6) {
-          _verifyCode();
-        }
-      },
-      onFieldSubmitted: (_) {
-        if (!_isLoading && _codeController.text.trim().length == 6) {
-          _verifyCode();
-        }
-      },
-      decoration: InputDecoration(
-        labelText: 'Код из SMS',
-        counterText: '',
-        filled: true,
-        fillColor: palette.surface,
-        border: border,
-        enabledBorder: border,
-        focusedBorder: border.copyWith(
-            borderSide: BorderSide(color: palette.accent, width: 1.5)),
-        contentPadding: const EdgeInsets.all(16),
-      ),
-      style: AppTypography.body.copyWith(color: palette.textPrimary),
-      maxLength: 6,
+      length: _otpLength,
+      busy: _isLoading,
+      errorText: _codeError,
+      errorShake: _codeErrorShake,
+      onSubmitted: (_) => _submitCode(),
     );
   }
 
@@ -834,16 +866,17 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     final palette = context.palette;
     final foreground =
-        onPressed == null ? palette.textSecondary : palette.textPrimary;
+        onPressed == null ? palette.textSecondary : palette.textOnAccent;
     return SizedBox(
       key: key,
       width: double.infinity,
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor:
-              Color.alphaBlend(palette.accentSoft, palette.surface),
-          foregroundColor: palette.textPrimary,
+          // Solid accent: the design's 75 % orange glass fails contrast for
+          // white 16 px text, and nothing is behind this button to blur.
+          backgroundColor: palette.accent,
+          foregroundColor: palette.textOnAccent,
           disabledBackgroundColor:
               Color.alphaBlend(palette.accentFaint, palette.surface),
           disabledForegroundColor: palette.textSecondary,

@@ -2,10 +2,14 @@ import '../../core/money.dart';
 
 /// A read-only balance and ledger snapshot returned by `/bonuses`.
 class BonusAccount {
-  const BonusAccount({required this.balance, required this.history});
+  const BonusAccount(
+      {required this.balance, required this.history, this.cardCode});
 
   final num balance;
   final List<BonusLedgerEntry> history;
+
+  /// `bonusCard.cardUuid`, the payload a till scans; null when the server sent none.
+  final String? cardCode;
 
   factory BonusAccount.fromResponse(Map<String, dynamic>? response) {
     final data = response?['data'];
@@ -17,7 +21,10 @@ class BonusAccount {
     if (balance == null || history is! List) {
       throw const FormatException('Bonus balance or ledger is unavailable');
     }
+    final card = data['bonusCard'];
+    final cardCode = card is Map ? _identity(card['cardUuid']) : null;
     return BonusAccount(
+      cardCode: cardCode,
       balance: balance,
       history: List<BonusLedgerEntry>.unmodifiable([
         for (final entry in history)

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../design/theme.dart';
@@ -8,7 +7,8 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../services/notification_service.dart';
 import '../ui/app_top_bar.dart';
-import 'help_chat_page.dart';
+import '../ui/frosted_surface.dart';
+import '../ui/settings_widgets.dart';
 
 /// Notification preferences, not an inbox without a backing history API.
 class NotificationSettingsPage extends StatefulWidget {
@@ -21,6 +21,7 @@ class NotificationSettingsPage extends StatefulWidget {
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     with WidgetsBindingObserver {
+  static const double _maxWidth = 520;
   static const _options = [
     (
       topic: 'orders',
@@ -47,12 +48,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
   final Map<String, bool> _values = {};
   final Set<String> _pendingTopics = {};
   SharedPreferences? _preferences;
-  String? _subscriptionId;
   PushPermissionState? _permissionState;
   bool _loading = true;
   bool _loadFailed = false;
-  bool _subscriptionFailed = false;
-  bool _subscriptionRefreshing = false;
+  bool _permissionRefreshing = false;
   bool _actionRunning = false;
 
   bool get _supportsPush =>
@@ -79,7 +78,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _pushPlatform && !_loading) {
-      _refreshSubscriptionId();
+      _refreshPermission();
     }
   }
 
@@ -99,7 +98,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
         }
         _loading = false;
       });
-      if (_pushPlatform) await _refreshSubscriptionId();
+      if (_pushPlatform) await _refreshPermission();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -109,28 +108,17 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     }
   }
 
-  Future<void> _refreshSubscriptionId() async {
-    if (_subscriptionRefreshing) return;
-    setState(() => _subscriptionRefreshing = true);
+  Future<void> _refreshPermission() async {
+    if (_permissionRefreshing) return;
+    _permissionRefreshing = true;
     try {
-      final subscriptionId =
-          await NotificationService.instance.getCurrentSubscriptionId();
       final permissionState =
           await NotificationService.instance.getPermissionState();
-      if (!mounted) return;
-      setState(() {
-        _subscriptionId = subscriptionId;
-        _permissionState = permissionState;
-        _subscriptionFailed = false;
-      });
+      if (mounted) setState(() => _permissionState = permissionState);
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _subscriptionId = null;
-        _subscriptionFailed = true;
-      });
+      // The row keeps saying the status is unknown.
     } finally {
-      if (mounted) setState(() => _subscriptionRefreshing = false);
+      _permissionRefreshing = false;
     }
   }
 
@@ -189,7 +177,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     try {
       final granted =
           await NotificationService.instance.enablePushNotifications();
-      await _refreshSubscriptionId();
+      await _refreshPermission();
       if (mounted) {
         _showMessage(granted
             ? 'Разрешение на push-уведомления получено'
@@ -207,251 +195,125 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     final palette = context.palette;
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: Center(
+      body: FrostedHeaderLayout(
+        header: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(title: 'Настройки уведомлений'),
-                ),
-                Expanded(
-                  child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _loadFailed
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('Не удалось загрузить настройки',
-                                      style: AppTypography.title.copyWith(
-                                          color: palette.textPrimary)),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  TextButton(
-                                    onPressed: _loadSettings,
-                                    child: const Text('Повторить'),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView(
-                              padding: EdgeInsets.fromLTRB(
-                                AppSpacing.xxxl,
-                                AppSpacing.huge,
-                                AppSpacing.xxxl,
-                                AppSpacing.huge +
-                                    MediaQuery.paddingOf(context).bottom,
-                              ),
-                              children: [
-                                Text(
-                                    'Настройки push на этом устройстве. История обращений находится в чате поддержки.',
-                                    style: AppTypography.body.copyWith(
-                                        color: palette.textSecondary)),
-                                const SizedBox(height: AppSpacing.xl),
-                                _ActionRow(
-                                  icon: Icons.support_agent_rounded,
-                                  title: 'Ответы поддержки · открыть чат',
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => const HelpChatPage(
-                                        entryPoint: 'notification_settings',
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                Text(
-                                  'Ответы поддержки не относятся к акциям. Push возможен при разрешении устройства и отправке уведомления сервисом поддержки; отдельная настройка поддержки пока не предоставлена.',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: palette.textSecondary,
-                                  ),
-                                ),
-                                if (_pushPlatform) ...[
-                                  const SizedBox(height: AppSpacing.xl),
-                                  Text(
-                                    _permissionState == null
-                                        ? 'Статус разрешения не получен'
-                                        : !_permissionState!.supported
-                                            ? 'Браузер не поддерживает push на этом устройстве'
-                                            : !_permissionState!.permissionGranted
-                                                ? 'Разрешение на уведомления не получено'
-                                                : !_permissionState!.optedIn
-                                                    ? 'Разрешение есть, подписка выключена'
-                                                    : 'Уведомления разрешены, подписка включена',
-                                    style: AppTypography.bodySmall.copyWith(
-                                      color: palette.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: AppSpacing.huge),
-                                for (final option in _options) ...[
-                                  _NotificationPreference(
-                                    title: option.title,
-                                    detail: option.detail,
-                                    icon: option.icon,
-                                    value: _values[option.topic]!,
-                                    onChanged: !_supportsPush ||
-                                            _pendingTopics
-                                                .contains(option.topic)
-                                        ? null
-                                        : (value) =>
-                                            _toggle(option.topic, value),
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                ],
-                                const SizedBox(height: AppSpacing.xl),
-                                if (_supportsPush) ...[
-                                  Text('Управление',
-                                      style: AppTypography.title.copyWith(
-                                          color: palette.textPrimary)),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  _ActionRow(
-                                    icon: Icons.notifications_active_outlined,
-                                    title: 'Включить push-уведомления',
-                                    onTap: _actionRunning ? null : _enablePush,
-                                  ),
-                                  if (!kIsWeb &&
-                                      (defaultTargetPlatform ==
-                                              TargetPlatform.android ||
-                                          defaultTargetPlatform ==
-                                              TargetPlatform.iOS)) ...[
-                                    const SizedBox(height: AppSpacing.md),
-                                    _ActionRow(
-                                      icon: Icons.clear_all,
-                                      title: 'Очистить текущие уведомления',
-                                      onTap: _actionRunning
-                                          ? null
-                                          : _clearNotifications,
-                                    ),
-                                  ],
-                                ] else
-                                  Text(
-                                      'На этом устройстве push-уведомления недоступны',
-                                      style: AppTypography.body.copyWith(
-                                          color: palette.textSecondary)),
-                                if (_supportsPush) ...[
-                                  const SizedBox(height: AppSpacing.huge),
-                                  Text('Подписка',
-                                      style: AppTypography.title.copyWith(
-                                          color: palette.textPrimary)),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  _ActionRow(
-                                    icon: Icons.info_outline,
-                                    title: _subscriptionRefreshing
-                                        ? 'Обновление ID подписки…'
-                                        : _subscriptionId ??
-                                            (_subscriptionFailed
-                                                ? 'Не удалось получить ID подписки · повторить'
-                                                : 'ID подписки не получен · обновить'),
-                                    onTap: _subscriptionRefreshing
-                                        ? null
-                                        : _subscriptionId == null
-                                            ? _refreshSubscriptionId
-                                            : () async {
-                                                final id = _subscriptionId!;
-                                                try {
-                                                  await Clipboard.setData(
-                                                      ClipboardData(text: id));
-                                                  if (mounted) {
-                                                    _showMessage(
-                                                        'ID скопирован');
-                                                  }
-                                                } catch (_) {
-                                                  if (mounted) {
-                                                    _showMessage(
-                                                        'Не удалось скопировать ID');
-                                                  }
-                                                }
-                                              },
-                                    trailing: _subscriptionId == null
-                                        ? null
-                                        : const Icon(Icons.copy_outlined),
-                                  ),
-                                ],
-                              ],
-                            ),
-                ),
-              ],
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+              child: AppTopBar(title: 'Уведомления'),
             ),
+          ),
+        ),
+        body: (context, topInset) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: _loading
+                ? Padding(
+                    padding: EdgeInsets.only(top: topInset),
+                    child: const Center(child: CircularProgressIndicator()),
+                  )
+                : _loadFailed
+                    ? Padding(
+                        padding: EdgeInsets.only(top: topInset),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Не удалось загрузить настройки',
+                                  style: AppTypography.title
+                                      .copyWith(color: palette.textPrimary)),
+                              const SizedBox(height: AppSpacing.xl),
+                              TextButton(
+                                onPressed: _loadSettings,
+                                child: const Text('Повторить'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _settings(palette, topInset),
           ),
         ),
       ),
     );
   }
-}
 
-class _NotificationPreference extends StatelessWidget {
-  const _NotificationPreference({
-    required this.title,
-    required this.detail,
-    required this.icon,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String detail;
-  final IconData icon;
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppRadii.lg),
-      child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-        secondary: Icon(icon, color: palette.accent),
-        title: Text(title,
-            style:
-                AppTypography.titleMedium.copyWith(color: palette.textPrimary)),
-        subtitle: Text(detail,
-            style:
-                AppTypography.bodySmall.copyWith(color: palette.textSecondary)),
-        value: value,
-        onChanged: onChanged,
-      ),
-    );
+  String get _permissionLine {
+    final state = _permissionState;
+    if (state == null) return 'Статус разрешения не получен';
+    if (!state.supported) {
+      return 'Браузер не поддерживает push на этом устройстве';
+    }
+    if (!state.permissionGranted) {
+      return 'Разрешение на уведомления не получено';
+    }
+    if (!state.optedIn) return 'Разрешение есть, подписка выключена';
+    return 'Уведомления разрешены, подписка включена';
   }
-}
 
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.trailing,
-  });
+  bool get _mobilePlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
-  final IconData icon;
-  final String title;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppRadii.lg),
-      child: ListTile(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.lg)),
-        leading: Icon(icon, color: palette.accent),
-        title: Text(title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style:
-                AppTypography.bodyMedium.copyWith(color: palette.textPrimary)),
-        trailing: trailing,
-        onTap: onTap,
+  Widget _settings(AppPalette palette, double topInset) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.xxxl,
+        topInset + AppSpacing.xxxl,
+        AppSpacing.xxxl,
+        AppSpacing.huge + MediaQuery.paddingOf(context).bottom,
       ),
+      children: [
+        SettingsSection(
+          title: 'Это устройство',
+          children: [
+            if (_supportsPush)
+              SettingsRow(
+                key: const ValueKey('notification-enable-push'),
+                icon: Icons.notifications_active_outlined,
+                title: 'Включить push-уведомления',
+                subtitle: _permissionLine,
+                onTap: _actionRunning ? null : _enablePush,
+              )
+            else
+              SettingsRow(
+                key: const ValueKey('notification-push-unavailable'),
+                icon: Icons.notifications_off_outlined,
+                title: 'Push-уведомления',
+                subtitle: _pushPlatform
+                    ? _permissionLine
+                    : 'На этом устройстве push-уведомления недоступны',
+              ),
+            if (_supportsPush && _mobilePlatform)
+              SettingsRow(
+                key: const ValueKey('notification-clear'),
+                icon: Icons.clear_all,
+                title: 'Очистить текущие уведомления',
+                onTap: _actionRunning ? null : _clearNotifications,
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.huge),
+        SettingsSection(
+          title: 'Что присылать',
+          children: [
+            for (final option in _options)
+              SettingsRow(
+                key: ValueKey('notification-topic-${option.topic}'),
+                icon: option.icon,
+                title: option.title,
+                subtitle: option.detail,
+                switchValue: _values[option.topic] ?? false,
+                onSwitch:
+                    !_supportsPush || _pendingTopics.contains(option.topic)
+                        ? null
+                        : (value) => _toggle(option.topic, value),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

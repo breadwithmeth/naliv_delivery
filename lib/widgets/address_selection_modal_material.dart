@@ -21,6 +21,10 @@ class AddressSelectionModalHelper {
     TileProvider? tileProvider,
     Future<AddressLocateResult> Function()? locate,
     String? detailsConfirmButtonLabel,
+
+    /// False when the caller edits entrance, floor and flat itself (checkout):
+    /// the map's confirmation then returns the address directly.
+    bool collectDetails = true,
     String? city,
     ({double lat, double lon})? fallbackCenter,
   }) async {
@@ -73,6 +77,7 @@ class AddressSelectionModalHelper {
         initialAddress: prefill,
         tileProvider: tileProvider,
         locate: locate,
+        collectDetails: collectDetails,
         detailsConfirmButtonLabel: detailsConfirmButtonLabel,
         city: scopedCity,
         fallbackCenter: fallbackCenter);

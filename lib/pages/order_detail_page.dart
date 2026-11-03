@@ -12,6 +12,7 @@ import '../design/typography.dart';
 import '../services/auth_service.dart';
 import '../services/repeat_order_service.dart';
 import '../ui/app_states.dart';
+import '../ui/frosted_surface.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
 import '../utils/api.dart';
@@ -337,32 +338,29 @@ class _OrderDetailPageState extends State<OrderDetailPage>
         '—';
     return Scaffold(
       extendBody: true,
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: Column(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                  child: AppTopBar(
-                    title: 'Заказ №$id',
-                    onBack: () => Navigator.of(context).maybePop(),
-                  ),
-                ),
-                Expanded(
-                  child: Builder(builder: (bodyContext) {
-                    return details == null
-                        ? const AppLoading()
-                        : _orderBody(details,
-                            bottomClearance:
-                                MediaQuery.paddingOf(bodyContext).bottom);
-                  }),
-                ),
-              ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: FrostedHeaderLayout(
+            estimatedHeaderHeight: 87,
+            header: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
+              child: AppTopBar(
+                title: 'Заказ №$id',
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
             ),
+            body: (bodyContext, topInset) => details == null
+                ? Padding(
+                    padding: EdgeInsets.only(top: topInset),
+                    child: const AppLoading(),
+                  )
+                : _orderBody(
+                    details,
+                    topInset: topInset,
+                    bottomClearance: MediaQuery.paddingOf(bodyContext).bottom,
+                  ),
           ),
         ),
       ),
@@ -372,18 +370,27 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     );
   }
 
-  Widget _orderBody(_OrderDetails details, {required double bottomClearance}) {
+  Widget _orderBody(
+    _OrderDetails details, {
+    required double topInset,
+    required double bottomClearance,
+  }) {
     if (details.order.isEmpty) {
-      return AppErrorState(
-        message: 'Не удалось загрузить заказ',
-        onRetry: _loading ? null : _loadOrder,
+      return Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: AppErrorState(
+          message: 'Не удалось загрузить заказ',
+          onRetry: _loading ? null : _loadOrder,
+        ),
       );
     }
     return RefreshIndicator(
       onRefresh: _loadOrder,
+      edgeOffset: topInset,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          SliverToBoxAdapter(child: SizedBox(height: topInset)),
           if (_loading)
             const SliverToBoxAdapter(child: LinearProgressIndicator()),
           if (_notice != null)

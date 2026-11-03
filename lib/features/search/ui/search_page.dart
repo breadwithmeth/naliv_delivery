@@ -10,6 +10,7 @@ import '../../../ui/app_search_field.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
 import '../../../ui/frosted_dock.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/product_row.dart';
 import '../../../core/like_action.dart';
 import '../../../utils/cart_provider.dart';
@@ -182,73 +183,81 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: FrostedDock(
-          content: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.gutter, AppSpacing.xl, AppSpacing.gutter, 0),
-                child: Row(
-                  children: [
-                    AppIconButton(
-                      asset: AppIcons.back,
-                      onTap: () => Navigator.of(context).maybePop(),
-                      tooltip: 'Назад',
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: AppSearchField(
-                        controller: _controller,
-                        autofocus: true,
-                        onSubmitted: _search,
-                        onChanged: _textChanged,
-                      ),
-                    ),
-                  ],
+      body: FrostedDock(
+        content: FrostedHeaderLayout(
+          estimatedHeaderHeight: 66,
+          header: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.gutter,
+              AppSpacing.xl,
+              AppSpacing.gutter,
+              AppSpacing.md,
+            ),
+            child: Row(
+              children: [
+                AppIconButton(
+                  asset: AppIcons.back,
+                  onTap: () => Navigator.of(context).maybePop(),
+                  tooltip: 'Назад',
                 ),
-              ),
-              const SizedBox(height: AppSpacing.huge),
-              Expanded(
-                child: _list(),
-              ),
-            ],
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: AppSearchField(
+                    controller: _controller,
+                    autofocus: true,
+                    onSubmitted: _search,
+                    onChanged: _textChanged,
+                  ),
+                ),
+              ],
+            ),
           ),
-          dock: Selector<CartProvider, (int, double?)>(
-            selector: (_, cart) => (
-              cart.displayItemCount,
-              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
-            ),
-            builder: (_, summary, __) => AppCartButton(
-              itemCount: summary.$1,
-              total: summary.$2,
-              onTap: widget.onCart,
-            ),
+          body: (context, topInset) => _list(topInset),
+        ),
+        dock: Selector<CartProvider, (int, double?)>(
+          selector: (_, cart) => (
+            cart.displayItemCount,
+            cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
+          ),
+          builder: (_, summary, __) => AppCartButton(
+            itemCount: summary.$1,
+            total: summary.$2,
+            onTap: widget.onCart,
           ),
         ),
       ),
     );
   }
 
-  Widget _list() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+  Widget _list(double topInset) {
+    if (_loading) {
+      return Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
     if (_failed) {
-      return AppErrorState(
-        message: 'Не удалось выполнить поиск',
-        onRetry: () => _search(_controller.text),
+      return Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: AppErrorState(
+          message: 'Не удалось выполнить поиск',
+          onRetry: () => _search(_controller.text),
+        ),
       );
     }
     final results = _results;
     if (results == null) return const SizedBox.shrink();
     if (results.isEmpty && !_hasMore) {
-      return const AppEmptyState(title: 'Товары не найдены', muted: true);
+      return Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: const AppEmptyState(title: 'Товары не найдены', muted: true),
+      );
     }
     return ListView.separated(
       controller: _scroll,
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxxl,
-        0,
+        topInset + AppSpacing.xxxl,
         AppSpacing.xxxl,
         AppCartButton.clearanceFor(context) +
             MediaQuery.paddingOf(context).bottom,

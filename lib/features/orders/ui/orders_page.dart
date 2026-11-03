@@ -11,6 +11,7 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_top_bar.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/frosted_dock.dart';
 import '../../../services/auth_service.dart';
 import '../../../utils/api.dart';
@@ -177,58 +178,55 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final onCart = widget.onCart;
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: FrostedDock(
-              content: Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-                    child: AppTopBar(
-                      title: 'Мои заказы',
-                      onBack: () => Navigator.of(context).maybePop(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.huge),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: _load,
-                      child: _body(),
-                    ),
-                  ),
-                ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: FrostedDock(
+            content: FrostedHeaderLayout(
+              estimatedHeaderHeight: 87,
+              header: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
+                child: AppTopBar(
+                  title: 'Мои заказы',
+                  onBack: () => Navigator.of(context).maybePop(),
+                ),
               ),
-              dock: onCart == null
-                  ? null
-                  : Selector<CartProvider, (int, int?)>(
-                      selector: (_, cart) => (
-                        cart.displayItemCount,
-                        cart.displayItemCount == 0
-                            ? null
-                            : cart.getTotalPrice().round(),
-                      ),
-                      builder: (_, summary, __) => AppCartButton(
-                        itemCount: summary.$1,
-                        total: summary.$2,
-                        onTap: onCart,
-                      ),
-                    ),
+              body: (context, topInset) => RefreshIndicator(
+                onRefresh: _load,
+                edgeOffset: topInset,
+                child: _body(topInset),
+              ),
             ),
+            dock: onCart == null
+                ? null
+                : Selector<CartProvider, (int, int?)>(
+                    selector: (_, cart) => (
+                      cart.displayItemCount,
+                      cart.displayItemCount == 0
+                          ? null
+                          : cart.getTotalPrice().round(),
+                    ),
+                    builder: (_, summary, __) => AppCartButton(
+                      itemCount: summary.$1,
+                      total: summary.$2,
+                      onTap: onCart,
+                    ),
+                  ),
           ),
         ),
       ),
     );
   }
 
-  Widget _body() {
+  Widget _body(double topInset) {
     final orders = _orders;
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
+        SliverToBoxAdapter(
+          child: SizedBox(height: topInset + AppSpacing.xxxl),
+        ),
         if (_loading)
           const SliverToBoxAdapter(child: LinearProgressIndicator()),
         if (_failed)

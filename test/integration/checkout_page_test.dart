@@ -1879,7 +1879,7 @@ void main() {
         ),
       );
       expect(_enabled(tester), isFalse);
-      expect(find.text('г. Темиртау'), findsOneWidget);
+      expect(find.textContaining('Доставка по г. Темиртау'), findsOneWidget);
       await _show(tester, 'checkout-address');
       await tester.tap(find.byKey(const ValueKey('checkout-address')));
       await tester.pumpAndSettle();

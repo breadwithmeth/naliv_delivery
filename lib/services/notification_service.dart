@@ -305,11 +305,6 @@ class NotificationService {
         debugPrint('Push cleanup unavailable: $error');
       });
 
-  Future<String?> getCurrentSubscriptionId() async {
-    await initialize();
-    return (await _provider.readSubscription()).subscriptionId;
-  }
-
   void dispose() {
     if (_disposed) return;
     _disposed = true;

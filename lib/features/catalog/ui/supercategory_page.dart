@@ -10,6 +10,7 @@ import '../../../ui/app_cart_button.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_dock.dart';
+import '../../../ui/frosted_surface.dart';
 import '../../../ui/product_card.dart';
 import '../../../ui/product_grid.dart';
 import '../../../ui/surfaces.dart';
@@ -73,6 +74,9 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
   /// The section the customer jumped to; kept at the top while sections above it finish
   /// loading and change height, until the customer scrolls by hand.
   int? _anchor;
+
+  /// Height of the floating header (status bar included) the list scrolls under.
+  double _headerInset = 0;
 
   @override
   void initState() {
@@ -138,9 +142,10 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final id = _anchor;
       if (!mounted || id == null || _isAligned(id)) return;
-      final target = _sectionKeys[id]?.currentContext;
-      if (target != null && target.mounted) {
-        Scrollable.ensureVisible(target);
+      final box = _sectionKeys[id]?.currentContext?.findRenderObject();
+      if (box is RenderBox && box.attached && _scroll.hasClients) {
+        final offset = _sectionOffset(box);
+        if (offset != null) _scroll.jumpTo(offset);
       }
     });
   }
@@ -209,7 +214,8 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
       for (final parent in parents) {
         final box = _sectionKeys[parent.id]?.currentContext?.findRenderObject();
         if (box is! RenderBox || !box.attached || !box.hasSize) continue;
-        if (box.localToGlobal(Offset.zero).dy - top <= _spyInset) {
+        if (box.localToGlobal(Offset.zero).dy - top <=
+            _spyInset + _headerInset) {
           next = parent.id;
         } else if (next != null) {
           break;
@@ -230,13 +236,18 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
       for (var attempt = 0; attempt < 8 && mounted; attempt++) {
         final target = _sectionKeys[parent.id]?.currentContext;
         if (target != null && target.mounted) {
-          await Scrollable.ensureVisible(
-            target,
-            duration: attempt == 0
-                ? const Duration(milliseconds: 280)
-                : Duration.zero,
-            curve: Curves.easeOutCubic,
-          );
+          final box = target.findRenderObject();
+          final offset = box is RenderBox ? _sectionOffset(box) : null;
+          if (offset == null) return;
+          if (attempt == 0) {
+            await _scroll.animateTo(
+              offset,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+            );
+          } else {
+            _scroll.jumpTo(offset);
+          }
           await WidgetsBinding.instance.endOfFrame;
           // Sections built on the way load their previews and change height,
           // which can shift the target after the scroll; align again until it
@@ -274,26 +285,40 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     }
   }
 
+  /// The scroll offset that puts [box]'s top edge just under the floating
+  /// header. [RenderAbstractViewport.getOffsetToReveal] aligns within
+  /// `viewport - target` extent, which is not the header inset when the target
+  /// is tall, so the header's height is subtracted from the top-aligned offset.
+  double? _sectionOffset(RenderBox box) {
+    final viewport = RenderAbstractViewport.maybeOf(box);
+    if (viewport == null || !_scroll.hasClients) return null;
+    final position = _scroll.position;
+    return (viewport.getOffsetToReveal(box, 0).offset -
+            _headerInset -
+            AppSpacing.md)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+  }
+
   bool _isAligned(int id) {
     final box = _sectionKeys[id]?.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.attached || !box.hasSize) return false;
     if (!_scroll.hasClients) return true;
-    final position = _scroll.position;
-    if (position.pixels >= position.maxScrollExtent - 1) return true;
-    final viewport = RenderAbstractViewport.maybeOf(box);
-    if (viewport == null) return true;
-    final revealed = viewport.getOffsetToReveal(box, 0).offset;
-    return (revealed - position.pixels).abs() <= 1;
+    final offset = _sectionOffset(box);
+    if (offset == null) return true;
+    return (offset - _scroll.position.pixels).abs() <= 1;
   }
 
   @override
   Widget build(BuildContext context) {
     final data = _data;
+    final showSwitcher = !_failed && data != null && _parents.length > 1;
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: FrostedDock(
-          content: Column(
+      body: FrostedDock(
+        content: FrostedHeaderLayout(
+          // Top bar (79) + gap + tab rail (56).
+          estimatedHeaderHeight: showSwitcher ? 79 + AppSpacing.md + 56 : 79,
+          header: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
                 padding:
@@ -304,39 +329,70 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
                   onSearch: widget.onSearch,
                 ),
               ),
-              const SizedBox(height: AppSpacing.huge),
-              Expanded(
-                child: Center(
+              if (showSwitcher) ...[
+                const SizedBox(height: AppSpacing.md),
+                Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 840),
-                    child: _body(data),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.gutter),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable: _active,
+                        builder: (_, active, __) {
+                          final parents = _parents;
+                          return CategorySwitcher(
+                            parents: parents,
+                            selectedId:
+                                parents.any((parent) => parent.id == active)
+                                    ? active!
+                                    : parents.first.id,
+                            onParent: _scrollTo,
+                            onChild: _openChild,
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
-          dock: Selector<CartProvider, (int, double?)>(
-            selector: (_, cart) => (
-              cart.displayItemCount,
-              cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
-            ),
-            builder: (_, summary, __) => AppCartButton(
-              itemCount: summary.$1,
-              total: summary.$2,
-              onTap: widget.onCart,
-            ),
+          body: (context, topInset) {
+            _headerInset = topInset;
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 840),
+                child: _body(data, topInset, showSwitcher),
+              ),
+            );
+          },
+        ),
+        dock: Selector<CartProvider, (int, double?)>(
+          selector: (_, cart) => (
+            cart.displayItemCount,
+            cart.displayItemCount == 0 ? null : cart.getTotalPrice(),
+          ),
+          builder: (_, summary, __) => AppCartButton(
+            itemCount: summary.$1,
+            total: summary.$2,
+            onTap: widget.onCart,
           ),
         ),
       ),
     );
   }
 
-  EdgeInsets get _listPadding => EdgeInsets.only(
+  /// The list scrolls under the floating header, so it starts [topInset] down;
+  /// with the tab rail in the header the first section already has its own gap.
+  EdgeInsets _listPadding(double topInset, bool showSwitcher) =>
+      EdgeInsets.only(
+        top: topInset + (showSwitcher ? 0 : AppSpacing.huge),
         bottom: AppCartButton.clearanceFor(context) +
             MediaQuery.paddingOf(context).bottom,
       );
 
-  Widget _body(SupercategoryView? data) {
+  Widget _body(SupercategoryView? data, double topInset, bool showSwitcher) {
     Widget? state;
     if (_failed) {
       state = AppErrorState(
@@ -357,7 +413,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
       return ListView(
         key: const ValueKey('catalog-overview'),
         controller: _scroll,
-        padding: _listPadding,
+        padding: _listPadding(topInset, false),
         children: [state],
       );
     }
@@ -365,87 +421,65 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     final parents = _parents;
     final hasDescription = loaded.description?.isNotEmpty == true;
     final offset = hasDescription ? 1 : 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (parents.length > 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-            child: ValueListenableBuilder<int?>(
-              valueListenable: _active,
-              builder: (_, active, __) => CategorySwitcher(
-                parents: parents,
-                selectedId: parents.any((parent) => parent.id == active)
-                    ? active!
-                    : parents.first.id,
-                onParent: _scrollTo,
-                onChild: _openChild,
+    return NotificationListener<ScrollStartNotification>(
+      onNotification: (notification) {
+        if (notification.dragDetails != null) _anchor = null;
+        return false;
+      },
+      child: ListView.builder(
+        key: const ValueKey('catalog-overview'),
+        controller: _scroll,
+        padding: _listPadding(topInset, showSwitcher),
+        itemCount: parents.length + offset,
+        findChildIndexCallback: (key) {
+          if (key is! ValueKey<int>) return null;
+          final index = parents.indexWhere((p) => p.id == key.value);
+          return index < 0 ? null : index + offset;
+        },
+        itemBuilder: (context, index) {
+          if (hasDescription && index == 0) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.md,
+                AppSpacing.gutter,
+                AppSpacing.xl,
+              ),
+              child: Text(
+                loaded.description!,
+                style: AppTypography.bodySmall
+                    .copyWith(color: context.palette.textSecondary),
+              ),
+            );
+          }
+          final parent = parents[index - offset];
+          return Padding(
+            key: ValueKey<int>(parent.id),
+            padding: const EdgeInsets.only(
+              top: AppSpacing.md,
+              bottom: AppSpacing.huge,
+            ),
+            child: KeyedSubtree(
+              key: _keyFor(parent.id),
+              child: _ParentSection(
+                parent: parent,
+                businessId: widget.businessId,
+                previewLimit: _previewLimit,
+                initialPreview: _previews[parent.id],
+                onLoaded: (items, hasMore) =>
+                    _onPreview(parent, items, hasMore),
+                onOpen: (items, hasMore) => _openParent(
+                  parent,
+                  initialItems: items,
+                  initialHasMore: hasMore,
+                ),
+                onOpenChild: _openChild,
+                onCart: widget.onCart,
               ),
             ),
-          ),
-        Expanded(
-          child: NotificationListener<ScrollStartNotification>(
-            onNotification: (notification) {
-              if (notification.dragDetails != null) _anchor = null;
-              return false;
-            },
-            child: ListView.builder(
-              key: const ValueKey('catalog-overview'),
-              controller: _scroll,
-              padding: _listPadding,
-              itemCount: parents.length + offset,
-              findChildIndexCallback: (key) {
-                if (key is! ValueKey<int>) return null;
-                final index = parents.indexWhere((p) => p.id == key.value);
-                return index < 0 ? null : index + offset;
-              },
-              itemBuilder: (context, index) {
-                if (hasDescription && index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.gutter,
-                      AppSpacing.md,
-                      AppSpacing.gutter,
-                      AppSpacing.xl,
-                    ),
-                    child: Text(
-                      loaded.description!,
-                      style: AppTypography.bodySmall
-                          .copyWith(color: context.palette.textSecondary),
-                    ),
-                  );
-                }
-                final parent = parents[index - offset];
-                return Padding(
-                  key: ValueKey<int>(parent.id),
-                  padding: const EdgeInsets.only(
-                    top: AppSpacing.md,
-                    bottom: AppSpacing.huge,
-                  ),
-                  child: KeyedSubtree(
-                    key: _keyFor(parent.id),
-                    child: _ParentSection(
-                      parent: parent,
-                      businessId: widget.businessId,
-                      previewLimit: _previewLimit,
-                      initialPreview: _previews[parent.id],
-                      onLoaded: (items, hasMore) =>
-                          _onPreview(parent, items, hasMore),
-                      onOpen: (items, hasMore) => _openParent(
-                        parent,
-                        initialItems: items,
-                        initialHasMore: hasMore,
-                      ),
-                      onOpenChild: _openChild,
-                      onCart: widget.onCart,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }

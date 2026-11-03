@@ -10,8 +10,9 @@ import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
 import 'package:naliv_delivery/ui/app_icon.dart';
+import 'package:naliv_delivery/ui/app_icon_button.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
-import 'package:naliv_delivery/ui/surfaces.dart';
+import 'package:naliv_delivery/ui/frosted_surface.dart';
 import 'package:naliv_delivery/core/money.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
@@ -364,11 +365,12 @@ class _HelpChatPageState extends State<HelpChatPage>
     };
   }
 
-  String get _statusText {
+  /// Connection trouble worth showing under the name; null when the chat works.
+  String? get _statusText {
     if (_loading) return 'Загрузка сообщений…';
     if (_sessionFailed) return 'Нет подключения к чату';
     if (_historyError != null) return 'Не удалось обновить чат';
-    return 'Чат поддержки';
+    return null;
   }
 
   Future<void> _sendMessage({bool attachOrder = false}) async {
@@ -530,29 +532,34 @@ class _HelpChatPageState extends State<HelpChatPage>
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: context.palette.background,
-      body: SafeArea(
-        child: Center(
+      body: FrostedHeaderLayout(
+        header: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: AppTopBar(
-                    title: 'Поддержка',
-                    onBack: () => Navigator.of(context).maybePop(),
-                  ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: AppTopBar(
+                title: 'Поддержка',
+                onBack: () => Navigator.of(context).maybePop(),
+                trailing: AppIconButton(
+                  key: const ValueKey('support-faq'),
+                  asset: AppIcons.faq,
+                  tooltip: 'Вопросы и ответы',
+                  onTap: _openFaq,
                 ),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(child: _conversation()),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: _composer(),
-                      ),
-                    ],
-                  ),
+              ),
+            ),
+          ),
+        ),
+        body: (context, topInset) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Stack(
+              children: [
+                Positioned.fill(child: _conversation(topInset)),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _composer(),
                 ),
               ],
             ),
@@ -575,10 +582,8 @@ class _HelpChatPageState extends State<HelpChatPage>
     });
   }
 
-  Widget _conversation() {
+  Widget _conversation(double topInset) {
     final rows = <Widget>[
-      _faqCard(),
-      const SizedBox(height: 32),
       _supportIdentity(),
       const SizedBox(height: 24),
       if (_selectedOrder != null ||
@@ -610,7 +615,7 @@ class _HelpChatPageState extends State<HelpChatPage>
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+          padding: EdgeInsets.fromLTRB(16, topInset + 24, 16, 0),
           sliver: SliverList.list(children: rows),
         ),
         SliverPadding(
@@ -629,83 +634,6 @@ class _HelpChatPageState extends State<HelpChatPage>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _faqCard() {
-    final palette = context.palette;
-    return Container(
-      key: const ValueKey('support-faq-card'),
-      decoration: BoxDecoration(
-        color: palette.accent.withValues(alpha: 0.20),
-        borderRadius: AppRadii.lgAll,
-        border: Theme.of(context).brightness == Brightness.dark
-            ? Border.all(color: palette.textPrimary.withValues(alpha: 0.18))
-            : null,
-        boxShadow: Theme.of(context).brightness == Brightness.dark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  offset: const Offset(0, 3),
-                  blurRadius: 5,
-                ),
-              ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: palette.accentFaint,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.question_mark_rounded,
-                color: palette.accent, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Сначала можно проверить FAQ',
-                    style: AppTypography.bodyBold.copyWith(
-                      color: palette.textPrimary,
-                    )),
-                const SizedBox(height: 8),
-                Text(
-                  switch (widget.entryPoint) {
-                    'payment_failure' =>
-                      'Ответы по картам, списаниям и ошибкам оплаты.',
-                    'order_detail' =>
-                      'Ответы по задержкам, отменам и возвратам заказов.',
-                    _ =>
-                      'Там уже есть ответы по входу, оплате, доставке, бонусам и возвратам',
-                  },
-                  style: AppTypography.label.copyWith(
-                    color: palette.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                TextButton.icon(
-                  onPressed: _openFaq,
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('Открыть FAQ'),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(44, 44),
-                    alignment: Alignment.centerLeft,
-                    textStyle: AppTypography.body,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -734,11 +662,13 @@ class _HelpChatPageState extends State<HelpChatPage>
               Text(_config?.name ?? 'Поддержка',
                   style:
                       AppTypography.title.copyWith(color: palette.textPrimary)),
-              const SizedBox(height: 4),
-              Text(_statusText,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: palette.textSecondary,
-                  )),
+              if (_statusText case final status?) ...[
+                const SizedBox(height: 4),
+                Text(status,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: palette.textSecondary,
+                    )),
+              ],
             ],
           ),
         ),
@@ -922,12 +852,15 @@ class _HelpChatPageState extends State<HelpChatPage>
     );
   }
 
+  /// The composer floats over the conversation as one glass pill (Figma 343 × 46, radius 30)
+  /// with a 38 px orange glass send button inset 4 px. It rides above the keyboard because
+  /// the Scaffold resizes the body, and the chat scrolls blurred beneath it.
   Widget _composer() {
     final palette = context.palette;
-    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final padding = MediaQuery.paddingOf(context).bottom;
     return Padding(
       key: _composerKey,
-      padding: EdgeInsets.fromLTRB(16, 12, 16, keyboardVisible ? 12 : 25),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, padding + 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -942,75 +875,90 @@ class _HelpChatPageState extends State<HelpChatPage>
             ),
             const SizedBox(height: 8),
           ],
-          AppSurface(
+          FrostedSurface(
             key: const ValueKey('support-composer'),
-            radius: AppRadii.pill,
-            clip: true,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('support-message-input'),
-                    controller: _messageController,
-                    focusNode: _messageFocus,
-                    readOnly: _sending && !_sendingContext,
-                    minLines: 1,
-                    maxLines: MediaQuery.sizeOf(context).height -
-                                MediaQuery.viewInsetsOf(context).bottom <
-                            500
-                        ? 2
-                        : 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
-                    style: AppTypography.titleRegular
-                        .copyWith(color: palette.textPrimary),
-                    onChanged: (_) => _measureComposerAfterLayout(),
-                    decoration: InputDecoration(
-                      hintText: 'Сообщение',
-                      hintStyle:
-                          AppTypography.base(size: 16, weight: 300).copyWith(
-                        color: palette.textSecondary,
+            borderRadius: BorderRadius.circular(30),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 46),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: TextField(
+                        key: const ValueKey('support-message-input'),
+                        controller: _messageController,
+                        focusNode: _messageFocus,
+                        readOnly: _sending && !_sendingContext,
+                        minLines: 1,
+                        maxLines: MediaQuery.sizeOf(context).height -
+                                    MediaQuery.viewInsetsOf(context).bottom <
+                                500
+                            ? 2
+                            : 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                        cursorColor: palette.accent,
+                        style: AppTypography.bodyLight
+                            .copyWith(color: palette.textPrimary),
+                        onChanged: (_) => _measureComposerAfterLayout(),
+                        decoration: InputDecoration(
+                          hintText: 'Сообщение',
+                          hintStyle: AppTypography.bodyLight
+                              .copyWith(color: palette.textSecondary),
+                          filled: false,
+                          isDense: true,
+                          contentPadding:
+                              const EdgeInsets.fromLTRB(18, 10, 8, 10),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
                       ),
-                      filled: false,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
                     ),
                   ),
-                ),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _messageController,
-                  builder: (_, value, __) => IconButton.filled(
-                    key: const ValueKey('support-send'),
-                    onPressed: _loading ||
-                            _sessionFailed ||
-                            _sending ||
-                            value.text.trim().isEmpty
-                        ? null
-                        : () => _sendMessage(),
-                    tooltip: 'Отправить сообщение',
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(44, 44),
-                      maximumSize: const Size(44, 44),
-                      backgroundColor: palette.accent,
-                      foregroundColor: palette.textOnAccent,
-                      disabledBackgroundColor: palette.accentSoft,
-                      disabledForegroundColor: palette.textOnAccent,
+                  SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: Center(
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _messageController,
+                        builder: (_, value, __) => IconButton.filled(
+                          key: const ValueKey('support-send'),
+                          onPressed: _loading ||
+                                  _sessionFailed ||
+                                  _sending ||
+                                  value.text.trim().isEmpty
+                              ? null
+                              : () => _sendMessage(),
+                          tooltip: 'Отправить сообщение',
+                          style: IconButton.styleFrom(
+                            fixedSize: const Size(38, 38),
+                            minimumSize: const Size(38, 38),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: Frost.accent(context),
+                            foregroundColor: palette.textOnAccent,
+                            disabledBackgroundColor:
+                                palette.accent.withValues(alpha: 0.42),
+                            disabledForegroundColor:
+                                palette.textOnAccent.withValues(alpha: 0.8),
+                          ),
+                          icon: _sending && !_sendingContext
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: palette.textOnAccent))
+                              : const Icon(Icons.send_rounded, size: 20),
+                        ),
+                      ),
                     ),
-                    icon: _sending && !_sendingContext
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: palette.textOnAccent))
-                        : const Icon(Icons.send_outlined, size: 24),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

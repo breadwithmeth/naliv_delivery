@@ -10,39 +10,39 @@ const _kaspiRed = Color(0xFFF14635);
 
 /// Kaspi.kz logo for screens of the payment process.
 ///
-/// [compact] is the round mark (Logo / Compact, 6199:60011) used beside the name
-/// written as text in a list of payment methods. The full logo is the basic one
-/// (6199:60564) on light backgrounds; dark backgrounds do not give the basic logo's
-/// black wordmark enough contrast, so they use the official logo for coloured or
-/// complex backgrounds (white plate, 6199:59860). The white wordmark that sits inside
-/// the red button is a button element and is not used on its own.
+/// The full logo is the basic one (6199:60564) on light backgrounds; dark backgrounds do
+/// not give the basic logo's black wordmark enough contrast, so they use the official
+/// logo for coloured or complex backgrounds (white plate, 6199:59860), scaled uniformly
+/// to the 112 dp the rules ask of a full logo. Every layout of this app has room for it
+/// (a payment-method row at 320 dp keeps 220 dp for the logo and Gold), so the compact
+/// mark (written-name or short-space variant) is never needed. The white wordmark that
+/// sits inside the red button is a button element and is not used on its own.
+///
+/// The logo keeps a clear space of 20% of its height on every side. A layout that
+/// already guarantees that space around it (a list row with its own padding) passes
+/// [clearSpace] `false`, so the artwork lines up with the row's other leading glyphs.
 class KaspiLogo extends StatelessWidget {
-  const KaspiLogo({super.key, this.compact = false});
+  const KaspiLogo({super.key, this.clearSpace = true});
 
-  final bool compact;
+  /// Whether the logo adds its own 20% free zone.
+  final bool clearSpace;
+
+  /// Width of the full logo: the minimum the rules allow, on both backgrounds.
+  static const double fullWidth = 112;
 
   @override
   Widget build(BuildContext context) {
-    if (compact) {
-      return Padding(
-        padding: const EdgeInsets.all(32 * .2),
-        child: SvgPicture.asset(
-          'assets/icons/kaspi/compact.svg',
-          width: 32,
-          height: 32,
-          excludeFromSemantics: true,
-        ),
-      );
-    }
     final dark = Theme.of(context).brightness == Brightness.dark;
+    // The plate is drawn 96 × 28; scaling it to 112 keeps its proportions.
+    final height = dark ? fullWidth * 28 / 96 : 28.0;
     return Padding(
-      padding: const EdgeInsets.all(28 * .2),
+      padding: EdgeInsets.all(clearSpace ? height * .2 : 0),
       child: SvgPicture.asset(
         dark
             ? 'assets/icons/kaspi/logo_plate.svg'
             : 'assets/icons/kaspi/logo.svg',
-        width: dark ? 96 : 112,
-        height: 28,
+        width: fullWidth,
+        height: height,
         semanticsLabel: 'Kaspi.kz',
       ),
     );
@@ -50,13 +50,16 @@ class KaspiLogo extends StatelessWidget {
 }
 
 /// ProductBadge / Gold as shown next to Kaspi.kz in a list of payment methods
-/// (6199:60019, drawn at the list height of 28).
+/// (6199:60019, drawn at the list height of 28). [clearSpace] works as on
+/// [KaspiLogo].
 class KaspiGoldBadge extends StatelessWidget {
-  const KaspiGoldBadge({super.key});
+  const KaspiGoldBadge({super.key, this.clearSpace = true});
+
+  final bool clearSpace;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(28 * .2),
+        padding: EdgeInsets.all(clearSpace ? 28 * .2 : 0),
         child: SvgPicture.asset(
           'assets/icons/kaspi/gold.svg',
           width: 36.4,
@@ -80,9 +83,9 @@ class KaspiPayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        // Free zone of at least 8 dp. Horizontally the footer container already
-        // keeps 12 dp, so the button spans its full width and is never smaller
-        // than the other payment action.
+        // Free zone of at least 8 dp. Horizontally the frosted dock already keeps
+        // 16 dp, so the button spans its full width and is never smaller than the
+        // other payment action.
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: FilledButton(
           key: buttonKey,

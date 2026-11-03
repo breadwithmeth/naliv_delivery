@@ -32,6 +32,9 @@ abstract final class AppIcons {
   static const String shopGlyph = '$root/shop_glyph.svg';
   static const String star = '$root/star.svg';
   static const String heart = '$root/heart.svg';
+
+  /// The same heart, filled: the "liked" state of a favourite control.
+  static const String heartFilled = '$root/heart_filled.svg';
   static const String bell = '$root/bell.svg';
   static const String user = '$root/user.svg';
   static const String search = '$root/search.svg';

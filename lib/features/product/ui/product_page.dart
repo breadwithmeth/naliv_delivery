@@ -15,6 +15,7 @@ import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
 import '../../../ui/frosted_dock.dart';
 import '../../../ui/motion_widgets.dart';
+import '../../../ui/product_hero_header.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/liked_items_provider.dart';
@@ -81,6 +82,14 @@ class _ProductPageState extends State<ProductPage> {
   }
 
   static const double _heroHeight = 320;
+
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   /// Adds the first step when the item is not in the cart; once it is, the
   /// same action opens the cart (quantity changes belong to the stepper).
@@ -194,7 +203,9 @@ class _ProductPageState extends State<ProductPage> {
             (likes) => likes.isLiked(widget.businessId!, widget.view.itemId));
     final quantity = cartState.$1;
     final canIncrement = cartState.$2;
-    final topInset = MediaQuery.paddingOf(context).top;
+    final pageColor = Theme.of(context).brightness == Brightness.light
+        ? palette.surface
+        : palette.background;
     final total = CartItem.calculatePrice([
       CartItem(
         itemId: widget.view.itemId,
@@ -213,20 +224,17 @@ class _ProductPageState extends State<ProductPage> {
         : 0;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.light
-          ? palette.surface
-          : palette.background,
+      backgroundColor: pageColor,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: FrostedDock(
             content: ColoredBox(
-              color: Theme.of(context).brightness == Brightness.light
-                  ? palette.surface
-                  : palette.background,
+              color: pageColor,
               child: Stack(
                 children: [
                   SingleChildScrollView(
+                    controller: _scroll,
                     padding: EdgeInsets.only(
                       bottom: _actionBarHeight +
                           MediaQuery.paddingOf(context).bottom +
@@ -317,41 +325,34 @@ class _ProductPageState extends State<ProductPage> {
                       ],
                     ),
                   ),
-                  // Fixed header: the frames keep it at y = 70 while the hero scrolls away.
                   Positioned(
-                    left: AppSpacing.xxxl,
-                    right: AppSpacing.xxxl,
-                    top: topInset + 22,
-                    child: SizedBox(
-                      height: 57,
-                      child: Row(
-                        children: [
-                          AppIconButton(
-                            asset: AppIcons.back,
-                            onTap: () => Navigator.of(context).maybePop(),
-                            tooltip: 'Назад',
-                          ),
-                          const Spacer(),
-                          AnimatedSwap(
-                            stateKey: liked,
-                            duration: AppMotion.pop,
-                            scale: .6,
-                            scaleCurve: AppMotion.overshoot,
-                            child: AppIconButton(
-                              // The design keeps the outline heart in both states and only
-                              // tints the disc, so no filled glyph is needed here.
-                              asset: AppIcons.heart,
-                              onTap: widget.onLike,
-                              tooltip: 'В избранное',
-                              size: AppSpacing.touchTarget,
-                              glyphSize: 24,
-                              fill: liked
-                                  ? palette.brandRed.withValues(alpha: 0.5)
-                                  : palette.surface.withValues(alpha: 0.75),
-                              color: liked ? Colors.white : palette.textPrimary,
-                            ),
-                          ),
-                        ],
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: ProductHeroHeader(
+                      controller: _scroll,
+                      heroHeight: _heroHeight,
+                      title: widget.view.title,
+                      background: pageColor,
+                      leading: AppIconButton(
+                        asset: AppIcons.back,
+                        onTap: () => Navigator.of(context).maybePop(),
+                        tooltip: 'Назад',
+                      ),
+                      trailing: AnimatedSwap(
+                        stateKey: liked,
+                        duration: AppMotion.pop,
+                        scale: .6,
+                        scaleCurve: AppMotion.overshoot,
+                        child: AppIconButton(
+                          asset: liked ? AppIcons.heartFilled : AppIcons.heart,
+                          onTap: widget.onLike,
+                          tooltip: 'В избранное',
+                          size: AppSpacing.touchTarget,
+                          glyphSize: 24,
+                          fill: liked ? AppIconButton.likedFill(palette) : null,
+                          color: liked ? Colors.white : palette.textPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -565,28 +566,10 @@ class _QuantityControl extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              'Количество',
-              style: AppTypography.titleRegular
-                  .copyWith(color: palette.textSecondary),
-            ),
-            if (pending) ...[
-              const SizedBox(width: AppSpacing.md),
-              Flexible(
-                child: Text(
-                  'Ещё не в корзине',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label
-                      .copyWith(color: palette.textSecondary),
-                ),
-              ),
-            ],
-          ],
+        Text(
+          'Количество',
+          style:
+              AppTypography.titleRegular.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.md),
         AppSurface(

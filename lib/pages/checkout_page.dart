@@ -24,6 +24,7 @@ import '../features/orders/ui/orders_page.dart';
 import '../services/onboarding_service.dart';
 import '../services/store_city.dart';
 import '../ui/app_icon.dart';
+import '../ui/app_icon_button.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
@@ -667,13 +668,17 @@ class _CheckoutPageState extends State<CheckoutPage>
       // the picker opens on the store's city instead.
       final wrongCity = addressMatchesCity(_address, city) == false;
       final current = wrongCity ? null : (_normalizedAddress() ?? _address);
-      final detailsFirst = !wrongCity && _address != null;
+      // Entrance, floor, flat and comment are edited inline on this page, so
+      // changing the address goes straight to choosing a new one on the map —
+      // never through the separate details page.
+      const detailsFirst = false;
       final selected = widget.addressPicker != null
           ? await widget.addressPicker!(context, current, detailsFirst,
               city: city, fallbackCenter: center)
           : await AddressSelectionModalHelper.show(context,
               initialAddress: current,
               openDetailsFirst: detailsFirst,
+              collectDetails: false,
               city: city,
               fallbackCenter: center);
       if (!mounted || selected == null) return;
@@ -1481,6 +1486,12 @@ class _CheckoutPageState extends State<CheckoutPage>
         title: 'Оформление',
         onBack: _back,
         backEnabled: !_busy,
+        trailing: AppIconButton(
+          key: const ValueKey('checkout-faq'),
+          asset: AppIcons.faq,
+          tooltip: 'Вопросы об оформлении',
+          onTap: _editingLocked ? null : () => _openHelp(FaqSection.delivery),
+        ),
       );
 
   double get _footerReserve => _hasItems
@@ -1531,18 +1542,17 @@ class _CheckoutPageState extends State<CheckoutPage>
             ],
             _fulfillment(),
             const SizedBox(height: 24),
-            _checkoutHelp(),
-            const SizedBox(height: 24),
             _benefits(),
             const SizedBox(height: 24),
             _orderSummary(),
             const SizedBox(height: 24),
             _summary(),
-            if (MediaQuery.viewInsetsOf(context).bottom > 0)
+            if (MediaQuery.viewInsetsOf(context).bottom > 0 &&
+                _submissionStatus != null)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  _submissionStatus,
+                  _submissionStatus!,
                   key: const ValueKey('checkout-readiness'),
                   style: AppTypography.caption,
                 ),
@@ -1586,44 +1596,6 @@ class _CheckoutPageState extends State<CheckoutPage>
                 ),
               ])
             : null,
-      );
-
-  Widget _checkoutHelp() => AppSurface(
-        key: const ValueKey('checkout-faq'),
-        onTap: _editingLocked ? null : () => _openHelp(FaqSection.delivery),
-        fill: context.palette.accentFaint,
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: context.palette.accent.withValues(alpha: .15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.question_mark,
-                  color: context.palette.accent, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Частые вопросы по оформлению',
-                      style: AppTypography.bodySmallBold),
-                  const SizedBox(height: 4),
-                  Text(
-                      'Минимальный заказ, доставка, промокоды, бонусы и отмена',
-                      style: AppTypography.caption
-                          .copyWith(color: context.palette.textSecondary)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: context.palette.textSecondary),
-          ],
-        ),
       );
 
   Widget _fulfillment() => Column(
@@ -1782,23 +1754,6 @@ class _CheckoutPageState extends State<CheckoutPage>
         ),
       );
 
-  Widget _infoChip(IconData icon, String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: context.palette.accentFaint,
-          borderRadius: AppRadii.pillAll,
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: context.palette.accent),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(label,
-                style: AppTypography.labelMedium
-                    .copyWith(color: context.palette.textPrimary)),
-          ),
-        ]),
-      );
-
   /// Tappable heading of a fulfilment card: glyph, title, supporting lines and
   /// a visual "change" pill (the whole heading is the hit target).
   Widget _cardHeader({
@@ -1865,7 +1820,6 @@ class _CheckoutPageState extends State<CheckoutPage>
     final palette = context.palette;
     final resolved = _businessId != null;
     final address = _business?.selectedBusiness?['address']?.toString().trim();
-    final city = _storeCity;
     return _card([
       _cardHeader(
         key: const ValueKey('checkout-store'),
@@ -1880,27 +1834,12 @@ class _CheckoutPageState extends State<CheckoutPage>
               : (address == null || address.isEmpty)
                   ? 'Магазин для заказа'
                   : address),
-          if (resolved && city != null) ...[
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 6, children: [
-              _infoChip(Icons.location_city_outlined, 'г. $city'),
-            ]),
-          ],
         ],
         actionLabel: resolved ? 'Изменить' : 'Выбрать',
         tooltip: resolved ? 'Изменить магазин' : 'Выбрать магазин',
         onTap: _editingLocked ? null : _selectStore,
       ),
       if (_switchingStore) const LinearProgressIndicator(),
-      if (!_delivery && resolved)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _statusRow(
-            'Самовывоз: заберёте заказ в этом магазине. Адрес и доставка не нужны.',
-            icon: Icons.shopping_bag_outlined,
-            key: const ValueKey('checkout-pickup-note'),
-          ),
-        ),
       if (_cart?.hasUnresolvedBusiness == true)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1982,8 +1921,8 @@ class _CheckoutPageState extends State<CheckoutPage>
                     ? 'Нужен перед подтверждением заказа'
                     : 'Нужен перед подтверждением заказа. Доставка по г. $city')
                 : addressCity == null
-                    ? 'Доставка сейчас'
-                    : 'г. $addressCity · доставка сейчас',
+                    ? 'Доставка по этому адресу'
+                    : 'г. $addressCity',
           ),
         ],
         actionLabel: hasAddress ? 'Изменить' : 'Выбрать',
@@ -2883,7 +2822,8 @@ class _CheckoutPageState extends State<CheckoutPage>
     if (mounted) await _refreshSession();
   }
 
-  String get _submissionStatus {
+  /// Why the order cannot be placed yet; null when it can.
+  String? get _submissionStatus {
     if (_creationUncertain) return 'Проверьте статус в «Моих заказах»';
     if (_submitting) return 'Не закрывайте экран до ответа магазина';
     if (_initializing) return 'Проверяем данные заказа…';
@@ -2910,7 +2850,7 @@ class _CheckoutPageState extends State<CheckoutPage>
     }
     if (_pickingAddress || _switchingStore) return 'Сохраняем выбор…';
     if (_submitError != null) return 'Проверьте сообщение об ошибке';
-    return 'Далее — выбор оплаты';
+    return null;
   }
 
   // The dock supplies the 16px sides and the safe-area inset below.
@@ -2976,13 +2916,15 @@ class _CheckoutPageState extends State<CheckoutPage>
                     action,
                   ],
                 ),
-              const SizedBox(height: 6),
-              Text(
-                _submissionStatus,
-                key: const ValueKey('checkout-readiness'),
-                style: AppTypography.caption
-                    .copyWith(color: context.palette.textPrimary),
-              ),
+              if (_submissionStatus case final status?) ...[
+                const SizedBox(height: 6),
+                Text(
+                  status,
+                  key: const ValueKey('checkout-readiness'),
+                  style: AppTypography.caption
+                      .copyWith(color: context.palette.textPrimary),
+                ),
+              ],
             ],
           );
         }),

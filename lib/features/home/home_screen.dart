@@ -57,7 +57,6 @@ class HomeScreen extends StatelessWidget {
       onSearch: onSearch,
       onCallCenter: onCallCenter,
       onLiked: () => onNavigate?.call(AppDestination.favorites),
-      onNotifications: () => onNavigate?.call(AppDestination.notifications),
       onProfile:
           onNavigate == null ? null : () => onNavigate!(AppDestination.profile),
       onStore: onStore,

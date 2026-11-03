@@ -212,7 +212,7 @@ void main() {
             matching: find.text('1 л в подарок')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
-    expect(_text(tester, 'configuration-hint'), 'До подарка: 4 л');
+    expect(_text(tester, 'configuration-hint'), 'До следующего подарка: 4 л');
     await _tap(tester, 'configuration-save');
     expect(cart.getTotalPrice(), 3400);
     expect(cart.toJsonForOrder().single['amount'], 4);

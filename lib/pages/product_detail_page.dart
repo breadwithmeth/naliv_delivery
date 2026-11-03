@@ -17,6 +17,7 @@ import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/frosted_dock.dart';
 import '../ui/motion_widgets.dart';
+import '../ui/product_hero_header.dart';
 import '../ui/surfaces.dart';
 import '../utils/api.dart';
 import '../services/auth_service.dart';
@@ -50,6 +51,7 @@ class ProductDetailPage extends StatefulWidget {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
+  final _scroll = ScrollController();
   late final SmartCartSelection _selection;
   late final ProductView _view;
   late final List<item_model.ItemOption> _options;
@@ -150,6 +152,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     AuthService.sessionRevision.removeListener(_sessionChanged);
     super.dispose();
   }
@@ -509,10 +512,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _invalidReason(cart, preview: _previewGroup, available: available);
     final description = widget.item.description?.trim() ?? '';
     final removal = _isRemoval(cart);
+    final pageColor = Theme.of(context).brightness == Brightness.light
+        ? palette.surface
+        : palette.background;
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.light
-          ? palette.surface
-          : palette.background,
+      backgroundColor: pageColor,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -520,6 +524,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             content: Stack(
               children: [
                 SingleChildScrollView(
+                  controller: _scroll,
                   key: const ValueKey('configuration-scroll'),
                   padding: EdgeInsets.only(
                     bottom: _footerHeight +
@@ -691,28 +696,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 ),
                 Positioned(
-                  top: MediaQuery.paddingOf(context).top + 22,
-                  left: AppSpacing.xxxl,
-                  right: AppSpacing.xxxl,
-                  child: Row(
-                    children: [
-                      AppIconButton(
-                          key: const ValueKey('configuration-back'),
-                          asset: AppIcons.back,
-                          tooltip: 'Назад без сохранения',
-                          onTap: () => Navigator.of(context).maybePop()),
-                      const Spacer(),
-                      AppIconButton(
-                          key: const ValueKey('configuration-like'),
-                          asset: AppIcons.heart,
-                          tooltip:
-                              liked ? 'Убрать из избранного' : 'В избранное',
-                          onTap: _liking ? null : _toggleLike,
-                          fill: liked
-                              ? palette.brandRed
-                              : palette.surface.withValues(alpha: 0.75),
-                          color: liked ? Colors.white : palette.textPrimary),
-                    ],
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ProductHeroHeader(
+                    controller: _scroll,
+                    heroHeight: _pour ? 144 : 320,
+                    title: _view.title,
+                    background: pageColor,
+                    leading: AppIconButton(
+                        key: const ValueKey('configuration-back'),
+                        asset: AppIcons.back,
+                        tooltip: 'Назад без сохранения',
+                        onTap: () => Navigator.of(context).maybePop()),
+                    trailing: AppIconButton(
+                        key: const ValueKey('configuration-like'),
+                        asset: liked ? AppIcons.heartFilled : AppIcons.heart,
+                        tooltip: liked ? 'Убрать из избранного' : 'В избранное',
+                        onTap: _liking ? null : _toggleLike,
+                        fill: liked ? AppIconButton.likedFill(palette) : null,
+                        color: liked ? Colors.white : palette.textPrimary),
                   ),
                 ),
               ],
@@ -975,7 +978,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               stateKey: _selection.volumeLabel(next),
               duration: AppMotion.count,
               scale: 1,
-              child: Text('До подарка: ${_selection.volumeLabel(next)}',
+              child: Text(
+                  gift.giftQuantity > 0
+                      ? 'До следующего подарка: ${_selection.volumeLabel(next)}'
+                      : 'До подарка: ${_selection.volumeLabel(next)}',
                   key: const ValueKey('configuration-hint'),
                   style: AppTypography.bodySmall
                       .copyWith(color: palette.textSecondary)),

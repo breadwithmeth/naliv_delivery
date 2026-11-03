@@ -3,8 +3,10 @@ import 'package:flutter_map/flutter_map.dart';
 
 import '../design/theme.dart';
 import '../design/typography.dart';
-import '../features/faq/ui/faq_page.dart' as redesigned;
+import '../features/faq/faq_navigation.dart';
 import '../services/auth_service.dart';
+import '../ui/app_icon.dart';
+import '../ui/app_icon_button.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
@@ -377,6 +379,13 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                   child: AppTopBar(
                     title: 'Мои адреса',
                     onBack: () => Navigator.pop(context),
+                    trailing: AppIconButton(
+                      key: const ValueKey('addresses-faq'),
+                      asset: AppIcons.faq,
+                      tooltip: 'Вопросы об адресах и доставке',
+                      onTap: () => openFaqPage(context,
+                          initialSection: FaqSection.delivery),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -452,9 +461,6 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                                     ),
                                     const SizedBox(height: 24),
                                   ],
-                                  _faqCard(empty: entries.isEmpty),
-                                  if (entries.isNotEmpty)
-                                    const SizedBox(height: 24),
                                   for (final entry in entries) ...[
                                     _addressCard(entry.address, entry.local),
                                     const SizedBox(height: 8),
@@ -538,13 +544,12 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                         style: AppTypography.label.copyWith(
                             color: palette.textSecondary, height: 1.2)),
                   ],
-                  const SizedBox(height: 1),
-                  Text(
-                      '${local ? 'На этом устройстве' : 'Из аккаунта'}${selected ? ' · Для доставки' : ''}',
-                      style: AppTypography.label.copyWith(
-                          color:
-                              selected ? palette.accent : palette.textSecondary,
-                          height: 1.2)),
+                  if (selected) ...[
+                    const SizedBox(height: 1),
+                    Text('Для доставки',
+                        style: AppTypography.label
+                            .copyWith(color: palette.accent, height: 1.2)),
+                  ],
                 ])),
             IconButton(
               key: ValueKey('address_menu_$id'),
@@ -568,50 +573,6 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
           ]),
         ),
       ),
-    );
-  }
-
-  Widget _faqCard({required bool empty}) {
-    final palette = context.palette;
-    return AppSurface(
-      fill: palette.accentFaint,
-      border: Border.all(color: palette.accent.withValues(alpha: .3)),
-      padding: const EdgeInsets.all(16),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) =>
-            const redesigned.FaqPage(initialSection: FaqSection.delivery),
-      )),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CircleAvatar(
-            radius: 16,
-            backgroundColor: palette.accentFaint,
-            child: Icon(Icons.question_mark, color: palette.accent, size: 20)),
-        const SizedBox(width: 12),
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(
-              empty ? 'Не определяется адрес?' : 'Вопросы по адресу и доставке',
-              style: AppTypography.bodySmallBold
-                  .copyWith(color: palette.textPrimary)),
-          const SizedBox(height: 8),
-          Text(
-              empty
-                  ? 'В FAQ есть подсказки по GPS и ручному вводу адреса'
-                  : 'Посмотрите ответы про GPS, ручной ввод адреса и ограничения по доставке',
-              style:
-                  AppTypography.label.copyWith(color: palette.textSecondary)),
-          const SizedBox(height: 12),
-          Row(children: [
-            Icon(Icons.open_in_new, color: palette.accent, size: 16),
-            const SizedBox(width: 6),
-            Flexible(
-                child: Text('Открыть FAQ',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: palette.accent))),
-          ]),
-        ])),
-      ]),
     );
   }
 }

@@ -11,7 +11,9 @@ import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
+import 'package:naliv_delivery/pages/payment_notice_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
+import 'package:naliv_delivery/ui/kaspi_payment.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/order_payment_guard.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
@@ -28,6 +30,11 @@ http.Response _response(Object? cards) => http.Response(
 
 Map<String, Object> _card(String id) =>
     {'id': id, 'mask': '**** **** **** 4444'};
+
+/// The visible mask, ignoring the invisible break opportunities that keep it from
+/// wrapping inside a digit group.
+Finder _maskText(String mask) => find.byWidgetPredicate((widget) =>
+    widget is Text && widget.data?.replaceAll('\u200B', '') == mask);
 
 Future<void> _pumpPage(
   WidgetTester tester,
@@ -237,6 +244,51 @@ void main() {
                   find.byKey(const ValueKey('pay-order-button')))
               .onPressed,
           isNotNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+      'with many cards the pay bar stays full width and the list ends above it',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _response([
+          for (var i = 0; i < 6; i++)
+            {'id': 'many-$i', 'mask': '**** **** **** 40$i${i + 1}'},
+        ]);
+      }
+      throw StateError('Unexpected request: ${request.method} ${request.url}');
+    });
+    await http.runWithClient(() async {
+      await _pumpPage(
+          tester,
+          const PaymentMethodPage(orderData: {
+            'order_id': 'fixture-order',
+            'payable_amount': 1200
+          }));
+      // One list: Kaspi.kz and the cards share a left edge and a width, and the Kaspi
+      // logo is the full 112 dp mark.
+      final kaspi = find.byKey(const ValueKey('payment-kaspi'));
+      final firstCard = find.byKey(const ValueKey('payment-card-many-0'));
+      expect(tester.getTopLeft(kaspi).dx, tester.getTopLeft(firstCard).dx);
+      expect(tester.getSize(kaspi).width, tester.getSize(firstCard).width);
+      expect(tester.getSize(find.byType(KaspiLogo)).width, closeTo(112, 0.01));
+
+      final pay = find.byKey(const ValueKey('pay-order-button'));
+      final payRect = tester.getRect(pay);
+      expect(payRect.width, 375 - 32);
+      expect(payRect.bottom, lessThanOrEqualTo(812 - 34));
+
+      // At the end of the list nothing is left under the bar.
+      final scrollable =
+          tester.state<ScrollableState>(find.byType(Scrollable).first);
+      scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('payment-card-many-5')), findsOneWidget);
+      expect(tester.getBottomLeft(find.text('Обновить список')).dy,
+          lessThanOrEqualTo(payRect.top));
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);
@@ -502,8 +554,8 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('retry-card-read')), findsOneWidget);
         expect(find.text('Добавленных карт нет'), findsNothing);
-        await tester
-            .ensureVisible(find.byKey(const ValueKey('retry-card-read')));
+        await _showControl(
+            tester, find.byKey(const ValueKey('retry-card-read')));
         await tester.tap(find.byKey(const ValueKey('retry-card-read')));
         await tester.pumpAndSettle();
         final prefix = profile ? 'saved-card' : 'payment-card';
@@ -566,7 +618,7 @@ void main() {
             isNull,
           );
         }
-        await tester.ensureVisible(find.byKey(const ValueKey('card-sign-in')));
+        await _showControl(tester, find.byKey(const ValueKey('card-sign-in')));
         await tester.tap(find.byKey(const ValueKey('card-sign-in')));
         await tester.pumpAndSettle();
         expect(find.byType(LoginPage), findsOneWidget);
@@ -609,7 +661,7 @@ void main() {
       await _pumpPage(tester, const ProfileCardsPage());
       expect(
           find.byKey(const ValueKey('saved-card-bank-safe')), findsOneWidget);
-      expect(find.text('****1234'), findsOneWidget);
+      expect(_maskText('****1234'), findsOneWidget);
       expect(find.text('4111111111111111'), findsNothing);
       await _pumpPage(
           tester,
@@ -635,7 +687,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(chargedIds, ['bank-safe']);
       expect(find.text('4111111111111111'), findsNothing);
-      await tester.tap(find.text('Понятно'));
+      // A refused card payment keeps the card variant: FAQ banner, change method first,
+      // retry second.
+      expect(
+          find.descendant(
+              of: find.byType(PaymentNoticePage),
+              matching: find.text('Не получается добавить карту?')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('payment-notice-retry')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('payment-notice-change')));
       await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
@@ -669,7 +730,7 @@ void main() {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
       expect(reads, 2);
-      expect(find.text('****4949'), findsOneWidget);
+      expect(_maskText('****4949'), findsOneWidget);
       expect(find.byKey(const ValueKey('saved-card-bank-refreshed')),
           findsOneWidget);
       expect(

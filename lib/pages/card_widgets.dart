@@ -7,6 +7,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../features/faq/ui/faq_page.dart';
 import '../ui/app_icon.dart';
+import '../ui/payment_method_tile.dart';
 import '../ui/surfaces.dart';
 import '../utils/web_window.dart';
 import 'add_card_webview_page.dart';
@@ -117,69 +118,48 @@ class CardFaqPanel extends StatelessWidget {
   }
 }
 
+/// A saved card in the payment-method anatomy of [PaymentMethodTile]: the card glyph and
+/// mask, a muted caption and, when the row can be chosen, the trailing selection mark.
+///
+/// [showSelection] defaults to whether [onSelected] is given. A list that is only
+/// temporarily inert (a payment in progress) passes `showSelection: true` with a null
+/// [onSelected], so the marks stay in place, dimmed.
 class SavedCardRow extends StatelessWidget {
-  const SavedCardRow(
-      {required this.card, this.selected = false, this.onSelected, super.key});
+  const SavedCardRow({
+    required this.card,
+    this.selected = false,
+    this.onSelected,
+    this.showSelection,
+    super.key,
+  });
 
   final SavedCard card;
   final bool selected;
   final VoidCallback? onSelected;
+  final bool? showSelection;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final content = Container(
-      constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: selected ? palette.accentFaint : palette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: selected ? Border.all(color: palette.accent) : null,
+    return PaymentMethodTile(
+      leading: AppIcon(AppIcons.cards, size: 24, color: palette.accent),
+      title: Text(
+        card.mask.replaceAllMapped(_groupBoundary, (m) => '${m[0]}\u200B'),
+        style: AppTypography.title,
+        semanticsLabel: card.mask,
       ),
-      child: Row(
-        children: [
-          AppIcon(AppIcons.cards, size: 24, color: palette.accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(card.mask, style: AppTypography.title),
-                Text(
-                    card.canCharge
-                        ? 'Карта'
-                        : 'Номер карты · оплата недоступна',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: palette.textSecondary)),
-              ],
-            ),
-          ),
-          if (onSelected != null) ...[
-            const SizedBox(width: 12),
-            Icon(
-                selected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
-                color: selected ? palette.accent : palette.textSecondary,
-                size: 24),
-          ],
-        ],
-      ),
-    );
-    if (onSelected == null) return content;
-    return Semantics(
-      button: true,
+      subtitle: card.canCharge ? null : 'Номер карты · оплата недоступна',
       selected: selected,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-            onTap: onSelected,
-            borderRadius: BorderRadius.circular(12),
-            child: content),
-      ),
+      onTap: onSelected,
+      showSelection: showSelection ?? onSelected != null,
     );
   }
 }
+
+/// Between a digit and a mask bullet (either order). A zero-width space there lets a
+/// long mask at large text wrap only between «4400», «••••» and «1234», never inside
+/// a group, while drawing exactly as before.
+final _groupBoundary = RegExp(r'\d(?=[•*xX])|[•*xX](?=\d)');
 
 class CardFlowFeedback extends StatelessWidget {
   const CardFlowFeedback({required this.flow, super.key});

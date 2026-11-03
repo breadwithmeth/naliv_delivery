@@ -16,6 +16,8 @@ import '../../../utils/cart_provider.dart';
 import '../../../ui/app_cart_button.dart';
 import '../../../pages/order_detail_page.dart';
 import '../../../ui/surfaces.dart';
+import '../../../design/tokens.dart';
+import 'bonus_qr_page.dart';
 import '../bonus_account.dart';
 import 'bonus_how_it_works_page.dart';
 import 'bonus_ledger_row.dart';
@@ -173,6 +175,7 @@ class _BonusHistoryPageState extends State<BonusHistoryPage>
                                   const SizedBox(height: 16),
                                   _BalanceCard(
                                     balance: account?.balance,
+                                    cardCode: account?.cardCode,
                                     onHowItWorks: _openHowItWorks,
                                   ),
                                   if (_loading)
@@ -267,9 +270,16 @@ class _BonusHistoryPageState extends State<BonusHistoryPage>
 }
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.balance, required this.onHowItWorks});
+  const _BalanceCard({
+    required this.balance,
+    required this.cardCode,
+    required this.onHowItWorks,
+  });
+
+  static const _qrHeroTag = 'history-bonus-qr';
 
   final num? balance;
+  final String? cardCode;
   final VoidCallback onHowItWorks;
 
   @override
@@ -299,24 +309,74 @@ class _BalanceCard extends StatelessWidget {
       icon: const Icon(Icons.open_in_new_rounded, size: 16),
       label: const Text('Как работают\nбонусы?'),
     );
+    final code = cardCode;
     return AppSurface(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: LayoutBuilder(builder: (context, constraints) {
-        if (constraints.maxWidth < 300 ||
-            MediaQuery.textScalerOf(context).scale(16) > 21) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [amount, help],
-          );
-        }
-        return Row(
-          children: [
-            Expanded(child: amount),
-            const SizedBox(width: 8),
-            help,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(builder: (context, constraints) {
+            if (constraints.maxWidth < 300 ||
+                MediaQuery.textScalerOf(context).scale(16) > 21) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [amount, help],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: amount),
+                const SizedBox(width: 8),
+                help,
+              ],
+            );
+          }),
+          if (code != null && code.isNotEmpty) ...[
+            Divider(height: 1, thickness: 0.5, color: palette.divider),
+            InkWell(
+              key: const ValueKey('bonus-qr-open'),
+              borderRadius: AppRadii.lgAll,
+              onTap: () => showBonusQr(
+                context,
+                code: code,
+                heroTag: _qrHeroTag,
+                balance: balance,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    SizedBox.square(
+                      dimension: 56,
+                      child: Hero(
+                        tag: _qrHeroTag,
+                        child: BonusQrPlate(code: code),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Показать QR на кассе',
+                              style: AppTypography.title
+                                  .copyWith(color: palette.textPrimary)),
+                          Text('Откроется на весь экран',
+                              style: AppTypography.bodySmall
+                                  .copyWith(color: palette.textSecondary)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.open_in_full_rounded,
+                        size: 18, color: palette.accent),
+                    const SizedBox(width: 4),
+                  ],
+                ),
+              ),
+            ),
           ],
-        );
-      }),
+        ],
+      ),
     );
   }
 }

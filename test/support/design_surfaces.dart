@@ -82,7 +82,11 @@ enum CardFixtureScenario {
   partial,
   invalid,
   authentication,
-  linkTimeout
+  linkTimeout,
+
+  /// Six chargeable cards with different masks: the payment list scrolls and
+  /// its last row must clear the pay bar.
+  many
 }
 
 const surfaceFixturePreferences = <String, Object>{
@@ -291,7 +295,20 @@ class SurfaceFixtureClient extends MockClient {
             'card_id': 'fixture-card-1',
             'mask': '4400••••1234'
           },
-        if (_boundFixtureCard)
+        if (cardScenario == CardFixtureScenario.many)
+          for (final (index, mask) in const [
+            '4400••••5678',
+            '5269••••0412',
+            '4405••••7790',
+            '5168••••9021',
+            '4276••••3350',
+          ].indexed)
+            {
+              'id': 'fixture-card-${index + 2}',
+              'card_id': 'fixture-card-${index + 2}',
+              'mask': mask,
+            }
+        else if (_boundFixtureCard)
           {
             'id': 'fixture-card-2',
             'card_id': 'fixture-card-2',
@@ -1377,7 +1394,6 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           onProfile: () => _select('profile_guest'),
           onCallCenter: () => _openFixtureSupport(context),
           onLiked: () => _select('favorites'),
-          onNotifications: () => _select('notifications'),
           onPromo: (_) => _select('promotion'),
           onBonusHistory: () => _select('bonus_history'),
           onCart: () => _select('cart'),

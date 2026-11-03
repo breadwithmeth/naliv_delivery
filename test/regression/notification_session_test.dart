@@ -355,7 +355,7 @@ void main() {
       final requests = [
         service.initialize(),
         service.initialize(),
-        service.getCurrentSubscriptionId(),
+        service.getPermissionState(),
       ];
       await _flush(tester);
       final starts = native.initializations;

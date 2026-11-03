@@ -9,6 +9,54 @@ Last updated: 2026-11-03. Current source release: **1.2.116+12116**. The latest 
 
 ---
 ## Current remediation gate
+### Plain headers and declutter — 2026-11-04
+
+- **Headers.** No blur: the page colour sits solid behind the status bar and title and fades to
+  transparent 36 px below (`header-scrim`). Glass stays only on the bottom bar and round buttons.
+- **Checkout.** «Изменить адрес» opens the map and returns straight to checkout; entrance, floor
+  and flat stay inline. Removed the store city chip, the pickup note, the inline FAQ panel and
+  the «Далее — выбор оплаты» caption (a caption shows only when something blocks the order).
+- **Help.** Always-shown FAQ boxes on checkout, payment, cards, addresses and support became one
+  «?» disc in the header. The FAQ panel stays only on the payment failure notice.
+- **Removed as redundant.** OTP «Вставить код» (paste works in the field and through autofill)
+  and the «Код отправлен» snackbar; «Карта» under every saved card; «Чат поддержки» under the
+  support name (only connection problems show); «Ещё не в корзине» on the product page;
+  «Из аккаунта / На этом устройстве» on addresses (the selected one still says «Для доставки»);
+  home bonus and bell icons (the bonus card and Profile → «Уведомления» cover them).
+- **Notifications.** Titled «Уведомления»; dropped the intro text, the subscription-ID
+  diagnostic and the support link with its footnote.
+- **Bottling.** Once a gift exists the hint reads «До следующего подарка: X».
+
+### One frosted material, payment, OTP, settings and bonus QR — 2026-11-04
+
+- **One material.** `lib/ui/frosted_surface.dart` (`Frost`, `FrostedSurface`, `FrostedScope`,
+  `FrostedHeaderLayout`) is shared by the bottom dock, the new scroll-frosted headers (status
+  bar included, the design's dark header with opacity), glass back/search/like discs,
+  certificate fields, the support composer and the search pill. Header controls are scoped so
+  nothing blurs twice.
+- **Cart.** `AppCartButton` is the design's 78 px stamp; with items a pill with the total emerges
+  from behind it and a brand-red count badge sits on the stamp. The search page uses the same
+  control (its Figma variant is wrong and was not adopted).
+- **Payment.** The page sits on `FrostedDock` with one strong full-width pay action; cards scroll
+  under the bar, and the list ends at the measured bar height. Kaspi and cards share one row
+  anatomy, with the full Kaspi logo and Gold. Every Kaspi failure path has its own
+  `PaymentNoticePage`. «Попробовать снова» appears only after a settled refusal; uncertain
+  states offer «Проверить оплату» / «Открыть оплату» and never a second charge. Card masks wrap
+  only between groups.
+- **OTP.** Six boxes in two groups of three, driven by one real `TextField` with
+  `oneTimeCode` autofill. It handles paste of any formatted code and an explicit «Вставить код»
+  (clipboard read only on tap), auto-submits once, and on a wrong code shakes, shows an inline
+  error and retries.
+- **Settings.** Grouped sections, a Светлая / Тёмная / Авто theme choice, an explained
+  data-collection toggle, notifications reachable from the profile, and logout separated.
+- **Bonus QR.** Tapping the QR opens a fullscreen black-on-white code over a blurred scrim,
+  with a hero transition and dismiss by close, tap, swipe or Esc.
+- **Fix found in review.** Login notices overrode the snackbar background, which left white
+  text on light grey in light theme. They now use the theme notice, and raw exception text is
+  no longer shown.
+- Gate: 700 tests, clean analysis, Windows shopping journey, fixture and tracked web rebuilt.
+  Evidence: `.figma_cache/render/round/`.
+
 
 ### Strict Kaspi.kz guideline compliance — 2026-11-03
 
@@ -113,9 +161,10 @@ Evidence: 646 tests, clean analysis, Windows shopping journey; fixture captures 
 - Product cards: larger contained artwork, «объём · страна» meta, and a quiet
   raised add pill (orange «+», «В корзину» when it fits); only items already in
   the cart show the solid orange stepper.
-- Cart control: the 78 px stamp is replaced by a 60 px stamp for an empty cart and
-  a compact orange capsule (count badge, «Корзина», total) once filled; the label
-  drops before the total at narrow/large-text widths.
+- Cart control (superseded 2026-11-03): always the 78 px scalloped stamp, 27 px above
+  the bar; with items an orange glass pill with the total grows out from behind it and a
+  32 px `brandRed` count badge sits on its top-left, stamp and pill centred together
+  (Figma «Главная - Скролл ниже 1»). The Figma search variant is intentionally not used.
 - Notifications float above the cart dock (theme `insetPadding`); dark notices
   get a hairline border.
 - Product page: «В корзину» adds the first step, confirms with «Добавлено», then
@@ -2108,3 +2157,12 @@ The release-built development gallery uses strict synthetic credentials/transpor
 * Browser automation once emitted an unsupported generic modifier-key location and hit the Flutter web key mapper, not an application request path. Final native-input verification used `ControlLeft` with the fixture tab brought to the foreground and produced no new page errors. No application exception suppression was added.
 * All verification browser tabs and both isolated fixture/release servers were closed after smoke proof.
 
+
+## 3aj. Glass forms and grouped settings (certificates, support, profile, notifications)
+
+* **Shared pieces.** `lib/ui/frosted_controls.dart` (`FrostedTextField` — 45 px, r10 glass field with an animated accent focus ring; `FrostedButton` — orange glass button over `Frost.accent`), `lib/ui/app_switch.dart` (the Figma 50 × 30 pill: orange on, grey off, white knob, 220 ms glide, 50 × 48 touch target) and `lib/ui/settings_widgets.dart` (`SettingsSection`, `SettingsRow`, `SettingsChoice`).
+* **Certificates.** «Активировать по коду» is a glass field (`certificate-code-input`) plus an orange glass «Ок» (85 px, 12 px gap, stretched together under large text). The page uses `FrostedHeaderLayout`; the purchase sheet is one frosted surface whose amount / recipient / message fields and Купить / Проверить статус / К сертификатам buttons are glass (a `FrostedScope` stops the fields blurring a second time). All keys are unchanged.
+* **Support.** The composer is a floating frosted pill (r30, ≥46 px) with a 38 px orange glass send button, riding above the keyboard while the chat scrolls blurred beneath it; the header is `FrostedHeaderLayout`. `support-composer`, `support-message-input`, `support-send` (still an `IconButton`) and `support-send-error` are kept.
+* **Profile settings.** Account block first, then grouped sections: «Заказы и покупки», «Оплата и доставка», «Приложение» (theme, notifications, information collection), «Помощь», and «Выйти» alone at the bottom. **Theme is a Светлая / Тёмная / Авто segmented choice** (`ThemeController` already supported `ThemeMode.system`; the old binary switch could not express it and showed the effective brightness). Information collection is a toggle with the current state in its subtitle and a footer saying what is sent, that it is off by default and revocable. «Уведомления» is now reachable from the profile. Saving/error states, snackbars and the keys `profile-telemetry-switch`, `profile-logout`, `profile-sign-in`, `profile-avatar`, `profile-name` are kept; `profile-theme-switch` is replaced by `profile-theme-choice` / `profile-theme-{light,dark,system}`.
+* **Notification settings** use the same sections and rows (device status + enable action, per-topic switches, subscription ID / clear, support-chat link) under `FrostedHeaderLayout`; behaviour and messages are unchanged.
+* Departures from Figma: the settings screen is grouped and has a segmented theme choice instead of the ambiguous moon/sun switch; the activation/composer controls use the shared glass tokens (`Frost.tint` / `Frost.accent`, 0.9 accent) rather than 75 % orange, so white text stays legible. Not yet visually verified.
