@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-// Unmodified SVG exports from the supplied «Оплата с Kaspi.kz» Figma file:
-// compact 6199:60011, Gold 6199:60019, full 6199:60564, white 6199:60478.
-// Guide 6199:60135 permits the compact mark beside a text name; 6199:60299
-// requires at least 20% of the artwork height as clear space.
+// Everything here follows «Оплата с Kaspi.kz | Компоненты и правила» (Figma file
+// pNQjZoaE1v2Ud2cpqtU4sq). Artwork is used only as exported from that file, never
+// redrawn, recoloured or given effects; every logo keeps clear space of at least 20%
+// of its height, and the pay button keeps at least 8 dp around it.
+
+const _kaspiRed = Color(0xFFF14635);
+
+/// Kaspi.kz logo for screens of the payment process.
+///
+/// [compact] is the round mark (Logo / Compact, 6199:60011) used beside the name
+/// written as text in a list of payment methods. The full logo is the basic one
+/// (6199:60564) on light backgrounds; dark backgrounds do not give the basic logo's
+/// black wordmark enough contrast, so they use the official logo for coloured or
+/// complex backgrounds (white plate, 6199:59860). The white wordmark that sits inside
+/// the red button is a button element and is not used on its own.
 class KaspiLogo extends StatelessWidget {
   const KaspiLogo({super.key, this.compact = false});
 
@@ -12,27 +23,40 @@ class KaspiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = compact ? 32.0 : 28.0;
-    final white = Theme.of(context).brightness == Brightness.dark;
+    if (compact) {
+      return Padding(
+        padding: const EdgeInsets.all(32 * .2),
+        child: SvgPicture.asset(
+          'assets/icons/kaspi/compact.svg',
+          width: 32,
+          height: 32,
+          excludeFromSemantics: true,
+        ),
+      );
+    }
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.all(height * .2),
+      padding: const EdgeInsets.all(28 * .2),
       child: SvgPicture.asset(
-        'assets/icons/kaspi/${compact ? 'compact' : white ? 'logo_white' : 'logo'}.svg',
-        width: compact ? 32 : 112,
-        height: height,
-        semanticsLabel: compact ? null : 'Kaspi.kz',
-        excludeFromSemantics: compact,
+        dark
+            ? 'assets/icons/kaspi/logo_plate.svg'
+            : 'assets/icons/kaspi/logo.svg',
+        width: dark ? 96 : 112,
+        height: 28,
+        semanticsLabel: 'Kaspi.kz',
       ),
     );
   }
 }
 
+/// ProductBadge / Gold as shown next to Kaspi.kz in a list of payment methods
+/// (6199:60019, drawn at the list height of 28).
 class KaspiGoldBadge extends StatelessWidget {
   const KaspiGoldBadge({super.key});
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(5.6),
+        padding: const EdgeInsets.all(28 * .2),
         child: SvgPicture.asset(
           'assets/icons/kaspi/gold.svg',
           width: 36.4,
@@ -42,10 +66,12 @@ class KaspiGoldBadge extends StatelessWidget {
       );
 }
 
-// Official Button / Logo / Compact, exported intact from 6199:60489:
-// 160 × 52, #F14635 and radius 8. The native action extends the same plain
-// background to the app's full-width hit area without changing the artwork.
-// This logo-only variant needs no redrawn or unscaled ordinary text.
+/// The official full-width red «Button / Gold» (6199:60416): `#F14635`, recommended
+/// radius 8, height 52, and centred Logo / White, a 1 × 28 white divider and
+/// ProductBadge / Gold with 16 dp between them. Only its width follows the layout,
+/// as the component's centred auto-layout does. The appearance never changes with
+/// state (no other colours or effects), so an unavailable payment is explained by
+/// the page rather than by dimming the button.
 class KaspiPayButton extends StatelessWidget {
   const KaspiPayButton({super.key, this.buttonKey, required this.onPressed});
 
@@ -53,32 +79,106 @@ class KaspiPayButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => FilledButton(
-        key: buttonKey,
-        onPressed: onPressed,
-        style: ButtonStyle(
-          backgroundColor: const WidgetStatePropertyAll(Color(0xFFF14635)),
-          foregroundColor: const WidgetStatePropertyAll(Colors.white),
-          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          splashFactory: NoSplash.splashFactory,
-          elevation: const WidgetStatePropertyAll(0),
-          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-          minimumSize: const WidgetStatePropertyAll(Size(160, 52)),
-          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  Widget build(BuildContext context) => Padding(
+        // Free zone of at least 8 dp. Horizontally the footer container already
+        // keeps 12 dp, so the button spans its full width and is never smaller
+        // than the other payment action.
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: FilledButton(
+          key: buttonKey,
+          onPressed: onPressed,
+          style: ButtonStyle(
+            backgroundColor: const WidgetStatePropertyAll(_kaspiRed),
+            foregroundColor: const WidgetStatePropertyAll(Colors.white),
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            splashFactory: NoSplash.splashFactory,
+            elevation: const WidgetStatePropertyAll(0),
+            shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+            surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+            minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+            padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(vertical: 12)),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
           ),
-        ),
-        child: Semantics(
-          label: 'Оплатить с Kaspi.kz',
-          excludeSemantics: true,
-          child: SvgPicture.asset(
-            'assets/icons/kaspi/pay_compact.svg',
-            width: 160,
-            height: 52,
-            excludeFromSemantics: true,
+          child: Semantics(
+            label: 'Оплатить с Kaspi.kz',
+            excludeSemantics: true,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/kaspi/button_logo.svg',
+                  width: 112,
+                  height: 28,
+                  excludeFromSemantics: true,
+                ),
+                const SizedBox(width: 16),
+                const SizedBox(
+                  width: 1,
+                  height: 28,
+                  child: ColoredBox(color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                SvgPicture.asset(
+                  'assets/icons/kaspi/button_gold.svg',
+                  width: 36,
+                  height: 28,
+                  excludeFromSemantics: true,
+                ),
+              ],
+            ),
           ),
         ),
       );
+}
+
+/// Kaspi's recommended loader for the payment process: a red arc on the page.
+class KaspiLoader extends StatelessWidget {
+  const KaspiLoader({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+        width: 72,
+        height: 72,
+        child: CircularProgressIndicator(
+          strokeWidth: 6,
+          color: _kaspiRed,
+        ),
+      );
+}
+
+/// Kaspi's recommended result marks: a green check for an accepted payment and a
+/// grey cross for a cancelled or failed one, each in a soft ring.
+class KaspiResultMark extends StatelessWidget {
+  const KaspiResultMark({super.key, required this.accepted});
+
+  final bool accepted;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = accepted ? const Color(0xFFA5DC5A) : const Color(0xFF757575);
+    final ring = accepted
+        ? const Color(0xFFA5DC5A).withValues(alpha: .25)
+        : Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF3A3A3A)
+            : const Color(0xFFE5E5E5);
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: ring, width: 8),
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: fill),
+        child: Icon(accepted ? Icons.check_rounded : Icons.close_rounded,
+            size: 44, color: Colors.white),
+      ),
+    );
+  }
 }

@@ -10,6 +10,23 @@ Last updated: 2026-11-03. Current source release: **1.2.116+12116**. The latest 
 ---
 ## Current remediation gate
 
+### Strict Kaspi.kz guideline compliance — 2026-11-03
+
+Audited the app against Kaspi's «Оплата с Kaspi.kz | Компоненты и правила» file
+(`pNQjZoaE1v2Ud2cpqtU4sq`, rules frame `6192:46527`). Two violations fixed:
+- the full-width pay button was the stretched hug-width compact button; it is now the official
+  «Button / Gold»;
+- the button's internal white wordmark was used as a standalone logo on dark screens; dark
+  screens now use the official white-plate logo.
+
+The Gold badge moved to the trailing edge of the Kaspi list row, as in Kaspi's list example. Payment
+states now follow Kaspi's recommended process: red loader, «Подтвердите оплату в приложении»,
+«Оплата принята» + amount, «Отмена покупки», «Ошибка». Full trace in `FIDELITY.md`.
+
+Evidence: 646 tests, clean analysis, Windows shopping journey; fixture captures at
+375 px both themes and 320 px / 2× text, plus a live tap through the loader to «Оплата принята»
+(`.figma_cache/kaspi/final_*`, `final2_*`). No real Kaspi payment was made.
+
 ### Saved bank cards were silently dropped — 2026-11-03
 
 - **Cause** (live read with the owner's account, read-only GETs): `GET /user/cards?source=halyk`

@@ -155,7 +155,7 @@ Catalogue/cart/map residuals remain large. These figures are not a pixel match a
 - Order names occupy the full text width above price/quantity; a real long-name 30318 order was reviewed after the final fix. Unresolved payment hides Pay/Repeat and exposes refresh, including at 320 px/2×. Missing backend values remain unknown rather than synthetic customer/order metadata.
 - Card success uses black text on green. Unavailable bonus/history data is an error/unknown state, not a fake zero balance or QR. Unsupported scanner, notification-count and fixed “25%” decorations were removed.
 - Widget captures lack system fallback for `№`; the fresh release browser with fallback fonts rendered the actual order title correctly. Initial blocked-font/cached-bundle observations are not counted as final visual proof.
-- Official Kaspi SVGs preserve their geometry/colors; the compact action stays intact at 160 × 52 inside an accessible full-width hit-area. Selection uses compact artwork plus the Gold badge; progress/unknown/error use full logos with suitable theme contrast. Normal text still scales. Actual 320 px/2× uncertainty dialog and 320/375/800 resizing were reviewed; direct URL fixtures use one app navigator so dialog text inherits the fixture scaler instead of escaping to a differently scaled outer gallery route.
+- Kaspi follows «Оплата с Kaspi.kz | Компоненты и правила» (`6189:12160`) strictly, see the rule trace below. The pay action is the official full-width «Button / Gold» (`6199:60416`): `#F14635`, radius 8, 52 dp, centred Logo / White + 1 × 28 white divider + ProductBadge / Gold with 16 dp gaps, at least 8 dp free zone, and no state colours or effects. Earlier builds stretched the hug-width compact button to full width, a variant Kaspi does not publish. Standalone logos use the basic logo on light screens and the white-plate logo (`6199:59860`) on dark ones; the white wordmark is used only inside the button.
 
 Capture-only IDs (both themes): `promotion`, `onboarding`, `payment_method`, `payment_kaspi`, `checkout_error`, `product_options`, `product_pour`, `product_pour_real`, `product_pour_gift`, `product_pour_three_plus_one`, `product_pour_fractional`, `product_replacement`, `notifications`, `profile_setup`, `startup`, `active_route`. Notification preferences are not the Figma inbox. Gift packing/tariff follows the explicit user policy and is exercised through synthetic create/repeat, not a production transaction. The official Kaspi component is sourced/reviewed independently; there is no exact app-screen Figma baseline for the mixed payment screen.
 
@@ -165,13 +165,25 @@ The prior tracked release smoke at 375 × 812 / DPR 2 operated intro → city on
 
 Source: [Russian web guide `6199:59680`](https://www.figma.com/design/pNQjZoaE1v2Ud2cpqtU4sq?node-id=6199-59680), version `2316344552721705817`, last modified 2025-08-27. Russian and Kazakh guides were read; the active app language remains Russian.
 
+| Rule (`6192:46527`) | Implementation |
+|---|---|
+| Use only official elements; do not create or modify buttons | Exact SVG exports `button_logo.svg` (`6199:60417`), `button_gold.svg` (`6199:60429`), `logo.svg`, `logo_plate.svg`, `compact.svg`, `gold.svg`; full-width «Button / Gold» composition |
+| Red buttons on white, light or dark backgrounds | Red button in both themes |
+| Kaspi button above others vertically; not smaller than other buttons; height ≥ 48 dp | Only action in the Kaspi footer, full footer width, 52 dp |
+| ≥ 8 dp free zone; recommended radius | 8 dp vertical zone, footer keeps 12 dp horizontally; radius 8 |
+| No other background colours or effects | Same fill in every state; no splash, overlay, elevation or dimming |
+| Logos with ≥ 20% clear space; basic on light/dark with enough contrast, additional on colored/complex | 20% padding; basic on light, white-plate logo on dark |
+| List: compact logo when the name is text, Gold beside Kaspi.kz, same alignment as other methods | Compact mark aligned with card icons, «Kaspi.kz» as text, Gold at the trailing edge (stacked under the name for narrow/large text) |
+| QR block mandatory elements | Not applicable: the app pays through the Kaspi link, no QR is shown |
+| Recommended process states | Red loader «Готовимся к приему оплаты»; «Подтвердите оплату в приложении»; «Оплата принята» + amount with green mark; «Отмена покупки / Вы не подтвердили покупку» and «Ошибка» with grey cross |
+
 | Guide nodes | Applied presentation |
 |---|---|
-| `6199:59691`, `6199:59695`, `6199:60135` | Official SVGs; full logos 112 × 28; compact mark beside Kaspi.kz name plus Gold; no unsupported Red/Kredit products |
+| `6199:59691`, `6199:59695`, `6199:60135` | Official SVGs; full logo 112 × 28 on light, white-plate logo `6199:59860` on dark; compact mark beside Kaspi.kz name plus Gold; no unsupported Red/Kredit products |
 | `6199:60299`, `6199:60336`, `6199:60371` | Logo clear space at least 20% of height; no recoloring, altered internal objects, radius or logo effects |
-| `6199:60489`, `6199:60588` | Intact official red compact payment-button artwork, not a redrawn prefix/logo or invented brand-colored generic button |
+| `6199:60414`, `6199:60416` | Official full-width red «Button / Gold» (Logo / White, divider, ProductBadge / Gold); the hug-width compact button `6199:60489` is not stretched |
 | `6199:61045`, `6199:61115`, `6199:61154` | Kaspi first in method selection; one selected charge action; full-width hit-area, 52 ≥ 48 px high, at least 8 px surrounding clearance |
-| `6199:61231`, `6199:61259`, `6199:61280`, `6199:61284`, `6199:61288`, `6199:61293` | Internal button objects remain in their official positions; one exact color/style, only for payment; unknown/completed uses neutral state controls instead of recolored/reflowed brand buttons |
+| `6199:61231`, `6199:61259`, `6199:61280`, `6199:61284`, `6199:61288`, `6199:61293` | Internal button objects remain in their official positions; one exact color/style, only for payment; unknown/pending states use plain text and the recommended loader/result marks instead of recolored or reflowed brand buttons |
 
 
 ## Historical measurements — 2026-09-22

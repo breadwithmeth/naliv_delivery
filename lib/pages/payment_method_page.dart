@@ -567,16 +567,16 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         await _settleKaspiPayment(orderId, outcome);
         closeProgressDialog();
         await _showPaymentFailureNotice(
-          statusResult['message']?.toString() ??
-              'Оплата Kaspi.kz не была завершена.',
+          'Вы не подтвердили покупку',
           kaspi: true,
+          title: 'Отмена покупки',
         );
         return true;
       }
 
       closeProgressDialog();
       await _showNotice(
-        'Ожидаем оплату',
+        'Подтвердите оплату в приложении',
         'Ссылка Kaspi.kz открыта. Если вы уже оплатили заказ, статус обновится после подтверждения.',
         kaspi: true,
       );
@@ -752,10 +752,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         canPop: false,
         child: Dialog.fullscreen(
           child: _PaymentNoticePage(
-            title: 'Проводим оплату…',
-            message: isKaspi
-                ? 'Создаём ссылку Kaspi.kz и проверяем оплату на сервере'
-                : null,
+            title: isKaspi ? 'Готовимся к приему оплаты' : 'Проводим оплату…',
+            message: null,
             kaspi: isKaspi,
             loading: true,
           ),
@@ -778,6 +776,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         onOrders: widget.onPaymentCompleted == null
             ? null
             : () => widget.onPaymentCompleted!(orderId),
+        kaspi: _selectedPaymentMethod == _PaymentMethodType.kaspi ||
+            _kaspiPaymentLink != null,
+        amount: _chargedAmount(),
       ),
     ));
   }
@@ -821,11 +822,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     return parsed != null && parsed > 0 ? parsed : fallback;
   }
 
-  String _getOrderAmount() {
+  String _getOrderAmount() => _chargedAmount() ?? 'Сумма не указана';
+
+  String? _chargedAmount() {
     final amount =
         resolveServerChargedAmount(_refreshedOrder ?? widget.orderData) ??
             widget.displayAmount;
-    return amount == null ? 'Сумма не указана' : formatTenge(amount);
+    return amount == null ? null : formatTenge(amount);
   }
 
   Future<void> _showNotice(String title, String message,
@@ -845,13 +848,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   }
 
   Future<void> _showPaymentFailureNotice(String message,
-      {bool kaspi = false}) async {
+      {bool kaspi = false, String? title}) async {
     if (!_ownerCurrent) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog.fullscreen(
         child: _PaymentNoticePage(
-          title: 'Ошибка оплаты',
+          title: title ?? (kaspi ? 'Ошибка' : 'Ошибка оплаты'),
           message: message,
           kaspi: kaspi,
           failed: true,
@@ -1250,36 +1253,55 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
               borderRadius: BorderRadius.circular(12),
               border: selected ? Border.all(color: palette.accent) : null,
             ),
-            child: Row(
-              children: [
-                const KaspiLogo(compact: true),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text('Kaspi.kz', style: AppTypography.title),
-                          const KaspiGoldBadge(),
-                        ],
-                      ),
-                      Text('Оплата по ссылке в приложении банка',
-                          style: AppTypography.body
-                              .copyWith(color: palette.textSecondary)),
-                    ],
+            child: LayoutBuilder(builder: (context, constraints) {
+              // Kaspi's list example puts Gold at the trailing edge of the row. When
+              // that would squeeze the text (narrow screens, large text) the row
+              // stacks: mark and choice on top, name with Gold and the note below.
+              final compact = constraints.maxWidth >= 300 &&
+                  MediaQuery.textScalerOf(context).scale(16) <= 16 * 1.3;
+              final radio = Icon(
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: selected ? palette.accent : palette.textSecondary);
+              final name = Text('Kaspi.kz', style: AppTypography.title);
+              final note = Text('Оплата по ссылке в приложении банка',
+                  style: AppTypography.body
+                      .copyWith(color: palette.textSecondary));
+              if (!compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const KaspiLogo(compact: true),
+                      const Spacer(),
+                      radio,
+                    ]),
+                    Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [name, const KaspiGoldBadge()],
+                    ),
+                    note,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  const KaspiLogo(compact: true),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [name, note],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                    selected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
-                    color: selected ? palette.accent : palette.textSecondary),
-              ],
-            ),
+                  const KaspiGoldBadge(),
+                  const SizedBox(width: 4),
+                  radio,
+                ],
+              );
+            }),
           ),
         ),
       ),
@@ -1394,7 +1416,16 @@ class _PaymentNoticePage extends StatelessWidget {
                                         const KaspiLogo(),
                                         const SizedBox(height: 32),
                                       ],
-                                      if (loading)
+                                      // Kaspi's recommended process: a red loader,
+                                      // plain «Подтвердите оплату» while waiting and a
+                                      // grey cross for a cancelled or failed payment.
+                                      if (kaspi && loading)
+                                        const KaspiLoader()
+                                      else if (kaspi && failed)
+                                        const KaspiResultMark(accepted: false)
+                                      else if (kaspi)
+                                        const SizedBox.shrink()
+                                      else if (loading)
                                         SizedBox(
                                           width: 80,
                                           height: 80,
@@ -1426,7 +1457,8 @@ class _PaymentNoticePage extends StatelessWidget {
                                                 : palette.accent,
                                           ),
                                         ),
-                                      const SizedBox(height: 28),
+                                      if (!kaspi || loading || failed)
+                                        const SizedBox(height: 28),
                                       Text(title,
                                           style: AppTypography.headline,
                                           textAlign: TextAlign.center),

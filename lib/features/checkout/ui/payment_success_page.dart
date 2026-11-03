@@ -2,15 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/typography.dart';
 import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
+import 'package:naliv_delivery/ui/kaspi_payment.dart';
 import 'package:naliv_delivery/ui/surfaces.dart';
 
 class PaymentSuccessPage extends StatefulWidget {
   const PaymentSuccessPage(
-      {super.key, required this.orderId, this.businessId, this.onOrders});
+      {super.key,
+      required this.orderId,
+      this.businessId,
+      this.onOrders,
+      this.kaspi = false,
+      this.amount});
 
   final String orderId;
   final int? businessId;
   final Future<void> Function()? onOrders;
+
+  /// A payment made with Kaspi.kz: the page follows Kaspi's recommended «Оплата
+  /// принята» state, with the paid [amount] when the server reported it.
+  final bool kaspi;
+  final String? amount;
 
   @override
   State<PaymentSuccessPage> createState() => _PaymentSuccessPageState();
@@ -87,20 +98,32 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: palette.accent,
+                                if (widget.kaspi)
+                                  const KaspiResultMark(accepted: true)
+                                else
+                                  Container(
+                                    width: 80,
+                                    height: 80,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: palette.accent,
+                                    ),
+                                    child: Icon(Icons.check_rounded,
+                                        color: palette.textOnAccent, size: 56),
                                   ),
-                                  child: Icon(Icons.check_rounded,
-                                      color: palette.textOnAccent, size: 56),
-                                ),
                                 const SizedBox(height: 28),
-                                Text('Оплата прошла успешно!',
+                                Text(
+                                    widget.kaspi
+                                        ? 'Оплата принята'
+                                        : 'Оплата прошла успешно!',
                                     textAlign: TextAlign.center,
                                     style: AppTypography.displayBold),
+                                if (widget.kaspi && widget.amount != null) ...[
+                                  const SizedBox(height: 12),
+                                  Text(widget.amount!,
+                                      textAlign: TextAlign.center,
+                                      style: AppTypography.displayBold),
+                                ],
                                 const SizedBox(height: 24),
                                 AppSurface(
                                   width: double.infinity,
