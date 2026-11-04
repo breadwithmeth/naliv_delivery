@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:naliv_delivery/core/money.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/model/item.dart';
@@ -191,14 +192,14 @@ void main() {
     }
   }
 
-  group('cart gift line', () {
-    testWidgets('free units appear as their own 0 ₸ line with the rule',
-        (tester) async {
+  group('cart promotion', () {
+    Future<CartProvider> pumpCart(WidgetTester tester, int units) async {
       SharedPreferences.setMockInitialValues({});
       final item = _item(promotions: [_giftPromotion]);
       final cart = CartProvider();
+      addTearDown(cart.dispose);
       await cart.bindBusiness(1);
-      for (var step = 0; step < 3; step++) {
+      for (var step = 0; step < units; step++) {
         cart.incrementCatalogItem(item);
       }
       await tester.binding.setSurfaceSize(const Size(375, 812));
@@ -208,47 +209,60 @@ void main() {
         child: MaterialApp(theme: AppTheme.light(), home: const CartPage()),
       ));
       await tester.pumpAndSettle();
+      return cart;
+    }
 
+    testWidgets('a gift that exists is told by the struck list price, not a box',
+        (tester) async {
+      final cart = await pumpCart(tester, 3);
       final group = cart.activeDisplayGroups.single;
       expect(group.freeQuantity, 1);
-      expect(find.byKey(ValueKey('cart-gift-${group.key}')), findsOneWidget);
+      // Three units are worth 39 510 ₸; the customer pays for two.
       expect(
-        find.descendant(
-          of: find.byKey(ValueKey('cart-gift-${group.key}')),
-          matching: find.text('0 ₸'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Подарок · 1 л'), findsOneWidget);
-      expect(find.text('Возьмите 3 л — платите за 2 л'), findsOneWidget);
-      // The third unit is the gift: three in the cart, two paid at 13 170 ₸.
+          tester
+              .widget<Text>(find.byKey(ValueKey('cart-list-price-${group.key}')))
+              .data,
+          formatTenge(39510));
+      expect(find.text(formatTenge(26340)), findsWidgets);
+      expect(find.byKey(ValueKey('cart-gift-${group.key}')), findsNothing);
+      expect(find.byKey(const ValueKey('cart-gift-label')), findsNothing);
+      expect(find.byKey(const ValueKey('cart-gift-price')), findsNothing);
+      expect(find.textContaining('Подарок'), findsNothing);
+      expect(find.textContaining('в подарок'), findsNothing);
+      // The next unit would not be free, so no nudge either.
+      expect(
+          find.byKey(ValueKey('cart-free-offer-${group.key}')), findsNothing);
       expect(group.totalOrderQuantity, 3);
       expect(cart.getTotalPrice(), 26340);
       expect(cart.toJsonForOrder().single['amount'], 3);
     });
 
-    testWidgets('two units of a 2+1 are all paid and show no gift line',
+    testWidgets(
+        'two units of a 2+1 are all paid; the row offers the third, and only adds it on request',
         (tester) async {
-      SharedPreferences.setMockInitialValues({});
-      final item = _item(promotions: [_giftPromotion]);
-      final cart = CartProvider();
-      await cart.bindBusiness(1);
-      cart.incrementCatalogItem(item);
-      cart.incrementCatalogItem(item);
-      await tester.binding.setSurfaceSize(const Size(375, 812));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(ChangeNotifierProvider<CartProvider>.value(
-        value: cart,
-        child: MaterialApp(theme: AppTheme.light(), home: const CartPage()),
-      ));
-      await tester.pumpAndSettle();
-
+      final cart = await pumpCart(tester, 2);
       final group = cart.activeDisplayGroups.single;
       expect(group.totalOrderQuantity, 2);
       expect(group.freeQuantity, 0);
+      expect(find.byKey(ValueKey('cart-list-price-${group.key}')), findsNothing);
       expect(find.byKey(ValueKey('cart-gift-${group.key}')), findsNothing);
       expect(cart.getTotalPrice(), 26340);
       expect(cart.toJsonForOrder().single['amount'], 2);
+
+      final offer = find.byKey(ValueKey('cart-free-offer-${group.key}'));
+      expect(offer, findsOneWidget);
+      expect(find.descendant(of: offer, matching: find.text('Ещё 1 л — бесплатно')),
+          findsOneWidget);
+      expect(cart.getTotalPrice(), 26340);
+
+      await tester.tap(find.byKey(ValueKey('cart-free-offer-add-${group.key}')));
+      await tester.pumpAndSettle();
+      expect(cart.activeDisplayGroups.single.totalOrderQuantity, 3);
+      expect(cart.activeDisplayGroups.single.freeQuantity, 1);
+      expect(cart.getTotalPrice(), 26340); // The third unit cost nothing.
+      expect(cart.toJsonForOrder().single['amount'], 3);
+      expect(find.byKey(ValueKey('cart-free-offer-${group.key}')), findsNothing);
+      expect(find.byKey(ValueKey('cart-list-price-${group.key}')), findsOneWidget);
     });
 
     testWidgets('a cart without gifts shows no gift line', (tester) async {

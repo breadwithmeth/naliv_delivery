@@ -32,23 +32,83 @@ http.Response _cityResponse(List<Map<String, Object>> cities) => http.Response(
       headers: const {'content-type': 'application/json'},
     );
 
-MockClient _client(http.Response Function() respond) {
+/// A reverse-geocoding feature in [city], as the address service returns it.
+http.Response _reverseResponse(String city) => http.Response(
+      jsonEncode({
+        'success': true,
+        'data': [
+          {
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [73.14, 49.83],
+            },
+            'properties': {
+              'geocoding': {
+                'country': 'Казахстан',
+                'city': city,
+                'street': 'Улица',
+                'housenumber': '1',
+              },
+            },
+          },
+        ],
+      }),
+      200,
+      headers: const {'content-type': 'application/json'},
+    );
+
+MockClient _client(
+  http.Response Function() cities, {
+  http.Response Function()? reverse,
+}) {
   final unexpected = <Uri>[];
   addTearDown(() => expect(unexpected, isEmpty));
   return MockClient((request) async {
     if (request.method == 'GET' && request.url.path == '/api/users/cities') {
-      return respond();
+      return cities();
+    }
+    if (reverse != null &&
+        request.method == 'GET' &&
+        request.url.path == '/api/addresses/reverse') {
+      return reverse();
     }
     unexpected.add(request.url);
     throw StateError('Unexpected request: ${request.method} ${request.url}');
   });
 }
 
+Position _position() => Position(
+      latitude: 49.83,
+      longitude: 73.14,
+      timestamp: DateTime.utc(2026, 1, 1),
+      accuracy: 20,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0,
+    );
+
+LocationPermissionResult _granted() => LocationPermissionResult(
+      success: true,
+      message: 'Доступ разрешён',
+      permissionStatus: LocationPermission.whileInUse,
+    );
+
+LocationPermissionResult _denied() => LocationPermissionResult(
+      success: false,
+      message: 'Доступ отключён в настройках.',
+      permissionStatus: LocationPermission.deniedForever,
+      needsSettingsRedirect: true,
+    );
+
 Future<void> _pumpPage(
   WidgetTester tester, {
   required VoidCallback onCompleted,
   OnboardingActions actions = _manualActions,
-  String? initialCity = 'Город А',
+  String? initialCity,
 }) async {
   await tester.binding.setSurfaceSize(const Size(375, 812));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -71,20 +131,86 @@ Future<void> _tap(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
+bool _continueEnabled(WidgetTester tester) =>
+    tester
+        .widget<FilledButton>(find.byKey(const ValueKey('onboarding-continue')))
+        .onPressed !=
+    null;
+
+String? _selected(WidgetTester tester) =>
+    tester.widget<RadioGroup<String>>(find.byType(RadioGroup<String>)).groupValue;
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({
         'telemetry_consent_enabled': false,
       }));
   tearDown(() => SharedPreferences.setMockInitialValues({}));
 
+  testWidgets('onboarding is one screen with one continue button',
+      (tester) async {
+    await http.runWithClient(() async {
+      await _pumpPage(tester, onCompleted: () {});
+      expect(find.text('Ваш город'), findsOneWidget);
+      expect(find.byKey(const ValueKey('onboarding-city-7')), findsOneWidget);
+      expect(find.byKey(const ValueKey('onboarding-city-8')), findsOneWidget);
+      expect(find.byKey(const ValueKey('onboarding-continue')), findsOneWidget);
+      expect(find.text('Продолжить'), findsOneWidget);
+      // No permissions step, no back, no separate completion.
+      expect(find.text('Разрешения'), findsNothing);
+      for (final key in [
+        'onboarding-complete',
+        'onboarding-back',
+        'onboarding-notifications',
+        'onboarding-skip-notifications',
+        'onboarding-skip-location',
+        'onboarding-location-settings',
+        'onboarding-telemetry',
+      ]) {
+        expect(find.byKey(ValueKey(key)), findsNothing, reason: key);
+      }
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets('continue stays disabled until a city is chosen', (tester) async {
+    var completed = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(tester, onCompleted: () => completed++);
+      expect(_selected(tester), isNull);
+      expect(_continueEnabled(tester), isFalse);
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 0);
+      expect((await OnboardingService.getState()).isCompleted, isFalse);
+
+      await _tap(tester, 'onboarding-city-8');
+      expect(_selected(tester), 'Город Б');
+      expect(_continueEnabled(tester), isTrue);
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets('a single city needs no choice and is preselected',
+      (tester) async {
+    var completed = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(tester, onCompleted: () => completed++);
+      expect(_selected(tester), 'Город А');
+      expect(_continueEnabled(tester), isTrue);
+      // One city leaves nothing to detect.
+      expect(find.byKey(const ValueKey('onboarding-location')), findsNothing);
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 1);
+      expect((await OnboardingService.getState()).selectedCity, 'Город А');
+    }, () => _client(() => _cityResponse([_availableCities.first])));
+  });
+
   testWidgets(
-      'failure and confirmed empty availability both block continuation',
+      'failure and confirmed empty availability both block continuation until a retry brings cities',
       (tester) async {
     var response = http.Response('Unavailable', 503);
     await http.runWithClient(() async {
       await _pumpPage(tester, onCompleted: () => fail('No city was selected'));
       expect(find.byKey(const ValueKey('onboarding-cities-error')),
           findsOneWidget);
+      expect(_continueEnabled(tester), isFalse);
       await _tap(tester, 'onboarding-continue');
       expect((await OnboardingService.getState()).isCompleted, isFalse);
 
@@ -94,59 +220,45 @@ void main() {
           find.byKey(const ValueKey('onboarding-cities-error')), findsNothing);
       expect(find.byKey(const ValueKey('onboarding-cities-empty')),
           findsOneWidget);
+      expect(_continueEnabled(tester), isFalse);
       await _tap(tester, 'onboarding-continue');
       expect((await OnboardingService.getState()).isCompleted, isFalse);
+
+      response = _cityResponse(_availableCities);
+      await _tap(tester, 'onboarding-retry-cities');
+      expect(find.byKey(const ValueKey('onboarding-cities-empty')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('onboarding-city-7')), findsOneWidget);
+      expect(find.byKey(const ValueKey('onboarding-city-8')), findsOneWidget);
+      expect(_continueEnabled(tester), isFalse);
     }, () => _client(() => response));
   });
 
-  testWidgets(
-      'cached city stays usable when refresh fails and permissions deny',
+  testWidgets('a cached city list stays usable when the refresh fails',
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'telemetry_consent_enabled': false,
       'onboarding_available_cities_cache': jsonEncode(_availableCities),
     });
     var completed = 0;
-    final actions = OnboardingActions(
-      locationSupported: true,
-      notificationsSupported: true,
-      requestLocationPermission: () async => LocationPermissionResult(
-        success: false,
-        message: 'Доступ отключён в настройках.',
-        permissionStatus: LocationPermission.deniedForever,
-        needsSettingsRedirect: true,
-      ),
-      locate: () => throw StateError('Denied location must not be read'),
-      enableNotifications: () => throw StateError('Permission service failed'),
-      openLocationSettings: () async => false,
-    );
     await http.runWithClient(() async {
-      await _pumpPage(tester, actions: actions, onCompleted: () => completed++);
+      await _pumpPage(tester, onCompleted: () => completed++);
       expect(find.byKey(const ValueKey('onboarding-retry-cities')),
           findsOneWidget);
+      expect(find.byKey(const ValueKey('onboarding-cities-error')),
+          findsNothing);
+      await _tap(tester, 'onboarding-city-7');
       await _tap(tester, 'onboarding-continue');
-      await _tap(tester, 'onboarding-location');
-      expect(find.byKey(const ValueKey('onboarding-location')), findsOneWidget);
-      expect(find.byKey(const ValueKey('onboarding-location-settings')),
-          findsOneWidget);
-      await _tap(tester, 'onboarding-notifications');
-      expect(find.byKey(const ValueKey('onboarding-notifications')),
-          findsOneWidget);
-      await _tap(tester, 'onboarding-complete');
-
       expect(completed, 1);
-      final state = await OnboardingService.getState();
-      expect(state.selectedCity, 'Город А');
-      expect(state.isCompleted, isTrue);
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('telemetry_consent_enabled'), isFalse);
+      expect((await OnboardingService.getState()).selectedCity, 'Город А');
     }, () => _client(() => http.Response('Unavailable', 503)));
   });
 
-  testWidgets('a pending optional notification request cannot block completion',
+  testWidgets(
+      'continue saves the city, completes, and asks for notifications exactly once',
       (tester) async {
-    final request = Completer<bool>();
     var completed = 0;
+    var notificationRequests = 0;
     await http.runWithClient(() async {
       await _pumpPage(
         tester,
@@ -154,21 +266,227 @@ void main() {
         actions: OnboardingActions(
           locationSupported: false,
           notificationsSupported: true,
+          enableNotifications: () async {
+            notificationRequests++;
+            return true;
+          },
+        ),
+      );
+      await _tap(tester, 'onboarding-city-8');
+      expect(notificationRequests, 0,
+          reason: 'choosing a city must not ask for permission');
+      await _tap(tester, 'onboarding-continue');
+
+      expect(completed, 1);
+      expect(notificationRequests, 1);
+      final state = await OnboardingService.getState();
+      expect(state.selectedCity, 'Город Б');
+      expect(state.isCompleted, isTrue);
+      expect(state.notificationPromptSeen, isTrue);
+      // Telemetry stays opt-in in Settings: onboarding never writes the consent.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('telemetry_consent_enabled'), isFalse);
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets('no notification request where notifications are unsupported',
+      (tester) async {
+    var completed = 0;
+    var notificationRequests = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () => completed++,
+        actions: OnboardingActions(
+          locationSupported: false,
+          notificationsSupported: false,
+          enableNotifications: () async {
+            notificationRequests++;
+            return true;
+          },
+        ),
+        initialCity: 'Город А',
+      );
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 1);
+      expect(notificationRequests, 0);
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets('a failing notification request cannot block completion',
+      (tester) async {
+    var completed = 0;
+    var notificationRequests = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () => completed++,
+        initialCity: 'Город А',
+        actions: OnboardingActions(
+          locationSupported: false,
+          notificationsSupported: true,
+          enableNotifications: () {
+            notificationRequests++;
+            return Future<bool>.error(StateError('Permission service failed'));
+          },
+        ),
+      );
+      await _tap(tester, 'onboarding-continue');
+      expect(notificationRequests, 1);
+      expect(completed, 1);
+      final state = await OnboardingService.getState();
+      expect(state.selectedCity, 'Город А');
+      expect(state.isCompleted, isTrue);
+      expect(tester.takeException(), isNull);
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets('a pending notification request cannot block completion',
+      (tester) async {
+    final request = Completer<bool>();
+    var completed = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () => completed++,
+        initialCity: 'Город А',
+        actions: OnboardingActions(
+          locationSupported: false,
+          notificationsSupported: true,
           enableNotifications: () => request.future,
         ),
       );
       await _tap(tester, 'onboarding-continue');
-      await _tap(tester, 'onboarding-notifications');
-      await _tap(tester, 'onboarding-skip-notifications');
-      await _tap(tester, 'onboarding-complete');
       expect(completed, 1);
       expect((await OnboardingService.getState()).isCompleted, isTrue);
 
       request.complete(true);
       await tester.pumpAndSettle();
       expect(completed, 1);
-      expect(find.byKey(const ValueKey('onboarding-notifications')),
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets(
+      'locating selects the matching city and leaves saving to continue',
+      (tester) async {
+    var completed = 0;
+    var permissionRequests = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () => completed++,
+        initialCity: 'Город А',
+        actions: OnboardingActions(
+          locationSupported: true,
+          notificationsSupported: false,
+          requestLocationPermission: () async {
+            permissionRequests++;
+            return _granted();
+          },
+          locate: () async => _position(),
+        ),
+      );
+      expect(_selected(tester), 'Город А');
+      await _tap(tester, 'onboarding-location');
+      expect(permissionRequests, 1);
+      expect(_selected(tester), 'Город Б');
+      expect(find.textContaining('Не удалось определить город'), findsNothing);
+      // Detecting never completes onboarding or saves the city by itself.
+      expect(completed, 0);
+      expect(await OnboardingService.getSelectedCity(), isNull);
+      expect((await OnboardingService.getState()).locationPromptSeen, isTrue);
+
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 1);
+      expect(await OnboardingService.getSelectedCity(), 'Город Б');
+    },
+        () => _client(
+              () => _cityResponse(_availableCities),
+              reverse: () => _reverseResponse('Город Б'),
+            ));
+  });
+
+  testWidgets(
+      'an unmatched location keeps the manual list usable and says so',
+      (tester) async {
+    var completed = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () => completed++,
+        actions: OnboardingActions(
+          locationSupported: true,
+          notificationsSupported: false,
+          requestLocationPermission: () async => _granted(),
+          locate: () async => _position(),
+        ),
+      );
+      await _tap(tester, 'onboarding-location');
+      expect(
+          find.text('Не удалось определить город. Выберите его в списке.'),
           findsOneWidget);
+      expect(_selected(tester), isNull);
+      expect(_continueEnabled(tester), isFalse);
+      await _tap(tester, 'onboarding-city-7');
+      expect(_continueEnabled(tester), isTrue);
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 1);
+      expect(await OnboardingService.getSelectedCity(), 'Город А');
+    },
+        () => _client(
+              () => _cityResponse(_availableCities),
+              reverse: () => _reverseResponse('Другой город'),
+            ));
+  });
+
+  testWidgets('a denied location leaves the manual list usable',
+      (tester) async {
+    var completed = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () => completed++,
+        actions: OnboardingActions(
+          locationSupported: true,
+          notificationsSupported: false,
+          requestLocationPermission: () async => _denied(),
+          locate: () => throw StateError('Denied location must not be read'),
+        ),
+      );
+      await _tap(tester, 'onboarding-location');
+      expect(
+          find.text('Нет доступа к геолокации. Выберите город в списке.'),
+          findsOneWidget);
+      // No settings redirect and no skip button: the list is the way forward.
+      expect(find.byKey(const ValueKey('onboarding-location-settings')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('onboarding-location')), findsOneWidget);
+      await _tap(tester, 'onboarding-city-8');
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 1);
+      expect(await OnboardingService.getSelectedCity(), 'Город Б');
+    }, () => _client(() => _cityResponse(_availableCities)));
+  });
+
+  testWidgets('a location read that throws leaves the manual list usable',
+      (tester) async {
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        onCompleted: () {},
+        actions: OnboardingActions(
+          locationSupported: true,
+          notificationsSupported: false,
+          requestLocationPermission: () async => _granted(),
+          locate: () async => throw StateError('No position'),
+        ),
+      );
+      await _tap(tester, 'onboarding-location');
+      expect(
+          find.text('Не удалось определить город. Выберите его в списке.'),
+          findsOneWidget);
+      await _tap(tester, 'onboarding-city-7');
+      expect(_continueEnabled(tester), isTrue);
     }, () => _client(() => _cityResponse(_availableCities)));
   });
 
@@ -205,14 +523,14 @@ void main() {
   testWidgets('keyboard city selection is saved only when continuing',
       (tester) async {
     await http.runWithClient(() async {
-      await _pumpPage(tester, onCompleted: () {});
+      await _pumpPage(tester, onCompleted: () {}, initialCity: 'Город А');
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
       expect(await OnboardingService.getSelectedCity(), isNull);
       await _tap(tester, 'onboarding-continue');
       expect(await OnboardingService.getSelectedCity(), 'Город Б');
-      expect((await OnboardingService.getState()).isCompleted, isFalse);
+      expect((await OnboardingService.getState()).isCompleted, isTrue);
     }, () => _client(() => _cityResponse(_availableCities)));
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import '../../../core/money.dart';
 import '../../../core/product_view.dart';
@@ -16,10 +17,12 @@ import '../../../ui/app_icon_button.dart';
 import '../../../ui/frosted_dock.dart';
 import '../../../ui/motion_widgets.dart';
 import '../../../ui/product_hero_header.dart';
+import '../../../ui/promotion_nudge.dart';
 import '../../../ui/surfaces.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/liked_items_provider.dart';
 import '../../../utils/bonus_rules.dart';
+import '../../../utils/draft_bottles.dart';
 import '../../../utils/promotion_engine.dart';
 import '../../../utils/smart_cart.dart';
 
@@ -58,6 +61,27 @@ class _ProductPageState extends State<ProductPage> {
   double _actionBarHeight = 129;
   late final SmartCartSelection _selection =
       SmartCartSelection(widget.view.source);
+
+  @override
+  void initState() {
+    super.initState();
+    // A drink on tap is priced with the store's bottles; read them once.
+    final catalogue = DraftBottleCatalogue.instance;
+    final pageStore = widget.businessId;
+    if (catalogue.activeStore == null && pageStore != null && pageStore > 0) {
+      catalogue.activeStore = pageStore;
+    }
+    final businessId =
+        catalogue.storeOf(widget.view.source.businessId ?? pageStore);
+    if (businessId != null &&
+        _selection.containerOption == null &&
+        isDraftDrinkName(widget.view.source.name) &&
+        DraftBottleCatalogue.instance.cached(businessId) == null) {
+      DraftBottleCatalogue.instance.load(businessId).then((set) {
+        if (set != null && mounted) setState(() {});
+      });
+    }
+  }
 
   bool _canIncrement(CartProvider cart, double quantity) {
     if (!widget.view.available || cart.hasUnresolvedBusiness) return false;
@@ -101,13 +125,13 @@ class _ProductPageState extends State<ProductPage> {
     if (mounted) setState(() => _justAdded = false);
   }
 
-  /// The active `N+M` promotion, its rule and how far the customer is from the next gift.
+  /// The active `N+M` promotion: its name and rule, once. At the exact
+  /// threshold it offers the next step, priced by what the cart's «+» would
+  /// really add; once a gift exists it shows the saving. No progress bar and no
+  /// countdown, and the step is never taken on the customer's behalf.
   ///
-  /// Returns null when the item carries no usable gift promotion, so the page keeps the frames'
-  /// geometry for ordinary products.
-  ///
-  /// [onIncrement] adds one more step; the card offers it only when that step
-  /// would be free, and never takes it on the customer's behalf.
+  /// Returns null when the item carries no usable gift promotion, so the page
+  /// keeps the frames' geometry for ordinary products.
   Widget? _promotionCard(num quantity, {VoidCallback? onIncrement}) {
     final evaluation = evaluatePromotion(
       quantity: quantity.toDouble(),
@@ -120,14 +144,14 @@ class _ProductPageState extends State<ProductPage> {
         ? widget.view.unit!.trim()
         : 'шт';
     String label(double value) => formatQuantity(value, unit);
-    final remainder = evaluation.quantity % award.setSize;
-    final unlocked = evaluation.giftQuantity > 0 && remainder <= 0.0000001;
-    final progress = unlocked ? 1.0 : remainder / award.setSize;
-    final bonus = evaluation.bonusQuantity;
-    final freeStep = bonus != null &&
-        onIncrement != null &&
-        quantity > 0 &&
-        (bonus - widget.view.source.effectiveStepQuantity).abs() <= 0.0000001;
+    final group = quantity > 0
+        ? context.read<CartProvider>().evaluate().groups.firstWhereOrNull(
+            (entry) => entry.group.key == _selection.defaultDisplayKey)
+        : null;
+    final freeStep = onIncrement != null && group?.offersFreeStep == true;
+    final saving = group == null || group.allocationIssue != null
+        ? 0.0
+        : group.price.subtotalBeforePromotions - group.price.totalPrice;
     final light = Theme.of(context).brightness == Brightness.light;
     return AppSurface(
       fill: _raisedFill(context),
@@ -157,46 +181,27 @@ class _ProductPageState extends State<ProductPage> {
           const SizedBox(height: AppSpacing.sm),
           Text(
             promotionRuleText(award, label),
+            key: const ValueKey('product-promotion-rule'),
             style: AppTypography.body.copyWith(color: palette.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ClipRRect(
-            borderRadius: AppRadii.pillAll,
-            child: LinearProgressIndicator(
-              key: const ValueKey('product-promotion-progress'),
-              value: progress,
-              minHeight: 6,
-              backgroundColor: palette.divider,
-              color: palette.accent,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            unlocked
-                ? 'Подарок в корзине: ${label(evaluation.giftQuantity)}'
-                : bonus != null
-                    ? 'Добавьте ещё ${label(bonus)} — это бесплатно'
-                    : 'До подарка: ещё '
-                        '${label(evaluation.nextGiftIn ?? award.setSize.toDouble())}',
-            key: const ValueKey('product-promotion-state'),
-            style: AppTypography.bodySmall.copyWith(
-                color: unlocked || bonus != null
-                    ? palette.gold
-                    : palette.textSecondary),
           ),
           if (freeStep) ...[
             const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              key: const ValueKey('product-promotion-add-free'),
-              onPressed: onIncrement,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, AppSpacing.touchTarget),
-                foregroundColor: palette.accent,
-                side: BorderSide(color: palette.accent),
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            PromotionNudge(
+              key: const ValueKey('product-promotion-state'),
+              actionKey: const ValueKey('product-promotion-add-free'),
+              text: promotionNudgeText(
+                quantityLabel: label(group!.incrementStep),
+                cost: group.nextStepCost!,
+                bottled: _selection.usesPourFlow,
               ),
-              child: Text('+${label(bonus)} в подарок'),
+              onAdd: onIncrement,
+            ),
+          ] else if (saving > 0.5) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Выгода ${formatTenge(saving)}',
+              key: const ValueKey('product-promotion-state'),
+              style: AppTypography.bodySmallBold.copyWith(color: palette.gold),
             ),
           ],
         ],
@@ -226,7 +231,7 @@ class _ProductPageState extends State<ProductPage> {
     final pageColor = Theme.of(context).brightness == Brightness.light
         ? palette.surface
         : palette.background;
-    final total = CartItem.calculatePrice([
+    final draft = CartEvaluation(CartDisplayGroup.groupItems([
       CartItem(
         itemId: widget.view.itemId,
         name: widget.view.source.name,
@@ -238,7 +243,12 @@ class _ProductPageState extends State<ProductPage> {
         promotions: _activePromotions,
         itemData: widget.view.source.toJson(),
       ),
-    ]).totalPrice;
+    ])).groups.first;
+    final total = draft.price.totalPrice;
+    final bottles = draft.draftBottles.isEmpty
+        ? null
+        : '${draft.bottleBreakdownLabel} · '
+            '${formatTenge(draft.draftBottlesTotal)}';
     final points = widget.view.available && widget.view.bonusEligible
         ? BonusRules.calculateEarnedBonuses(total)
         : 0;
@@ -310,6 +320,9 @@ class _ProductPageState extends State<ProductPage> {
                                     ? widget.view.source.effectiveStepQuantity
                                     : 0),
                             inCart: quantity > 0,
+                            step: _selection.usesPourFlow
+                                ? _selection.minBottleVolume
+                                : widget.view.source.effectiveStepQuantity,
                             unit: widget.view.unit,
                             onIncrement: canIncrement
                                 ? () => context
@@ -388,6 +401,7 @@ class _ProductPageState extends State<ProductPage> {
             ),
             dock: _ActionBar(
               total: total,
+              bottles: bottles,
               inCartQuantity: quantity > 0
                   ? formatQuantity(
                       quantity, quantityUnitLabel(widget.view.unit) ?? 'шт')
@@ -569,6 +583,7 @@ class _QuantityControl extends StatelessWidget {
   const _QuantityControl({
     required this.quantity,
     required this.inCart,
+    required this.step,
     this.unit,
     this.onIncrement,
     this.onDecrement,
@@ -581,6 +596,9 @@ class _QuantityControl extends StatelessWidget {
   final String? unit;
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
+
+  /// One step; at the last step in the cart the minus removes the item.
+  final num step;
 
   String get _label => formatQuantity(quantity.toDouble(), unit ?? 'шт');
 
@@ -607,7 +625,11 @@ class _QuantityControl extends StatelessWidget {
           shadow: light ? AppShadows.control(palette) : null,
           child: Row(
             children: [
-              _square(palette, onDecrement, Icons.remove_rounded, 'Уменьшить'),
+              inCart && quantity <= step + 0.0001
+                  ? _square(palette, onDecrement, Icons.delete_outline_rounded,
+                      'Удалить из корзины')
+                  : _square(
+                      palette, onDecrement, Icons.remove_rounded, 'Уменьшить'),
               Expanded(
                 child: Semantics(
                   label:
@@ -805,10 +827,14 @@ class _ActionBar extends StatelessWidget {
     required this.total,
     required this.inCartQuantity,
     required this.justAdded,
+    this.bottles,
     this.onAdd,
   });
 
   final num total;
+
+  /// The bottles a drink on tap comes in («2× 2 л · 200 ₸»), included in [total].
+  final String? bottles;
 
   /// The formatted cart quantity, or null while the item is not in the cart.
   final String? inCartQuantity;
@@ -839,6 +865,15 @@ class _ActionBar extends StatelessWidget {
             if (inCart)
               Text(
                 'В корзине: $inCartQuantity',
+                style: AppTypography.bodySmall
+                    .copyWith(color: palette.textSecondary),
+              ),
+            if (bottles != null)
+              Text(
+                'Бутылки: $bottles',
+                key: const ValueKey('product-draft-bottles'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: AppTypography.bodySmall
                     .copyWith(color: palette.textSecondary),
               ),

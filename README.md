@@ -12,7 +12,7 @@ flutter pub get
 
 Keep signing keys, Figma credentials and account tokens local. Android signing configuration has an example at `android/key.properties.example`. Do not commit credentials.
 
-Android release versions come from `pubspec.yaml` (`1.2.116+12116`), not a second Gradle constant. The build uses Gradle 8.14.3, AGP 8.11.1, Kotlin 2.2.20 and Java/Kotlin target 17; AGP 9 migration is intentionally separate.
+Android release versions come from `pubspec.yaml` (`1.2.117+12117`), not a second Gradle constant. The build uses Gradle 8.14.3, AGP 8.11.1, Kotlin 2.2.20 and Java/Kotlin target 17; AGP 9 migration is intentionally separate.
 
 ```sh
 flutter build apk --release

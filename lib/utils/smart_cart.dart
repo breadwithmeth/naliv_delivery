@@ -6,6 +6,7 @@ import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
 import 'promotion_engine.dart';
 import 'bottle_allocation.dart';
+import 'draft_bottles.dart';
 import '../core/quantity.dart';
 
 class SmartCartSelection {
@@ -784,6 +785,35 @@ class CartGroupEvaluation {
   double get totalOrderQuantity => _rowsTotal;
   late final Map<int, int> bottleCounts =
       Map<int, int>.unmodifiable(group._bottleCounts(rows));
+
+  /// A drink on tap («розлив») with no container option of its own: the app
+  /// adds the store's 2 л / 1 л bottles for its litres, gift litres included.
+  late final bool needsDraftBottles = !_pour &&
+      group.itemSnapshot != null &&
+      group.selection?.containerOption == null &&
+      isDraftDrinkName(group.itemSnapshot!.name);
+
+  /// The store whose bottles this group takes.
+  late final int? _draftStore =
+      DraftBottleCatalogue.instance.storeOf(group.itemSnapshot?.businessId);
+
+  /// The store's bottles are not known yet, so this group cannot be priced or
+  /// ordered with its bottles.
+  bool get draftBottlesPending =>
+      needsDraftBottles &&
+      (_draftStore == null ||
+          DraftBottleCatalogue.instance.cached(_draftStore) == null);
+
+  /// The bottles this group's litres take, by bottle product.
+  late final Map<DraftBottle, int> draftBottles = _draftBottles();
+  Map<DraftBottle, int> _draftBottles() {
+    if (!needsDraftBottles || _draftStore == null) return const {};
+    final set = DraftBottleCatalogue.instance.cached(_draftStore);
+    return set == null ? const {} : draftBottlesFor(_rowsTotal, set);
+  }
+
+  double get draftBottlesTotal => draftBottles.entries
+      .fold<double>(0, (sum, entry) => sum + entry.key.price * entry.value);
   late final (List<CartItem>, String?) _projection = _project();
   String? get allocationIssue => _projection.$2;
 
@@ -811,6 +841,51 @@ class CartGroupEvaluation {
         incrementStep <= 0 ||
         (group.maxAmount != null &&
             nextOrderQuantity > group.maxAmount! + 0.0000001));
+  }
+
+  /// What the cart's «+» (one more step: one more batch of the same bottles,
+  /// or one more unit) adds to this group's total, gift and bottle tariffs
+  /// included; null when the step cannot be taken or priced.
+  late final double? nextStepCost = _nextStepCost();
+  double? _nextStepCost() {
+    if (!canIncrease || allocationIssue != null) return null;
+    final live = [
+      for (final row in rows)
+        if (row.quantity > 0) row,
+    ];
+    if (live.isEmpty) return null;
+    final List<CartItem> next;
+    if (_pour) {
+      final batches = (_rowsTotal / incrementStep).round();
+      if (batches <= 0) return null;
+      next = [
+        for (final row in live)
+          row.copyWith(quantity: row.quantity * (batches + 1) / batches),
+      ];
+    } else {
+      next = [
+        live.first.copyWith(quantity: live.first.quantity + incrementStep),
+        ...live.skip(1),
+      ];
+    }
+    final preview = CartDisplayGroup._(
+      key: group.key,
+      items: next,
+      itemSnapshot: group.itemSnapshot,
+      baseVariants: group.baseVariants,
+      selection: group.selection,
+    ).evaluate(now: now);
+    if (preview.allocationIssue != null) return null;
+    return preview.price.totalPrice - price.totalPrice;
+  }
+
+  /// True when the cart's «+» would be the promotion's free step: the gift
+  /// grows by the whole step. The customer is offered it, never given it.
+  bool get offersFreeStep {
+    final bonus = promotion.bonusQuantity;
+    return bonus != null &&
+        (bonus - incrementStep).abs() <= 0.0000001 &&
+        nextStepCost != null;
   }
 
   List<CartItem> get physicalItems {
@@ -884,6 +959,8 @@ class CartGroupEvaluation {
           now: now);
       options += item.optionsTotalForSelection(group.selection);
     }
+    // Bottles for a drink on tap are part of its price, like a container tariff.
+    options += draftBottlesTotal;
     final unitPrice = paidQuantity > 0 ? productSubtotal / paidQuantity : 0.0;
     return (
       productSubtotal: productSubtotal,
@@ -900,6 +977,16 @@ class CartGroupEvaluation {
 
   String? _bottleBreakdownLabel() {
     final selection = group.selection;
+    if (draftBottles.isNotEmpty) {
+      final sorted = draftBottles.entries.toList()
+        ..sort((left, right) => right.key.litres.compareTo(left.key.litres));
+      return [
+        for (final entry in sorted)
+          entry.value == 1
+              ? '${entry.key.litres} л'
+              : '${entry.value} × ${entry.key.litres} л',
+      ].join(' + ');
+    }
     if (selection == null || !selection.usesPourFlow) return null;
     final rows = physicalItems.toList()
       ..sort((left, right) =>
@@ -923,7 +1010,15 @@ class CartGroupEvaluation {
   List<Map<String, dynamic>> toJsonForOrder() {
     final issue = allocationIssue;
     if (issue != null) throw StateError(issue);
-    return [for (final item in physicalItems) item.toJsonForOrder()];
+    return [
+      for (final item in physicalItems) item.toJsonForOrder(),
+      for (final entry in draftBottles.entries)
+        {
+          'item_id': entry.key.itemId,
+          'amount': entry.value,
+          'options': <Map<String, dynamic>>[],
+        },
+    ];
   }
 }
 
@@ -968,7 +1063,30 @@ class CartEvaluation {
     );
   }
 
-  List<Map<String, dynamic>> toJsonForOrder() => [
-        for (final group in activeGroups) ...group.toJsonForOrder(),
-      ];
+  /// Some drink on tap still waits for its store's bottles.
+  bool get draftBottlesPending =>
+      activeGroups.any((group) => group.draftBottlesPending);
+
+  /// Order lines; the same option-less product (a bottle used by several
+  /// drinks) is sent once with the summed amount.
+  List<Map<String, dynamic>> toJsonForOrder() {
+    final result = <Map<String, dynamic>>[];
+    final plain = <Object?, Map<String, dynamic>>{};
+    for (final line in [
+      for (final group in activeGroups) ...group.toJsonForOrder(),
+    ]) {
+      final options = line['options'];
+      if (options is List && options.isEmpty) {
+        final existing = plain[line['item_id']];
+        if (existing != null) {
+          existing['amount'] =
+              (existing['amount'] as num) + (line['amount'] as num);
+          continue;
+        }
+        plain[line['item_id']] = line;
+      }
+      result.add(line);
+    }
+    return result;
+  }
 }

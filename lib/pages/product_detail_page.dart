@@ -18,6 +18,7 @@ import '../ui/app_icon_button.dart';
 import '../ui/frosted_dock.dart';
 import '../ui/motion_widgets.dart';
 import '../ui/product_hero_header.dart';
+import '../ui/promotion_nudge.dart';
 import '../ui/surfaces.dart';
 import '../utils/api.dart';
 import '../services/auth_service.dart';
@@ -308,16 +309,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         itemData: widget.item.toJson(),
       );
 
-  List<CartItem> get _previewItems => !_pour
+  List<CartItem> get _previewItems => _itemsForCounts(_bottleCounts);
+
+  List<CartItem> _itemsForCounts(Map<int, int> counts) => !_pour
       ? [_previewItem(_quantity)]
       : [
           for (final bottle in _visibleBottles)
-            if ((_bottleCounts[bottle.relationId] ?? 0) > 0)
+            if ((counts[bottle.relationId] ?? 0) > 0)
               _previewItem(
                   _selection.volumeForBottle(bottle) *
-                      _bottleCounts[bottle.relationId]!,
+                      counts[bottle.relationId]!,
                   bottle: bottle),
         ];
+
+  /// What one more [bottle] adds to the draft's total: the drink may be free
+  /// by the promotion, its bottle never is. Null when it cannot be priced.
+  double? _costWithExtraBottle(item_model.ItemOptionItem bottle) {
+    final counts = {
+      ..._bottleCounts,
+      bottle.relationId: (_bottleCounts[bottle.relationId] ?? 0) + 1,
+    };
+    try {
+      final group =
+          CartEvaluation(CartDisplayGroup.groupItems(_itemsForCounts(counts)))
+              .groups
+              .firstOrNull;
+      if (group == null || group.allocationIssue != null || _price == null) {
+        return null;
+      }
+      return group.price.totalPrice - _total;
+    } on StateError {
+      return null;
+    }
+  }
 
   CartPriceBreakdown? _price;
   CartGroupEvaluation? _previewGroup;
@@ -579,6 +603,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             SizedBox(
                                 height: _pour ? AppSpacing.xs : AppSpacing.xl),
                             _unitPrice(),
+                            if (_pour && _gift.award != null) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                '${_gift.award!.label} · '
+                                '${promotionRuleText(_gift.award!, _selection.volumeLabel)}'
+                                ', бутылки оплачиваются',
+                                key: const ValueKey(
+                                    'configuration-promotion-rule'),
+                                style: AppTypography.bodySmallMedium
+                                    .copyWith(color: palette.accent),
+                              ),
+                            ],
                             SizedBox(
                                 height: _pour ? AppSpacing.xs : AppSpacing.md),
                             Text(
@@ -630,7 +666,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               const SizedBox(height: AppSpacing.huge),
                             ],
                             if (!_pour && _promotions.isNotEmpty) ...[
-                              _promotionInfo(),
+                              _promotionInfo(cart, available),
                               const SizedBox(height: AppSpacing.huge),
                             ],
                             if (!_pour && _options.isNotEmpty)
@@ -892,8 +928,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return best;
   }
 
-  /// One line above the total: litres and bottles, the gift earned, and either the one-tap bonus
-  /// or how far the next gift is.
+  /// Litres and bottles above the total and, only at a promotion's threshold,
+  /// the one nudge priced by what the extra bottle really costs. A gift that
+  /// already exists is told by the struck-through price, nowhere else.
   Widget? _pourSummary(CartProvider cart, double available) {
     if (!_pour || _amount <= 0.0000001) return null;
     final palette = context.palette;
@@ -901,86 +938,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final bottles =
         _bottleCounts.values.fold<int>(0, (sum, count) => sum + count);
     final bonus = _bonusBottle(cart, gift, available);
-    final next = gift.nextGiftIn;
+    final cost = bonus == null ? null : _costWithExtraBottle(bonus);
+    final volume =
+        '${_selection.volumeLabel(_amount)} · ${_bottlesLabel(bottles)}';
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Wrap(
-        spacing: AppSpacing.md,
-        runSpacing: AppSpacing.xs,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedSwap(
-            stateKey:
-                '${_selection.volumeLabel(_amount)} · ${_bottlesLabel(bottles)}',
+            stateKey: volume,
             duration: AppMotion.count,
             scale: 1,
             child: Text(
-              '${_selection.volumeLabel(_amount)} · ${_bottlesLabel(bottles)}',
+              volume,
               key: const ValueKey('configuration-volume'),
               style:
                   AppTypography.bodyMedium.copyWith(color: palette.textPrimary),
             ),
           ),
-          if (gift.giftQuantity > 0)
-            AppearIn(
-              key: const ValueKey('configuration-gift-appear'),
-              animate: _summaryMayAnimate,
-              child: DecoratedBox(
-                key: const ValueKey('configuration-gift'),
-                decoration: BoxDecoration(
-                    color: palette.accent, borderRadius: AppRadii.pillAll),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                  child: AnimatedSwap(
-                    stateKey: _selection.volumeLabel(gift.giftQuantity),
-                    duration: AppMotion.count,
-                    scale: 1,
-                    child: Text(
-                        '${_selection.volumeLabel(gift.giftQuantity)} в подарок',
-                        style: AppTypography.bodySmallMedium
-                            .copyWith(color: palette.textOnAccent)),
-                  ),
-                ),
-              ),
-            ),
-          if (bonus != null)
+          if (bonus != null && cost != null) ...[
+            const SizedBox(height: AppSpacing.sm),
             AppearIn(
               key: const ValueKey('configuration-bonus-appear'),
               animate: _summaryMayAnimate,
-              child: OutlinedButton(
+              child: PromotionNudge(
                 key: const ValueKey('configuration-bonus'),
-                onPressed: () => setState(() {
+                actionKey: const ValueKey('configuration-bonus-add'),
+                text: promotionNudgeText(
+                  quantityLabel: _selection.volumeLabel(gift.bonusQuantity!),
+                  cost: cost,
+                  bottled: true,
+                ),
+                onAdd: () => setState(() {
                   _bottleCounts[bonus.relationId] =
                       (_bottleCounts[bonus.relationId] ?? 0) + 1;
                   _saved = false;
                   _feedback = null;
                 }),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, AppSpacing.touchTarget),
-                  foregroundColor: palette.accent,
-                  side: BorderSide(color: palette.accent),
-                  shape: const StadiumBorder(),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                ),
-                child: Text(
-                    '+${_selection.volumeLabel(gift.bonusQuantity!)} в подарок'),
               ),
-            )
-          else if (next != null)
-            AnimatedSwap(
-              stateKey: _selection.volumeLabel(next),
-              duration: AppMotion.count,
-              scale: 1,
-              child: Text(
-                  gift.giftQuantity > 0
-                      ? 'До следующего подарка: ${_selection.volumeLabel(next)}'
-                      : 'До подарка: ${_selection.volumeLabel(next)}',
-                  key: const ValueKey('configuration-hint'),
-                  style: AppTypography.bodySmall
-                      .copyWith(color: palette.textSecondary)),
             ),
+          ],
         ],
       ),
     );
@@ -1032,15 +1031,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ],
       );
 
-  Widget _promotionInfo() {
-    final evaluation = _gift;
-    final award = evaluation.award;
-    final remainder = award == null ? 0.0 : _amount % award.setSize;
-    final progress = award == null
-        ? 0.0
-        : (_amount > 0.0000001 && remainder <= 0.0000001
-            ? 1.0
-            : remainder / award.setSize);
+  /// The rule, once, and at the exact threshold the priced nudge. No progress
+  /// bar and no «до подарка» countdown: a gift that exists shows in the price.
+  Widget _promotionInfo(CartProvider cart, double available) {
+    final bonus = _gift.bonusQuantity;
+    final canAddFree = bonus != null &&
+        (bonus - _step).abs() <= 0.0000001 &&
+        _inStock &&
+        _canIncreaseDraft(cart) &&
+        _fitsAvailable(_quantity + _step, available);
+    double? cost;
+    if (canAddFree && _price != null) {
+      try {
+        cost = CartEvaluation(CartDisplayGroup.groupItems(
+                [_previewItem(_quantity + _step)])).price.totalPrice -
+            _total;
+      } on StateError {
+        cost = null;
+      }
+    }
     return AppSurface(
       key: const ValueKey('configuration-promotion'),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -1068,28 +1077,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   style: AppTypography.body
                       .copyWith(color: context.palette.textSecondary)),
           ],
-        if (award != null) ...[
+        if (canAddFree && cost != null) ...[
           const SizedBox(height: AppSpacing.md),
-          ClipRRect(
-            borderRadius: AppRadii.pillAll,
-            child: LinearProgressIndicator(
-              key: const ValueKey('configuration-promotion-progress'),
-              value: progress,
-              minHeight: 6,
-              color: context.palette.accent,
-              backgroundColor: context.palette.surfaceMuted,
+          PromotionNudge(
+            key: const ValueKey('configuration-promotion-state'),
+            actionKey: const ValueKey('configuration-promotion-add'),
+            text: promotionNudgeText(
+              quantityLabel: _amountLabel(bonus),
+              cost: cost,
+              bottled: false,
             ),
+            onAdd: () => setState(() {
+              _quantity += _step;
+              _saved = false;
+              _feedback = null;
+            }),
           ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-              _free > 0
-                  ? 'Подарок: ${_amountLabel(_free)} · напиток 0 ₸'
-                  : evaluation.bonusQuantity != null
-                      ? 'Добавьте ещё ${_amountLabel(evaluation.bonusQuantity!)} — это бесплатно'
-                      : 'До подарка: ещё ${_amountLabel(evaluation.nextGiftIn ?? award.setSize.toDouble())}',
-              key: const ValueKey('configuration-promotion-state'),
-              style: AppTypography.bodySmall
-                  .copyWith(color: context.palette.textSecondary)),
         ],
       ]),
     );

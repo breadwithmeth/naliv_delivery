@@ -6,6 +6,7 @@ import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
 import 'package:naliv_delivery/core/kitchen_policy.dart';
 
+import 'draft_bottles.dart';
 import 'smart_cart.dart';
 
 enum CartSaveStatus { saved, pending, failed, restoreFailed }
@@ -133,10 +134,33 @@ class CartProvider extends ChangeNotifier {
     _activeDisplayGroups = List<CartDisplayGroup>.unmodifiable(
         groups.where((group) => group.totalQuantity > _quantityEpsilon));
     _displayGroupsRevision = _revision;
+    _requestDraftBottles(groups);
     _catalogQuantities
       ..clear()
       ..addEntries(
           groups.map((group) => MapEntry(group.key, group.totalQuantity)));
+  }
+
+  /// A drink on tap needs its store's bottles to be priced; they are read once
+  /// per store, and the cart refreshes when they arrive.
+  void _requestDraftBottles(List<CartDisplayGroup> groups) {
+    final catalogue = DraftBottleCatalogue.instance;
+    if (_businessId != null) catalogue.activeStore = _businessId;
+    for (final group in groups) {
+      final snapshot = group.itemSnapshot;
+      final store = catalogue.storeOf(snapshot?.businessId ?? _businessId);
+      if (snapshot == null ||
+          store == null ||
+          group.selection?.containerOption != null ||
+          group.selection?.usesPourFlow == true ||
+          !isDraftDrinkName(snapshot.name) ||
+          catalogue.cached(store) != null) {
+        continue;
+      }
+      catalogue.load(store).then((set) {
+        if (set != null && !_disposed) notifyListeners();
+      });
+    }
   }
 
   bool get hasActiveItems => activeDisplayGroups.isNotEmpty;
@@ -910,12 +934,6 @@ class CartProvider extends ChangeNotifier {
     return reserved + quantity <= selection.maxAmount + 0.0000001;
   }
 
-  void _removePreviousConfiguration(String key, String? previousKey) {
-    if (previousKey == null || previousKey == key) return;
-    _items.removeWhere(
-        (item) => CartDisplayGroup.displayKeyForCartItem(item) == previousKey);
-  }
-
   bool _syncSelectionGroup(
     SmartCartSelection selection,
     List<Map<String, dynamic>> baseVariants,
@@ -1100,35 +1118,37 @@ class CartProvider extends ChangeNotifier {
             .any((group) => group.allocationIssue != null)) {
       return false;
     }
-    if (rows.isEmpty) {
-      _removePreviousConfiguration(key, previousKey);
-      final matching = _items
-          .where((item) => CartDisplayGroup.displayKeyForCartItem(item) == key)
-          .toList(growable: false);
-      _keepDisplayGroupAtZero(matching);
-    } else {
-      _items.removeWhere((item) {
-        final itemKey = CartDisplayGroup.displayKeyForCartItem(item);
-        return itemKey == key || itemKey == previousKey;
-      });
-      _items.addAll(rows);
-      _mergeExactDuplicates();
-    }
+    // Down to nothing outside the cart, the item leaves the cart completely;
+    // only the cart page keeps a removed row on screen, with «Вернуть».
+    _items.removeWhere((item) {
+      final itemKey = CartDisplayGroup.displayKeyForCartItem(item);
+      return itemKey == key || itemKey == previousKey;
+    });
+    _items.addAll(rows);
+    _mergeExactDuplicates();
     _persistAndNotify();
     return true;
   }
 
-  void _keepDisplayGroupAtZero(List<CartItem> matching) {
-    if (matching.isEmpty) {
-      return;
-    }
+  /// The list position of a group, so a row removed in the cart can come back
+  /// in the same place.
+  int? displayOrderOf(String key) {
+    displayGroups; // Refreshes the order map for the current rows.
+    return _displayOrderByKey[key];
+  }
 
-    final primary = matching.first;
-    _updateQuantityInternal(primary.itemId, 0, primary.selectedVariants);
-    for (final duplicate in matching.skip(1)) {
-      _removeItemInternal(duplicate.itemId, duplicate.selectedVariants);
-    }
+  /// Puts back the exact rows (bottle mix included) of a group the customer
+  /// removed in the cart and then undid, at its former [order].
+  bool restoreDisplayGroupRows(List<CartItem> rows, {int? order}) {
+    if (!_canMutate || rows.isEmpty) return false;
+    final key = CartDisplayGroup.displayKeyForCartItem(rows.first);
+    _items.removeWhere(
+        (item) => CartDisplayGroup.displayKeyForCartItem(item) == key);
+    _items.addAll(rows.map((row) => row.copyWith()));
+    if (order != null) _displayOrderByKey[key] = order;
     _mergeExactDuplicates();
+    _persistAndNotify();
+    return true;
   }
 
   /// Добавление товара с опциями в корзину

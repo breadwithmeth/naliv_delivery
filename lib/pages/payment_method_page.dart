@@ -1074,53 +1074,58 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     // The list ends above the bar's measured height, not a guessed inset.
     final bottomClearance =
         _dockHeight + MediaQuery.paddingOf(context).bottom + AppSpacing.xxxl;
-    return Scaffold(
-      backgroundColor: palette.background,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: FrostedDock(
-            onDockHeightChanged: (height) {
-              if ((height - _dockHeight).abs() > 0.5) {
-                setState(() => _dockHeight = height);
-              }
-            },
-            content: FrostedHeaderLayout(
-              estimatedHeaderHeight: 87,
-              header: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
-                child: AppTopBar(
-                  title: 'Способ оплаты',
-                  onBack: () => Navigator.of(context).maybePop(),
-                  trailing: AppIconButton(
-                    key: const ValueKey('payment-faq'),
-                    asset: AppIcons.faq,
-                    tooltip: 'Вопросы об оплате',
-                    onTap: () => openFaqPage(context,
-                        initialSection: FaqSection.payment),
+    // While a charge is in flight, leaving would hide its outcome.
+    return PopScope(
+      canPop: !_isPaying,
+      child: Scaffold(
+        backgroundColor: palette.background,
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: FrostedDock(
+              onDockHeightChanged: (height) {
+                if ((height - _dockHeight).abs() > 0.5) {
+                  setState(() => _dockHeight = height);
+                }
+              },
+              content: FrostedHeaderLayout(
+                estimatedHeaderHeight: 87,
+                header: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
+                  child: AppTopBar(
+                    title: 'Способ оплаты',
+                    onBack: () => Navigator.of(context).maybePop(),
+                    backEnabled: !_isPaying,
+                    trailing: AppIconButton(
+                      key: const ValueKey('payment-faq'),
+                      asset: AppIcons.faq,
+                      tooltip: 'Вопросы об оплате',
+                      onTap: () => openFaqPage(context,
+                          initialSection: FaqSection.payment),
+                    ),
+                  ),
+                ),
+                body: (context, topInset) => RefreshIndicator(
+                  edgeOffset: topInset,
+                  onRefresh: () async {
+                    await _flow.refresh();
+                    await _readPaymentGuard();
+                  },
+                  child: _methodList(
+                    topInset: topInset,
+                    bottomClearance: bottomClearance,
+                    selectionBusy: selectionBusy,
                   ),
                 ),
               ),
-              body: (context, topInset) => RefreshIndicator(
-                edgeOffset: topInset,
-                onRefresh: () async {
-                  await _flow.refresh();
-                  await _readPaymentGuard();
-                },
-                child: _methodList(
-                  topInset: topInset,
-                  bottomClearance: bottomClearance,
-                  selectionBusy: selectionBusy,
-                ),
+              dock: Padding(
+                // The dock supplies the 16 px sides and the safe-area inset below; the
+                // action keeps 8 px of its own around it (Kaspi's free zone).
+                padding: const EdgeInsets.fromLTRB(
+                    0, AppSpacing.md, 0, AppSpacing.xs),
+                child: _paymentAction(cannotPay),
               ),
-            ),
-            dock: Padding(
-              // The dock supplies the 16 px sides and the safe-area inset below; the
-              // action keeps 8 px of its own around it (Kaspi's free zone).
-              padding:
-                  const EdgeInsets.fromLTRB(0, AppSpacing.md, 0, AppSpacing.xs),
-              child: _paymentAction(cannotPay),
             ),
           ),
         ),

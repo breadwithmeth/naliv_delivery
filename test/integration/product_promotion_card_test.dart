@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:naliv_delivery/core/money.dart';
 import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
@@ -46,41 +47,86 @@ Future<CartProvider> _pump(WidgetTester tester, Item item) async {
   return cart;
 }
 
-String _state(WidgetTester tester) => tester
-    .widget<Text>(find.byKey(const ValueKey('product-promotion-state')))
-    .data!;
+const _state = ValueKey('product-promotion-state');
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets(
-      '3+1 states the rule and follows the units the customer added, never adding any',
+      '3+1 states its rule once; one free nudge appears only at three units',
       (tester) async {
     final item = _item([_threePlusOne]);
     final cart = await _pump(tester, item);
     expect(find.text('Возьмите 4 шт — платите за 3 шт'), findsOneWidget);
-    expect(_state(tester), 'До подарка: ещё 4 шт');
-    for (final (quantity, state) in [
-      (1.0, 'До подарка: ещё 3 шт'),
-      (2.0, 'До подарка: ещё 2 шт'),
-      (3.0, 'Добавьте ещё 1 шт — это бесплатно'),
-      (4.0, 'Подарок в корзине: 1 шт'),
-      (5.0, 'До подарка: ещё 3 шт'),
-      (7.0, 'Добавьте ещё 1 шт — это бесплатно'),
-      (8.0, 'Подарок в корзине: 2 шт'),
-    ]) {
+    expect(find.byKey(const ValueKey('product-promotion-rule')), findsOneWidget);
+    // No progress bar, no countdown, no state line outside the exact threshold.
+    expect(find.byKey(const ValueKey('product-promotion-progress')),
+        findsNothing);
+    expect(find.byKey(_state), findsNothing);
+
+    for (final quantity in [1.0, 2.0]) {
       expect(cart.syncItemSelectionQuantity(item, [], quantity), isTrue);
       await tester.pump();
-      expect(_state(tester), state, reason: '$quantity in the cart');
+      expect(find.byKey(_state), findsNothing, reason: '$quantity in the cart');
+    }
+    // A gift exists at 5 and 6 and the next unit is not free: only the saving shows.
+    for (final quantity in [5.0, 6.0]) {
+      expect(cart.syncItemSelectionQuantity(item, [], quantity), isTrue);
+      await tester.pump();
+      expect(tester.widget<Text>(find.byKey(_state)).data,
+          'Выгода ${formatTenge(1000)}',
+          reason: '$quantity in the cart');
+      expect(find.byKey(const ValueKey('product-promotion-add-free')),
+          findsNothing);
+    }
+
+    for (final quantity in [3.0, 7.0]) {
+      expect(cart.syncItemSelectionQuantity(item, [], quantity), isTrue);
+      await tester.pump();
+      expect(
+          find.descendant(
+              of: find.byKey(_state), matching: find.text('Ещё 1 шт — бесплатно')),
+          findsOneWidget,
+          reason: '$quantity in the cart');
+      expect(find.byKey(const ValueKey('product-promotion-add-free')),
+          findsOneWidget);
+      // Offering is not adding.
       expect(cart.getCatalogQuantity(item), quantity);
     }
+  });
+
+  testWidgets(
+      'taking the offer adds exactly one unit; the gift is then told by the saving only',
+      (tester) async {
+    final item = _item([_threePlusOne]);
+    final cart = await _pump(tester, item);
+    expect(cart.syncItemSelectionQuantity(item, [], 3), isTrue);
+    await tester.pump();
+    expect(cart.getTotalPrice(), 3000);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 0);
+
+    await tester.ensureVisible(
+        find.byKey(const ValueKey('product-promotion-add-free')));
+    await tester.tap(find.byKey(const ValueKey('product-promotion-add-free')));
+    await tester.pump();
+    expect(cart.getCatalogQuantity(item), 4);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 1);
+    expect(cart.getTotalPrice(), 3000);
+    expect(cart.toJsonForOrder().single['amount'], 4);
+    // The nudge is gone and the saving takes its place: a 1 000 ₸ unit was free.
+    expect(find.byKey(const ValueKey('product-promotion-add-free')),
+        findsNothing);
+    expect(tester.widget<Text>(find.byKey(_state)).data,
+        'Выгода ${formatTenge(1000)}');
+    expect(find.textContaining('в подарок'), findsNothing);
+    expect(find.textContaining('Подарок'), findsNothing);
+    expect(find.textContaining('Ещё '), findsNothing);
   });
 
   testWidgets('the stepper adds one unit at a time, so three units cost three',
       (tester) async {
     final item = _item([_threePlusOne]);
     final cart = await _pump(tester, item);
-    expect(_state(tester), 'До подарка: ещё 4 шт');
     for (var step = 0; step < 3; step++) {
       cart.incrementCatalogItem(item);
     }
@@ -88,37 +134,12 @@ void main() {
     expect(cart.getCatalogQuantity(item), 3);
     expect(cart.activeDisplayGroups.single.freeQuantity, 0);
     expect(cart.getTotalPrice(), 3000);
-    expect(_state(tester), 'Добавьте ещё 1 шт — это бесплатно');
     cart.incrementCatalogItem(item);
     await tester.pump();
     expect(cart.getCatalogQuantity(item), 4);
     expect(cart.activeDisplayGroups.single.freeQuantity, 1);
     expect(cart.getTotalPrice(), 3000);
     expect(cart.toJsonForOrder().single['amount'], 4);
-    expect(_state(tester), 'Подарок в корзине: 1 шт');
-  });
-
-  testWidgets('the free unit is offered only when it is free and added on tap',
-      (tester) async {
-    final item = _item([_threePlusOne]);
-    final cart = await _pump(tester, item);
-    final offer = find.byKey(const ValueKey('product-promotion-add-free'));
-    for (final quantity in [1.0, 2.0]) {
-      cart.syncItemSelectionQuantity(item, [], quantity);
-      await tester.pump();
-      expect(offer, findsNothing, reason: '$quantity in the cart');
-    }
-    cart.syncItemSelectionQuantity(item, [], 3);
-    await tester.pump();
-    // Offered, not taken: three units stay three until the customer taps.
-    expect(cart.getCatalogQuantity(item), 3);
-    expect(find.text('+1 шт в подарок'), findsOneWidget);
-    await tester.ensureVisible(offer);
-    await tester.tap(offer);
-    await tester.pump();
-    expect(cart.getCatalogQuantity(item), 4);
-    expect(cart.getTotalPrice(), 3000);
-    expect(offer, findsNothing);
   });
 
   testWidgets('a page without an active SUBTRACT promotion shows no gift card',
@@ -138,6 +159,6 @@ void main() {
           },
         ]));
     expect(find.byKey(const ValueKey('product-promotion')), findsNothing);
-    expect(find.byKey(const ValueKey('product-promotion-state')), findsNothing);
+    expect(find.byKey(_state), findsNothing);
   });
 }

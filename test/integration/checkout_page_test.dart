@@ -17,6 +17,7 @@ import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../support/bottling_surface_items.dart';
@@ -374,7 +375,36 @@ Future<void> _closeAddressDetails(WidgetTester tester) async {
 }
 
 Future<void> _openBenefits(WidgetTester tester) =>
-    _show(tester, 'checkout-promo-code');
+    _show(tester, 'checkout-codes-toggle');
+
+/// Opens the folded «Промокод или сертификат» row (when it is closed), picks [mode]
+/// (`promo` or `certificate`) and brings that mode's one field into view. [settle] false
+/// advances time in frames only, for pages whose requests are deliberately pending.
+Future<void> _showCode(WidgetTester tester, String mode,
+    {bool settle = true}) async {
+  Future<void> frames() => settle
+      ? tester.pumpAndSettle()
+      : tester.pump(const Duration(milliseconds: 300));
+  await _openBenefits(tester);
+  if (find
+      .byKey(const ValueKey('checkout-code-mode-promo'))
+      .evaluate()
+      .isEmpty) {
+    await tester.tap(find.byKey(const ValueKey('checkout-codes-toggle')));
+    await frames();
+  }
+  await _show(tester, 'checkout-code-mode-$mode');
+  await tester.tap(find.byKey(ValueKey('checkout-code-mode-$mode')));
+  await frames();
+  await _show(tester, 'checkout-$mode-code');
+}
+
+Future<void> _applyCode(WidgetTester tester, String mode) async {
+  await _showCode(tester, mode);
+  await _show(tester, 'checkout-apply-$mode');
+  await tester.tap(find.byKey(ValueKey('checkout-apply-$mode')));
+  await tester.pumpAndSettle();
+}
 
 const _detailFields = {
   'checkout-entrance': '2Б',
@@ -383,8 +413,8 @@ const _detailFields = {
 };
 
 const _codeFields = {
-  'checkout-promo-code': 'DRAFT-PROMO',
-  'checkout-certificate-code': 'DRAFT-CERT',
+  'promo': 'DRAFT-PROMO',
+  'certificate': 'DRAFT-CERT',
 };
 
 Future<void> _fillDraft(WidgetTester tester) async {
@@ -393,16 +423,20 @@ Future<void> _fillDraft(WidgetTester tester) async {
     await tester.enterText(find.byKey(ValueKey(entry.key)), entry.value);
   }
   await _closeAddressDetails(tester);
-  await _openBenefits(tester);
+  // Both modes keep their own text, so each is filled in turn.
   for (final entry in _codeFields.entries) {
-    await _show(tester, entry.key);
-    await tester.enterText(find.byKey(ValueKey(entry.key)), entry.value);
+    await _showCode(tester, entry.key);
+    await tester.enterText(
+        find.byKey(ValueKey('checkout-${entry.key}-code')), entry.value);
   }
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
 }
 
-Future<void> _expectDraft(WidgetTester tester) async {
+/// With an applied code the field is folded away, so the draft is read from the applied row
+/// instead of the controllers.
+Future<void> _expectDraft(WidgetTester tester,
+    {bool codeApplied = false}) async {
   await _show(tester, 'checkout-address');
   expect(
       tester
@@ -419,12 +453,22 @@ Future<void> _expectDraft(WidgetTester tester) async {
         entry.value);
   }
   await _closeAddressDetails(tester);
-  await _openBenefits(tester);
-  for (final entry in _codeFields.entries) {
-    await _show(tester, entry.key);
+  if (codeApplied) {
+    await _show(tester, 'checkout-benefit-applied');
     expect(
         tester
-            .widget<TextField>(find.byKey(ValueKey(entry.key)))
+            .widget<Text>(
+                find.byKey(const ValueKey('checkout-benefit-applied')))
+            .data,
+        'Промокод ${_codeFields['promo']} · −${formatTenge(100)}');
+    return;
+  }
+  for (final entry in _codeFields.entries) {
+    await _showCode(tester, entry.key);
+    expect(
+        tester
+            .widget<TextField>(
+                find.byKey(ValueKey('checkout-${entry.key}-code')))
             .controller!
             .text,
         entry.value);
@@ -460,9 +504,7 @@ void main() {
     await http.runWithClient(() async {
       await _pump(tester, fixture);
       await _fillDraft(tester);
-      await _show(tester, 'checkout-apply-promo');
-      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
-      await tester.pumpAndSettle();
+      await _applyCode(tester, 'promo');
       expect(fixture.promoValidations, 1);
       await _openAddressDetails(tester);
       await _closeAddressDetails(tester);
@@ -474,7 +516,7 @@ void main() {
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
               .data,
           formatTenge(1730));
-      await _expectDraft(tester);
+      await _expectDraft(tester, codeApplied: true);
       expect(fixture.promoValidations, 1);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
@@ -499,9 +541,7 @@ void main() {
     await http.runWithClient(() async {
       await _pump(tester, fixture);
       await _fillDraft(tester);
-      await _show(tester, 'checkout-apply-promo');
-      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
-      await tester.pumpAndSettle();
+      await _applyCode(tester, 'promo');
       await _show(tester, 'checkout-mode-pickup');
       await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
       await tester.pumpAndSettle();
@@ -517,9 +557,7 @@ void main() {
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
               .data,
           formatTenge(1830));
-      await _show(tester, 'checkout-apply-promo');
-      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
-      await tester.pumpAndSettle();
+      await _applyCode(tester, 'promo');
       expect(fixture.promoValidations, 2);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
@@ -615,8 +653,7 @@ void main() {
       await tester.enterText(
           find.byKey(const ValueKey('checkout-entrance')), '2Б');
       await _closeAddressDetails(tester);
-      await _openBenefits(tester);
-      await _show(tester, 'checkout-promo-code');
+      await _showCode(tester, 'promo');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
       final group = fixture.cart.activeDisplayGroups.single;
@@ -626,9 +663,7 @@ void main() {
           matching: find.byIcon(Icons.add)));
       await tester.pumpAndSettle();
       expect(fixture.cart.getTotalQuantityForItem(item.itemId), 0.5);
-      await _show(tester, 'checkout-apply-promo');
-      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
-      await tester.pumpAndSettle();
+      await _applyCode(tester, 'promo');
       final submit = find.byKey(const ValueKey('checkout-submit'));
       expect(submit.hitTestable(), findsOneWidget);
       await tester.tap(submit);
@@ -655,8 +690,13 @@ void main() {
     await http.runWithClient(() async {
       await _pump(tester, fixture);
       final group = fixture.cart.activeDisplayGroups.single;
-      await _show(tester, 'checkout-remove-${group.key}');
-      await tester.tap(find.byKey(ValueKey('checkout-remove-${group.key}')));
+      await _show(tester, 'checkout-quantity-${group.key}');
+      // At the last step the stepper's minus is the delete; no second button exists.
+      expect(
+          find.byKey(ValueKey('checkout-remove-${group.key}')), findsNothing);
+      await tester.tap(find.descendant(
+          of: find.byKey(ValueKey('checkout-quantity-${group.key}')),
+          matching: find.byIcon(Icons.delete_outline_rounded)));
       await tester.pumpAndSettle();
       expect(fixture.cart.hasActiveItems, isFalse);
       expect(find.byKey(const ValueKey('checkout-submit')), findsNothing);
@@ -897,7 +937,9 @@ void main() {
               .cast<Map>()
               .singleWhere((row) => row['item_id'] == 92)['amount'],
           0.75);
-      expect(fixture.bonusReads, 2);
+      // Read on open, re-checked on submit; the created order's page reads once
+      // more for its own bonus line.
+      expect(fixture.bonusReads, 3);
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
@@ -1069,11 +1111,17 @@ void main() {
               of: containers, matching: find.text(formatTenge(400))),
           findsOneWidget);
       expect(find.textContaining('Тара для подарочного'), findsNothing);
-      final gift = find.byKey(ValueKey('checkout-gift-${group.key}'));
-      expect(
-          find.descendant(of: gift, matching: find.textContaining('в подарок')),
+      // A gift that exists is told by the struck price alone: 4 l are worth 4 400 ₸, 3 400 ₸ due.
+      await _show(tester, 'checkout-item-${group.key}');
+      final row = find.byKey(ValueKey('checkout-item-${group.key}'));
+      expect(find.descendant(of: row, matching: find.text(formatTenge(4400))),
           findsOneWidget);
+      expect(find.descendant(of: row, matching: find.text(formatTenge(3400))),
+          findsOneWidget);
+      expect(find.byKey(ValueKey('checkout-gift-${group.key}')), findsNothing);
+      expect(find.textContaining('в подарок'), findsNothing);
       expect(find.textContaining('Напиток — бесплатно'), findsNothing);
+      expect(find.textContaining('Ещё '), findsNothing);
       await _show(tester, 'checkout-mode-pickup');
       await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
       await tester.pumpAndSettle();
@@ -1254,7 +1302,7 @@ void main() {
       fixture.bag = (_) => packaging.future;
       await http.runWithClient(() async {
         await _pump(tester, fixture, settle: false);
-        await _show(tester, 'checkout-$benefit-code');
+        await _showCode(tester, benefit, settle: false);
         final field = find.byKey(ValueKey('checkout-$benefit-code'));
         expect(field.hitTestable(), findsOneWidget);
         expect(tester.widget<TextField>(field).enabled, isTrue);
@@ -1297,6 +1345,7 @@ void main() {
             findsOneWidget);
         await tester.tap(find.byKey(ValueKey('checkout-apply-$benefit')));
         await tester.pumpAndSettle();
+        await _show(tester, 'checkout-benefit-applied');
         expect(find.byKey(const ValueKey('checkout-benefit-applied')),
             findsOneWidget);
         await _dispose(tester, fixture);
@@ -1319,13 +1368,10 @@ void main() {
         promotions: []));
     await http.runWithClient(() async {
       await _pump(tester, fixture);
-      await _openBenefits(tester);
-      await _show(tester, 'checkout-promo-code');
+      await _showCode(tester, 'promo');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'LINE-PRICE');
-      await _show(tester, 'checkout-apply-promo');
-      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
-      await tester.pumpAndSettle();
+      await _applyCode(tester, 'promo');
       expect(find.byKey(const ValueKey('checkout-benefit-applied')),
           findsOneWidget);
       expect(
@@ -1681,12 +1727,14 @@ void main() {
               .onPressed,
           isNull);
       final group = fixture.cart.activeDisplayGroups.single;
-      await _show(tester, 'checkout-remove-${group.key}');
+      await _show(tester, 'checkout-quantity-${group.key}');
+      expect(
+          find.byKey(ValueKey('checkout-remove-${group.key}')), findsNothing);
       expect(
           tester
-              .widget<IconButton>(
-                  find.byKey(ValueKey('checkout-remove-${group.key}')))
-              .onPressed,
+              .widget<ProductQuantityControl>(
+                  find.byKey(ValueKey('checkout-quantity-${group.key}')))
+              .onDecrement,
           isNull);
       await _openBenefits(tester);
       expect(_enabled(tester), isFalse);
@@ -1700,6 +1748,13 @@ void main() {
       fixture.cart.updateQuantity(99, 2);
       await tester.pumpAndSettle();
       expect(_enabled(tester), isFalse);
+      await _show(tester, 'checkout-remove-${group.key}');
+      expect(
+          tester
+              .widget<IconButton>(
+                  find.byKey(ValueKey('checkout-remove-${group.key}')))
+              .onPressed,
+          isNull);
       await _show(tester, 'checkout-check-orders');
       expect(
           tester
@@ -1760,8 +1815,7 @@ void main() {
     };
     await http.runWithClient(() async {
       await _pump(tester, fixture);
-      await _openBenefits(tester);
-      await _show(tester, 'checkout-promo-code');
+      await _showCode(tester, 'promo');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
       await _show(tester, 'checkout-apply-promo');
@@ -1787,36 +1841,46 @@ void main() {
   });
 
   testWidgets(
-      'certificate replaces promo and bonuses replace certificate with actual bounded amounts',
+      'a certificate applies once the promo is removed and bonuses replace the certificate with actual bounded amounts',
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize();
     await http.runWithClient(() async {
       await _pump(tester, fixture);
-      await _openBenefits(tester);
-      await _show(tester, 'checkout-promo-code');
+      await _showCode(tester, 'promo');
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
-      await _show(tester, 'checkout-apply-promo');
-      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
-      await tester.pumpAndSettle();
+      await _applyCode(tester, 'promo');
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
               .data,
           formatTenge(1730));
-      await _show(tester, 'checkout-certificate-code');
-      await tester.enterText(
-          find.byKey(const ValueKey('checkout-certificate-code')), 'GIFT');
-      await _show(tester, 'checkout-apply-certificate');
-      await tester
-          .tap(find.byKey(const ValueKey('checkout-apply-certificate')));
+      // An applied code folds the field away; only «Убрать» brings it back.
+      expect(find.byKey(const ValueKey('checkout-promo-code')), findsNothing);
+      await _show(tester, 'checkout-clear-benefit');
+      await tester.tap(find.byKey(const ValueKey('checkout-clear-benefit')));
       await tester.pumpAndSettle();
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
               .data,
+          formatTenge(1830));
+      await _showCode(tester, 'certificate');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-certificate-code')), 'GIFT');
+      await _applyCode(tester, 'certificate');
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
           formatTenge(1330));
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-benefit-applied')))
+              .data,
+          'Сертификат · −${formatTenge(500)}');
       await _show(tester, 'checkout-bonus-toggle');
       await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
       await tester.pumpAndSettle();
@@ -1834,6 +1898,128 @@ void main() {
       expect(body.containsKey('certificate_id'), isFalse);
       expect(body.containsKey('certificate_code'), isFalse);
       expect(find.byType(PaymentMethodPage), findsOneWidget);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'applying a code while bonuses are on turns bonuses off; the payload carries the code and no bonus',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _show(tester, 'checkout-bonus-toggle');
+      await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<Switch>(
+                  find.byKey(const ValueKey('checkout-bonus-toggle')))
+              .value,
+          isTrue);
+      // Fields are not locked by bonuses.
+      await _showCode(tester, 'promo');
+      expect(
+          tester
+              .widget<TextField>(
+                  find.byKey(const ValueKey('checkout-promo-code')))
+              .enabled,
+          isTrue);
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
+      await _applyCode(tester, 'promo');
+      expect(fixture.promoValidations, 1);
+      await _show(tester, 'checkout-bonus-toggle');
+      expect(
+          tester
+              .widget<Switch>(
+                  find.byKey(const ValueKey('checkout-bonus-toggle')))
+              .value,
+          isFalse);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-benefit-applied')))
+              .data,
+          'Промокод PROMO · −${formatTenge(100)}');
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(1730));
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['promo_code'], 'PROMO');
+      expect(body['total_amount'], 1730);
+      expect(body['bonus_amount'] ?? 0, 0);
+      expect(body['use_bonuses'] ?? false, isFalse);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'turning bonuses on clears an applied code, and «Убрать» clears only the code',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _showCode(tester, 'promo');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
+      await _applyCode(tester, 'promo');
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(1730));
+
+      // Bonuses on: the code goes, the bonus line takes the applied key.
+      await _show(tester, 'checkout-bonus-toggle');
+      await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
+      await tester.pumpAndSettle();
+      expect(
+          find.byKey(const ValueKey('checkout-clear-benefit')), findsNothing);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-benefit-applied')))
+              .data,
+          startsWith('−'));
+      expect(find.textContaining('Промокод PROMO'), findsNothing);
+
+      // Apply the code again (bonuses go off), then remove just the code.
+      await _applyCode(tester, 'promo');
+      expect(fixture.promoValidations, 2);
+      await _show(tester, 'checkout-clear-benefit');
+      await tester.tap(find.byKey(const ValueKey('checkout-clear-benefit')));
+      await tester.pumpAndSettle();
+      expect(
+          find.byKey(const ValueKey('checkout-clear-benefit')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('checkout-benefit-applied')), findsNothing);
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('checkout-total')))
+              .data,
+          formatTenge(1830));
+      expect(
+          tester
+              .widget<Switch>(
+                  find.byKey(const ValueKey('checkout-bonus-toggle')))
+              .value,
+          isFalse);
+      // The field is back with its text for another try.
+      await _showCode(tester, 'promo');
+      expect(
+          tester
+              .widget<TextField>(
+                  find.byKey(const ValueKey('checkout-promo-code')))
+              .controller!
+              .text,
+          'PROMO');
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
@@ -2270,9 +2456,11 @@ void main() {
         for (var index = 0; index < 120; index++)
           jsonEncode({
             'id': 'device_$index',
-            'address': 'Темиртау, Улица $index, ${index + 1}',
-            'street': 'Улица $index',
-            'house': '${index + 1}',
+            // Like account addresses: every one carries the default name.
+            'name': 'Адрес доставки',
+            'address': 'Темиртау, Мира, $index',
+            'street': 'Мира',
+            'house': '$index',
             'city': 'Темиртау',
             'lat': 50.0 + index / 1000,
             'lon': 72.9 + index / 1000,
@@ -2298,20 +2486,22 @@ void main() {
             reason: key);
       }
       // Lazily built: far fewer rows than addresses.
-      expect(find.textContaining('Улица '), isNot(findsNWidgets(120)));
+      expect(find.textContaining('Мира, '), isNot(findsNWidgets(120)));
+      // Rows show the street, never the default name.
+      expect(find.text('Адрес доставки'), findsOneWidget);
 
       await tester.enterText(
-          find.byKey(const ValueKey('checkout-address-search')), 'улица 77');
+          find.byKey(const ValueKey('checkout-address-search')), 'мира 77');
       await tester.pumpAndSettle();
-      expect(find.textContaining('Улица 77'), findsOneWidget);
-      await tester.tap(find.textContaining('Улица 77'));
+      expect(find.text('Мира, 77'), findsOneWidget);
+      await tester.tap(find.text('Мира, 77'));
       await tester.pumpAndSettle();
       expect(find.text('Адрес доставки'), findsNothing);
       await _show(tester, 'checkout-address');
       expect(
           find.descendant(
               of: find.byKey(const ValueKey('checkout-address')),
-              matching: find.textContaining('Улица 77')),
+              matching: find.textContaining('Мира, 77')),
           findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('checkout-address')));
@@ -2322,8 +2512,7 @@ void main() {
       expect(find.byKey(const ValueKey('checkout-address-no-match')),
           findsOneWidget);
       // With nothing found, adding the address on the map is still one tap.
-      expect(
-          find.byKey(const ValueKey('checkout-address-new')).hitTestable(),
+      expect(find.byKey(const ValueKey('checkout-address-new')).hitTestable(),
           findsOneWidget);
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();

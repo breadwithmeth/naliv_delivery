@@ -8,7 +8,8 @@ import '../../../design/theme.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
-import '../../../ui/app_icon.dart';
+import '../../../model/cart_item.dart';
+import '../../../ui/promotion_nudge.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_surface.dart';
 import '../../../ui/frosted_dock.dart';
@@ -20,7 +21,6 @@ import '../../../ui/text_width_cache.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/smart_cart.dart';
-import '../../../utils/promotion_engine.dart';
 import '../../../pages/product_detail_page.dart';
 import '../../catalog/catalog_data_source.dart';
 import '../../product/product_navigation.dart';
@@ -185,17 +185,60 @@ class _CartPageState extends State<CartPage> {
     setState(() {});
   }
 
-  void _editConfiguration(CartDisplayGroup group) {
+  /// Opens the product behind a cart row: an optioned or bottled item opens the
+  /// configurator with this row's exact selection; anything else, its page. The
+  /// product's cart button comes back here.
+  void _openRow(CartDisplayGroup group) {
     final snapshot = group.itemSnapshot;
     if (snapshot == null) return;
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ProductDetailPage(
-        item: snapshot,
-        initialBaseVariants: group.baseVariants,
-        businessId:
-            context.read<CartProvider>().businessId ?? widget.businessId,
-      ),
-    ));
+    final businessId =
+        context.read<CartProvider>().businessId ?? widget.businessId;
+    if (snapshot.hasOptions) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ProductDetailPage(
+          item: snapshot,
+          initialBaseVariants: group.baseVariants,
+          businessId: businessId,
+          onCart: () => Navigator.of(context).maybePop(),
+        ),
+      ));
+      return;
+    }
+    openProduct(
+      context,
+      ProductView.fromItem(snapshot),
+      businessId: businessId,
+      onCart: () => Navigator.of(context).maybePop(),
+    );
+  }
+
+  /// The row removed last on this page, kept in place with «Вернуть» until
+  /// the next removal or until the customer leaves the cart. One at a time: a
+  /// trail of removed rows is clutter, and nothing else in the app keeps a
+  /// removed item.
+  final _removed = <String, _Removed>{};
+
+  void _remove(CartProvider cart, CartDisplayGroup group) {
+    final order = cart.displayOrderOf(group.key);
+    final rows = [for (final row in group.items) row.copyWith()];
+    cart.removeDisplayGroup(group);
+    if (cart.displayGroups.any((entry) => entry.key == group.key)) return;
+    setState(() => _removed
+      ..clear()
+      ..[group.key] = _Removed(
+        rows: rows,
+        order: order ?? 1 << 30,
+        name: group.name,
+        image: group.image,
+      ));
+  }
+
+  void _undo(CartProvider cart, String key) {
+    final removed = _removed[key];
+    if (removed == null) return;
+    if (cart.restoreDisplayGroupRows(removed.rows, order: removed.order)) {
+      setState(() => _removed.remove(key));
+    }
   }
 
   bool _canIncrement(CartEvaluation cart, CartGroupEvaluation evaluated) {
@@ -212,7 +255,7 @@ class _CartPageState extends State<CartPage> {
 
   void _adjustGroup(CartProvider cart, CartDisplayGroup group, int direction) {
     if (direction < 0 && _lastBatch(group)) {
-      cart.removeDisplayGroup(group);
+      _remove(cart, group);
       return;
     }
     if (direction > 0) {
@@ -336,6 +379,15 @@ class _CartPageState extends State<CartPage> {
     context.select<CartProvider, int>((cart) => cart.contentRevision);
     final evaluated = cart.evaluate();
     final groups = cart.displayGroups;
+    // A removed row that came back some other way (re-added) is no longer
+    // removed.
+    _removed.removeWhere((key, _) => groups.any((group) => group.key == key));
+    final entries = <(int, int?, String?)>[
+      for (final (index, group) in groups.indexed)
+        (cart.displayOrderOf(group.key) ?? index, index, null),
+      for (final entry in _removed.entries)
+        (entry.value.order, null, entry.key),
+    ]..sort((left, right) => left.$1.compareTo(right.$1));
     final allocationIssue =
         evaluated.groups.any((group) => group.allocationIssue != null);
     final bonuses = allocationIssue
@@ -391,7 +443,7 @@ class _CartPageState extends State<CartPage> {
                     ),
                   );
                 }
-                if (groups.isEmpty) {
+                if (groups.isEmpty && _removed.isEmpty) {
                   return Padding(
                     padding: EdgeInsets.only(top: topInset),
                     child: AppEmptyState(
@@ -414,7 +466,7 @@ class _CartPageState extends State<CartPage> {
                     bottom: footerSpace,
                   ),
                   itemCount: issueCount +
-                      groups.length +
+                      entries.length +
                       (showRecommendations ? 1 : 0),
                   itemBuilder: (context, position) {
                     if (position < issueCount) {
@@ -429,26 +481,39 @@ class _CartPageState extends State<CartPage> {
                         ),
                       );
                     }
-                    final index = position - issueCount;
-                    if (index == groups.length) {
+                    final slot = position - issueCount;
+                    if (slot == entries.length) {
                       return _recommendationSection(palette);
                     }
-                    final group = groups[index];
+                    final (_, index, removedKey) = entries[slot];
+                    final bottom =
+                        slot == entries.length - 1 ? 0.0 : AppSpacing.xs;
+                    if (removedKey != null) {
+                      final removed = _removed[removedKey]!;
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            AppSpacing.xxxl, 0, AppSpacing.xxxl, bottom),
+                        child: _RemovedRow(
+                          key: ValueKey('cart-removed-$removedKey'),
+                          name: removed.name,
+                          onUndo: unresolvedBusiness
+                              ? null
+                              : () => _undo(cart, removedKey),
+                        ),
+                      );
+                    }
+                    final group = groups[index!];
                     return Padding(
                       padding: EdgeInsets.fromLTRB(
-                        AppSpacing.xxxl,
-                        0,
-                        AppSpacing.xxxl,
-                        index == groups.length - 1 ? 0 : AppSpacing.xs,
-                      ),
+                          AppSpacing.xxxl, 0, AppSpacing.xxxl, bottom),
                       child: _CartRow(
                         key: ValueKey('cart-row-$index'),
                         group: group,
                         evaluated: evaluated.groups[index],
                         lastBatch: _lastBatch(group),
-                        onEdit: group.itemSnapshot?.hasOptions == true
-                            ? () => _editConfiguration(group)
-                            : null,
+                        onOpen: group.itemSnapshot == null
+                            ? null
+                            : () => _openRow(group),
                         onIncrement: !unresolvedBusiness &&
                                 _canIncrement(
                                     evaluated, evaluated.groups[index])
@@ -509,7 +574,7 @@ class _CartRow extends StatelessWidget {
     required this.lastBatch,
     this.onIncrement,
     this.onDelete,
-    this.onEdit,
+    this.onOpen,
     super.key,
   });
 
@@ -518,7 +583,9 @@ class _CartRow extends StatelessWidget {
   final bool lastBatch;
   final VoidCallback? onIncrement;
   final VoidCallback? onDelete;
-  final VoidCallback? onEdit;
+
+  /// Opens the product with this row's exact configuration.
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -543,27 +610,23 @@ class _CartRow extends StatelessWidget {
     final unit = snapshot?.unit?.trim().isNotEmpty == true
         ? snapshot!.unit!.trim()
         : 'шт';
-    // One more step that costs nothing is offered, never added: the customer
-    // decides whether they want the free unit.
-    final bonus = evaluated.promotion.bonusQuantity;
-    final freeOffer = bonus != null &&
-        onIncrement != null &&
-        evaluated.canIncrease &&
-        (bonus - evaluated.incrementStep).abs() <= 0.0000001;
+    // At the exact threshold the row offers the next step, priced by what it
+    // really adds; it is never added on the customer's behalf. A gift that
+    // already exists is told by the struck-through price only.
+    final freeOffer = onIncrement != null && evaluated.offersFreeStep;
     final hasDetails = configuration.isNotEmpty ||
         bottles != null ||
-        evaluated.freeQuantity > 0 ||
         freeOffer ||
-        allocationIssue != null ||
-        onEdit != null;
-    final award = evaluated.award;
-    final giftCaption = award == null
-        ? null
-        : promotionRuleText(award, (value) => formatQuantity(value, unit));
+        allocationIssue != null;
 
     final priceLabel = allocationIssue == null
         ? formatTenge(evaluated.price.totalPrice)
         : 'Расчёт недоступен';
+    final listPrice = allocationIssue == null &&
+            evaluated.price.subtotalBeforePromotions >
+                evaluated.price.totalPrice + 0.5
+        ? formatTenge(evaluated.price.subtotalBeforePromotions)
+        : null;
     final priceStyle = AppTypography.bodyBold.copyWith(color: palette.accent);
     final normalizedUnit = unit.toLowerCase().replaceAll('.', '');
     final unitPrice =
@@ -574,6 +637,12 @@ class _CartRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (listPrice != null)
+          Text(listPrice,
+              key: ValueKey('cart-list-price-${group.key}'),
+              style: AppTypography.caption.copyWith(
+                  color: palette.textSecondary,
+                  decoration: TextDecoration.lineThrough)),
         Text(priceLabel, style: priceStyle),
         if (unitPrice != null)
           Text(unitPrice,
@@ -665,9 +734,27 @@ class _CartRow extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                image,
-                const SizedBox(width: AppSpacing.md),
-                Expanded(child: identity),
+                Expanded(
+                  child: Semantics(
+                    button: onOpen != null,
+                    hint: onOpen == null ? null : 'Открыть товар',
+                    child: InkWell(
+                      key: ValueKey('cart-open-${group.key}'),
+                      onTap: onOpen,
+                      borderRadius: AppRadii.mdAll,
+                      child: Row(
+                        children: [
+                          image,
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(child: identity),
+                          if (onOpen != null && !compact)
+                            Icon(Icons.chevron_right_rounded,
+                                size: 22, color: palette.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 if (compact) ...[
                   const SizedBox(width: AppSpacing.md),
                   price,
@@ -710,38 +797,23 @@ class _CartRow extends StatelessWidget {
                     style: AppTypography.bodySmall
                         .copyWith(color: palette.textSecondary)),
               ),
-            if (group.freeQuantity > 0)
-              pour
-                  ? _GiftChip(
-                      key: ValueKey('cart-gift-${group.key}'),
-                      label:
-                          '${formatQuantity(group.freeQuantity, quantityUnitLabel(snapshot?.unit) ?? unit)} в подарок',
-                    )
-                  : _GiftLine(
-                      key: ValueKey('cart-gift-${group.key}'),
-                      quantityLabel: formatQuantity(group.freeQuantity, unit),
-                      caption: giftCaption,
-                    ),
             if (freeOffer)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.md, AppSpacing.xs, AppSpacing.md, 0),
-                  child: OutlinedButton(
-                    key: ValueKey('cart-free-offer-${group.key}'),
-                    onPressed: onIncrement,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, AppSpacing.touchTarget),
-                      foregroundColor: palette.accent,
-                      side: BorderSide(color: palette.accent),
-                      shape: const StadiumBorder(),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    ),
-                    child: Text(
-                        '+${formatQuantity(bonus, pour ? (quantityUnitLabel(snapshot?.unit) ?? unit) : unit)} в подарок'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xs, AppSpacing.xs, AppSpacing.xs, 0),
+                child: PromotionNudge(
+                  key: ValueKey('cart-free-offer-${group.key}'),
+                  actionKey: ValueKey('cart-free-offer-add-${group.key}'),
+                  text: promotionNudgeText(
+                    quantityLabel: formatQuantity(
+                        evaluated.incrementStep,
+                        pour
+                            ? (quantityUnitLabel(snapshot?.unit) ?? unit)
+                            : unit),
+                    cost: evaluated.nextStepCost!,
+                    bottled: pour,
                   ),
+                  onAdd: onIncrement,
                 ),
               ),
             if (allocationIssue != null)
@@ -751,99 +823,9 @@ class _CartRow extends StatelessWidget {
                     style:
                         AppTypography.bodySmall.copyWith(color: palette.error)),
               ),
-            if (onEdit != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: ValueKey('cart-edit-${group.key}'),
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Изменить параметры'),
-                ),
-              ),
           ],
         );
       }),
-    );
-  }
-}
-
-/// The short gift mark of a bottled drink: the free litres are part of the picked bottles.
-class _GiftChip extends StatelessWidget {
-  const _GiftChip({required this.label, super.key});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(
-            AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xs),
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-        decoration: BoxDecoration(
-          color: palette.accent,
-          borderRadius: AppRadii.pillAll,
-        ),
-        child: Text(label,
-            key: const ValueKey('cart-gift-label'),
-            style: AppTypography.bodySmallMedium
-                .copyWith(color: palette.textOnAccent)),
-      ),
-    );
-  }
-}
-
-class _GiftLine extends StatelessWidget {
-  const _GiftLine({
-    required this.quantityLabel,
-    this.caption,
-    super.key,
-  });
-
-  final String quantityLabel;
-  final String? caption;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
-      margin: const EdgeInsets.only(top: AppSpacing.sm),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: palette.brandRed,
-        borderRadius: BorderRadius.circular(AppRadii.md),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppIcon(AppIcons.bonusStar, size: 16, color: palette.gold),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Подарок · $quantityLabel',
-                    key: const ValueKey('cart-gift-label'),
-                    style: AppTypography.bodySmallMedium
-                        .copyWith(color: Colors.white)),
-                if (caption != null)
-                  Text(caption!,
-                      style: AppTypography.caption.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8))),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Text('0 ₸',
-              key: const ValueKey('cart-gift-price'),
-              style: AppTypography.bodySmallBold.copyWith(color: palette.gold)),
-        ],
-      ),
     );
   }
 }
@@ -1058,3 +1040,67 @@ double _cartTextWidth(BuildContext context, String text, TextStyle style) =>
       MediaQuery.textScalerOf(context),
       Directionality.of(context),
     );
+
+/// A group the customer removed on the cart page: its exact rows (bottle mix
+/// included) and list position, so «Вернуть» restores it as it was.
+class _Removed {
+  const _Removed({
+    required this.rows,
+    required this.order,
+    required this.name,
+    this.image,
+  });
+
+  final List<CartItem> rows;
+  final int order;
+  final String name;
+  final String? image;
+}
+
+/// The removed row in place: what was removed, and one action to bring it back.
+class _RemovedRow extends StatelessWidget {
+  const _RemovedRow({required this.name, this.onUndo, super.key});
+
+  final String name;
+  final VoidCallback? onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return AppSurface(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.xs, AppSpacing.xs, AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(Icons.delete_outline_rounded,
+              size: 20, color: palette.textSecondary),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                const TextSpan(text: 'Удалено · '),
+                TextSpan(
+                    text: name, style: TextStyle(color: palette.textSecondary)),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.bodySmallMedium
+                  .copyWith(color: palette.textPrimary),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('cart-undo'),
+            onPressed: onUndo,
+            style: TextButton.styleFrom(
+              minimumSize:
+                  const Size(AppSpacing.touchTarget, AppSpacing.touchTarget),
+              foregroundColor: palette.accent,
+              textStyle: AppTypography.bodySmallBold,
+            ),
+            child: const Text('Вернуть'),
+          ),
+        ],
+      ),
+    );
+  }
+}

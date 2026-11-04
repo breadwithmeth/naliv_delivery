@@ -162,6 +162,7 @@ class NotificationService {
       await initialize();
       final granted = await _serialize(_provider.requestPermission);
       unawaited(syncSubscriptionWithBackend());
+      if (granted) unawaited(applyTopicPreferences());
       return granted;
     } catch (error) {
       debugPrint('Push permission unavailable: $error');
@@ -169,7 +170,37 @@ class NotificationService {
     }
   }
 
-  Future<bool> syncTokenWithServerIfNeeded() => _requestSync();
+  /// What the customer can be notified about.
+  static const topics = ['orders', 'promotions', 'delivery'];
+
+  static String topicPreferenceKey(String topic) => 'notification_topic_$topic';
+
+  /// Like every app, every topic is on until the customer turns it off.
+  static bool topicEnabled(SharedPreferences preferences, String topic) =>
+      preferences.getBool(topicPreferenceKey(topic)) ?? true;
+
+  /// Tags the device with the topics the customer has on (all, by default).
+  /// Safe to repeat; failures leave the tags for the next attempt.
+  Future<void> applyTopicPreferences() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      for (final topic in topics) {
+        if (topicEnabled(preferences, topic)) {
+          await subscribeToTopic(topic);
+        } else {
+          await unsubscribeFromTopic(topic);
+        }
+      }
+    } catch (error) {
+      debugPrint('Push topics unavailable: $error');
+    }
+  }
+
+  Future<bool> syncTokenWithServerIfNeeded() => _requestSync().then((synced) {
+        // A device that already allowed push gets the default topics too.
+        if (synced) unawaited(applyTopicPreferences());
+        return synced;
+      });
 
   Future<bool> _requestSync() {
     if (_disposed || !_provider.supported || AuthService.isEndingSession) {

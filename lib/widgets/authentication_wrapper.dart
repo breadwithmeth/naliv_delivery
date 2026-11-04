@@ -25,6 +25,7 @@ import 'package:naliv_delivery/pages/profile_addresses_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
 import 'package:naliv_delivery/utils/api.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/promotion_items_page.dart';
 import 'package:naliv_delivery/features/home/ui/home_store_sheet.dart';
@@ -66,15 +67,22 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     super.initState();
     _credentialRevision = AuthService.credentialRevision;
     _observedEndingSession = AuthService.isEndingSession;
-    WidgetsBinding.instance.addObserver(this);
     AuthService.sessionRevision.addListener(_sessionChanged);
+    AppNavigator.registerCartOpener(_openCartFromAnywhere);
     _checkAuth();
+  }
+
+  void _openCartFromAnywhere() {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _openCart();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     AuthService.sessionRevision.removeListener(_sessionChanged);
+    AppNavigator.unregisterCartOpener(_openCartFromAnywhere);
     super.dispose();
   }
 
@@ -104,7 +112,10 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
       _requiresProfileSetup = false;
       _homeData = null;
     });
-    _refreshOnReturn();
+    // The cleared home must be reloaded even while another page is on top
+    // (an order or payment): coming back would otherwise find no data and no
+    // load in flight, and show the loader forever.
+    _checkAuth();
   }
 
   Future<void> _refreshOnReturn() async {
@@ -258,9 +269,11 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
 
     final homeData = _homeData;
     if (homeData == null) {
-      return _homeError == null
-          ? const AppLoadingScreen()
-          : AppLoadFailed(message: _homeError!, onRetry: _loadHome);
+      if (_homeError != null) {
+        return AppLoadFailed(message: _homeError!, onRetry: _loadHome);
+      }
+      _healIfIdle();
+      return const AppLoadingScreen();
     }
     if (!_initialDestinationQueued && widget.initialDestination != null) {
       _initialDestinationQueued = true;
@@ -293,6 +306,30 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   /// stalled request left the app on its loader indefinitely — reported as "endless loading".
   static const Duration _homeLoadTimeout = Duration(seconds: 20);
 
+  /// True while the latest [_loadHome] runs.
+  bool _homeLoading = false;
+  bool _healScheduled = false;
+
+  /// The loader is only honest while something loads. A load that bailed out
+  /// (its session changed under it) leaves no data and no error; start over
+  /// once, after this frame, instead of showing the loader forever.
+  void _healIfIdle() {
+    if (_homeLoading || _checkingAuth != null || _healScheduled) return;
+    _healScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _healScheduled = false;
+      if (!mounted ||
+          _homeData != null ||
+          _homeError != null ||
+          _homeLoading ||
+          _checkingAuth != null ||
+          AuthService.isEndingSession) {
+        return;
+      }
+      _checkAuth();
+    });
+  }
+
   Future<void> _loadHome() async {
     if (!mounted) return;
     final request = ++_homeRequest;
@@ -302,6 +339,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
         request == _homeRequest &&
         revision == AuthService.credentialRevision &&
         !AuthService.isEndingSession;
+    _homeLoading = true;
     setState(() => _homeError = null);
     try {
       final selected = context.read<BusinessProvider>();
@@ -341,6 +379,14 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
       debugPrint('HomeDataSource failed: $e');
       if (!current()) return;
       setState(() => _homeError = 'Не удалось загрузить главную страницу');
+    } finally {
+      if (request == _homeRequest) {
+        _homeLoading = false;
+        // A load that bailed out leaves nothing to show; let build recover.
+        if (mounted && _homeData == null && _homeError == null) {
+          setState(() {});
+        }
+      }
     }
   }
 
@@ -468,6 +514,8 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     switch (destination) {
       case AppDestination.home:
         break; // already on the root screen
+      case AppDestination.cart:
+        _openCart();
       case AppDestination.favorites:
         await _push(FavoritesPage(
           businessId: storeId,
@@ -520,14 +568,31 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     return account;
   }
 
-  /// Opens the store-scoped cart and its active checkout route.
+  /// The cart this screen opened, while it is in the stack.
+  Route<void>? _cartRoute;
+
+  /// Opens the store-scoped cart. If that cart is already open under the
+  /// current screen (cart → product → cart button), it goes back to it instead
+  /// of stacking a second cart.
   void _openCart() {
-    _push(CartPage(
-      businessId: _homeData?.storeId,
-      address: _homeData?.storeAddress,
-      onCheckout: () => _push(const CheckoutPage()),
-      onCatalog: () => Navigator.of(context).maybePop(),
-    ));
+    final open = _cartRoute;
+    if (open != null && open.isActive) {
+      Navigator.of(context).popUntil((route) => route == open);
+      return;
+    }
+    final route = MaterialPageRoute<void>(
+      builder: (_) => CartPage(
+        businessId: _homeData?.storeId,
+        address: _homeData?.storeAddress,
+        onCheckout: () => _push(const CheckoutPage()),
+        onCatalog: () => Navigator.of(context).maybePop(),
+      ),
+    );
+    _cartRoute = route;
+    Navigator.of(context).push<void>(route).then((_) {
+      if (identical(_cartRoute, route)) _cartRoute = null;
+      if (mounted) _refreshOnReturn();
+    });
   }
 
   /// The redesigned search screen, scoped to the store the home screen is showing.

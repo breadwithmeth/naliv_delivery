@@ -104,6 +104,47 @@ void main() {
     }
   });
 
+  testWidgets('only the last removed row stays, and «Вернуть» restores it',
+      (tester) async {
+    Item item(int id, String name) => Item(
+        itemId: id,
+        name: name,
+        price: 500,
+        amount: 10,
+        quantity: 1,
+        unit: 'шт.');
+    final first = item(711, 'Тоник');
+    final second = item(712, 'Чипсы');
+    final third = item(713, 'Орешки');
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    await cart.bindBusiness(1);
+    cart
+      ..syncItemSelectionQuantity(first, [], 1)
+      ..syncItemSelectionQuantity(second, [], 1)
+      ..syncItemSelectionQuantity(third, [], 2);
+    final semantics = tester.ensureSemantics();
+    try {
+      await _mount(tester, cart);
+      final deletes = find.bySemanticsLabel('Удалить товар');
+      await tester.tap(deletes.first);
+      await tester.pumpAndSettle();
+      expect(find.text('Вернуть'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Удалить товар').first);
+      await tester.pumpAndSettle();
+      // The earlier removal is gone for good; one placeholder at a time.
+      expect(find.text('Вернуть'), findsOneWidget);
+      expect(cart.items.map((row) => row.itemId), [713]);
+      await tester.tap(find.text('Вернуть'));
+      await tester.pumpAndSettle();
+      expect(find.text('Вернуть'), findsNothing);
+      expect(cart.items.map((row) => row.itemId).toSet(), {712, 713});
+      expect(cart.displayGroups.map((group) => group.itemId), [712, 713]);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
   testWidgets('cart restore error follows external recovery and local retry',
       (tester) async {
     OnboardingPreferences({'cart_items': '{unread'}).install();

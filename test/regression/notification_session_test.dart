@@ -435,4 +435,136 @@ void main() {
       expect(backend.deletions, ['Bearer ${_token('user-a')}']);
     }, () => backend.client);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  group('notification topics are on until the customer turns them off', () {
+    const topicTags = [
+      'notification_orders',
+      'notification_promotions',
+      'notification_delivery',
+    ];
+
+    test('an unset preference reads as on, an explicit one is honoured',
+        () async {
+      final preferences = await SharedPreferences.getInstance();
+      for (final topic in NotificationService.topics) {
+        expect(NotificationService.topicEnabled(preferences, topic), isTrue,
+            reason: 'fresh install: $topic');
+      }
+      await preferences.setBool(
+          NotificationService.topicPreferenceKey('promotions'), false);
+      await preferences.setBool(
+          NotificationService.topicPreferenceKey('orders'), true);
+      expect(NotificationService.topicEnabled(preferences, 'promotions'),
+          isFalse);
+      expect(NotificationService.topicEnabled(preferences, 'orders'), isTrue);
+      expect(NotificationService.topicEnabled(preferences, 'delivery'), isTrue);
+    });
+
+    testWidgets('a fresh install that grants permission is tagged for every topic',
+        (tester) async {
+      final provider = _ControlledProvider();
+      final service = _notifications(provider: provider);
+      await _expectCompletion(
+          tester, service.enablePushNotifications(), 'permission request');
+      await _flush(tester);
+      await _expectCompletion(
+          tester, service.applyTopicPreferences(), 'topic tagging');
+      for (final tag in topicTags) {
+        expect(provider.tags[tag], 'true', reason: tag);
+      }
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('a topic turned off is removed and the others stay tagged',
+        (tester) async {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool(
+          NotificationService.topicPreferenceKey('promotions'), false);
+      final provider = _ControlledProvider()
+        ..tags['notification_promotions'] = 'true';
+      final service = _notifications(provider: provider);
+      await _expectCompletion(
+          tester, service.applyTopicPreferences(), 'topic tagging');
+      expect(provider.tags.containsKey('notification_promotions'), isFalse);
+      expect(provider.tags['notification_orders'], 'true');
+      expect(provider.tags['notification_delivery'], 'true');
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('granting permission applies the preferences it started with',
+        (tester) async {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool(
+          NotificationService.topicPreferenceKey('delivery'), false);
+      final provider = _ControlledProvider();
+      final service = _notifications(provider: provider);
+      await _expectCompletion(
+          tester, service.enablePushNotifications(), 'permission request');
+      for (var turn = 0; turn < 40; turn++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(provider.tags['notification_orders'], 'true');
+      expect(provider.tags['notification_promotions'], 'true');
+      expect(provider.tags.containsKey('notification_delivery'), isFalse);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('a refused permission tags nothing', (tester) async {
+      final provider = InMemoryPushProvider(supported: false);
+      final service = _notifications(provider: provider);
+      await _expectCompletion(
+          tester, service.enablePushNotifications(), 'refused permission');
+      for (var turn = 0; turn < 10; turn++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(provider.tags, isEmpty);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets(
+        'a device that already allowed push gets the default tags after a successful sync',
+        (tester) async {
+      final provider = _ControlledProvider()
+        ..current = const PushSubscriptionSnapshot(
+          subscriptionId: 'fixture-subscription',
+          permissionGranted: true,
+          optedIn: true,
+        );
+      final backend = _PushBackendFixture();
+      addTearDown(() => expect(backend.unexpected, isEmpty));
+      await http.runWithClient(() async {
+        final service = _notifications(provider: provider);
+        final sync = service.syncTokenWithServerIfNeeded();
+        await _expectCompletion(tester, sync, 'startup synchronization');
+        expect(await sync, isTrue);
+        for (var turn = 0; turn < 40; turn++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+        for (final tag in topicTags) {
+          expect(provider.tags[tag], 'true', reason: tag);
+        }
+      }, () => backend.client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('the native provider carries the default tags and drops a topic turned off',
+        (tester) async {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool(
+          NotificationService.topicPreferenceKey('promotions'), false);
+      final native = NativePushFixture()..install();
+      native.tags['notification_promotions'] = 'true';
+      final backend = _PushBackendFixture();
+      addTearDown(() {
+        native.uninstall();
+        expect(native.unexpected, isEmpty);
+        expect(backend.unexpected, isEmpty);
+      });
+      await http.runWithClient(() async {
+        final service = _notifications();
+        await _expectCompletion(
+            tester, service.applyTopicPreferences(), 'native topic tagging');
+        await _flush(tester);
+        expect(native.tags, {
+          'notification_orders': 'true',
+          'notification_delivery': 'true',
+        });
+      }, () => backend.client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  });
 }

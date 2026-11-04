@@ -377,7 +377,12 @@ class SurfaceFixtureClient extends MockClient {
           row['amount'] == 1 &&
           (row['options'] as List).isEmpty) {
         packageSeen = true;
-        result.add({...row, 'name': 'Пакет', 'price': 30});
+        result.add({
+          ...row,
+          'name': 'Майка фирменная',
+          'code': 'KR-00002264',
+          'price': 30,
+        });
         continue;
       }
       var index = -1;
@@ -1280,6 +1285,9 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
     }
     final Widget page;
     switch (destination) {
+      case AppDestination.cart:
+        _showFixtureCart(context);
+        return;
       case AppDestination.orders:
         page = OrdersPage(
           businessId: 1,
@@ -1539,7 +1547,6 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
             ),
             locate: () async => null,
             enableNotifications: () async => false,
-            openLocationSettings: () async => false,
           ),
         );
       case 'addresses':

@@ -16,6 +16,8 @@ class NativePushFixture {
   final calls = <String>[];
   final logins = <String>[];
   final effects = <String>[];
+  /// The tags the app has put on the device, as the native SDK would hold them.
+  final tags = <String, String>{};
   int initializations = 0;
   Future<void> Function()? initialize;
   Future<void> Function(String)? login;
@@ -83,6 +85,20 @@ class NativePushFixture {
         call.arguments is Map &&
         call.arguments['language'] == 'ru') {
       return null;
+    }
+    if (channel == 'OneSignal#user') {
+      if (method == 'OneSignal#addTags' && call.arguments is Map) {
+        for (final entry in (call.arguments as Map).entries) {
+          tags['${entry.key}'] = '${entry.value}';
+        }
+        return null;
+      }
+      if (method == 'OneSignal#removeTags' && call.arguments is List) {
+        for (final key in call.arguments as List) {
+          tags.remove('$key');
+        }
+        return null;
+      }
     }
     if (channel == 'OneSignal#pushsubscription' && call.arguments == null) {
       if (method == 'OneSignal#pushSubscriptionToken') {

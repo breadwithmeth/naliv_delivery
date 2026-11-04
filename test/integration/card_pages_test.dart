@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/checkout/ui/payment_success_page.dart';
-import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/pages/order_detail_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/pages/payment_notice_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
@@ -371,8 +371,13 @@ void main() {
       expect(cart.items.single.quantity, 2);
       await tester.tap(find.byKey(const ValueKey('payment-success-orders')));
       await tester.pumpAndSettle();
-      expect(find.byType(OrdersPage), findsOneWidget);
-      expect(find.textContaining('902'), findsOneWidget);
+      // «Отслеживать заказ» opens the paid order itself, not a list.
+      expect(find.byType(OrderDetailPage), findsOneWidget);
+      expect(
+          tester
+              .widget<OrderDetailPage>(find.byType(OrderDetailPage))
+              .order['order_id'],
+          '902');
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     cart.dispose();

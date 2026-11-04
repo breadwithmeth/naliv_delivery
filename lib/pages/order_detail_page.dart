@@ -16,12 +16,12 @@ import '../ui/frosted_surface.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/surfaces.dart';
 import '../utils/api.dart';
+import '../utils/app_navigator.dart';
 import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
 import '../utils/order_ui_helpers.dart' as order_ui;
 import '../utils/order_payment_guard.dart';
 import '../utils/item_name_presentation.dart';
-import 'checkout_page.dart';
 import '../features/faq/models/faq.dart';
 import '../features/faq/faq_navigation.dart';
 import 'help_chat_page.dart';
@@ -194,20 +194,10 @@ class _OrderDetailPageState extends State<OrderDetailPage>
         );
       }
       if (!mounted || !session.isCurrent) return;
-      if (!result.canProceedToCheckout) {
-        await _showMessage(
-          'Корзина восстановлена',
-          'Товары уже восстановлены в корзину, но адрес доставки не восстановлен. '
-              'Выберите адрес заново перед оформлением.',
-        );
-        return;
-      }
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => CheckoutPage(
-          initialDeliveryType: result.deliveryType,
-          initialAddress: result.restoredAddress,
-        ),
-      ));
+      // The cart is where a repeated order is reviewed: quantities, current
+      // prices and promotions. Checkout asks for the address if it was not
+      // restored.
+      await AppNavigator.openCart();
     } on RepeatOrderException catch (error) {
       if (mounted) {
         await _showMessage('Не удалось повторить заказ', error.message);
@@ -532,8 +522,10 @@ class _OrderDetailPageState extends State<OrderDetailPage>
                 : context.palette.textSecondary,
       ),
     );
-    final phone =
-        _OrderField(label: 'Телефон', value: details.phone ?? 'Не передан');
+    // A field the server did not send is left out, not shown as «Не передан».
+    final phone = details.phone == null
+        ? null
+        : _OrderField(label: 'Телефон', value: details.phone!);
     final address = details.address;
     final extras = [
       if (_text(address?['entrance']) case final value?) 'Подъезд $value',
@@ -543,34 +535,37 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LayoutBuilder(builder: (context, constraints) {
-          if (constraints.maxWidth < 320 ||
-              MediaQuery.textScalerOf(context).scale(16) > 21) {
-            return Column(
+        if (phone == null)
+          status
+        else
+          LayoutBuilder(builder: (context, constraints) {
+            if (constraints.maxWidth < 320 ||
+                MediaQuery.textScalerOf(context).scale(16) > 21) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [status, const SizedBox(height: 8), phone],
+              );
+            }
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [status, const SizedBox(height: 8), phone],
+              children: [
+                Expanded(flex: 3, child: phone),
+                const SizedBox(width: 12),
+                Flexible(flex: 2, child: status),
+              ],
             );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: phone),
-              const SizedBox(width: 12),
-              Flexible(flex: 2, child: status),
-            ],
-          );
-        }),
-        const SizedBox(height: 16),
-        _OrderField(
-            label: 'Способ оплаты',
-            value: details.paymentMethod ?? 'Не передан'),
+          }),
+        if (details.paymentMethod case final method?) ...[
+          const SizedBox(height: 16),
+          _OrderField(label: 'Способ оплаты', value: method),
+        ],
         const SizedBox(height: 16),
         _OrderField(
           label: details.pickup ? 'Самовывоз' : 'Адрес доставки',
           value: details.pickup
               ? _text(details.business?['address']) ??
                   'Адрес магазина не передан'
-              : _text(address?['address']) ?? 'Адрес не передан',
+              : details.addressText ?? 'Адрес не передан',
         ),
         if (extras.isNotEmpty) ...[
           const SizedBox(height: 4),
@@ -1085,8 +1080,43 @@ class _OrderDetails {
 
   String get id =>
       _text(order['order_id'] ?? order['order_uuid'] ?? order['id']) ?? '—';
-  Map<String, dynamic>? get address =>
-      order_ui.asOrderMap(order['delivery_address']);
+
+  /// The delivery address from whichever shape the API used: the nested
+  /// `delivery_address`, or top-level fields on freshly created / unpaid
+  /// orders.
+  Map<String, dynamic>? get address {
+    final nested = order_ui.asOrderMap(order['delivery_address']);
+    final merged = <String, dynamic>{
+      for (final key in const [
+        'address',
+        'street',
+        'house',
+        'entrance',
+        'floor',
+        'apartment',
+        'comment',
+        'other',
+      ])
+        if (_text(order[key]) != null) key: order[key],
+      if (nested != null)
+        for (final entry in nested.entries)
+          if (_text(entry.value) != null) entry.key: entry.value,
+    };
+    return merged.isEmpty ? null : merged;
+  }
+
+  /// «Улица, дом» or the stored address text; null when nothing is known.
+  String? get addressText {
+    final value = address;
+    if (value == null) return null;
+    final text = _text(value['address']);
+    if (text != null) return text.split(' • ').first;
+    final street = ApiService.extractStreetName(value);
+    if (street == null) return null;
+    final house = ApiService.extractHouseNumber(value);
+    return house == null ? street : '$street, $house';
+  }
+
   Map<String, dynamic>? get business => order_ui.asOrderMap(order['business']);
   String? get phone => _text(order_ui.asOrderMap(order['user'])?['phone']);
   String? get paymentMethod => _text(order['payment_method']);
@@ -1140,10 +1170,25 @@ Map<String, dynamic> _mergeOrder(
   if (loaded == null) return base;
   final merged = <String, dynamic>{...base};
   for (final entry in loaded.entries) {
+    // A missing value in the fresh read never erases what was already known
+    // (an unpaid order's details may come without its address).
+    if (_text(entry.value) == null &&
+        entry.value is! Map &&
+        entry.value is! List) {
+      continue;
+    }
     final oldMap = order_ui.asOrderMap(merged[entry.key]);
     final newMap = order_ui.asOrderMap(entry.value);
-    merged[entry.key] =
-        oldMap != null && newMap != null ? {...oldMap, ...newMap} : entry.value;
+    merged[entry.key] = oldMap != null && newMap != null
+        ? {
+            ...oldMap,
+            for (final inner in newMap.entries)
+              if (_text(inner.value) != null ||
+                  inner.value is Map ||
+                  inner.value is List)
+                inner.key: inner.value,
+          }
+        : entry.value;
   }
   return merged;
 }

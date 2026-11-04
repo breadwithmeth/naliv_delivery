@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:integration_test/integration_test.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/checkout/ui/payment_success_page.dart';
-import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
+import 'package:naliv_delivery/pages/order_detail_page.dart';
 import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/pages/payment_method_page.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
@@ -134,8 +134,12 @@ void main() {
       expect(find.byType(PaymentSuccessPage), findsOneWidget);
       expect(order['payment_status'], 'completed');
       await _tap(tester, find.byKey(const ValueKey('payment-success-orders')));
-      expect(find.byType(OrdersPage), findsOneWidget);
-      expect(find.text('№${order['order_id']}'), findsOneWidget);
+      // The paid order itself, with Home beneath it.
+      expect(find.byType(OrderDetailPage), findsOneWidget);
+      expect(find.textContaining('${order['order_id']}'), findsWidgets);
+      expect(
+          Navigator.of(tester.element(find.byType(OrderDetailPage))).canPop(),
+          isTrue);
       expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
       expect(network.attempts, 0,
           reason: 'No native HTTP client may bypass the strict fixture');

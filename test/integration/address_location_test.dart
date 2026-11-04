@@ -274,6 +274,7 @@ void main() {
         return _response({
           'cities': [
             {'city_id': 7, 'name': 'Караганда', 'delivery_type': 'DISTANCE'},
+            {'city_id': 8, 'name': 'Астана', 'delivery_type': 'DISTANCE'},
           ],
         });
       }
@@ -290,11 +291,12 @@ void main() {
     try {
       await http.runWithClient(() async {
         await tester.binding.setSurfaceSize(const Size(375, 812));
+        var completed = 0;
         await tester.pumpWidget(MaterialApp(
           theme: AppTheme.dark(),
           home: OnboardingPage(
-            onCompleted: () => fail('Location does not complete onboarding'),
-            initialCity: 'Караганда',
+            onCompleted: () => completed++,
+            initialCity: 'Астана',
             actions: const OnboardingActions(
               locationSupported: true,
               notificationsSupported: false,
@@ -313,7 +315,17 @@ void main() {
         expect(platform.permissionRequests, 0);
         final prefs = await SharedPreferences.getInstance();
         expect(prefs.getBool('onboarding_location_prompt_seen'), isTrue);
-        expect(find.byKey(const Key('onboarding-continue')), findsOneWidget);
+        // Detecting selects the matched city; saving and finishing wait for «Продолжить».
+        expect(completed, 0);
+        expect(
+            tester
+                .widget<RadioGroup<String>>(find.byType(RadioGroup<String>))
+                .groupValue,
+            'Караганда');
+        await tester.tap(find.byKey(const Key('onboarding-continue')));
+        await tester.pumpAndSettle();
+        expect(completed, 1);
+        expect(prefs.getString('onboarding_selected_city'), 'Караганда');
       }, () => client);
     } finally {
       await _dispose(tester);

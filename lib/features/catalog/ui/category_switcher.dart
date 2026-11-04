@@ -450,18 +450,24 @@ class _CategorySheetState extends State<_CategorySheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final parent in widget.parents)
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: AppSpacing.xxxl),
-                          child: _SheetGroup(
-                            key: parent.id == widget.selectedId
-                                ? _selected
-                                : ValueKey('category-group-${parent.id}'),
-                            parent: parent,
-                            selected: parent.id == widget.selectedId,
+                      for (final (index, parent) in widget.parents.indexed) ...[
+                        if (index > 0)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.xl),
+                            child: Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: context.palette.divider),
                           ),
+                        _SheetGroup(
+                          key: parent.id == widget.selectedId
+                              ? _selected
+                              : ValueKey('category-group-${parent.id}'),
+                          parent: parent,
+                          selected: parent.id == widget.selectedId,
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -516,10 +522,11 @@ class _SheetGroup extends StatelessWidget {
                               .copyWith(color: palette.textPrimary),
                         ),
                       ),
-                      if (selected) ...[
-                        const SizedBox(width: AppSpacing.md),
-                        Icon(Icons.check, color: palette.accent),
-                      ],
+                      const SizedBox(width: AppSpacing.md),
+                      selected
+                          ? Icon(Icons.check, color: palette.accent)
+                          : Icon(Icons.chevron_right_rounded,
+                              color: palette.textSecondary),
                     ],
                   ),
                 ),
@@ -527,26 +534,66 @@ class _SheetGroup extends StatelessWidget {
             ),
           ),
         ),
-        if (parent.hasChildren) ...[
-          const SizedBox(height: AppSpacing.md),
+        if (parent.hasChildren)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Wrap(
-              spacing: AppSpacing.md,
-              runSpacing: AppSpacing.md,
+            padding: const EdgeInsets.only(left: AppSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final child in parent.children)
-                  _CategoryChip(
+                for (final (index, child) in parent.children.indexed) ...[
+                  if (index > 0)
+                    Divider(height: 1, thickness: 0.5, color: palette.divider),
+                  _SheetRow(
                     key: ValueKey('category-menu-${child.id}'),
-                    item: CategoryChipItem.fromCategory(child),
-                    selected: false,
+                    label: child.name,
                     onTap: () => Navigator.of(context).pop(child),
                   ),
+                ],
               ],
             ),
           ),
-        ],
       ],
+    );
+  }
+}
+
+/// One sub-category in the categories sheet: plain text, a quiet chevron, a
+/// full-width 44 px tap target.
+class _SheetRow extends StatelessWidget {
+  const _SheetRow({required this.label, required this.onTap, super.key});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.mdAll,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: AppSpacing.touchTarget),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                0, AppSpacing.md, AppSpacing.xl, AppSpacing.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppTypography.bodyMedium
+                        .copyWith(color: palette.textPrimary),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20, color: palette.textSecondary),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -11,6 +11,7 @@ import '../design/typography.dart';
 import 'app_icon.dart';
 import 'motion_widgets.dart';
 import 'text_width_cache.dart';
+import '../utils/smart_cart.dart';
 
 /// Tells every [ProductCard] below it which optional price lines exist somewhere in the
 /// collection, so each card reserves the same slots and prices and buttons line up.
@@ -136,6 +137,7 @@ class ProductCard extends StatelessWidget {
     this.promo,
     this.bonus,
     this.quantity = 0,
+    this.step = 1,
     this.available = true,
     this.onTap,
     this.onIncrement,
@@ -160,6 +162,9 @@ class ProductCard extends StatelessWidget {
   final String? promo;
   final String? bonus;
   final num quantity;
+
+  /// One step of the stepper; at the last step the minus deletes the item.
+  final num step;
   final bool available;
   final VoidCallback? onTap;
   final VoidCallback? onIncrement;
@@ -234,11 +239,19 @@ class ProductCard extends StatelessWidget {
         imageUrl: view.imageUrl,
         available: view.available,
         quantity: quantity ?? view.quantity,
+        step: (quantity ?? view.quantity) <= 0 ? 1 : _stepOf(view),
         onTap: onTap,
         onIncrement: onIncrement,
         onDecrement: onDecrement,
         trailingAction: trailingAction,
       );
+
+  static num _stepOf(ProductView view) {
+    final selection = SmartCartSelection(view.source);
+    return selection.usesPourFlow
+        ? selection.minBottleVolume
+        : view.source.effectiveStepQuantity;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +336,7 @@ class ProductCard extends StatelessWidget {
                 height: metrics.hitHeight,
                 child: _CardCta(
                   quantity: quantity,
+                  step: step,
                   unit: quantityUnit,
                   onIncrement: available ? onIncrement : null,
                   onDecrement: onDecrement,
@@ -616,6 +630,7 @@ class _Badge extends StatelessWidget {
 class _CardCta extends StatelessWidget {
   const _CardCta({
     required this.quantity,
+    required this.step,
     required this.unit,
     required this.onIncrement,
     required this.onDecrement,
@@ -625,6 +640,7 @@ class _CardCta extends StatelessWidget {
   });
 
   final num quantity;
+  final num step;
   final String? unit;
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
@@ -779,9 +795,15 @@ class _CardCta extends StatelessWidget {
               top: 0,
               bottom: 0,
               child: StepTap(
-                label: 'Уменьшить количество',
+                label: quantity <= step + 0.0001
+                    ? 'Удалить из корзины'
+                    : 'Уменьшить количество',
                 onTap: onDecrement,
-                child: icon(Icons.remove, enabled: onDecrement != null),
+                child: icon(
+                    quantity <= step + 0.0001
+                        ? Icons.delete_outline_rounded
+                        : Icons.remove,
+                    enabled: onDecrement != null),
               ),
             ),
             Positioned(
@@ -805,6 +827,7 @@ class _CardCta extends StatelessWidget {
 class ProductQuantityControl extends StatelessWidget {
   const ProductQuantityControl({
     required this.quantity,
+    this.step = 1,
     this.onIncrement,
     this.onDecrement,
     this.unit,
@@ -812,6 +835,9 @@ class ProductQuantityControl extends StatelessWidget {
   });
 
   final num quantity;
+
+  /// One step; at the last step the minus deletes the item.
+  final num step;
   final String? unit;
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
@@ -846,10 +872,14 @@ class ProductQuantityControl extends StatelessWidget {
         final actions = Row(
           children: [
             StepTap(
-              label: 'Уменьшить количество',
+              label: quantity <= step + 0.0001
+                  ? 'Удалить из корзины'
+                  : 'Уменьшить количество',
               onTap: onDecrement,
               child: Icon(
-                Icons.remove,
+                quantity <= step + 0.0001
+                    ? Icons.delete_outline_rounded
+                    : Icons.remove,
                 color: onDecrement == null
                     ? palette.textOnAccent.withValues(alpha: 0.5)
                     : palette.textOnAccent,

@@ -30,13 +30,36 @@ class CheckoutAddressResult {
   final Map<String, dynamic>? address;
 }
 
-/// The street line of an address: stored labels may carry the
+/// The street line of an address: street and house when known, else the
+/// stored address text. Account addresses carry a name («Адрес доставки» by
+/// default), which is never the address itself. Stored labels may carry the
 /// «• Под. 2, Эт. 7, Кв. 45» summary, which has its own line.
-String checkoutAddressTitle(Map<String, dynamic> address) =>
-    (ApiService.extractAddressLabel(address) ??
-            ApiService.formatAddressSummary(address))
-        .split(' • ')
-        .first;
+String checkoutAddressTitle(Map<String, dynamic> address) {
+  final street = ApiService.extractStreetName(address);
+  if (street != null) {
+    final house = ApiService.extractHouseNumber(address);
+    return house == null ? street : '$street, $house';
+  }
+  final text = address['address']?.toString().trim();
+  final label = text != null && text.isNotEmpty
+      ? text
+      : ApiService.extractAddressLabel(address) ??
+          ApiService.formatAddressSummary(address);
+  return label.split(' • ').first;
+}
+
+/// A name the customer gave the address («Дом», «Работа»); null for the
+/// default «Адрес доставки» or a name that only repeats the address.
+String? checkoutAddressName(Map<String, dynamic> address) {
+  final name = address['name']?.toString().trim();
+  if (name == null || name.isEmpty) return null;
+  final lower = name.toLowerCase();
+  if (lower == 'адрес доставки' ||
+      lower == checkoutAddressTitle(address).toLowerCase()) {
+    return null;
+  }
+  return name;
+}
 
 /// «Подъезд 2 · Этаж 7 · Кв. 45», empty when nothing is filled in.
 String checkoutDetailsSummary(
@@ -388,13 +411,16 @@ class _CheckoutAddressSheetState extends State<_CheckoutAddressSheet> {
             '${address['floor'] ?? ''}',
             '${address['apartment'] ?? ''}',
           );
+    final name = checkoutAddressName(address);
     final subtitle = mismatch
         ? 'Другой город — магазин доставляет по г. ${widget.storeCity}'
-        : summary.isNotEmpty
-            ? summary
-            : current
-                ? 'Добавьте подъезд, этаж и квартиру'
-                : null;
+        : [
+            if (name != null) name,
+            if (summary.isNotEmpty)
+              summary
+            else if (current)
+              'Добавьте подъезд, этаж и квартиру',
+          ].join(' · ');
     final title = checkoutAddressTitle(address);
     final icon = mismatch
         ? Icons.wrong_location_outlined
@@ -442,7 +468,7 @@ class _CheckoutAddressSheetState extends State<_CheckoutAddressSheet> {
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.bodyMedium
                               .copyWith(color: palette.textPrimary)),
-                      if (subtitle != null)
+                      if (subtitle.isNotEmpty)
                         Text(subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

@@ -8,6 +8,8 @@ import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
 import 'package:naliv_delivery/utils/smart_cart.dart';
+import 'package:naliv_delivery/utils/auto_order_lines.dart';
+import 'package:naliv_delivery/utils/draft_bottles.dart';
 
 class RepeatOrderException implements Exception {
   const RepeatOrderException(this.message);
@@ -182,8 +184,16 @@ class RepeatOrderService {
     final orderItems = _asMapList(order['items']);
     final builtItems = <CartItem>[];
     final skippedItems = <String>[];
+    final orderHasDraftDrink = orderItems.any((line) => isDraftDrinkName(
+        (line['name'] ?? line['item_name'])?.toString() ?? ''));
 
     for (final orderItem in orderItems) {
+      // The bag and draft bottles come back on their own at checkout and in
+      // the cart; copying them would double them.
+      if (isAutoAddedOrderLine(orderItem,
+          orderHasDraftDrink: orderHasDraftDrink)) {
+        continue;
+      }
       final kitchenRefused = !KitchenPolicy.isAvailableForBusiness(businessId);
       final cartItem =
           kitchenRefused && KitchenPolicy.isKitchenOrderLine(orderItem)

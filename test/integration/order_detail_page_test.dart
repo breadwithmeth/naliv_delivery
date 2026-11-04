@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/pages/checkout_page.dart';
 import 'package:naliv_delivery/pages/order_detail_page.dart';
+import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:provider/provider.dart';
@@ -132,7 +133,7 @@ void main() {
   });
 
   testWidgets(
-      'repeat keeps committed cart but does not open checkout after address save refusal',
+      'repeat commits the cart and opens it even when the address cannot be saved',
       (tester) async {
     const originalAddress = {
       'address': 'Исходный адрес',
@@ -205,6 +206,10 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     });
+    var cartOpened = 0;
+    void opener() => cartOpened++;
+    AppNavigator.registerCartOpener(opener);
+    addTearDown(() => AppNavigator.unregisterCartOpener(opener));
     await http.runWithClient(() async {
       await tester.pumpWidget(MultiProvider(
         providers: [
@@ -212,6 +217,7 @@ void main() {
           ChangeNotifierProvider<BusinessProvider>.value(value: business),
         ],
         child: MaterialApp(
+          navigatorKey: AppNavigator.key,
           theme: AppTheme.light(),
           home: const OrderDetailPage(order: source),
         ),
@@ -219,38 +225,22 @@ void main() {
       await tester.pumpAndSettle();
       await tester
           .tap(find.byKey(const ValueKey('order-detail-repeat-button')));
-      // The repeat future intentionally awaits this acknowledgment dialog.
-      // Its underlying button still animates while busy, so settling before
-      // dismissing the dialog would wait on a non-terminating spinner.
-      for (var frame = 0;
-          frame < 20 && find.byType(AlertDialog).evaluate().isEmpty;
-          frame++) {
+      for (var frame = 0; frame < 40 && cartOpened == 0; frame++) {
         await tester.pump(const Duration(milliseconds: 16));
       }
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(cart.businessId, 7);
-      expect(cart.items.single.itemId, 8302);
-      expect(cart.getTotalPrice(), 240);
-      expect(business.selectedBusinessId, 7);
-      expect(find.byType(CheckoutPage), findsNothing);
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Корзина восстановлена'), findsOneWidget);
-      expect(find.textContaining('адрес доставки не восстановлен'),
-          findsOneWidget);
-      final prefs = await SharedPreferences.getInstance();
-      expect(jsonDecode(prefs.getString('selected_address')!), originalAddress);
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.widgetWithText(TextButton, 'Понятно'));
-      await tester.pumpAndSettle();
+      // The cart is where a repeated order is reviewed; checkout asks for the
+      // address later, so a refused address save needs no dialog here.
+      expect(cartOpened, 1);
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.byType(CheckoutPage), findsNothing);
+      expect(cart.businessId, 7);
+      expect(cart.items.single.itemId, 8302);
       expect(cart.items.single.quantity, 2);
-      expect(
-          tester
-              .widget<FilledButton>(
-                  find.byKey(const ValueKey('order-detail-repeat-button')))
-              .onPressed,
-          isNotNull);
+      expect(cart.getTotalPrice(), 240);
+      expect(business.selectedBusinessId, 7);
+      final prefs = await SharedPreferences.getInstance();
+      expect(jsonDecode(prefs.getString('selected_address')!), originalAddress);
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }, () => client);
   });

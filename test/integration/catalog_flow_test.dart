@@ -54,9 +54,11 @@ void main() {
     await tester.tap(step('Добавить'));
     await tester.pump();
     expect(cart.getCatalogQuantity(_products.first.source), 1);
-    await tester.tap(step('Уменьшить количество'));
+    // At the last unit the minus is a delete: the item leaves the cart.
+    await tester.tap(step('Удалить из корзины'));
     await tester.pump();
     expect(cart.getCatalogQuantity(_products.first.source), 0);
+    expect(cart.items, isEmpty);
     await tester.tapAt(tester.getRect(first).topLeft + const Offset(50, 130));
     await tester.pumpAndSettle();
     expect(find.byType(ProductPage), findsOneWidget);

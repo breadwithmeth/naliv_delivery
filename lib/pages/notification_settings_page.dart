@@ -43,7 +43,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     ),
   ];
 
-  static String _preferenceKey(String topic) => 'notification_topic_$topic';
+  static String _preferenceKey(String topic) =>
+      NotificationService.topicPreferenceKey(topic);
 
   final Map<String, bool> _values = {};
   final Set<String> _pendingTopics = {};
@@ -94,7 +95,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
         _preferences = preferences;
         for (final option in _options) {
           _values[option.topic] =
-              preferences.getBool(_preferenceKey(option.topic)) ?? false;
+              NotificationService.topicEnabled(preferences, option.topic);
         }
         _loading = false;
       });

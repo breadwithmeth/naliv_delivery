@@ -248,8 +248,8 @@ class _FrostedHeaderLayoutState extends State<FrostedHeaderLayout> {
 }
 
 /// The scrolled header's scrim: the page colour, fully solid behind the status
-/// bar and title, easing over the lower controls and fading to transparent
-/// [tail] px below the header.
+/// bar, title and every header control (so their text never sits over
+/// content), fading to transparent [tail] px below the header.
 class _HeaderFade extends StatelessWidget {
   const _HeaderFade({required this.scrolled, required this.solidUntil});
 
@@ -269,19 +269,17 @@ class _HeaderFade extends StatelessWidget {
       curve: Curves.easeOut,
       builder: (context, t, _) => LayoutBuilder(builder: (context, box) {
         if (t == 0 || box.maxHeight <= 0) return const SizedBox.expand();
-        final end = (solidUntil / box.maxHeight).clamp(0.0, 0.95);
-        final solid = end * 0.75;
+        final end = (solidUntil / box.maxHeight).clamp(0.0, 0.98);
         return DecoratedBox(
           key: const ValueKey('header-scrim'),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              stops: [0, solid, end, 1],
+              stops: [0, end, 1],
               colors: [
                 base.withValues(alpha: t),
                 base.withValues(alpha: t),
-                base.withValues(alpha: 0.88 * t),
                 base.withValues(alpha: 0),
               ],
             ),

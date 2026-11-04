@@ -49,6 +49,8 @@ import 'checkout_address_sheet.dart';
 import 'login_page.dart';
 import 'help_chat_page.dart';
 import 'payment_method_page.dart';
+import '../utils/order_flow_navigation.dart';
+import '../utils/auto_order_lines.dart';
 import 'profile_setup_page.dart';
 
 /// Opens the delivery-address picker. [city] is the selected store's city
@@ -89,9 +91,6 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage>
     with WidgetsBindingObserver {
-  // Verified public catalogue master code; store-local IDs/prices are read live.
-  static const _brandedBagCode = 'KR-00002264';
-
   final _entrance = TextEditingController();
   final _floor = TextEditingController();
   final _apartment = TextEditingController();
@@ -99,6 +98,10 @@ class _CheckoutPageState extends State<CheckoutPage>
   final _promo = TextEditingController();
   final _certificate = TextEditingController();
   double _footerHeight = 110;
+
+  /// The folded «Промокод или сертификат» row is open, and which code it takes.
+  bool _codesOpen = false;
+  bool _certificateMode = false;
   List<Map<String, dynamic>> _accountAddresses = const [];
   bool _addressSheetOpen = false;
   CartProvider? _cart;
@@ -184,6 +187,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       _quoteReady &&
       !_loadingBag &&
       _bag != null &&
+      !context.read<CartProvider>().evaluate().draftBottlesPending &&
       (!_useBonus ||
           (!_loadingBonus && _bonusBalance != null && _maxBonusUsed > 0)) &&
       !_initializing &&
@@ -563,7 +567,7 @@ class _CheckoutPageState extends State<CheckoutPage>
           throw StateError('Не удалось прочитать каталог упаковки');
         }
         matches.addAll(response.data.items
-            .where((item) => item.code?.trim() == _brandedBagCode));
+            .where((item) => item.code?.trim() == brandedBagCode));
         if (!response.data.pagination.hasNextPage) break;
         page++;
       }
@@ -900,7 +904,9 @@ class _CheckoutPageState extends State<CheckoutPage>
   }
 
   Future<void> _validateCode({required bool certificate}) async {
-    if (_validating || _busy || _useBonus) return;
+    if (_validating || _busy) return;
+    // A code replaces the bonus deduction (one benefit per order).
+    if (_useBonus) _toggleBonuses(false);
     final code = (certificate ? _certificate : _promo).text.trim();
     if (code.isEmpty) {
       setState(() => _benefitError = 'Введите код');
@@ -1175,10 +1181,12 @@ class _CheckoutPageState extends State<CheckoutPage>
       if (!session.isCurrent || !mounted) return;
       await journal.acknowledge();
       if (!session.isCurrent || !mounted) return;
-      await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-        builder: (_) => PaymentMethodPage(
-            orderData: order!, displayAmount: _creationAmount),
-      ));
+      showOrderFromRoot(
+        Navigator.of(context),
+        order: withSubmittedAddress(order, original),
+        payment:
+            PaymentMethodPage(orderData: order, displayAmount: _creationAmount),
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -1342,8 +1350,10 @@ class _CheckoutPageState extends State<CheckoutPage>
         _cart!.clearCart();
         if (await _cart!.ensureSaved()) await journal.acknowledge();
         if (!mounted || !session.isCurrent) return;
-        Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-          builder: (_) => PaymentMethodPage(
+        showOrderFromRoot(
+          Navigator.of(context),
+          order: withSubmittedAddress(order, body),
+          payment: PaymentMethodPage(
             orderData: order,
             displayAmount: amount,
             amountNotice: checkoutAmountNotice(
@@ -1353,7 +1363,7 @@ class _CheckoutPageState extends State<CheckoutPage>
             openCardForm: widget.openCardForm,
             onPaymentCompleted: widget.onPaymentCompleted,
           ),
-        ));
+        );
       } else {
         await _restoreCreation(session);
         if (!mounted || !session.isCurrent) return;
@@ -2139,133 +2149,93 @@ class _CheckoutPageState extends State<CheckoutPage>
     );
   }
 
+  /// Bonuses first: one card with the switch and what it saves. Promo codes and
+  /// certificates are rarer, so they share one folded row that opens a single
+  /// field. One benefit applies per order; applying a code turns bonuses off.
   Widget _benefits() {
     final palette = context.palette;
-    final applied = _useBonus || _promoData != null || _certificateData != null;
-    final summary = _useBonus
-        ? 'Бонусами: −${_money(_bonusUsed)}'
-        : _promoData != null
-            ? 'Промокод ${_promoData!['promo_code']} применён'
-            : _certificateData != null
-                ? 'Сертификат применён: −${_money(_certificateUsed)}'
-                : _validating
-                    ? 'Проверяем код…'
-                    : _promo.text.trim().isNotEmpty ||
-                            _certificate.text.trim().isNotEmpty
-                        ? 'Код сохранён. Примените его для текущего заказа.'
-                        : _loggedIn == false
-                            ? 'Доступны после входа в аккаунт'
-                            : 'Выберите одну льготу для заказа';
-    final balance = _loadingBonus
-        ? 'Баланс бонусов обновляется…'
-        : _bonusBalance != null
-            ? 'На балансе: ${_money(_bonusBalance!)}'
-            : _bonusError != null
-                ? 'Баланс бонусов не подтверждён'
-                : null;
+    final codeApplied = _promoData != null || _certificateData != null;
+    final canUseBonus = !_editingLocked &&
+        !_loadingBonus &&
+        _loggedIn == true &&
+        _maxBonusUsed > 0;
+    final bonusLine = _loggedIn == false
+        ? 'Войдите, чтобы списать бонусы'
+        : _loadingBonus
+            ? 'Баланс обновляется…'
+            : _useBonus
+                ? '−${_money(_bonusUsed)} к оплате'
+                : _bonusBalance == null
+                    ? (_bonusError != null ? 'Баланс не подтверждён' : null)
+                    : _maxBonusUsed > 0
+                        ? (_maxBonusUsed >= _bonusBalance! - 0.5
+                            ? 'Можно списать ${_money(_maxBonusUsed)}'
+                            : 'Можно списать ${_money(_maxBonusUsed)} из ${_money(_bonusBalance!)}')
+                        : 'На балансе ${_money(_bonusBalance!)}';
+    final codeSummary = _promoData != null
+        ? 'Промокод ${_promoData!['promo_code']}'
+            '${_promoDiscount > 0 ? ' · −${_money(_promoDiscount)}' : ''}'
+        : _certificateData != null
+            ? 'Сертификат · −${_money(_certificateUsed)}'
+            : null;
     return Column(
       key: const ValueKey('checkout-benefits'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppSurface(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
+                  AppIcon(AppIcons.bonusStar, size: 24, color: palette.gold),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Списать бонусы',
-                      key: const ValueKey('checkout-benefits-toggle'),
-                      style: AppTypography.bodyMedium,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Списать бонусы',
+                            key: const ValueKey('checkout-benefits-toggle'),
+                            style: AppTypography.bodyMedium
+                                .copyWith(color: palette.textPrimary)),
+                        if (bonusLine != null)
+                          Text(
+                            bonusLine,
+                            key: _useBonus
+                                ? const ValueKey('checkout-benefit-applied')
+                                : null,
+                            style: AppTypography.bodySmallMedium.copyWith(
+                                color: _useBonus
+                                    ? palette.accent
+                                    : palette.textSecondary),
+                          ),
+                      ],
                     ),
+                  ),
+                  AppIconButton(
+                    asset: AppIcons.faq,
+                    tooltip: 'Как работают бонусы',
+                    size: 32,
+                    fill: palette.background,
+                    onTap: _editingLocked
+                        ? null
+                        : () => _openHelp(FaqSection.bonuses),
                   ),
                   Switch.adaptive(
                     key: const ValueKey('checkout-bonus-toggle'),
                     value: _useBonus,
-                    onChanged: !_editingLocked &&
-                            !_loadingBonus &&
-                            _loggedIn == true &&
-                            _maxBonusUsed > 0
-                        ? _toggleBonuses
-                        : null,
+                    onChanged: canUseBonus ? _toggleBonuses : null,
                   ),
                 ],
               ),
-              if (balance != null)
-                Text(balance,
-                    style: AppTypography.bodySmallBold
-                        .copyWith(color: palette.gold)),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                children: [
-                  if (_bonusBalance != null)
-                    Text('Можно списать до ${_money(_maxBonusUsed)}',
-                        style: AppTypography.caption
-                            .copyWith(color: palette.textSecondary)),
-                  TextButton(
-                    onPressed: _editingLocked
-                        ? null
-                        : () => _openHelp(FaqSection.bonuses),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 44),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: AppTypography.caption,
-                    ),
-                    child: const Text('Как работают бонусы'),
-                  ),
-                ],
-              ),
-              if (applied ||
-                  _validating ||
-                  _loggedIn == false ||
-                  _promo.text.trim().isNotEmpty ||
-                  _certificate.text.trim().isNotEmpty)
-                Text(
-                  summary,
-                  key: applied
-                      ? const ValueKey('checkout-benefit-applied')
-                      : null,
-                  style: AppTypography.caption.copyWith(
-                      color: applied ? palette.accent : palette.textSecondary),
-                ),
-              if (_loadingBonus || _validating) ...[
+              if (_loadingBonus) ...[
                 const SizedBox(height: 8),
                 const LinearProgressIndicator(),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        _codeField('Промокод', _promo, false),
-        const SizedBox(height: 16),
-        _codeField('Сертификат', _certificate, true),
-        const SizedBox(height: 8),
-        Text(
-          'Бонусы, промокод и сертификат применяются по отдельности.',
-          style: AppTypography.caption.copyWith(color: palette.textSecondary),
-        ),
-        if (applied)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('checkout-clear-benefit'),
-              onPressed: _editingLocked
-                  ? null
-                  : () => setState(() {
-                        _useBonus = false;
-                        _promoData = null;
-                        _certificateData = null;
-                        _benefitRequest++;
-                      }),
-              style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-              icon: const Icon(Icons.close, size: 18),
-              label: const Text('Убрать льготу'),
-            ),
-          ),
         if (_bonusError != null) ...[
           const SizedBox(height: 8),
           _message(
@@ -2278,6 +2248,95 @@ class _CheckoutPageState extends State<CheckoutPage>
             ),
           ),
         ],
+        const SizedBox(height: 8),
+        AppSurface(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
+                key: const ValueKey('checkout-codes-toggle'),
+                borderRadius: AppRadii.lgAll,
+                onTap: _editingLocked || codeApplied
+                    ? null
+                    : () => setState(() => _codesOpen = !_codesOpen),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 52),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.confirmation_number_outlined,
+                            size: 22,
+                            color: codeApplied
+                                ? palette.accent
+                                : palette.textSecondary),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            codeSummary ?? 'Промокод или сертификат',
+                            key: codeApplied
+                                ? const ValueKey('checkout-benefit-applied')
+                                : null,
+                            style: AppTypography.bodyMedium.copyWith(
+                                color: codeApplied
+                                    ? palette.accent
+                                    : palette.textPrimary),
+                          ),
+                        ),
+                        if (codeApplied)
+                          TextButton(
+                            key: const ValueKey('checkout-clear-benefit'),
+                            onPressed: _editingLocked
+                                ? null
+                                : () => setState(() {
+                                      _promoData = null;
+                                      _certificateData = null;
+                                      _benefitRequest++;
+                                    }),
+                            style: TextButton.styleFrom(
+                                minimumSize: const Size(44, 44)),
+                            child: const Text('Убрать'),
+                          )
+                        else
+                          Icon(
+                              _codesOpen
+                                  ? Icons.expand_less_rounded
+                                  : Icons.expand_more_rounded,
+                              color: palette.textSecondary),
+                        const SizedBox(width: 4),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (_codesOpen && !codeApplied)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _codeModeSwitch(),
+                      const SizedBox(height: 8),
+                      _certificateMode
+                          ? _codeField(_certificate, true)
+                          : _codeField(_promo, false),
+                      if (_useBonus) ...[
+                        const SizedBox(height: 6),
+                        Text('Код заменит списание бонусов',
+                            style: AppTypography.caption
+                                .copyWith(color: palette.textSecondary)),
+                      ],
+                      if (_validating) ...[
+                        const SizedBox(height: 8),
+                        const LinearProgressIndicator(),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
         if (_benefitError != null) ...[
           const SizedBox(height: 8),
           _message(_benefitError!,
@@ -2287,57 +2346,95 @@ class _CheckoutPageState extends State<CheckoutPage>
     );
   }
 
-  Widget _codeField(
-      String label, TextEditingController controller, bool certificate) {
+  Widget _codeModeSwitch() {
+    final palette = context.palette;
+    Widget option(String label, bool certificate) {
+      final selected = _certificateMode == certificate;
+      return Expanded(
+        child: Semantics(
+          selected: selected,
+          button: true,
+          child: InkWell(
+            key: ValueKey(
+                'checkout-code-mode-${certificate ? 'certificate' : 'promo'}'),
+            borderRadius: AppRadii.pillAll,
+            onTap: () => setState(() {
+              _certificateMode = certificate;
+              _benefitError = null;
+            }),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 40),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected ? palette.surface : Colors.transparent,
+                borderRadius: AppRadii.pillAll,
+              ),
+              child: Text(label,
+                  style: AppTypography.bodySmallMedium.copyWith(
+                      color: selected
+                          ? palette.textPrimary
+                          : palette.textSecondary)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+          color: palette.background, borderRadius: AppRadii.pillAll),
+      child: Row(children: [
+        option('Промокод', false),
+        option('Сертификат', true),
+      ]),
+    );
+  }
+
+  Widget _codeField(TextEditingController controller, bool certificate) {
     final name = certificate ? 'certificate' : 'promo';
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label,
-          style: AppTypography.bodyMedium
-              .copyWith(color: context.palette.textPrimary)),
-      const SizedBox(height: 8),
-      LayoutBuilder(builder: (context, constraints) {
-        final input = TextField(
-          key: ValueKey('checkout-$name-code'),
-          controller: controller,
-          enabled: !_editingLocked && !_useBonus,
-          textCapitalization: TextCapitalization.characters,
-          textInputAction: TextInputAction.done,
-          scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
-          onSubmitted: (_) => _validateCode(certificate: certificate),
-          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-          style: AppTypography.bodySmall,
-          decoration: InputDecoration(
-              hintText: certificate ? 'Код сертификата' : 'Введите промокод',
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
-        );
-        final apply = FilledButton(
-          key: ValueKey('checkout-apply-$name'),
-          onPressed: !_editingLocked && !_validating && !_useBonus
-              ? () => _validateCode(certificate: certificate)
-              : null,
-          style: FilledButton.styleFrom(
-              minimumSize: const Size(44, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              textStyle: AppTypography.bodySmallMedium),
-          child: const Text('Применить'),
-        );
-        return constraints.maxWidth < 300 ||
-                MediaQuery.textScalerOf(context).scale(14) > 20
-            ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                input,
-                const SizedBox(height: 8),
-                apply,
-              ])
-            : Row(children: [
-                Expanded(child: input),
-                const SizedBox(width: 8),
-                apply,
-              ]);
-      }),
-    ]);
+    return LayoutBuilder(builder: (context, constraints) {
+      final input = TextField(
+        key: ValueKey('checkout-$name-code'),
+        controller: controller,
+        enabled: !_editingLocked,
+        textCapitalization: TextCapitalization.characters,
+        textInputAction: TextInputAction.done,
+        scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
+        onSubmitted: (_) => _validateCode(certificate: certificate),
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        style: AppTypography.bodySmall,
+        decoration: InputDecoration(
+            hintText: certificate ? 'Код сертификата' : 'Промокод',
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+      );
+      final apply = FilledButton(
+        key: ValueKey('checkout-apply-$name'),
+        onPressed: !_editingLocked && !_validating
+            ? () => _validateCode(certificate: certificate)
+            : null,
+        style: FilledButton.styleFrom(
+            minimumSize: const Size(44, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            textStyle: AppTypography.bodySmallMedium),
+        child: const Text('Применить'),
+      );
+      return constraints.maxWidth < 300 ||
+              MediaQuery.textScalerOf(context).scale(14) > 20
+          ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              input,
+              const SizedBox(height: 8),
+              apply,
+            ])
+          : Row(children: [
+              Expanded(child: input),
+              const SizedBox(width: 8),
+              apply,
+            ]);
+    });
   }
 
   Widget _orderSummary() => AppSurface(
@@ -2372,7 +2469,6 @@ class _CheckoutPageState extends State<CheckoutPage>
             const SizedBox(height: 12),
             for (final group in _groups) ...[
               _item(group),
-              if (group.freeQuantity > 0) _gift(group),
               const Divider(height: 16),
             ],
             Text('Обязательная упаковка', style: AppTypography.bodyMedium),
@@ -2501,11 +2597,13 @@ class _CheckoutPageState extends State<CheckoutPage>
                 100,
           ),
         );
+        final step = group.evaluate().incrementStep;
         final quantity = SizedBox(
           width: controlWidth,
           child: ProductQuantityControl(
             key: ValueKey('checkout-quantity-${group.key}'),
             quantity: group.totalQuantity,
+            step: step,
             unit: perPiece ? null : unit,
             onIncrement: _editingLocked || !group.canIncrease
                 ? null
@@ -2515,17 +2613,22 @@ class _CheckoutPageState extends State<CheckoutPage>
                 : () => _cart!.decrementDisplayGroup(group),
           ),
         );
-        final remove = IconButton(
-          key: ValueKey('checkout-remove-${group.key}'),
-          tooltip: 'Удалить',
-          onPressed:
-              _editingLocked ? null : () => _cart!.removeDisplayGroup(group),
-          style: IconButton.styleFrom(
-            minimumSize: const Size.square(44),
-            foregroundColor: palette.textSecondary,
-          ),
-          icon: const Icon(Icons.delete_outline, size: 20),
-        );
+        // At the last step the stepper's own minus is the delete, so a second
+        // delete button only appears while there is more than one step.
+        final remove = group.totalQuantity <= step + 0.0001
+            ? const SizedBox.shrink()
+            : IconButton(
+                key: ValueKey('checkout-remove-${group.key}'),
+                tooltip: 'Удалить',
+                onPressed: _editingLocked
+                    ? null
+                    : () => _cart!.removeDisplayGroup(group),
+                style: IconButton.styleFrom(
+                  minimumSize: const Size.square(44),
+                  foregroundColor: palette.textSecondary,
+                ),
+                icon: const Icon(Icons.delete_outline, size: 20),
+              );
         final priceWidth = math.max(
           TextWidthCache.of(price, priceStyle, scaler, direction),
           struck == null
@@ -2648,28 +2751,6 @@ class _CheckoutPageState extends State<CheckoutPage>
                   color: context.palette.textSecondary),
         ),
       );
-
-  Widget _gift(CartDisplayGroup group) {
-    final unit = quantityUnitLabel(group.itemSnapshot?.unit) ?? '';
-    return Padding(
-      key: ValueKey('checkout-gift-${group.key}'),
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(Icons.redeem_outlined, color: context.palette.accent, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '${formatQuantity(group.freeQuantity, unit)} в подарок · ${_money(0)}',
-              style: AppTypography.bodySmallMedium
-                  .copyWith(color: context.palette.accent),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _summary() {
     final bagInCart = _bag == null
@@ -2818,6 +2899,9 @@ class _CheckoutPageState extends State<CheckoutPage>
     }
     if (_loadingBag) return 'Проверяем обязательную упаковку…';
     if (_bag == null) return 'Обновите упаковку в составе заказа';
+    if (context.read<CartProvider>().evaluate().draftBottlesPending) {
+      return 'Подбираем бутылки для розлива…';
+    }
     if (_quoting) return 'Рассчитываем доставку…';
     if (!_quoteReady) return 'Повторите расчёт доставки';
     if (_validating) return 'Проверяем код…';

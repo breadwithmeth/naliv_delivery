@@ -150,8 +150,7 @@ void main() {
     expect(cart.toJsonForOrder().single['amount'], 8.0);
   });
 
-  test('stock reservations follow refused edits, removal and zero restoration',
-      () {
+  test('stock reservations follow refused edits, removal and re-adding', () {
     final payload =
         syntheticThreePlusOneSurfaceItem(onlyOneLitre: true, stock: 5).toJson();
     (payload['options'] as List).add(ItemOption(
@@ -205,17 +204,15 @@ void main() {
         cart.displayGroups.single.key, selection.displayKeyForVariants(edited));
     expect(cart.syncItemBottleCounts(item, berry, {93101: 1}), isTrue);
 
+    // Down to zero the configuration leaves the cart; it is not parked at 0.
     cart.updateDisplayGroupBottleCounts(cart.displayGroups.first, {93101: 0});
-    expect(cart.displayGroups.map((group) => group.key), [
-      selection.displayKeyForVariants(edited),
-      selection.displayKeyForVariants(berry),
-    ]);
-    expect(cart.displayGroups.first.totalQuantity, 0);
+    expect(cart.displayGroups.map((group) => group.key),
+        [selection.displayKeyForVariants(berry)]);
     expect(cart.activeDisplayGroups.single.totalOrderQuantity, 1);
     expect(cart.getTotalPrice(), 1100);
     expect(cart.syncItemBottleCounts(item, edited, {93101: 4}), isTrue);
     expect(cart.activeDisplayGroups.map((group) => group.totalOrderQuantity),
-        [4.0, 1.0]);
+        [1.0, 4.0]);
     expect(cart.getTotalPrice(), 4500);
   });
 }

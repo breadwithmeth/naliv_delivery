@@ -63,7 +63,7 @@ void main() {
       {'option_item_relation_id': 61, 'amount': 1},
     ]);
     await _mount(tester, restored, const CartPage());
-    await _tap(tester, 'cart-edit-${group.key}');
+    await _tap(tester, 'cart-open-${group.key}');
     for (final key in [
       'configuration-option-7-42',
       'configuration-option-8-51',
@@ -187,37 +187,44 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('3+1 selects 4 l and the fourth litre is an optional bonus',
+  testWidgets(
+      '3+1 at three litres offers the fourth for its bottle; at four there is no nudge',
       (tester) async {
     final item = syntheticThreePlusOneSurfaceItem(onlyOneLitre: true);
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
+    expect(_text(tester, 'configuration-promotion-rule'),
+        '3+1 · Возьмите 4 л — платите за 3 л, бутылки оплачиваются');
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
     await _tap(tester, 'configuration-bottle-93101-plus');
     await _tap(tester, 'configuration-bottle-93101-plus');
     expect(_text(tester, 'configuration-volume'), '3 л · 3 бутылки');
     expect(_text(tester, 'configuration-total'), formatTenge(3300));
-    expect(find.byKey(const ValueKey('configuration-gift')), findsNothing);
+    // The free litre still costs its 100 ₸ bottle, and the nudge says so.
     expect(
         find.descendant(
             of: find.byKey(const ValueKey('configuration-bonus')),
-            matching: find.text('+1 л в подарок')),
+            matching: find.text('Ещё 1 л за 100 ₸ — только бутылка')),
         findsOneWidget);
-    await _tap(tester, 'configuration-bonus');
+    expect(find.textContaining('в подарок'), findsNothing);
+    // Offering is not adding.
+    expect(_text(tester, 'configuration-volume'), '3 л · 3 бутылки');
+    await _tap(tester, 'configuration-bonus-add');
     expect(_text(tester, 'configuration-volume'), '4 л · 4 бутылки');
     expect(_text(tester, 'configuration-bottle-93101'), '4');
     expect(_text(tester, 'configuration-total'), formatTenge(3400));
-    expect(
-        find.descendant(
-            of: find.byKey(const ValueKey('configuration-gift')),
-            matching: find.text('1 л в подарок')),
-        findsOneWidget);
+    // The gift is told by the struck subtotal alone.
+    expect(find.text(formatTenge(4400)), findsOneWidget);
     expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
-    expect(_text(tester, 'configuration-hint'), 'До следующего подарка: 4 л');
+    expect(find.byKey(const ValueKey('configuration-gift')), findsNothing);
+    expect(find.byKey(const ValueKey('configuration-hint')), findsNothing);
+    expect(find.textContaining('в подарок'), findsNothing);
+    expect(find.textContaining('Ещё '), findsNothing);
     await _tap(tester, 'configuration-save');
     expect(cart.getTotalPrice(), 3400);
     expect(cart.toJsonForOrder().single['amount'], 4);
     await _mount(tester, cart, const CartPage());
-    await _tap(tester, 'cart-edit-${cart.activeDisplayGroups.single.key}');
+    await _tap(tester, 'cart-open-${cart.activeDisplayGroups.single.key}');
     expect(_text(tester, 'configuration-bottle-93101'), '4');
     expect(_text(tester, 'configuration-total'), formatTenge(3400));
     await _tap(tester, 'configuration-save');
@@ -255,16 +262,15 @@ void main() {
     // The first one-litre bottle is preset; two 1.5 l bottles make it 4 l.
     await _tap(tester, 'configuration-bottle-93103-plus');
     expect(_text(tester, 'configuration-volume'), '2.5 л · 2 бутылки');
+    // 1.5 l more would not be a free step, so there is nothing to nudge.
     expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
-    expect(_text(tester, 'configuration-hint'), 'До подарка: 1.5 л');
+    expect(find.textContaining('Ещё '), findsNothing);
     await _tap(tester, 'configuration-bottle-93103-plus');
     expect(_text(tester, 'configuration-volume'), '4 л · 3 бутылки');
-    expect(
-        find.descendant(
-            of: find.byKey(const ValueKey('configuration-gift')),
-            matching: find.text('1 л в подарок')),
-        findsOneWidget);
+    expect(find.textContaining('в подарок'), findsNothing);
+    expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
     expect(_text(tester, 'configuration-total'), formatTenge(3340));
+    expect(find.text(formatTenge(4340)), findsOneWidget); // Struck: the gift's value.
     await _tap(tester, 'configuration-save');
     final group = cart.activeDisplayGroups.single;
     expect(group.bottleCounts, {93101: 1, 93103: 2});
@@ -301,12 +307,12 @@ void main() {
     await _tap(tester, 'configuration-bottle-12-plus');
     expect(_text(tester, 'configuration-bottle-11'), '1');
     expect(_text(tester, 'configuration-bottle-12'), '2');
-    await _tap(tester, 'configuration-bonus');
+    await _tap(tester, 'configuration-bonus-add');
     expect(_text(tester, 'configuration-bottle-11'), '1');
     expect(_text(tester, 'configuration-bottle-12'), '3');
   });
 
-  testWidgets('without stock for the bonus litre only the short hint remains',
+  testWidgets('without stock for the bonus litre no nudge is offered at all',
       (tester) async {
     final item = _pourItem(amount: 3, promotions: [_threePlusOne()]);
     final cart = await _newCart(tester);
@@ -315,7 +321,8 @@ void main() {
     await _tap(tester, 'configuration-bottle-1-plus');
     expect(_text(tester, 'configuration-volume'), '3 л · 3 бутылки');
     expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
-    expect(_text(tester, 'configuration-hint'), 'До подарка: 1 л');
+    expect(find.textContaining('Ещё '), findsNothing);
+    expect(find.byKey(const ValueKey('configuration-hint')), findsNothing);
     expect(
         tester
             .widget<IconButton>(
@@ -339,16 +346,13 @@ void main() {
     ]);
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
-    // 2 l: one litre short of the gift and no one-litre bottle to offer.
+    // 2 l: the gift is one litre away and no one-litre bottle can carry it, so no nudge.
     expect(find.byKey(const ValueKey('configuration-bonus')), findsNothing);
-    expect(_text(tester, 'configuration-hint'), 'До подарка: 1 л');
+    expect(find.textContaining('Ещё '), findsNothing);
     await _tap(tester, 'configuration-bottle-2-plus');
     expect(_text(tester, 'configuration-volume'), '4 л · 2 бутылки');
-    expect(
-        find.descendant(
-            of: find.byKey(const ValueKey('configuration-gift')),
-            matching: find.text('1 л в подарок')),
-        findsOneWidget);
+    expect(find.textContaining('в подарок'), findsNothing);
+    expect(find.text(formatTenge(4240)), findsOneWidget); // Struck: the gift's value.
     expect(find.byKey(const ValueKey('configuration-feedback')), findsNothing);
     expect(
         tester
@@ -395,7 +399,7 @@ void main() {
     final before = cart.items.map((item) => item.toJson()).toList();
     await _mount(tester, cart, const CartPage());
     await _tap(tester,
-        'cart-edit-${SmartCartSelection(item).displayKeyForVariants(plain)}');
+        'cart-open-${SmartCartSelection(item).displayKeyForVariants(plain)}');
     expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('configuration-bottle-1')))
@@ -412,7 +416,7 @@ void main() {
     expect(cart.items.map((item) => item.toJson()).toList(), before);
     expect(find.byType(CartPage), findsOneWidget);
     await _tap(tester,
-        'cart-edit-${SmartCartSelection(item).displayKeyForVariants(plain)}');
+        'cart-open-${SmartCartSelection(item).displayKeyForVariants(plain)}');
     await _tap(tester, 'configuration-bottle-1-minus');
     await _tap(tester, 'configuration-save');
     expect(
@@ -451,7 +455,7 @@ void main() {
     final group = restored.activeDisplayGroups
         .singleWhere((group) => group.key == plainKey);
     await _mount(tester, restored, const CartPage());
-    await _tap(tester, 'cart-edit-${group.key}');
+    await _tap(tester, 'cart-open-${group.key}');
     expect(find.text('Бутылка 1 л'), findsOneWidget);
     expect(find.text('Бутылка 2 л'), findsOneWidget);
     expect(find.text('Классический'), findsOneWidget);
@@ -651,11 +655,11 @@ void main() {
           .tap(find.bySemanticsLabel('Добавить выбранный набор бутылок'));
       await tester.pumpAndSettle();
       expect(cart.items.map((row) => row.toJson()).toList(), before);
-      await _tap(tester, 'cart-edit-${group.key}');
+      await _tap(tester, 'cart-open-${group.key}');
       await _tap(tester, 'configuration-bottle-93-plus');
       await _tap(tester, 'configuration-back');
       expect(cart.items.map((row) => row.toJson()).toList(), before);
-      await _tap(tester, 'cart-edit-${group.key}');
+      await _tap(tester, 'cart-open-${group.key}');
       await _tap(tester, 'configuration-bottle-93-minus');
       await _tap(tester, 'configuration-bottle-93-minus');
       await _tap(tester, 'configuration-save');
@@ -689,22 +693,35 @@ void main() {
       );
 
   testWidgets(
-      'packaged 3+1 states the rule and the distance to the gift as units are added',
+      'packaged 3+1 shows its rule and one free nudge, only at three units',
       (tester) async {
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: packagedThreePlusOne()));
     expect(find.text('Возьмите 4 шт. — платите за 3 шт.'), findsOneWidget);
-    for (final (state, total) in [
-      ('До подарка: ещё 3 шт.', 900),
-      ('До подарка: ещё 2 шт.', 1800),
-      ('Добавьте ещё 1 шт. — это бесплатно', 2700),
-      ('Подарок: 1 шт. · напиток 0 ₸', 2700),
-      ('Подарок: 1 шт. · напиток 0 ₸', 3600),
-    ]) {
-      expect(_text(tester, 'configuration-promotion-state'), state);
+    const nudge = ValueKey('configuration-promotion-state');
+    for (final total in [900, 1800]) {
       expect(_text(tester, 'configuration-total'), formatTenge(total));
-      if (total != 3600) await _tap(tester, 'configuration-quantity-plus');
+      expect(find.byKey(nudge), findsNothing);
+      await _tap(tester, 'configuration-quantity-plus');
     }
+    expect(_text(tester, 'configuration-total'), formatTenge(2700));
+    expect(
+        find.descendant(
+            of: find.byKey(nudge), matching: find.text('Ещё 1 шт. — бесплатно')),
+        findsOneWidget);
+    expect(find.textContaining('в подарок'), findsNothing);
+    // Offering is not adding.
+    expect(cart.items, isEmpty);
+    await _tap(tester, 'configuration-promotion-add');
+    expect(_text(tester, 'configuration-total'), formatTenge(2700));
+    expect(find.text(formatTenge(3600)), findsOneWidget); // Struck: the gift's value.
+    expect(find.byKey(nudge), findsNothing);
+    expect(find.textContaining('Ещё '), findsNothing);
+    expect(find.textContaining('До подарка'), findsNothing);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.totalOrderQuantity, 4);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 1);
+    expect(cart.toJsonForOrder().single['amount'], 4);
   });
 
   testWidgets('packaged 3+1 saves exactly the units the customer picked',

@@ -9,6 +9,71 @@ Last updated: 2026-11-03. Current source release: **1.2.116+12116**. The latest 
 
 ---
 ## Current remediation gate
+### Order follow-ups — 2026-11-05
+
+- **Endless «Загружаем магазин».** The home wrapper cleared its data on a session change but only
+  reloaded when it was the visible route; after the post-order stack swap nothing reloaded it.
+  It now reloads immediately, and whenever it finds itself with no data, no error and no load in
+  flight it starts one (`_healIfIdle`).
+- **«Повторить заказ»** skips lines the app adds itself (the branded bag `KR-00002264` /
+  «Майка фирменная», and 1 л / 2 л bottles when the order had a drink on tap — the cart re-adds
+  them from the litres) and then opens the cart via `AppNavigator.openCart` (home underneath).
+  No dialog for an unrestored address; checkout asks for it.
+- **Cart removal**: only the last removed row stays as «Удалено · Вернуть».
+- **Order address**: the page reads the nested `delivery_address`, its street/house, or top-level
+  fields; a fresh read never erases known values with nulls, and checkout hands the submitted
+  address to the new order's page. Unknown phone / payment method rows are hidden.
+
+### Draft bottles added by the app; catalogue tabs and categories sheet — 2026-11-04
+
+- **Bottles for drinks on tap.** Items whose name contains «розлив» and that carry no «Литраж»
+  container option (store 11 sells them per litre) now get the store's own bottle products
+  added automatically: the fewest 2 л and 1 л bottles that hold the litres (gift litre
+  included), preferring the «с крышкой» variant; 1,5 л and 3 л are never used
+  (`lib/utils/draft_bottles.dart`). Bottles are part of the price (cart row, product dock
+  «Бутылки: 2 л + 1 л», checkout total) and are sent as separate order lines, merged when several
+  drinks use the same bottle. Checkout waits («Подбираем бутылки для розлива…») until the store's
+  bottles are known. Items arrive with `business_id` 0, so the cart's store is used. Live,
+  store 11 Wukong: 1 л → 1 210 ₸, 3 л → 3 530 ₸ (2 л + 1 л), 4 л → 3 530 ₸ (2 × 2 л; the free
+  litre swaps a 1 л for a 2 л bottle at the same 100 ₸).
+- **Catalogue tabs** are back to the Figma look (selected raised pill, others plain text).
+- **«Категории» sheet**: group headings with a chevron, then each sub-category as its own plain
+  row (text + quiet chevron, 44 px) separated by thin dividers, groups separated by a divider;
+  no pills.
+- **Catalogue header** is back to the solid page colour behind the title and tabs, fading only
+  below them (the light fade and the graded-blur experiment were removed; the
+  `FrostedHeaderLayout.progressive` option no longer exists).
+- **Address chooser** shows street and house (or the stored address text), never the account
+  default name «Адрес доставки»; a name the customer chose («Работа») is shown as a hint.
+
+### Client flow overhaul — 2026-11-04
+
+Design: `docs/redesign/2026-11-04-client-flow-overhaul.md`.
+
+- **Gifts.** The price is the message: a gift that exists shows only as the struck list price
+  beside the real one (cart row, configurator dock, checkout row). No «в подарок» pills, red gift
+  boxes, progress bars or countdowns. The rule appears once (product card; configurator line
+  «3+1 · Возьмите 4 л — платите за 3 л, бутылки оплачиваются»). At the exact threshold one nudge
+  (`lib/ui/promotion_nudge.dart`) priced by the real increment
+  (`CartGroupEvaluation.nextStepCost`): «Ещё 1 шт — бесплатно» or «Ещё 1 л за 100 ₸ — только
+  бутылка», with «Добавить»; never taken automatically. Walked 1–8 l in both themes.
+- **Cart.** Tapping a row opens the product (configurator with the exact selection for optioned
+  or bottled items). Outside the cart, the last step's minus is a trash icon and removes the item
+  completely (no rows parked at 0). In the cart the removed row stays as «Удалено · Вернуть»
+  (exact bottle mix and position) until the cart is left.
+- **Navigation.** One cart route (opening the cart from a product pops back to the open cart).
+  Order created → order page with payment on top; back from payment shows the unpaid order, back
+  from the order goes home. Success: «Отслеживать заказ» opens the order (Home beneath),
+  «На главную», system back → Home. Back is blocked while a charge runs. There is no cancel-order
+  API, so no cancel button was invented (the FAQ promises one).
+- **Benefits.** One bonus card (switch, «Можно списать X», «−X ₸ к оплате»). Promo code and
+  certificate share one folded row with a Промокод | Сертификат switch and one field; applying a
+  code turns bonuses off; an applied code shows «Промокод X · −Y ₸ · Убрать».
+- **Notifications.** Topics default on (`NotificationService.topicEnabled`), tagged after
+  permission or sync. Onboarding is one screen: city (+ «Определить мой город»), «Продолжить»,
+  which asks the OS for notification permission once. Telemetry stays opt-in in Settings.
+- **Catalog.** The scrolled header is solid down to its bottom, then fades; tabs are pills.
+
 ### No automatic gifts, checkout address chooser, cart-glass buttons — 2026-11-04
 
 - **Promotions.** One rule for every product, bottled draft beer included: the cart holds exactly

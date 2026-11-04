@@ -3,6 +3,7 @@
 /// Screens emit intent without owning account, store or route constructor data.
 enum AppDestination {
   home,
+  cart,
   favorites,
   notifications,
   profile,
