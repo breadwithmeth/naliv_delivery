@@ -61,24 +61,16 @@ class _ProductPageState extends State<ProductPage> {
 
   bool _canIncrement(CartProvider cart, double quantity) {
     if (!widget.view.available || cart.hasUnresolvedBusiness) return false;
-    final pour = _selection.usesPourFlow;
-    // A bottled drink is counted in picked litres, gift included; the cart stepper adds one
-    // smallest bottle.
-    final step = pour
+    // The cart holds exactly what the customer added; a bottled drink steps by one smallest
+    // bottle.
+    final step = _selection.usesPourFlow
         ? _selection.minBottleVolume
         : widget.view.source.effectiveStepQuantity;
-    final next = quantity + step;
     final reserved = cart.activeDisplayGroups
         .where((group) => group.itemId == widget.view.itemId)
         .fold<double>(0, (sum, group) => sum + group.totalOrderQuantity);
-    final current = pour
-        ? quantity
-        : quantity + subtractPromotionFreeQuantity(quantity, _activePromotions);
-    final required = pour
-        ? next
-        : next + subtractPromotionFreeQuantity(next, _activePromotions);
     final stock = widget.view.source.amount;
-    return stock == null || reserved - current + required <= stock + 0.0000001;
+    return stock == null || reserved + step <= stock + 0.0000001;
   }
 
   static const double _heroHeight = 320;
@@ -113,9 +105,12 @@ class _ProductPageState extends State<ProductPage> {
   ///
   /// Returns null when the item carries no usable gift promotion, so the page keeps the frames'
   /// geometry for ordinary products.
-  Widget? _promotionCard(num quantity) {
+  ///
+  /// [onIncrement] adds one more step; the card offers it only when that step
+  /// would be free, and never takes it on the customer's behalf.
+  Widget? _promotionCard(num quantity, {VoidCallback? onIncrement}) {
     final evaluation = evaluatePromotion(
-      paidQuantity: quantity.toDouble(),
+      quantity: quantity.toDouble(),
       promotions: _activePromotions,
     );
     final award = evaluation.award;
@@ -124,7 +119,15 @@ class _ProductPageState extends State<ProductPage> {
     final unit = widget.view.unit?.trim().isNotEmpty == true
         ? widget.view.unit!.trim()
         : 'шт';
-    final unlocked = evaluation.unlocked && evaluation.freeQuantity > 0;
+    String label(double value) => formatQuantity(value, unit);
+    final remainder = evaluation.quantity % award.setSize;
+    final unlocked = evaluation.giftQuantity > 0 && remainder <= 0.0000001;
+    final progress = unlocked ? 1.0 : remainder / award.setSize;
+    final bonus = evaluation.bonusQuantity;
+    final freeStep = bonus != null &&
+        onIncrement != null &&
+        quantity > 0 &&
+        (bonus - widget.view.source.effectiveStepQuantity).abs() <= 0.0000001;
     final light = Theme.of(context).brightness == Brightness.light;
     return AppSurface(
       fill: _raisedFill(context),
@@ -153,8 +156,7 @@ class _ProductPageState extends State<ProductPage> {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'За каждые ${formatQuantity(award.baseAmount.toDouble(), unit)} — '
-            '${formatQuantity(award.addAmount.toDouble(), unit)} в подарок',
+            promotionRuleText(award, label),
             style: AppTypography.body.copyWith(color: palette.textSecondary),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -162,7 +164,7 @@ class _ProductPageState extends State<ProductPage> {
             borderRadius: AppRadii.pillAll,
             child: LinearProgressIndicator(
               key: const ValueKey('product-promotion-progress'),
-              value: unlocked ? 1 : evaluation.progress,
+              value: progress,
               minHeight: 6,
               backgroundColor: palette.divider,
               color: palette.accent,
@@ -171,14 +173,32 @@ class _ProductPageState extends State<ProductPage> {
           const SizedBox(height: AppSpacing.sm),
           Text(
             unlocked
-                ? 'Подарок в корзине: '
-                    '${formatQuantity(evaluation.freeQuantity, unit)}'
-                : 'Добавьте ещё ${formatQuantity(evaluation.nextGiftIn, unit)}, '
-                    'чтобы получить подарок',
+                ? 'Подарок в корзине: ${label(evaluation.giftQuantity)}'
+                : bonus != null
+                    ? 'Добавьте ещё ${label(bonus)} — это бесплатно'
+                    : 'До подарка: ещё '
+                        '${label(evaluation.nextGiftIn ?? award.setSize.toDouble())}',
             key: const ValueKey('product-promotion-state'),
             style: AppTypography.bodySmall.copyWith(
-                color: unlocked ? palette.gold : palette.textSecondary),
+                color: unlocked || bonus != null
+                    ? palette.gold
+                    : palette.textSecondary),
           ),
+          if (freeStep) ...[
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton(
+              key: const ValueKey('product-promotion-add-free'),
+              onPressed: onIncrement,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, AppSpacing.touchTarget),
+                foregroundColor: palette.accent,
+                side: BorderSide(color: palette.accent),
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              ),
+              child: Text('+${label(bonus)} в подарок'),
+            ),
+          ],
         ],
       ),
     );
@@ -303,7 +323,14 @@ class _ProductPageState extends State<ProductPage> {
                                 : null,
                           ),
                         ),
-                        if (_promotionCard(quantity) case final promoCard?) ...[
+                        if (_promotionCard(quantity,
+                                onIncrement: canIncrement
+                                    ? () => context
+                                        .read<CartProvider>()
+                                        .incrementCatalogItem(
+                                            widget.view.source)
+                                    : null)
+                            case final promoCard?) ...[
                           const SizedBox(height: AppSpacing.huge),
                           Padding(
                             padding: const EdgeInsets.symmetric(

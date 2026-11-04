@@ -11,9 +11,9 @@ import '../design/tokens.dart';
 /// single small backdrop blur, a theme tint, a hairline edge and a shadow that
 /// stays outside the shape.
 ///
-/// [FrostedDock] (the bottom bar), [FrostedHeaderLayout] (the scrolled header),
-/// circular top-bar controls and floating fields all use these tokens so the
-/// material reads the same everywhere.
+/// [FrostedDock] (the bottom bar), the cart button, the round top-bar discs
+/// (`AppIconButton`), floating fields and orange controls use these tokens so
+/// the material reads the same everywhere.
 abstract final class Frost {
   /// Blur radius. Strong enough that text behind turns into colour, small
   /// enough to stay cheap for control-sized regions.
@@ -150,8 +150,8 @@ class _OuterShadowPainter extends CustomPainter {
 /// header. As soon as the body scrolls, content passes beneath it and the
 /// header area — status bar included — fades in a plain gradient from the page
 /// colour to transparent, reaching a little below the header. There is no blur
-/// and no line: glass is reserved for the bottom bar and the controls, which
-/// keep their own frosted discs.
+/// and no line: the floating controls keep their own frosted discs (the cart
+/// button's material).
 ///
 /// [body] receives the inset its scroll view must leave at the top (status bar
 /// plus header). The layout handles the top safe area itself, so the page must

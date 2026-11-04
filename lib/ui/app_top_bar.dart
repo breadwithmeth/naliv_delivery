@@ -10,7 +10,7 @@ import 'app_icon_button.dart';
 /// Measured from `Каталог - Все товары` and `Каталог`: a 343 × 57 block starting at y = 70
 /// (24 px under the status bar), 40 × 40 discs flush with its edges at y + 8, and a title that
 /// stays centred between them and may wrap to two lines («Слабоалкогольные напитки»). The discs
-/// are [AppIconButton] glass, so they stay legible over whatever scrolls beneath a floating header.
+/// are [AppIconButton] glass (painted, no blur), so they stay legible over whatever scrolls beneath a floating header.
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
     required this.title,

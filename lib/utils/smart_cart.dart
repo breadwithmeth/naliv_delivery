@@ -648,9 +648,8 @@ class CartDisplayGroup {
     for (final group in groupItems(source)) {
       final selection = group.selection;
       if (selection == null || !selection.usesPourFlow) continue;
-      final free = subtractPromotionFreeQuantity(
-          group.totalQuantity, group.promotions,
-          now: now);
+      final free =
+          _legacyPaidRuleGift(group.totalQuantity, group.promotions, now: now);
       if (free <= 0.0000001) continue;
       Map<int, int>? gifts;
       for (final row in group.items) {
@@ -704,6 +703,57 @@ class CartDisplayGroup {
       ],
     ];
   }
+
+  /// Carts saved before state version 3 stored the paid units of a packaged
+  /// item, and the gift was added on top when the cart was shown. Each such
+  /// group now holds what the customer saw (paid units plus that gift), so a
+  /// restored cart keeps the same items at the same price; from then on nothing
+  /// is added on their behalf. Bottled (pour) groups already store what was
+  /// picked and are left alone.
+  static List<CartItem> migrateLegacyPaidRows(
+    Iterable<CartItem> rows, {
+    DateTime? now,
+  }) {
+    final source = rows.toList(growable: false);
+    final replacements = Map<CartItem, CartItem>.identity();
+    for (final group in groupItems(source)) {
+      if (group.selection?.usesPourFlow == true) continue;
+      final free =
+          _legacyPaidRuleGift(group.totalQuantity, group.promotions, now: now);
+      if (free <= 0.0000001) continue;
+      final holder = group.items.firstWhereOrNull((row) => row.quantity > 0) ??
+          group.items.first;
+      replacements[holder] = holder.copyWith(quantity: holder.quantity + free);
+    }
+    return [for (final row in source) replacements[row] ?? row];
+  }
+
+  /// The gift the pre-version-3 carts derived from paid units: `floor(paid /
+  /// base) * add` with the best active `SUBTRACT` promotion. Only the legacy
+  /// migrations still need it.
+  static double _legacyPaidRuleGift(
+      double paid, List<Map<String, dynamic>> promotions,
+      {DateTime? now}) {
+    var best = 0.0;
+    for (final promotion in promotions) {
+      if (promotionType(promotion) != 'SUBTRACT' ||
+          !isPromotionActive(promotion, now: now)) {
+        continue;
+      }
+      int value(String camel, String snake) {
+        final raw = promotion[camel] ?? promotion[snake];
+        if (raw is num) return raw.toInt();
+        return int.tryParse(raw?.toString() ?? '') ?? 0;
+      }
+
+      final base = value('baseAmount', 'base_amount');
+      final add = value('addAmount', 'add_amount');
+      if (base <= 0 || add <= 0 || paid + 0.001 < base) continue;
+      final gift = (((paid + 0.0000001) / base).floor() * add).toDouble();
+      if (gift > best) best = gift;
+    }
+    return best;
+  }
 }
 
 class CartGroupEvaluation {
@@ -714,30 +764,24 @@ class CartGroupEvaluation {
   final CartDisplayGroup group;
   final DateTime now;
 
-  /// The persisted rows: paid units for an ordinary item, physical litres (gift included) for a
-  /// pour group, whose gift is derived by [evaluatePhysicalGift] and never stored.
+  /// The persisted rows: the units the customer added, gift included. The gift is derived by
+  /// [evaluatePromotion] and never stored, so nothing is ever added on the customer's behalf.
   final List<CartItem> rows;
   bool get _pour => group.selection?.usesPourFlow == true;
   late final double _rowsTotal =
       rows.fold<double>(0, (sum, item) => sum + item.quantity);
-  late final PhysicalGiftEvaluation? _physicalGift = _pour
-      ? evaluatePhysicalGift(
-          physicalQuantity: _rowsTotal, promotions: group.promotions, now: now)
-      : null;
-
-  /// Paid units; for a pour group the picked litres minus the gift.
-  late final double totalQuantity = _physicalGift?.paidQuantity ?? _rowsTotal;
   late final PromotionEvaluation promotion = evaluatePromotion(
-      paidQuantity: totalQuantity, promotions: group.promotions, now: now);
+      quantity: _rowsTotal, promotions: group.promotions, now: now);
 
-  /// The promotion in force for this group, by the rule that applies to it.
-  PromotionAward? get award => _physicalGift?.award ?? promotion.award;
-  double get freeQuantity =>
-      _physicalGift?.giftQuantity ?? promotion.freeQuantity;
+  /// Paid units: the added units minus the gift.
+  double get paidQuantity => promotion.paidQuantity;
+
+  /// The promotion in force for this group.
+  PromotionAward? get award => promotion.award;
+  double get freeQuantity => promotion.giftQuantity;
 
   /// Units the customer takes home, gift included.
-  double get totalOrderQuantity =>
-      _pour ? _rowsTotal : totalQuantity + freeQuantity;
+  double get totalOrderQuantity => _rowsTotal;
   late final Map<int, int> bottleCounts =
       Map<int, int>.unmodifiable(group._bottleCounts(rows));
   late final (List<CartItem>, String?) _projection = _project();
@@ -755,14 +799,7 @@ class CartGroupEvaluation {
     return batches == 0 ? 0 : _rowsTotal / batches;
   }
 
-  late final double nextOrderQuantity = _pour
-      ? _rowsTotal + incrementStep
-      : totalQuantity +
-          incrementStep +
-          subtractPromotionFreeQuantity(
-              totalQuantity + incrementStep, group.promotions,
-              now: now);
-
+  late final double nextOrderQuantity = _rowsTotal + incrementStep;
   late final bool canIncrease = _canIncrease();
   bool _canIncrease() {
     final selection = group.selection;
@@ -800,21 +837,21 @@ class CartGroupEvaluation {
       for (final item in rows)
         if (item.quantity > 0) item,
     ];
-    if (!_pour || freeQuantity <= 0) {
+    if (freeQuantity <= 0) {
       return (List<CartItem>.unmodifiable(live), null);
     }
-    // Which bottle carries the free drink is presentation only. The gift goes to the dearest
-    // litres first (then the largest bottle), so a tariff that replaces the drink price never
-    // costs the customer more than the single rule says.
+    // Which row carries the free units is presentation only. The gift goes to the dearest units
+    // first (then the largest bottle), so a tariff that replaces the price never costs the
+    // customer more than the single rule says.
+    double volume(CartItem item) => selection == null
+        ? 0
+        : CartDisplayGroup._bottleVolumeForCartItem(item, selection);
     final order = [for (var index = 0; index < live.length; index++) index]
       ..sort((left, right) {
         final byPrice =
             live[right].paidUnitPrice.compareTo(live[left].paidUnitPrice);
         if (byPrice != 0) return byPrice;
-        final byVolume =
-            CartDisplayGroup._bottleVolumeForCartItem(live[right], selection!)
-                .compareTo(CartDisplayGroup._bottleVolumeForCartItem(
-                    live[left], selection));
+        final byVolume = volume(live[right]).compareTo(volume(live[left]));
         return byVolume != 0 ? byVolume : left.compareTo(right);
       });
     final projected = List<CartItem>.of(live);
@@ -847,7 +884,7 @@ class CartGroupEvaluation {
           now: now);
       options += item.optionsTotalForSelection(group.selection);
     }
-    final unitPrice = totalQuantity > 0 ? productSubtotal / totalQuantity : 0.0;
+    final unitPrice = paidQuantity > 0 ? productSubtotal / paidQuantity : 0.0;
     return (
       productSubtotal: productSubtotal,
       optionsTotal: options,
@@ -881,26 +918,12 @@ class CartGroupEvaluation {
     return parts.isEmpty ? null : parts.join(' • ');
   }
 
+  /// Each row as the order API expects it: `amount` is what the customer added, gift included;
+  /// the shop derives the gift from it by the same rule.
   List<Map<String, dynamic>> toJsonForOrder() {
     final issue = allocationIssue;
     if (issue != null) throw StateError(issue);
-    if (group.selection?.usesPourFlow == true) {
-      return [
-        for (final item in physicalItems) item.toJsonForOrder(freeQuantity: 0),
-      ];
-    }
-    var paid = 0.0;
-    var allocatedFree = 0.0;
-    final result = <Map<String, dynamic>>[];
-    for (final item in rows) {
-      if (item.quantity <= 0) continue;
-      paid += item.quantity;
-      final free =
-          subtractPromotionFreeQuantity(paid, group.promotions, now: now);
-      result.add(item.toJsonForOrder(freeQuantity: free - allocatedFree));
-      allocatedFree = free;
-    }
-    return result;
+    return [for (final item in physicalItems) item.toJsonForOrder()];
   }
 }
 

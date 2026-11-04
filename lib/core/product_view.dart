@@ -134,7 +134,7 @@ class ProductView {
     );
     final hasDiscount = discounted < basePrice;
     final promo = evaluatePromotion(
-      paidQuantity: quantity.toDouble(),
+      quantity: quantity.toDouble(),
       promotions: promotions,
     ).label;
 

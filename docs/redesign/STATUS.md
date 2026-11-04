@@ -9,13 +9,48 @@ Last updated: 2026-11-03. Current source release: **1.2.116+12116**. The latest 
 
 ---
 ## Current remediation gate
+### No automatic gifts, checkout address chooser, cart-glass buttons — 2026-11-04
+
+- **Promotions.** One rule for every product, bottled draft beer included: the cart holds exactly
+  what the customer added; `gift = floor(added / (base + add)) × add`. Nothing is added on their
+  behalf: three bottles of a 3+1 cost three bottles; the fourth is free only once they add it.
+  When one more step would be free, the cart row and the product promotion card offer it as an
+  outlined «+1 шт в подарок» / «+1 л в подарок» (never taken automatically). The order sends
+  `amount` = what was added for every row, as bottling already did. `lib/utils/promotion_engine.dart`
+  keeps one evaluator (`evaluatePromotion(quantity:)`); the paid-unit helpers are gone. Rule copy
+  reads «Возьмите 4 шт — платите за 3 шт». Checked by taps: 3 l → 3 300 ₸ and a «+1 л в подарок»
+  offer; tapping it → 4 л, 1 л в подарок, 3 400 ₸ (the 4th bottle's deposit).
+- **Saved carts.** Cart state version 3. Version-2 and unversioned carts stored paid units for
+  packaged items; on restore each such group becomes paid + the gift it showed, so the customer
+  keeps the same items at the same price, and the cart is re-saved as version 3
+  (`CartDisplayGroup.migrateLegacyPaidRows`, `test/regression/cart_state_migration_test.dart`).
+- **Buttons.** Back, like, search and «?» discs use the cart button's material (`FrostedSurface`:
+  small backdrop blur under the theme tint, no hairline, outer control shadow); liked is the
+  same frosted glass in brand red.
+- **Address chooser.** One lazy sliver list: the title scrolls away, «Новый адрес на карте» stays
+  pinned first (with a search field once there are 6+ saved addresses), the current address
+  follows, then saved ones. Addresses outside the store city fold into «В других городах · N».
+  A book of 120 addresses opens with the action and search on screen; works at 320 px, 2× text
+  and with the keyboard up.
+- **Checkout cards.** The store and address headings end in a chevron instead of an «Изменить»
+  pill, so titles keep the width; summary rows keep the label on one line, and a long value
+  wraps (at most 60 % of the row) instead of overflowing.
+
 ### Plain headers and declutter — 2026-11-04
 
 - **Headers.** No blur: the page colour sits solid behind the status bar and title and fades to
   transparent 36 px below (`header-scrim`). Glass stays only on the bottom bar and round buttons.
-- **Checkout.** «Изменить адрес» opens the map and returns straight to checkout; entrance, floor
-  and flat stay inline. Removed the store city chip, the pickup note, the inline FAQ panel and
-  the «Далее — выбор оплаты» caption (a caption shows only when something blocks the order).
+- **Checkout.** Header now uses `FrostedHeaderLayout` (scrim `header-scrim`). Order rows give the
+  name the full row (2 lines, 3 at ≥1.5× text, full text in semantics); quantity, delete and the
+  right-aligned price sit on the line below. The delivery-address card is one compact tappable
+  card (street, «Подъезд · Этаж · Кв.», comment); the entrance/floor/flat/comment fields moved
+  into the «Адрес доставки» sheet (`lib/pages/checkout_address_sheet.dart`: saved addresses from
+  the device book, account addresses already read with the profile and recent choices, the
+  current one marked, «Новый адрес на карте» → map picker, then a details form with «Готово»).
+  Addresses outside the store city are listed but cannot be chosen. Removed the store city chip,
+  the pickup note, the inline FAQ panel and the «Далее — выбор оплаты» caption (a caption shows
+  only when something blocks the order). Walked by taps in both themes: card → sheet → current
+  address → details → «Готово» updates the card.
 - **Help.** Always-shown FAQ boxes on checkout, payment, cards, addresses and support became one
   «?» disc in the header. The FAQ panel stays only on the payment failure notice.
 - **Removed as redundant.** OTP «Вставить код» (paste works in the field and through autofill)

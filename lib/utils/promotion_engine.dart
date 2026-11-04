@@ -6,17 +6,15 @@
 /// resolves it here, so the forward rule, its inverse, the qualification progress and the choice
 /// between several active promotions cannot drift apart.
 ///
-/// The rule in force is pinned by `test/regression/bottling_contract_test.dart` and stated to
-/// customers in the FAQ ("for a 2+1 promotion put three bottles in the cart, the third is free"):
-/// **buy `base_amount` paid units → `add_amount` free**, i.e. `free = floor(paid / base) * add`.
-///
-/// Draft beer sold into bottles ("pour") is selected as physical litres instead: the customer picks
-/// `base + add` litres and `add` of them are free (see [evaluatePhysicalGift]).
+/// One rule for every product, bottled draft beer included, as the FAQ states it ("for a 2+1
+/// promotion put three bottles in the cart, the third is free"): the cart holds exactly what the
+/// customer added, and `add` of every `base + add` units are free, i.e.
+/// `gift = floor(quantity / (base + add)) * add`. Nothing is ever added on the customer's behalf:
+/// three bottles of a `3+1` promotion cost three bottles, and the fourth is free only once the
+/// customer adds it ([PromotionEvaluation.bonusQuantity] says when one more unit would be free).
 library;
 
 import 'package:flutter/foundation.dart';
-
-const double subtractPromotionEpsilon = 0.001;
 
 /// A promotion's type as the API sends it, normalised to upper case; null when absent.
 String? promotionType(Map<String, dynamic> promotion) =>
@@ -71,6 +69,9 @@ class PromotionAward {
   final int baseAmount;
   final int addAmount;
 
+  /// Units in one complete set: `base` paid plus `add` free.
+  int get setSize => baseAmount + addAmount;
+
   /// Display labels such as `2+1`; the API's own `name` when it is present and non-empty.
   String get label {
     final name = promotion['name']?.toString().trim();
@@ -87,83 +88,34 @@ class PromotionAward {
   String toString() => 'PromotionAward($label)';
 }
 
-/// The best `SUBTRACT` award the customer gets from [promotions] at [paidQuantity].
-PromotionAward? selectSubtractPromotion(
-  List<Map<String, dynamic>> promotions, {
-  double paidQuantity = 0,
-  DateTime? now,
-}) {
-  Map<String, dynamic>? winner;
-  var bestFree = -1.0;
-  var bestBase = 0;
-  var bestAdd = 0;
-  var bestId = 0;
-  now ??= DateTime.now();
-  for (final promotion in promotions) {
-    if (promotionType(promotion) != 'SUBTRACT' ||
-        !isPromotionActive(promotion, now: now)) {
-      continue;
-    }
-    final base = _promotionInt(promotion, 'baseAmount', 'base_amount');
-    final add = _promotionInt(promotion, 'addAmount', 'add_amount');
-    if (base <= 0 || add <= 0) continue;
-    final free = subtractPromotionFreeQuantityForConfig(paidQuantity,
-        baseAmount: base, addAmount: add);
-    final id = _promotionInt(promotion, 'promotionId', 'detail_id');
-    final better = winner == null ||
-        free > bestFree ||
-        (free == bestFree &&
-            (add > bestAdd ||
-                (add == bestAdd &&
-                    (base < bestBase || (base == bestBase && id < bestId)))));
-    if (!better) continue;
-    winner = promotion;
-    bestFree = free;
-    bestBase = base;
-    bestAdd = add;
-    bestId = id;
-  }
-  return winner == null
-      ? null
-      : PromotionAward(
-          promotion: winner, baseAmount: bestBase, addAmount: bestAdd);
-}
-
-/// Everything a surface needs to describe the active `N+M` promotion at a paid quantity.
+/// The `N+M` promotion for the units a customer put in the cart.
 @immutable
 class PromotionEvaluation {
-  const PromotionEvaluation({this.award, required this.paidQuantity});
+  const PromotionEvaluation({
+    required this.quantity,
+    required this.giftQuantity,
+    this.award,
+    this.nextGiftIn,
+    this.bonusQuantity,
+  });
 
+  /// Units the customer added, gift included.
+  final double quantity;
+
+  /// Units of [quantity] that are free.
+  final double giftQuantity;
+
+  /// The winning promotion at [quantity]; null without an active `SUBTRACT` promotion.
   final PromotionAward? award;
-  final double paidQuantity;
 
-  /// Free units the customer receives at this quantity.
-  double get freeQuantity => award == null
-      ? 0
-      : subtractPromotionFreeQuantityForConfig(
-          paidQuantity,
-          baseAmount: award!.baseAmount,
-          addAmount: award!.addAmount,
-        );
+  /// Units to add before the gift grows; null without a promotion.
+  final double? nextGiftIn;
 
-  /// Units the customer takes home, gifts included.
-  double get physicalQuantity => paidQuantity + freeQuantity;
+  /// Units that, if the customer adds them, are entirely free; null when no such offer exists.
+  final double? bonusQuantity;
 
-  /// True when the current quantity completes a gift set (`0` step to the next gift).
-  bool get unlocked =>
-      award != null &&
-      subtractPromotionUnlocked(paidQuantity, baseAmount: award!.baseAmount);
-
-  /// Paid units still needed for the next gift; `base_amount` when none are earned yet.
-  double get nextGiftIn => award == null
-      ? 0
-      : subtractPromotionAmountToNextGift(paidQuantity,
-          baseAmount: award!.baseAmount);
-
-  /// Progress towards the next gift in `0…1`; `1` when the quantity is unlocked.
-  double get progress => award == null
-      ? 0
-      : subtractPromotionProgress(paidQuantity, baseAmount: award!.baseAmount);
+  double get paidQuantity => quantity - giftQuantity;
+  bool get hasPromotion => award != null;
 
   /// `2+1`-style label, or null without an award.
   String? get label => award?.label;
@@ -184,142 +136,11 @@ class PromotionEvaluation {
 
   @override
   String toString() =>
-      'PromotionEvaluation(${label ?? 'none'}, paid=$paidQuantity, free=$freeQuantity)';
+      'PromotionEvaluation(${label ?? 'none'}, quantity=$quantity, gift=$giftQuantity)';
 }
 
 PromotionEvaluation evaluatePromotion({
-  required double paidQuantity,
-  required List<Map<String, dynamic>> promotions,
-  DateTime? now,
-}) =>
-    PromotionEvaluation(
-      award: selectSubtractPromotion(promotions,
-          paidQuantity: paidQuantity, now: now),
-      paidQuantity: paidQuantity,
-    );
-
-/// Free units for [quantity] paid units. Zero without a usable `SUBTRACT` promotion.
-double subtractPromotionFreeQuantity(
-  double quantity,
-  List<Map<String, dynamic>> promotions, {
-  DateTime? now,
-}) {
-  var freeQuantity = 0.0;
-  now ??= DateTime.now();
-  for (final promotion in promotions) {
-    if (promotionType(promotion) != 'SUBTRACT' ||
-        !isPromotionActive(promotion, now: now)) {
-      continue;
-    }
-    final base = _promotionInt(promotion, 'baseAmount', 'base_amount');
-    final add = _promotionInt(promotion, 'addAmount', 'add_amount');
-    final candidate = subtractPromotionFreeQuantityForConfig(quantity,
-        baseAmount: base, addAmount: add);
-    if (candidate > freeQuantity) freeQuantity = candidate;
-  }
-  return freeQuantity;
-}
-
-double subtractPromotionFreeQuantityForConfig(
-  double quantity, {
-  required int baseAmount,
-  required int addAmount,
-}) {
-  if (baseAmount <= 0 ||
-      addAmount <= 0 ||
-      quantity + subtractPromotionEpsilon < baseAmount) {
-    return 0;
-  }
-
-  final claimCount = ((quantity + 0.0000001) / baseAmount).floor();
-  return (claimCount * addAmount).toDouble();
-}
-
-/// Paid units that produce exactly [physicalQuantity] units in the cart, or null when no paid
-/// quantity can (for example three physical units of a `3+1` promotion).
-///
-/// A candidate is accepted only when the customer-best forward rule over the
-/// complete active promotion set reproduces the original physical quantity.
-/// Unrepresentable history is reported, never rounded into an extra gift.
-double? subtractPromotionPaidQuantityForPhysicalQuantity(
-    double physicalQuantity, List<Map<String, dynamic>> promotions) {
-  if (!physicalQuantity.isFinite || physicalQuantity < 0) return null;
-  var hasAward = false;
-  final now = DateTime.now();
-  for (final promotion in promotions) {
-    if (promotionType(promotion) != 'SUBTRACT' ||
-        !isPromotionActive(promotion, now: now)) {
-      continue;
-    }
-    final base = _promotionInt(promotion, 'baseAmount', 'base_amount');
-    final add = _promotionInt(promotion, 'addAmount', 'add_amount');
-    if (base <= 0 || add <= 0) continue;
-    hasAward = true;
-    final claims = ((physicalQuantity + 0.0000001) / (base + add)).floor();
-    final paid = physicalQuantity - claims * add;
-    if (paid < 0) continue;
-    if ((paid +
-                subtractPromotionFreeQuantity(paid, promotions) -
-                physicalQuantity)
-            .abs() <=
-        0.0000001) {
-      return paid;
-    }
-  }
-  if (!hasAward) return physicalQuantity;
-  return null;
-}
-
-/// Gift litres inside [physicalQuantity] litres the customer picked, drawn from the best active
-/// `SUBTRACT` promotion: `floor(physical / (base + add)) * add`.
-///
-/// This is the draft-beer ("pour") rule. The customer selects physical bottles, so a `3+1`
-/// promotion is reached at 4 l: 3 l are paid, the 4th litre is the free bonus. It is the exact
-/// inverse of [subtractPromotionPaidQuantityForPhysicalQuantity]'s claim count.
-double subtractPromotionGiftWithinPhysicalQuantity(
-  double physicalQuantity,
-  List<Map<String, dynamic>> promotions, {
-  DateTime? now,
-}) =>
-    evaluatePhysicalGift(
-            physicalQuantity: physicalQuantity,
-            promotions: promotions,
-            now: now)
-        .giftQuantity;
-
-/// What a surface needs to describe the `N+M` promotion for a pour selection of physical litres.
-@immutable
-class PhysicalGiftEvaluation {
-  const PhysicalGiftEvaluation({
-    required this.physicalQuantity,
-    required this.giftQuantity,
-    this.award,
-    this.nextGiftIn,
-    this.bonusQuantity,
-  });
-
-  /// Litres the customer picked, gift included.
-  final double physicalQuantity;
-
-  /// Litres of [physicalQuantity] that are free.
-  final double giftQuantity;
-
-  /// The winning promotion at [physicalQuantity]; null without an active `SUBTRACT` promotion.
-  final PromotionAward? award;
-
-  /// Litres to add before the gift grows; null without a promotion or when none can be reached.
-  final double? nextGiftIn;
-
-  /// Litres that, added on top, would be entirely free (so the customer may take them at no cost);
-  /// null when no such offer exists.
-  final double? bonusQuantity;
-
-  double get paidQuantity => physicalQuantity - giftQuantity;
-  bool get hasPromotion => award != null;
-}
-
-PhysicalGiftEvaluation evaluatePhysicalGift({
-  required double physicalQuantity,
+  required double quantity,
   required List<Map<String, dynamic>> promotions,
   DateTime? now,
 }) {
@@ -336,18 +157,17 @@ PhysicalGiftEvaluation evaluatePhysicalGift({
           addAmount: _promotionInt(promotion, 'addAmount', 'add_amount'),
         ),
   ];
-  if (!physicalQuantity.isFinite || physicalQuantity < 0 || awards.isEmpty) {
-    return PhysicalGiftEvaluation(
-        physicalQuantity: physicalQuantity, giftQuantity: 0);
+  if (!quantity.isFinite || quantity < 0 || awards.isEmpty) {
+    return PromotionEvaluation(quantity: quantity, giftQuantity: 0);
   }
-  int claims(PromotionAward award, double litres) =>
-      ((litres + 0.0000001) / (award.baseAmount + award.addAmount)).floor();
-  double giftOf(PromotionAward award, double litres) =>
-      (claims(award, litres) * award.addAmount).toDouble();
-  double bestGift(double litres) {
+  int claims(PromotionAward award, double units) =>
+      ((units + 0.0000001) / award.setSize).floor();
+  double giftOf(PromotionAward award, double units) =>
+      (claims(award, units) * award.addAmount).toDouble();
+  double bestGift(double units) {
     var best = 0.0;
     for (final award in awards) {
-      final gift = giftOf(award, litres);
+      final gift = giftOf(award, units);
       if (gift > best) best = gift;
     }
     return best;
@@ -356,9 +176,9 @@ PhysicalGiftEvaluation evaluatePhysicalGift({
   int promotionId(PromotionAward award) =>
       _promotionInt(award.promotion, 'promotionId', 'detail_id');
   var winner = awards.first;
-  var winnerGift = giftOf(winner, physicalQuantity);
+  var winnerGift = giftOf(winner, quantity);
   for (final award in awards.skip(1)) {
-    final gift = giftOf(award, physicalQuantity);
+    final gift = giftOf(award, quantity);
     final better = gift > winnerGift ||
         (gift == winnerGift &&
             (award.addAmount > winner.addAmount ||
@@ -371,24 +191,23 @@ PhysicalGiftEvaluation evaluatePhysicalGift({
     winnerGift = gift;
   }
 
-  final gift = bestGift(physicalQuantity);
+  final gift = bestGift(quantity);
   double? nextGiftIn;
   double? bonus;
   for (final award in awards) {
-    final setSize = award.baseAmount + award.addAmount;
     final needed = double.parse(
-        ((claims(award, physicalQuantity) + 1) * setSize - physicalQuantity)
+        ((claims(award, quantity) + 1) * award.setSize - quantity)
             .toStringAsFixed(6));
-    final grown = bestGift(physicalQuantity + needed) - gift;
+    final grown = bestGift(quantity + needed) - gift;
     if (grown <= 0.0000001) continue;
     if (nextGiftIn == null || needed < nextGiftIn) nextGiftIn = needed;
-    // The added litres cost nothing when the gift grows by at least as much as they add.
+    // The added units cost nothing when the gift grows by at least as much as they add.
     if (grown + 0.0000001 >= needed && (bonus == null || needed < bonus)) {
       bonus = needed;
     }
   }
-  return PhysicalGiftEvaluation(
-    physicalQuantity: physicalQuantity,
+  return PromotionEvaluation(
+    quantity: quantity,
     giftQuantity: gift,
     award: winner,
     nextGiftIn: nextGiftIn,
@@ -396,15 +215,14 @@ PhysicalGiftEvaluation evaluatePhysicalGift({
   );
 }
 
-/// What the customer would pay without the gift: the paid units plus the gift at list price.
-double subtractPromotionDisplayBaseTotal(
-  double unitPrice,
+/// Free units inside [quantity] units the customer added.
+double promotionGiftQuantity(
   double quantity,
-  List<Map<String, dynamic>> promotions,
-) {
-  final freeQuantity = subtractPromotionFreeQuantity(quantity, promotions);
-  return unitPrice * (quantity + freeQuantity);
-}
+  List<Map<String, dynamic>> promotions, {
+  DateTime? now,
+}) =>
+    evaluatePromotion(quantity: quantity, promotions: promotions, now: now)
+        .giftQuantity;
 
 /// Price of [quantity] paid units after the price promotions: `FIXED` money off each unit first,
 /// then `DISCOUNT`/`PERCENT` off the remainder.
@@ -453,114 +271,9 @@ double applyPromotionsToPaidBaseTotal({
   return result;
 }
 
-/// Progress towards the next gift in `0…1` for a paid quantity, using one promotion's `base_amount`.
-double subtractPromotionProgress(
-  double quantity, {
-  required int baseAmount,
-}) {
-  if (baseAmount <= 0 || quantity <= subtractPromotionEpsilon) {
-    return 0;
-  }
-
-  final remainder = quantity % baseAmount;
-  if (remainder.abs() <= subtractPromotionEpsilon) {
-    return 1.0;
-  }
-
-  return (remainder / baseAmount).clamp(0.0, 1.0);
-}
-
-/// Paid units still needed to reach the next gift; `0` when the quantity already qualifies.
-double subtractPromotionAmountToNextGift(
-  double quantity, {
-  required int baseAmount,
-}) {
-  if (baseAmount <= 0) {
-    return 0;
-  }
-
-  final remainder = quantity % baseAmount;
-  if (quantity > subtractPromotionEpsilon &&
-      remainder.abs() <= subtractPromotionEpsilon) {
-    return 0;
-  }
-  if (remainder.abs() <= subtractPromotionEpsilon) {
-    return baseAmount.toDouble();
-  }
-
-  return (baseAmount - remainder).toDouble();
-}
-
-/// The quantity a plus/minus step should land on so it stays on a gift threshold.
-double? subtractPromotionBundleTargetQuantity(
-  double currentQuantity,
-  List<Map<String, dynamic>> promotions, {
-  required int direction,
-}) {
-  final award =
-      selectSubtractPromotion(promotions, paidQuantity: currentQuantity);
-  if (award == null || direction == 0) {
-    return null;
-  }
-
-  final baseAmount = award.baseAmount;
-  if (baseAmount <= 0) {
-    return null;
-  }
-
-  final normalizedCurrent =
-      currentQuantity <= subtractPromotionEpsilon ? 0.0 : currentQuantity;
-  if (direction > 0) {
-    final distanceToNextGift = subtractPromotionAmountToNextGift(
-      normalizedCurrent,
-      baseAmount: baseAmount,
-    );
-    final step = distanceToNextGift <= subtractPromotionEpsilon
-        ? baseAmount.toDouble()
-        : distanceToNextGift;
-    return normalizedCurrent + step;
-  }
-
-  if (normalizedCurrent <= subtractPromotionEpsilon) {
-    return 0;
-  }
-
-  final remainder = normalizedCurrent % baseAmount;
-  final stepDown = remainder.abs() <= subtractPromotionEpsilon
-      ? baseAmount.toDouble()
-      : remainder;
-  final nextQuantity = normalizedCurrent - stepDown;
-  if (nextQuantity <= subtractPromotionEpsilon) {
-    return 0;
-  }
-
-  return nextQuantity;
-}
-
-/// `2+1` label for a quantity: the paid label, plus `+free` when a gift is earned.
-String subtractPromotionBundleLabel(
-  double quantity,
-  List<Map<String, dynamic>> promotions, {
-  required String Function(double quantity) formatQuantity,
-}) {
-  final paidLabel = formatQuantity(quantity);
-  final freeQuantity = subtractPromotionFreeQuantity(quantity, promotions);
-  if (freeQuantity <= subtractPromotionEpsilon) {
-    return paidLabel;
-  }
-
-  return '$paidLabel+${formatQuantity(freeQuantity)}';
-}
-
-/// True when [quantity] completes a gift set for one promotion's `base_amount`.
-bool subtractPromotionUnlocked(
-  double quantity, {
-  required int baseAmount,
-}) {
-  if (baseAmount <= 0 || quantity + subtractPromotionEpsilon < baseAmount) {
-    return false;
-  }
-
-  final remainder = quantity % baseAmount;
-  return remainder.abs() <= subtractPromotionEpsilon;
-}
+/// The rule as the customer acts on it: «Возьмите 4 шт — платите за 3 шт». The gift is never added
+/// for them, so the sentence names the quantity they put in the cart.
+String promotionRuleText(
+        PromotionAward award, String Function(double quantity) format) =>
+    'Возьмите ${format(award.setSize.toDouble())} — платите за '
+    '${format(award.baseAmount.toDouble())}';

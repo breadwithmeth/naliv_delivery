@@ -100,22 +100,36 @@ void main() {
     expect(cart.items, isEmpty);
   });
 
-  test('fractional paid and gifted demand cannot exceed stock', () {
-    final item = item_model.Item.fromJson({
-      'item_id': 702,
-      'name': 'Сыр',
-      'price': 1000,
-      'unit': 'кг',
-      'step_quantity': 0.25,
-      'amount': 2.75,
-      'promotions': [
-        {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
-      ],
-    });
+  test('fractional demand, gift included, cannot exceed stock', () {
+    Map<String, dynamic> cheese(double stock) => {
+          'item_id': 702,
+          'name': 'Сыр',
+          'price': 1000,
+          'unit': 'кг',
+          'step_quantity': 0.25,
+          'amount': stock,
+          'promotions': [
+            {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
+          ],
+        };
+    final tight = item_model.Item.fromJson(cheese(2.75));
     final cart = CartProvider();
-    expect(cart.syncItemSelectionQuantity(item, [], 1.75), isTrue);
-    expect(cart.syncItemSelectionQuantity(item, [], 2), isFalse);
-    expect(cart.activeDisplayGroups.single.totalQuantity, 1.75);
-    expect(cart.toJsonForOrder().single['amount'], 1.75);
+    expect(cart.syncItemSelectionQuantity(tight, [], 1.75), isTrue);
+    // 2.5 kg stay a paid order: the gift never grows the cart on its own.
+    expect(cart.syncItemSelectionQuantity(tight, [], 2.5), isTrue);
+    expect(cart.activeDisplayGroups.single.freeQuantity, 0);
+    // The whole 2+1 set is three kilograms, more than the shop has.
+    expect(cart.syncItemSelectionQuantity(tight, [], 3), isFalse);
+    expect(cart.activeDisplayGroups.single.totalQuantity, 2.5);
+    expect(cart.toJsonForOrder().single['amount'], 2.5);
+
+    final exact = CartProvider();
+    expect(
+        exact.syncItemSelectionQuantity(
+            item_model.Item.fromJson(cheese(3)), [], 3),
+        isTrue);
+    expect(exact.activeDisplayGroups.single.freeQuantity, 1);
+    expect(exact.activeDisplayGroups.single.totalPrice, 2000);
+    expect(exact.toJsonForOrder().single['amount'], 3);
   });
 }

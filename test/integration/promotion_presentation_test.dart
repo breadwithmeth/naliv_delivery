@@ -198,8 +198,9 @@ void main() {
       final item = _item(promotions: [_giftPromotion]);
       final cart = CartProvider();
       await cart.bindBusiness(1);
-      cart.incrementCatalogItem(item);
-      cart.incrementCatalogItem(item);
+      for (var step = 0; step < 3; step++) {
+        cart.incrementCatalogItem(item);
+      }
       await tester.binding.setSurfaceSize(const Size(375, 812));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(ChangeNotifierProvider<CartProvider>.value(
@@ -218,8 +219,36 @@ void main() {
         ),
         findsOneWidget,
       );
-      // The gift is not charged: two paid litres at 13 170 ₸.
+      expect(find.text('Подарок · 1 л'), findsOneWidget);
+      expect(find.text('Возьмите 3 л — платите за 2 л'), findsOneWidget);
+      // The third unit is the gift: three in the cart, two paid at 13 170 ₸.
+      expect(group.totalOrderQuantity, 3);
       expect(cart.getTotalPrice(), 26340);
+      expect(cart.toJsonForOrder().single['amount'], 3);
+    });
+
+    testWidgets('two units of a 2+1 are all paid and show no gift line',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final item = _item(promotions: [_giftPromotion]);
+      final cart = CartProvider();
+      await cart.bindBusiness(1);
+      cart.incrementCatalogItem(item);
+      cart.incrementCatalogItem(item);
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(ChangeNotifierProvider<CartProvider>.value(
+        value: cart,
+        child: MaterialApp(theme: AppTheme.light(), home: const CartPage()),
+      ));
+      await tester.pumpAndSettle();
+
+      final group = cart.activeDisplayGroups.single;
+      expect(group.totalOrderQuantity, 2);
+      expect(group.freeQuantity, 0);
+      expect(find.byKey(ValueKey('cart-gift-${group.key}')), findsNothing);
+      expect(cart.getTotalPrice(), 26340);
+      expect(cart.toJsonForOrder().single['amount'], 2);
     });
 
     testWidgets('a cart without gifts shows no gift line', (tester) async {

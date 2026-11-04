@@ -232,14 +232,14 @@ void _seedCart(CartProvider cart) {
       itemData: item.toJson(),
     ));
   }
-  // One row carries a live `2+1` promotion so the shell exercises the gift line: two paid units
-  // gift one, and the row must show the free unit at 0 ₸ with the rule that produced it.
+  // One row carries a live `2+1` promotion so the shell exercises the gift line: the customer
+  // added three units, so the third is free and the row must show it at 0 ₸ with the rule.
   final gifted = _sampleItem(109);
   cart.addItem(CartItem(
     itemId: gifted.itemId,
     name: gifted.name,
     price: gifted.price,
-    quantity: 2,
+    quantity: 3,
     stepQuantity: 1,
     image: gifted.image,
     selectedVariants: const [],

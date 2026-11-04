@@ -8,11 +8,11 @@ import 'frosted_surface.dart';
 /// The floating header of a product screen.
 ///
 /// Over the hero photo it is nothing but its [leading] and [trailing] glass
-/// discs (they blur the photo behind them). Once the page has scrolled the
-/// hero's bottom edge under the header, the header area, status bar included,
-/// becomes the same frosted gradient as [FrostedHeaderLayout]'s and the product
-/// [title] fades in between the discs, so the name stays on screen while the
-/// description scrolls.
+/// discs (`AppIconButton`, the cart button's frosted material).
+/// Once the page has scrolled the hero's bottom edge under the header, the
+/// header area, status bar included, becomes the same page-colour scrim as
+/// [FrostedHeaderLayout]'s and the product [title] fades in between the discs,
+/// so the name stays on screen while the description scrolls.
 ///
 /// The fade follows the scroll offset of [controller] directly rather than
 /// running a timer, so it reverses exactly with the finger. Place it as the

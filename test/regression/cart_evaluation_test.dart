@@ -32,7 +32,7 @@ void main() {
     final before = cart.evaluate(now: expiry);
     final group = before.activeGroups.single;
     expect(group.allocationIssue, isNull);
-    expect(group.totalQuantity, 3);
+    expect(group.paidQuantity, 3);
     expect(group.freeQuantity, 1);
     expect(group.totalOrderQuantity, 4);
     expect(group.bottleCounts, {93101: 4});
@@ -82,7 +82,7 @@ void main() {
     final evaluation = cart.evaluate();
     cart.updateQuantity(1, 3);
     expect(evaluation.totalPrice, 200);
-    expect(evaluation.activeGroups.single.totalQuantity, 2);
+    expect(evaluation.activeGroups.single.paidQuantity, 2);
     expect(evaluation.toJsonForOrder().single['amount'], 2.0);
     expect(cart.evaluate().totalPrice, 300);
     await cart.ensureSaved();

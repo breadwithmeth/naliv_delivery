@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
-import 'package:naliv_delivery/utils/promotion_engine.dart';
 
 void main() {
   group('ItemPromotion', () {
@@ -64,65 +63,42 @@ void main() {
       expect(item.totalPrice, 950);
     });
 
-    test(
-        'subtract promo keeps paid quantity and surfaces gifted value separately',
-        () {
-      final item = CartItem(
-        itemId: 1,
-        name: 'Beer',
-        price: 1000,
-        quantity: 2,
-        stepQuantity: 1,
-        selectedVariants: const <Map<String, dynamic>>[
-          <String, dynamic>{
-            'parent_item_amount': 1,
-            'price': 50,
-          },
-        ],
-        promotions: const <Map<String, dynamic>>[
-          <String, dynamic>{
-            'discount_type': 'SUBTRACT',
-            'base_amount': 2,
-            'add_amount': 1,
-          },
-        ],
-      );
+    CartItem subtractRow(double quantity) => CartItem(
+          itemId: 1,
+          name: 'Beer',
+          price: 1000,
+          quantity: quantity,
+          stepQuantity: 1,
+          selectedVariants: const <Map<String, dynamic>>[
+            <String, dynamic>{
+              'parent_item_amount': 1,
+              'price': 50,
+            },
+          ],
+          promotions: const <Map<String, dynamic>>[
+            <String, dynamic>{
+              'discount_type': 'SUBTRACT',
+              'base_amount': 2,
+              'add_amount': 1,
+            },
+          ],
+        );
 
+    test(
+        'subtract promo makes the third unit free and surfaces its value separately',
+        () {
+      final item = subtractRow(3);
+
+      // Two paid units plus their 50 ₸ options; the free third unit would have cost 1000.
       expect(item.subtotalBeforePromotions, 3100);
       expect(item.totalPrice, 2100);
     });
-  });
 
-  group('subtract promotion bundle helpers', () {
-    const promotions = <Map<String, dynamic>>[
-      <String, dynamic>{
-        'discount_type': 'SUBTRACT',
-        'base_amount': 3,
-        'add_amount': 1,
-      },
-    ];
+    test('subtract promo gifts nothing until the whole set is in the cart', () {
+      final item = subtractRow(2);
 
-    test('snaps quantity changes to promo thresholds', () {
-      expect(
-        subtractPromotionBundleTargetQuantity(0, promotions, direction: 1),
-        3,
-      );
-      expect(
-        subtractPromotionBundleTargetQuantity(2, promotions, direction: 1),
-        3,
-      );
-      expect(
-        subtractPromotionBundleTargetQuantity(4, promotions, direction: 1),
-        6,
-      );
-      expect(
-        subtractPromotionBundleTargetQuantity(4, promotions, direction: -1),
-        3,
-      );
-      expect(
-        subtractPromotionBundleTargetQuantity(2, promotions, direction: -1),
-        0,
-      );
+      expect(item.subtotalBeforePromotions, 2100);
+      expect(item.totalPrice, 2100);
     });
   });
 }

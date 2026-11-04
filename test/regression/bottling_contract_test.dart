@@ -116,7 +116,7 @@ Future<CartProvider> _restorePersisted(
     Item item, Map<int, int> bottleCounts) async {
   final selection = SmartCartSelection(item);
   return _load({
-    'version': 2,
+    'version': 3,
     'business_id': 1,
     'items': [
       for (final bottle in selection.bottleVariants)
@@ -177,7 +177,7 @@ void main() {
     expect(cart.syncItemBottleCounts(item, [], {3094: 2, 3095: 2}), isTrue);
     final group = cart.activeDisplayGroups.single;
     expect(group.totalQuantity, 6);
-    expect(group.evaluate().totalQuantity, 4); // paid litres
+    expect(group.evaluate().paidQuantity, 4); // paid litres
     expect(group.freeQuantity, 2);
     expect(group.totalOrderQuantity, 6);
     expect(cart.getTotalPrice(), 3980); // 4 × 890 + 2 × 110 + 2 × 100.
@@ -227,10 +227,17 @@ void main() {
     expect(group.freeQuantity, 0);
     expect(group.totalOrderQuantity, 3);
     expect(group.totalPrice, 3300);
+    expect(group.evaluate().paidQuantity, 3);
+    expect(cart.toJsonForOrder().single['amount'], 3);
+    // Nothing is added for the customer: the fourth litre is an offer, free once they add it.
+    expect(group.evaluate().promotion.bonusQuantity, 1);
+    expect(group.evaluate().promotion.nextGiftIn, 1);
     expect(cart.syncItemBottleCounts(item, [], {93101: 4}), isTrue);
     group = cart.activeDisplayGroups.single;
     expect(group.totalQuantity, 4);
-    expect(group.evaluate().totalQuantity, 3);
+    expect(group.evaluate().paidQuantity, 3);
+    expect(group.evaluate().promotion.bonusQuantity, isNull);
+    expect(group.evaluate().promotion.nextGiftIn, 4);
     expect(group.freeQuantity, 1);
     expect(group.totalOrderQuantity, 4);
     expect(group.bottleCounts, {93101: 4});
@@ -260,7 +267,7 @@ void main() {
     final group = cart.activeDisplayGroups.single;
     expect(group.bottleCounts, {93101: 1, 93103: 2});
     expect(group.freeQuantity, 1);
-    expect(group.evaluate().totalQuantity, 3);
+    expect(group.evaluate().paidQuantity, 3);
     expect(group.optionsTotal, 340);
     expect(group.totalPrice, 3340);
     final order = cart.toJsonForOrder();
@@ -384,7 +391,7 @@ void main() {
     final stored = jsonDecode(
             (await SharedPreferences.getInstance()).getString('cart_items')!)
         as Map;
-    expect(stored['version'], 2);
+    expect(stored['version'], 3);
     expect((stored['items'] as List).single.containsKey('giftBottleCounts'),
         isFalse);
     expect(((stored['items'] as List).single as Map)['quantity'], 9);

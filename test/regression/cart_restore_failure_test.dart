@@ -261,7 +261,7 @@ void main() {
     expect(cart.businessId, 7);
     expect(cart.items, isEmpty);
     expect(jsonDecode(prefs.getString('cart_items')!),
-        {'version': 2, 'business_id': 7, 'items': []});
+        {'version': 3, 'business_id': 7, 'items': []});
     final restarted = CartProvider();
     addTearDown(restarted.dispose);
     await restarted.ensureLoaded();

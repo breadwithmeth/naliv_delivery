@@ -669,6 +669,65 @@ void main() {
       semantics.dispose();
     }
   });
+
+  Item packagedThreePlusOne() => Item(
+        itemId: 503,
+        name: 'Лимонад',
+        price: 900,
+        amount: 10,
+        quantity: 1,
+        unit: 'шт.',
+        options: [
+          ItemOption(
+              optionId: 9,
+              name: 'Упаковка',
+              required: 0,
+              selection: 'SINGLE',
+              optionItems: [_option(61, 'Подарочная упаковка', 50)]),
+        ],
+        promotions: [_threePlusOne()],
+      );
+
+  testWidgets(
+      'packaged 3+1 states the rule and the distance to the gift as units are added',
+      (tester) async {
+    final cart = await _newCart(tester);
+    await _mount(tester, cart, ProductDetailPage(item: packagedThreePlusOne()));
+    expect(find.text('Возьмите 4 шт. — платите за 3 шт.'), findsOneWidget);
+    for (final (state, total) in [
+      ('До подарка: ещё 3 шт.', 900),
+      ('До подарка: ещё 2 шт.', 1800),
+      ('Добавьте ещё 1 шт. — это бесплатно', 2700),
+      ('Подарок: 1 шт. · напиток 0 ₸', 2700),
+      ('Подарок: 1 шт. · напиток 0 ₸', 3600),
+    ]) {
+      expect(_text(tester, 'configuration-promotion-state'), state);
+      expect(_text(tester, 'configuration-total'), formatTenge(total));
+      if (total != 3600) await _tap(tester, 'configuration-quantity-plus');
+    }
+  });
+
+  testWidgets('packaged 3+1 saves exactly the units the customer picked',
+      (tester) async {
+    final cart = await _newCart(tester);
+    await _mount(tester, cart, ProductDetailPage(item: packagedThreePlusOne()));
+    await _tap(tester, 'configuration-quantity-plus');
+    await _tap(tester, 'configuration-quantity-plus');
+    await _tap(tester, 'configuration-save');
+    var group = cart.activeDisplayGroups.single;
+    expect(group.totalOrderQuantity, 3);
+    expect(group.freeQuantity, 0);
+    expect(cart.getTotalPrice(), 2700);
+    expect(cart.toJsonForOrder().single['amount'], 3);
+
+    expect(
+        cart.syncItemSelectionQuantity(packagedThreePlusOne(), [], 4), isTrue);
+    group = cart.activeDisplayGroups.single;
+    expect(group.totalOrderQuantity, 4);
+    expect(group.freeQuantity, 1);
+    expect(cart.getTotalPrice(), 2700);
+    expect(cart.toJsonForOrder().single['amount'], 4);
+  });
 }
 
 String _text(WidgetTester tester, String key) =>

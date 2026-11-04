@@ -7,7 +7,6 @@ import 'package:naliv_delivery/model/item.dart' as item_model;
 import 'package:naliv_delivery/core/kitchen_policy.dart';
 
 import 'smart_cart.dart';
-import 'promotion_engine.dart';
 
 enum CartSaveStatus { saved, pending, failed, restoreFailed }
 
@@ -16,9 +15,12 @@ class CartProvider extends ChangeNotifier {
   static const double _quantityEpsilon = 0.0000001;
   static const _storageKey = 'cart_items';
 
-  /// 2 stores pour rows as the physical litres the customer picked. Earlier states (no version)
-  /// stored paid litres plus retained gift bottles and are migrated on restore.
-  static const _stateVersion = 2;
+  /// 3 stores what the customer added for every row, gift included; the gift
+  /// is derived, never added on their behalf. 2 stored that only for bottled
+  /// (pour) rows and paid units for packaged ones; earlier states (no version)
+  /// stored paid litres plus retained gift bottles. Both are migrated on
+  /// restore so the customer keeps the same items at the same price.
+  static const _stateVersion = 3;
   int? _businessId;
   bool _loaded = false;
   bool _restoreFailed = false;
@@ -492,9 +494,16 @@ class CartProvider extends ChangeNotifier {
             };
           }
         }
-        if (decoded is! Map || decoded['version'] != _stateVersion) {
-          final migrated = CartDisplayGroup.migrateLegacyPourRows(rows,
-              legacyGifts: legacyGifts);
+        final version = decoded is Map ? decoded['version'] : null;
+        if (version != _stateVersion) {
+          var migrated = rows;
+          if (version is! int || version < 2) {
+            migrated = CartDisplayGroup.migrateLegacyPourRows(migrated,
+                legacyGifts: legacyGifts);
+          }
+          if (version is! int || version < 3) {
+            migrated = CartDisplayGroup.migrateLegacyPaidRows(migrated);
+          }
           migratedLegacy = migrated.length != rows.length ||
               migrated.indexed
                   .any((entry) => !identical(entry.$2, rows[entry.$1]));
@@ -882,34 +891,14 @@ class CartProvider extends ChangeNotifier {
   double _legacyItemStep(CartItem item) =>
       item.stepQuantity > 0 ? item.stepQuantity : 1.0;
 
-  double _orderQuantity(SmartCartSelection selection, double quantity,
-          {DateTime? now}) =>
-      // A pour selection counts physical litres, gift included; anything else counts paid units.
-      selection.usesPourFlow
-          ? quantity
-          : quantity +
-              subtractPromotionFreeQuantity(
-                  quantity,
-                  [
-                    for (final promotion in selection.item.promotions ??
-                        const <item_model.ItemPromotion>[])
-                      promotion.toJson(),
-                  ],
-                  now: now);
-
   bool _fitsStock(SmartCartSelection selection, String key, double quantity,
       {String? previousKey}) {
     final evaluation = evaluate();
     final opened = evaluation.groups
         .firstWhereOrNull((entry) => entry.group.key == (previousKey ?? key));
-    final orderQuantity =
-        _orderQuantity(selection, quantity, now: evaluation.now);
     // Availability constrains fresh demand, never the customer's ability to
     // reduce or remove quantities that were actually restored from persistence.
-    if (opened != null &&
-        (selection.usesPourFlow ||
-            quantity <= opened.totalQuantity + 0.0000001) &&
-        orderQuantity <= opened.totalOrderQuantity + 0.0000001) {
+    if (opened != null && quantity <= opened.totalOrderQuantity + 0.0000001) {
       return true;
     }
     final reserved = evaluation.activeGroups
@@ -918,7 +907,7 @@ class CartProvider extends ChangeNotifier {
             entry.group.key != key &&
             entry.group.key != previousKey)
         .fold<double>(0, (sum, entry) => sum + entry.totalOrderQuantity);
-    return reserved + orderQuantity <= selection.maxAmount + 0.0000001;
+    return reserved + quantity <= selection.maxAmount + 0.0000001;
   }
 
   void _removePreviousConfiguration(String key, String? previousKey) {

@@ -8,15 +8,16 @@ import 'frosted_surface.dart';
 /// A round glass control with a centred glyph: back, search, like and the other
 /// top-bar actions.
 ///
-/// The disc is the design's glass: a [FrostedSurface] (`#141414` / white at
-/// ≈75 % over a small backdrop blur, hairline edge, `0 4 8` shadow), so it reads
-/// over a photo, a scrolled list or a plain page alike. Inside a scrolled
-/// frosted header (a [FrostedScope]) it only paints its tint.
+/// The disc is the same material as the cart button: a [FrostedSurface] (one
+/// small backdrop blur under the theme tint, no hairline, the control shadow
+/// outside the shape), so the floating controls of a page all read as one
+/// family over a photo, a scrolled list or a plain page.
 ///
-/// [fill] replaces the glass tint. A fully opaque [fill] has nothing to show
-/// through, so the disc is drawn flat without a backdrop blur; list rows that
-/// repeat a button per item use this to stay cheap. The visible disc is
-/// [size] (40 by default); the touch target is never smaller than 44.
+/// [fill] replaces the tint, for example the red of a liked item. A fully
+/// opaque [fill] has nothing to show through, so the disc is drawn flat without
+/// a blur; list rows that repeat a button per item use this to stay cheap. The
+/// visible disc is [size] (40 by default); the touch target is never smaller
+/// than 44. A button without [onTap] is dimmed.
 class AppIconButton extends StatelessWidget {
   const AppIconButton({
     required this.asset,
@@ -35,23 +36,23 @@ class AppIconButton extends StatelessWidget {
   final double size;
   final double? glyphSize;
 
-  /// Replaces the glass tint, for example soft red for a liked item.
+  /// Replaces the glass tint, for example red for a liked item.
   final Color? fill;
   final Color? color;
   final double? radius;
   final String? tooltip;
 
-  /// Soft red glass for a favourite control that is on. Pair it with
+  /// Red glass for a favourite control that is on. Pair it with
   /// [AppIcons.heartFilled] and a white glyph.
   static Color likedFill(AppPalette palette) =>
-      palette.brandRed.withValues(alpha: 0.75);
+      palette.brandRed.withValues(alpha: 0.9);
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final discRadius = BorderRadius.circular(radius ?? AppRadii.pill);
     final solid = fill != null && fill!.a >= 0.99;
-    final disc = solid
+    final Widget disc = solid
         ? DecoratedBox(
             decoration: BoxDecoration(
               color: fill,
@@ -62,13 +63,15 @@ class AppIconButton extends StatelessWidget {
         : FrostedSurface(
             borderRadius: discRadius,
             tint: fill,
+            edge: false,
             child: const SizedBox.expand(),
           );
+    final ink = color ?? palette.textPrimary;
     final glyph = Center(
       child: AppIcon(
         asset,
         size: glyphSize ?? (size >= 40 ? 17 : 20),
-        color: color ?? palette.textPrimary,
+        color: onTap == null ? ink.withValues(alpha: ink.a * 0.38) : ink,
       ),
     );
     final button = ConstrainedBox(
@@ -78,6 +81,8 @@ class AppIconButton extends StatelessWidget {
       ),
       child: Stack(
         alignment: Alignment.center,
+        // The shadow reaches a few pixels beyond the disc, past the 44 px box.
+        clipBehavior: Clip.none,
         children: [
           SizedBox(width: size, height: size, child: disc),
           // Above the glass, so the ripple is visible; covers the full target.

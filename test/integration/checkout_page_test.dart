@@ -297,6 +297,7 @@ Future<void> _pump(
   Size size = const Size(375, 812),
   TextScaler textScaler = TextScaler.noScaling,
   EdgeInsets viewInsets = EdgeInsets.zero,
+  ThemeData? theme,
 }) async {
   await tester.binding.setSurfaceSize(size);
   await tester.pumpWidget(MultiProvider(
@@ -305,7 +306,7 @@ Future<void> _pump(
         ChangeNotifierProvider<BusinessProvider>.value(value: fixture.business),
       ],
       child: MaterialApp(
-        theme: AppTheme.dark(),
+        theme: theme ?? AppTheme.dark(),
         builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
               padding: const EdgeInsets.only(top: 48, bottom: 34),
@@ -348,44 +349,52 @@ Future<void> _show(WidgetTester tester, String key) async {
       scrollable: scrollable,
     );
   }
+  // Centre the target: the pinned header overlays the top of the scroll view
+  // (it is tall at 2× text), so an upper-quarter alignment would hide it.
   await Scrollable.ensureVisible(
     tester.element(find.byKey(ValueKey(key))),
-    alignment: 0.25,
+    alignment: 0.5,
   );
   await tester.pump();
 }
 
-Future<void> _toggleDisclosure(WidgetTester tester, String toggleKey) async {
-  await _show(tester, toggleKey);
-  await tester.tap(find.byKey(ValueKey(toggleKey)));
+/// Opens the address sheet from the checkout card and lands on the details
+/// form of the current address (the fields no longer live on the page).
+Future<void> _openAddressDetails(WidgetTester tester) async {
+  await _show(tester, 'checkout-address');
+  await tester.tap(find.byKey(const ValueKey('checkout-address')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('checkout-address-current')));
   await tester.pumpAndSettle();
 }
 
-Future<void> _openDisclosure(
-    WidgetTester tester, String toggleKey, String fieldKey) async {
-  await _show(tester, toggleKey);
-  if (find.byKey(ValueKey(fieldKey)).evaluate().isEmpty) {
-    await tester.tap(find.byKey(ValueKey(toggleKey)));
-    await tester.pumpAndSettle();
-  }
+Future<void> _closeAddressDetails(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('checkout-address-details-done')));
+  await tester.pumpAndSettle();
 }
-
-Future<void> _openDeliveryDetails(WidgetTester tester) => _openDisclosure(
-    tester, 'checkout-delivery-details-toggle', 'checkout-entrance');
 
 Future<void> _openBenefits(WidgetTester tester) =>
     _show(tester, 'checkout-promo-code');
 
+const _detailFields = {
+  'checkout-entrance': '2Б',
+  'checkout-floor': '4',
+  'checkout-apartment': '12',
+};
+
+const _codeFields = {
+  'checkout-promo-code': 'DRAFT-PROMO',
+  'checkout-certificate-code': 'DRAFT-CERT',
+};
+
 Future<void> _fillDraft(WidgetTester tester) async {
-  await _openDeliveryDetails(tester);
+  await _openAddressDetails(tester);
+  for (final entry in _detailFields.entries) {
+    await tester.enterText(find.byKey(ValueKey(entry.key)), entry.value);
+  }
+  await _closeAddressDetails(tester);
   await _openBenefits(tester);
-  for (final entry in const {
-    'checkout-entrance': '2Б',
-    'checkout-floor': '4',
-    'checkout-apartment': '12',
-    'checkout-promo-code': 'DRAFT-PROMO',
-    'checkout-certificate-code': 'DRAFT-CERT',
-  }.entries) {
+  for (final entry in _codeFields.entries) {
     await _show(tester, entry.key);
     await tester.enterText(find.byKey(ValueKey(entry.key)), entry.value);
   }
@@ -394,15 +403,24 @@ Future<void> _fillDraft(WidgetTester tester) async {
 }
 
 Future<void> _expectDraft(WidgetTester tester) async {
-  await _openDeliveryDetails(tester);
+  await _show(tester, 'checkout-address');
+  expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('checkout-address-details')))
+          .data,
+      'Подъезд 2Б · Этаж 4 · Кв. 12');
+  await _openAddressDetails(tester);
+  for (final entry in _detailFields.entries) {
+    expect(
+        tester
+            .widget<TextField>(find.byKey(ValueKey(entry.key)))
+            .controller!
+            .text,
+        entry.value);
+  }
+  await _closeAddressDetails(tester);
   await _openBenefits(tester);
-  for (final entry in const {
-    'checkout-entrance': '2Б',
-    'checkout-floor': '4',
-    'checkout-apartment': '12',
-    'checkout-promo-code': 'DRAFT-PROMO',
-    'checkout-certificate-code': 'DRAFT-CERT',
-  }.entries) {
+  for (final entry in _codeFields.entries) {
     await _show(tester, entry.key);
     expect(
         tester
@@ -435,7 +453,7 @@ void main() {
   setUp(() =>
       SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'}));
 
-  testWidgets('closing delivery details retains the draft and applied price',
+  testWidgets('closing the address sheet retains the draft and applied price',
       (tester) async {
     final fixture = _Fixture();
     await fixture.initialize();
@@ -446,7 +464,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
       await tester.pumpAndSettle();
       expect(fixture.promoValidations, 1);
-      await _toggleDisclosure(tester, 'checkout-delivery-details-toggle');
+      await _openAddressDetails(tester);
+      await _closeAddressDetails(tester);
       await _show(tester, 'checkout-benefit-applied');
       expect(find.byKey(const ValueKey('checkout-benefit-applied')),
           findsOneWidget);
@@ -457,7 +476,6 @@ void main() {
           formatTenge(1730));
       await _expectDraft(tester);
       expect(fixture.promoValidations, 1);
-      await _toggleDisclosure(tester, 'checkout-delivery-details-toggle');
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       final body = fixture.creates.single;
@@ -593,10 +611,10 @@ void main() {
         textScaler: const TextScaler.linear(2),
         viewInsets: const EdgeInsets.only(bottom: 280),
       );
-      await _openDeliveryDetails(tester);
-      await _show(tester, 'checkout-entrance');
+      await _openAddressDetails(tester);
       await tester.enterText(
           find.byKey(const ValueKey('checkout-entrance')), '2Б');
+      await _closeAddressDetails(tester);
       await _openBenefits(tester);
       await _show(tester, 'checkout-promo-code');
       await tester.enterText(
@@ -1131,6 +1149,11 @@ void main() {
           ));
       expect(_enabled(tester), isFalse);
       await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      // The pending quote keeps an indeterminate progress bar animating, so
+      // the sheet is awaited with bounded pumps rather than pumpAndSettle.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byKey(const ValueKey('checkout-address-new')));
       await tester.pump();
       await tester.pump();
       expect(points, ['49.8', '50.0']);
@@ -1382,10 +1405,10 @@ void main() {
             'entrance': '2',
             'apartment': '12',
           }));
-      await _openDeliveryDetails(tester);
-      await _show(tester, 'checkout-apartment');
+      await _openAddressDetails(tester);
       await tester.enterText(
           find.byKey(const ValueKey('checkout-apartment')), '24');
+      await _closeAddressDetails(tester);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       final prefs = await SharedPreferences.getInstance();
@@ -1395,10 +1418,10 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       await _pump(tester, fixture, page: const CheckoutPage());
-      await _openDeliveryDetails(tester);
-      await _show(tester, 'checkout-apartment');
+      await _openAddressDetails(tester);
       await tester.enterText(
           find.byKey(const ValueKey('checkout-apartment')), '36');
+      await _closeAddressDetails(tester);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       final second = jsonDecode(prefs.getString('selected_address')!) as Map;
@@ -1586,16 +1609,23 @@ void main() {
         }, 409);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
-      await _openDeliveryDetails(tester);
-      await _show(tester, 'checkout-entrance');
+      await _openAddressDetails(tester);
       await tester.enterText(
           find.byKey(const ValueKey('checkout-entrance')), '2Б');
+      await _closeAddressDetails(tester);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       expect(fixture.cart.getTotalQuantityForItem(99), 1);
       expect(fixture.cart.clears, 0);
       expect(_enabled(tester), isTrue);
-      await _show(tester, 'checkout-entrance');
+      await _show(tester, 'checkout-address');
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-details')))
+              .data,
+          'Подъезд 2Б');
+      await _openAddressDetails(tester);
       expect(
           tester
               .widget<TextField>(
@@ -1603,6 +1633,7 @@ void main() {
               .controller!
               .text,
           '2Б');
+      await _closeAddressDetails(tester);
       expect(fixture.creates.single['entrance'], '2Б');
       fixture.create = null;
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
@@ -1883,6 +1914,8 @@ void main() {
       await _show(tester, 'checkout-address');
       await tester.tap(find.byKey(const ValueKey('checkout-address')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('checkout-address-new')));
+      await tester.pumpAndSettle();
       final call = calls.single;
       expect(call.city, 'Темиртау');
       expect(call.center, (lat: 50.05, lon: 72.96));
@@ -1965,7 +1998,7 @@ void main() {
     await fixture.initialize(store: _temirtauStore);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
-      expect(find.text('г. Темиртау'), findsOneWidget);
+      expect(find.text('Добавьте подъезд, этаж и квартиру'), findsOneWidget);
       expect(find.byKey(const ValueKey('checkout-address-city-mismatch')),
           findsNothing);
       expect(_enabled(tester), isTrue);
@@ -1991,4 +2024,375 @@ void main() {
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
+
+  for (final (themeName, theme) in [
+    ('dark', AppTheme.dark()),
+    ('light', AppTheme.light()),
+  ]) {
+    testWidgets(
+        'checkout header fades the page colour over scrolled content '
+        '($themeName)', (tester) async {
+      final fixture = _Fixture();
+      await fixture.initialize();
+      await http.runWithClient(() async {
+        await _pump(tester, fixture, size: const Size(375, 560), theme: theme);
+        expect(find.text('Оформление'), findsOneWidget);
+        expect(find.byKey(const ValueKey('checkout-faq')), findsOneWidget);
+        await tester.drag(find.byKey(const ValueKey('checkout-scroll')),
+            const Offset(0, -240));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('header-scrim')), findsOneWidget);
+        expect(find.byKey(const ValueKey('checkout-faq')), findsOneWidget);
+        await _dispose(tester, fixture);
+      }, () => fixture.client);
+    });
+  }
+
+  testWidgets(
+      'delivery details are edited in the address sheet, not on the page',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      'profile_local_addresses': [
+        jsonEncode({
+          'id': 'device_saved',
+          'address': 'Караганда, Бухар-жырау, 20',
+          'street': 'Бухар-жырау',
+          'house': '20',
+          'lat': 49.81,
+          'lon': 73.11,
+          'entrance': '3',
+          'floor': '9',
+          'apartment': '90',
+        }),
+      ],
+    });
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: const CheckoutPage(initialAddress: {
+          ..._address,
+          'entrance': '2',
+          'floor': '7',
+          'apartment': '45',
+          'comment': 'Домофон не работает',
+        }),
+      );
+      await _show(tester, 'checkout-address');
+      for (final key in const [
+        'checkout-entrance',
+        'checkout-floor',
+        'checkout-apartment',
+        'checkout-comment',
+        'checkout-delivery-details-toggle',
+      ]) {
+        expect(find.byKey(ValueKey(key)), findsNothing, reason: key);
+      }
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('checkout-address')),
+              matching: find.byType(TextField)),
+          findsNothing);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-details')))
+              .data,
+          'Подъезд 2 · Этаж 7 · Кв. 45');
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-comment')))
+              .data,
+          'Домофон не работает');
+
+      // The sheet lists the current address, saved ones and the map entry.
+      await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      await tester.pumpAndSettle();
+      expect(find.text('Адрес доставки'), findsOneWidget);
+      expect(find.byKey(const ValueKey('checkout-address-current')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('checkout-address-new')), findsOneWidget);
+      expect(find.text('Подъезд 3 · Этаж 9 · Кв. 90'), findsOneWidget);
+
+      // Choosing a saved address returns to checkout with the card updated.
+      await tester.tap(find.byKey(const ValueKey('checkout-address-saved-1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Адрес доставки'), findsNothing);
+      await _show(tester, 'checkout-address');
+      expect(find.textContaining('Бухар-жырау'), findsOneWidget);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-details')))
+              .data,
+          'Подъезд 3 · Этаж 9 · Кв. 90');
+      expect(
+          find.byKey(const ValueKey('checkout-address-comment')), findsNothing);
+      expect(_enabled(tester), isTrue);
+
+      // Editing the details of the chosen address updates the card and payload.
+      await _openAddressDetails(tester);
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-apartment')), '91');
+      await tester.enterText(find.byKey(const ValueKey('checkout-comment')),
+          'Позвонить за 5 минут');
+      await _closeAddressDetails(tester);
+      await _show(tester, 'checkout-address');
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-details')))
+              .data,
+          'Подъезд 3 · Этаж 9 · Кв. 91');
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-comment')))
+              .data,
+          'Позвонить за 5 минут');
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['lat'], 49.81);
+      expect(body['lon'], 73.11);
+      expect(body['entrance'], '3');
+      expect(body['floor'], '9');
+      expect(body['apartment'], '91');
+      expect(body['extra'], 'Позвонить за 5 минут');
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('a new map address returns to checkout and replaces the card',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: CheckoutPage(
+          initialAddress: const {..._address, 'apartment': '45'},
+          addressPicker:
+              (_, address, detailsFirst, {city, fallbackCenter}) async => {
+            'address': 'Караганда, Новая, 1',
+            'street': 'Новая',
+            'house': '1',
+            'lat': 49.9,
+            'lon': 73.2,
+            'entrance': '5',
+          },
+        ),
+      );
+      await _show(tester, 'checkout-address');
+      await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('checkout-address-new')));
+      await tester.pumpAndSettle();
+      expect(find.text('Адрес доставки'), findsNothing);
+      await _show(tester, 'checkout-address');
+      expect(find.textContaining('Новая'), findsOneWidget);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('checkout-address-details')))
+              .data,
+          'Подъезд 5');
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      final body = fixture.creates.single;
+      expect(body['street'], 'Новая');
+      expect(body['lat'], 49.9);
+      expect(body['entrance'], '5');
+      expect(body['apartment'], '');
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'the address sheet does not offer addresses outside the store city',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      'profile_local_addresses': [
+        jsonEncode({
+          'id': 'device_karaganda',
+          'address': 'Караганда, Бухар-жырау, 20',
+          'city': 'Караганда',
+          'lat': 49.81,
+          'lon': 73.11,
+        }),
+      ],
+    });
+    final fixture = _Fixture()..cities = _cities;
+    await fixture.initialize(store: _temirtauStore);
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: const CheckoutPage(initialAddress: _temirtauAddress),
+      );
+      await _show(tester, 'checkout-address');
+      await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      await tester.pumpAndSettle();
+      // Folded into one row at the end; they never mix with choosable rows.
+      expect(find.text('Другой город — магазин доставляет по г. Темиртау'),
+          findsNothing);
+      await tester
+          .tap(find.byKey(const ValueKey('checkout-address-elsewhere')));
+      await tester.pumpAndSettle();
+      expect(find.text('Другой город — магазин доставляет по г. Темиртау'),
+          findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('checkout-address-saved-1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Адрес доставки'), findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expect(find.text('Адрес доставки'), findsNothing);
+      expect(find.byKey(const ValueKey('checkout-address-city-mismatch')),
+          findsNothing);
+      expect(_enabled(tester), isTrue);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets(
+      'a book of 120 addresses keeps «new address» and search in reach and finds one',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fixture-only',
+      'profile_local_addresses': [
+        for (var index = 0; index < 120; index++)
+          jsonEncode({
+            'id': 'device_$index',
+            'address': 'Темиртау, Улица $index, ${index + 1}',
+            'street': 'Улица $index',
+            'house': '${index + 1}',
+            'city': 'Темиртау',
+            'lat': 50.0 + index / 1000,
+            'lon': 72.9 + index / 1000,
+          }),
+      ],
+    });
+    final fixture = _Fixture()..cities = _cities;
+    await fixture.initialize(store: _temirtauStore);
+    await http.runWithClient(() async {
+      await _pump(
+        tester,
+        fixture,
+        page: const CheckoutPage(initialAddress: _temirtauAddress),
+      );
+      await _show(tester, 'checkout-address');
+      await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      await tester.pumpAndSettle();
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      for (final key in ['checkout-address-new', 'checkout-address-search']) {
+        final rect = tester.getRect(find.byKey(ValueKey(key)));
+        expect(rect.bottom, lessThanOrEqualTo(screen.height), reason: key);
+        expect(find.byKey(ValueKey(key)).hitTestable(), findsOneWidget,
+            reason: key);
+      }
+      // Lazily built: far fewer rows than addresses.
+      expect(find.textContaining('Улица '), isNot(findsNWidgets(120)));
+
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-address-search')), 'улица 77');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Улица 77'), findsOneWidget);
+      await tester.tap(find.textContaining('Улица 77'));
+      await tester.pumpAndSettle();
+      expect(find.text('Адрес доставки'), findsNothing);
+      await _show(tester, 'checkout-address');
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('checkout-address')),
+              matching: find.textContaining('Улица 77')),
+          findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('checkout-address')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-address-search')), 'нет такой');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('checkout-address-no-match')),
+          findsOneWidget);
+      // With nothing found, adding the address on the map is still one tap.
+      expect(
+          find.byKey(const ValueKey('checkout-address-new')).hitTestable(),
+          findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  for (final (width, scale) in const [
+    (375.0, 1.0),
+    (320.0, 1.0),
+    (320.0, 2.0)
+  ]) {
+    testWidgets(
+        'a 60-character product name keeps the full row width at ${width.toInt()} px, '
+        '$scale× text', (tester) async {
+      const longName =
+          'Пиво Жигулёвское Барное светлое фильтрованное 4,5% ж/б 0,45 л';
+      final fixture = _Fixture();
+      await fixture.initialize(empty: true);
+      final item = Item(
+        itemId: 93,
+        name: longName,
+        price: 1250,
+        amount: 10,
+        unit: 'шт',
+        stepQuantity: 1,
+        category: ItemCategory(categoryId: 9, name: 'Пиво'),
+      );
+      fixture.cart.addItem(CartItem(
+        itemId: item.itemId,
+        name: item.name,
+        price: item.price,
+        quantity: 2,
+        stepQuantity: 1,
+        selectedVariants: [],
+        promotions: [],
+        itemData: item.toJson(),
+      ));
+      await http.runWithClient(() async {
+        await _pump(tester, fixture,
+            size: Size(width, 812), textScaler: TextScaler.linear(scale));
+        final group = fixture.cart.activeDisplayGroups.single;
+        await _show(tester, 'checkout-item-${group.key}');
+        final row = find.byKey(ValueKey('checkout-item-${group.key}'));
+        final names = find.descendant(
+            of: row,
+            matching: find.byWidgetPredicate((widget) =>
+                widget is Text &&
+                widget.maxLines != null &&
+                widget.maxLines! >= 2 &&
+                widget.overflow == TextOverflow.ellipsis));
+        expect(names, findsOneWidget);
+        final rowRect = tester.getRect(row);
+        // The name column spans the row apart from, at most, the thumbnail.
+        expect(tester.getSize(names).width,
+            greaterThanOrEqualTo(rowRect.width - 54.5));
+        final price = find.descendant(
+            of: row, matching: find.text(formatTenge(item.price * 2)));
+        expect(price, findsOneWidget);
+        expect(tester.getTopRight(price).dx, closeTo(rowRect.right, 0.5));
+        expect(tester.takeException(), isNull);
+        expect(
+            find.descendant(
+                of: row,
+                matching:
+                    find.byKey(ValueKey('checkout-quantity-${group.key}'))),
+            findsOneWidget);
+        await _dispose(tester, fixture);
+      }, () => fixture.client);
+    });
+  }
 }

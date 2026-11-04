@@ -262,12 +262,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return math.max(0, stock - reserved);
   }
 
+  /// The customer receives exactly what they picked, gift included.
   bool _fitsAvailable(double quantity, double available) =>
-      // A pour selection is physical litres, gift included; otherwise the gift rides on top.
-      (_pour
-          ? quantity
-          : quantity + subtractPromotionFreeQuantity(quantity, _promotions)) <=
-      available + 0.0000001;
+      quantity <= available + 0.0000001;
 
   Map<String, dynamic> _variant(
           item_model.ItemOptionItem value, int required) =>
@@ -327,11 +324,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String? _allocationIssue;
   double get _total => _price?.totalPrice ?? 0;
   double get _subtotal => _price?.subtotalBeforePromotions ?? 0;
-  PhysicalGiftEvaluation get _gift =>
-      evaluatePhysicalGift(physicalQuantity: _amount, promotions: _promotions);
-  double get _free => _pour
-      ? _gift.giftQuantity
-      : subtractPromotionFreeQuantity(_amount, _promotions);
+  PromotionEvaluation get _gift =>
+      evaluatePromotion(quantity: _amount, promotions: _promotions);
+  double get _free => _gift.giftQuantity;
 
   /// Containers this screen lists: the ones the shop offers plus any withdrawn container the
   /// opened cart already holds, so a legacy three-litre row can be reviewed and removed instead of
@@ -875,7 +870,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// The container that carries the bonus litres: the offered size matching them that the
   /// customer already picks most.
   item_model.ItemOptionItem? _bonusBottle(
-      CartProvider cart, PhysicalGiftEvaluation gift, double available) {
+      CartProvider cart, PromotionEvaluation gift, double available) {
     final extra = gift.bonusQuantity;
     if (extra == null ||
         !_inStock ||
@@ -1038,8 +1033,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       );
 
   Widget _promotionInfo() {
-    final evaluation =
-        evaluatePromotion(paidQuantity: _amount, promotions: _promotions);
+    final evaluation = _gift;
+    final award = evaluation.award;
+    final remainder = award == null ? 0.0 : _amount % award.setSize;
+    final progress = award == null
+        ? 0.0
+        : (_amount > 0.0000001 && remainder <= 0.0000001
+            ? 1.0
+            : remainder / award.setSize);
     return AppSurface(
       key: const ValueKey('configuration-promotion'),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -1054,7 +1055,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 promotion.baseAmount > 0 &&
                 promotion.addAmount > 0)
               Text(
-                  'За каждые ${_amountLabel(promotion.baseAmount.toDouble())} — ${_amountLabel(promotion.addAmount.toDouble())} этого напитка в подарок',
+                  promotionRuleText(
+                      PromotionAward(
+                          promotion: promotion.toJson(),
+                          baseAmount: promotion.baseAmount,
+                          addAmount: promotion.addAmount),
+                      _amountLabel),
                   style: AppTypography.body
                       .copyWith(color: context.palette.textSecondary)),
             if (promotion.description?.trim().isNotEmpty == true)
@@ -1062,13 +1068,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   style: AppTypography.body
                       .copyWith(color: context.palette.textSecondary)),
           ],
-        if (evaluation.award != null) ...[
+        if (award != null) ...[
           const SizedBox(height: AppSpacing.md),
           ClipRRect(
             borderRadius: AppRadii.pillAll,
             child: LinearProgressIndicator(
               key: const ValueKey('configuration-promotion-progress'),
-              value: evaluation.progress,
+              value: progress,
               minHeight: 6,
               color: context.palette.accent,
               backgroundColor: context.palette.surfaceMuted,
@@ -1078,7 +1084,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           Text(
               _free > 0
                   ? 'Подарок: ${_amountLabel(_free)} · напиток 0 ₸'
-                  : 'До подарка: ${_amountLabel(evaluation.nextGiftIn)} оплаченного напитка',
+                  : evaluation.bonusQuantity != null
+                      ? 'Добавьте ещё ${_amountLabel(evaluation.bonusQuantity!)} — это бесплатно'
+                      : 'До подарка: ещё ${_amountLabel(evaluation.nextGiftIn ?? award.setSize.toDouble())}',
+              key: const ValueKey('configuration-promotion-state'),
               style: AppTypography.bodySmall
                   .copyWith(color: context.palette.textSecondary)),
         ],

@@ -13,6 +13,7 @@ import '../model/category_items.dart';
 import '../core/quantity.dart';
 import '../services/auth_service.dart';
 import '../ui/frosted_dock.dart';
+import '../ui/frosted_surface.dart';
 import '../ui/product_card.dart';
 import '../design/motion.dart';
 import '../design/theme.dart';
@@ -44,6 +45,7 @@ import '../utils/order_ui_helpers.dart';
 import '../widgets/address_selection_modal_material.dart';
 import '../features/faq/models/faq.dart';
 import '../features/faq/faq_navigation.dart';
+import 'checkout_address_sheet.dart';
 import 'login_page.dart';
 import 'help_chat_page.dart';
 import 'payment_method_page.dart';
@@ -97,7 +99,8 @@ class _CheckoutPageState extends State<CheckoutPage>
   final _promo = TextEditingController();
   final _certificate = TextEditingController();
   double _footerHeight = 110;
-  bool _deliveryDetailsExpanded = true;
+  List<Map<String, dynamic>> _accountAddresses = const [];
+  bool _addressSheetOpen = false;
   CartProvider? _cart;
   BusinessProvider? _business;
   Map<String, dynamic>? _address;
@@ -453,6 +456,8 @@ class _CheckoutPageState extends State<CheckoutPage>
       if (!mounted || (session != null && !session.isCurrent)) return;
       setState(() {
         _loggedIn = loggedIn;
+        _accountAddresses =
+            loggedIn ? payloadMaps(info?['addresses']) : const [];
         if (!loggedIn) {
           _bonusRequest++;
           _bonusBalance = null;
@@ -471,6 +476,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       if (mounted && credentialRevision == AuthService.credentialRevision) {
         setState(() {
           _loggedIn = false;
+          _accountAddresses = const [];
           _bonusBalance = null;
           _useBonus = false;
           _submitError =
@@ -651,39 +657,44 @@ class _CheckoutPageState extends State<CheckoutPage>
     return AddressStorageService.deliveryAddress(value);
   }
 
-  Future<void> _pickAddress() async {
+  /// Runs the map picker, or applies [chosen] (an address picked from the
+  /// saved list) the same way a map choice is applied.
+  Future<void> _pickAddress({Map<String, dynamic>? chosen}) async {
     if (_busy) return;
     setState(() {
       _pickingAddress = true;
       _addressError = null;
     });
     try {
-      final business = _business?.selectedBusiness;
-      final city = _storeCity ??
-          await storeCityName(business)
-              .timeout(const Duration(seconds: 4), onTimeout: () => null);
-      if (!mounted) return;
-      final center = storeCoordinates(business);
-      // An address from another city is never offered as the starting point:
-      // the picker opens on the store's city instead.
-      final wrongCity = addressMatchesCity(_address, city) == false;
-      final current = wrongCity ? null : (_normalizedAddress() ?? _address);
-      // Entrance, floor, flat and comment are edited inline on this page, so
-      // changing the address goes straight to choosing a new one on the map —
-      // never through the separate details page.
-      const detailsFirst = false;
-      final selected = widget.addressPicker != null
-          ? await widget.addressPicker!(context, current, detailsFirst,
-              city: city, fallbackCenter: center)
-          : await AddressSelectionModalHelper.show(context,
-              initialAddress: current,
-              openDetailsFirst: detailsFirst,
-              collectDetails: false,
-              city: city,
-              fallbackCenter: center);
+      var selected = chosen;
+      if (selected == null) {
+        final business = _business?.selectedBusiness;
+        final city = _storeCity ??
+            await storeCityName(business)
+                .timeout(const Duration(seconds: 4), onTimeout: () => null);
+        if (!mounted) return;
+        final center = storeCoordinates(business);
+        // An address from another city is never offered as the starting point:
+        // the picker opens on the store's city instead.
+        final wrongCity = addressMatchesCity(_address, city) == false;
+        final current = wrongCity ? null : (_normalizedAddress() ?? _address);
+        // Entrance, floor, flat and comment are edited in the address sheet, so
+        // a new address goes straight to the map — never through the separate
+        // details page.
+        const detailsFirst = false;
+        selected = widget.addressPicker != null
+            ? await widget.addressPicker!(context, current, detailsFirst,
+                city: city, fallbackCenter: center)
+            : await AddressSelectionModalHelper.show(context,
+                initialAddress: current,
+                openDetailsFirst: detailsFirst,
+                collectDetails: false,
+                city: city,
+                fallbackCenter: center);
+      }
       if (!mounted || selected == null) return;
       setState(() {
-        _setAddress(selected);
+        _setAddress(selected!);
         _invalidate();
       });
       final normalized = _normalizedAddress();
@@ -706,6 +717,80 @@ class _CheckoutPageState extends State<CheckoutPage>
       }
     } finally {
       if (mounted) setState(() => _pickingAddress = false);
+    }
+  }
+
+  /// Saved addresses offered by the chooser: the device's address book, the
+  /// account's addresses read with the profile, then recent choices. Hidden
+  /// addresses and ones without exact coordinates are left out.
+  Future<List<Map<String, dynamic>>> _savedAddresses() async {
+    final book = await AddressStorageService.getBookSnapshot();
+    final history = await AddressStorageService.getAddressHistory();
+    final result = <Map<String, dynamic>>[];
+    final seen = <String>{};
+    for (final raw in [
+      ...book.localAddresses,
+      ..._accountAddresses,
+      ...history,
+    ]) {
+      final id = AddressStorageService.identity(raw);
+      if (book.hiddenIds.contains(id) || !seen.add(id)) continue;
+      final label = (raw['address'] ?? raw['name'])?.toString().trim() ?? '';
+      final address = AddressStorageService.deliveryAddress({
+        ...raw,
+        'address': label.isNotEmpty
+            ? label
+            : [raw['street'], raw['house']]
+                .where((value) =>
+                    value != null && '$value'.trim().isNotEmpty && value != '-')
+                .join(', '),
+      });
+      if (address != null) result.add(address);
+    }
+    return result;
+  }
+
+  String _detailsSnapshot() =>
+      '${_entrance.text}|${_floor.text}|${_apartment.text}|${_comment.text}';
+
+  /// Opens the address chooser and applies what it returns.
+  Future<void> _openAddressSheet() async {
+    if (_editingLocked || _addressSheetOpen) return;
+    _addressSheetOpen = true;
+    try {
+      List<Map<String, dynamic>> saved;
+      try {
+        saved = await _savedAddresses();
+      } catch (_) {
+        saved = const [];
+      }
+      if (!mounted) return;
+      final before = _detailsSnapshot();
+      final result = await showCheckoutAddressSheet(
+        context,
+        current: _address == null ? null : (_normalizedAddress() ?? _address),
+        saved: saved,
+        storeCity: _storeCity,
+        entrance: _entrance,
+        floor: _floor,
+        apartment: _apartment,
+        comment: _comment,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (_detailsSnapshot() != before) _addressError = null;
+      });
+      switch (result?.action) {
+        case CheckoutAddressAction.select:
+          await _pickAddress(chosen: result!.address);
+        case CheckoutAddressAction.newOnMap:
+          await _pickAddress();
+        case CheckoutAddressAction.detailsDone:
+        case null:
+          break;
+      }
+    } finally {
+      _addressSheetOpen = false;
     }
   }
 
@@ -1447,33 +1532,26 @@ class _CheckoutPageState extends State<CheckoutPage>
       },
       child: Scaffold(
         key: const ValueKey('checkout-page'),
+        backgroundColor: context.palette.background,
         resizeToAvoidBottomInset: false,
         body: Padding(
           padding:
               EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-          child: SafeArea(
-            bottom: false,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: FrostedDock(
-                  onDockHeightChanged: (height) {
-                    if ((height - _footerHeight).abs() > 0.5) {
-                      setState(() => _footerHeight = height);
-                    }
-                  },
-                  content: Column(
-                    children: [
-                      if (MediaQuery.viewInsetsOf(context).bottom == 0)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _header(),
-                        ),
-                      Expanded(child: _checkoutContent()),
-                    ],
-                  ),
-                  dock: _hasItems && !_cartRestoreFailed ? _bottomBar() : null,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: FrostedDock(
+                onDockHeightChanged: (height) {
+                  if ((height - _footerHeight).abs() > 0.5) {
+                    setState(() => _footerHeight = height);
+                  }
+                },
+                content: FrostedHeaderLayout(
+                  estimatedHeaderHeight: 87,
+                  header: _header(),
+                  body: (context, topInset) => _checkoutContent(topInset),
                 ),
+                dock: _hasItems && !_cartRestoreFailed ? _bottomBar() : null,
               ),
             ),
           ),
@@ -1482,15 +1560,19 @@ class _CheckoutPageState extends State<CheckoutPage>
     );
   }
 
-  Widget _header() => AppTopBar(
-        title: 'Оформление',
-        onBack: _back,
-        backEnabled: !_busy,
-        trailing: AppIconButton(
-          key: const ValueKey('checkout-faq'),
-          asset: AppIcons.faq,
-          tooltip: 'Вопросы об оформлении',
-          onTap: _editingLocked ? null : () => _openHelp(FaqSection.delivery),
+  Widget _header() => Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xxxl, 0, AppSpacing.xxxl, AppSpacing.md),
+        child: AppTopBar(
+          title: 'Оформление',
+          onBack: _back,
+          backEnabled: !_busy,
+          trailing: AppIconButton(
+            key: const ValueKey('checkout-faq'),
+            asset: AppIcons.faq,
+            tooltip: 'Вопросы об оформлении',
+            onTap: _editingLocked ? null : () => _openHelp(FaqSection.delivery),
+          ),
         ),
       );
 
@@ -1498,12 +1580,12 @@ class _CheckoutPageState extends State<CheckoutPage>
       ? _footerHeight + AppSpacing.xl + MediaQuery.paddingOf(context).bottom
       : 0;
 
-  Widget _checkoutContent() => ListView(
+  Widget _checkoutContent(double topInset) => ListView(
         key: const ValueKey('checkout-scroll'),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: EdgeInsets.fromLTRB(16, 16, 16, _footerReserve + 20),
+        padding: EdgeInsets.fromLTRB(
+            16, topInset + AppSpacing.md, 16, _footerReserve + 20),
         children: [
-          if (MediaQuery.viewInsetsOf(context).bottom > 0) _header(),
           if (!_hasItems && (_creationUncertain || _creationStorageUnavailable))
             _submissionMessage(),
           if (_cartRestoreFailed)
@@ -1612,8 +1694,6 @@ class _CheckoutPageState extends State<CheckoutPage>
       );
 
   // ---- Fulfilment: mode, store, address ------------------------------------
-
-  bool get _largeText => MediaQuery.textScalerOf(context).scale(14) > 14 * 1.3;
 
   Widget _modeSwitch() => AppSurface(
         radius: 36,
@@ -1741,10 +1821,15 @@ class _CheckoutPageState extends State<CheckoutPage>
         child: glyph,
       );
 
-  Widget _headerLine(String text, {bool strong = false}) => Padding(
+  Widget _headerLine(String text,
+          {bool strong = false, int? maxLines, Key? key}) =>
+      Padding(
         padding: const EdgeInsets.only(top: 2),
         child: Text(
           text,
+          key: key,
+          maxLines: maxLines,
+          overflow: maxLines == null ? null : TextOverflow.ellipsis,
           style:
               (strong ? AppTypography.bodySmallMedium : AppTypography.bodySmall)
                   .copyWith(
@@ -1754,64 +1839,49 @@ class _CheckoutPageState extends State<CheckoutPage>
         ),
       );
 
-  /// Tappable heading of a fulfilment card: glyph, title, supporting lines and
-  /// a visual "change" pill (the whole heading is the hit target).
+  /// Tappable heading of a fulfilment card: glyph, title, supporting lines and a chevron. The
+  /// whole heading is the hit target, so the title keeps the full width.
   Widget _cardHeader({
     required Key key,
     required Widget glyph,
     required String title,
     required List<Widget> body,
-    required String actionLabel,
     required String tooltip,
     required VoidCallback? onTap,
   }) {
     final palette = context.palette;
-    final pill = Opacity(
-      opacity: onTap == null ? .5 : 1,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-            color: palette.background, borderRadius: AppRadii.pillAll),
-        child: Text(actionLabel,
-            style: AppTypography.labelSemibold
-                .copyWith(color: palette.textPrimary)),
-      ),
-    );
     return Tooltip(
       message: tooltip,
       child: AppSurface(
         key: key,
         onTap: onTap,
         fill: Colors.transparent,
-        padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final inline = constraints.maxWidth >= 260 && !_largeText;
-          final text = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style:
-                      AppTypography.title.copyWith(color: palette.textPrimary)),
-              ...body,
-              if (!inline) ...[
-                const SizedBox(height: 12),
-                Align(alignment: Alignment.centerLeft, child: pill),
-              ],
-            ],
-          );
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              glyph,
-              const SizedBox(width: 12),
-              Expanded(child: text),
-              if (inline) ...[
-                const SizedBox(width: 12),
-                pill,
-              ],
-            ],
-          );
-        }),
+        padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            glyph,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.title
+                          .copyWith(color: palette.textPrimary)),
+                  ...body,
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded,
+                size: 24,
+                color: palette.textSecondary
+                    .withValues(alpha: onTap == null ? .4 : 1)),
+          ],
+        ),
       ),
     );
   }
@@ -1835,7 +1905,6 @@ class _CheckoutPageState extends State<CheckoutPage>
                   ? 'Магазин для заказа'
                   : address),
         ],
-        actionLabel: resolved ? 'Изменить' : 'Выбрать',
         tooltip: resolved ? 'Изменить магазин' : 'Выбрать магазин',
         onTap: _editingLocked ? null : _selectStore,
       ),
@@ -1857,14 +1926,9 @@ class _CheckoutPageState extends State<CheckoutPage>
     final palette = context.palette;
     final hasAddress = _address != null;
     final city = _storeCity;
-    final details = [
-      if (_entrance.text.trim().isNotEmpty) 'Подъезд ${_entrance.text.trim()}',
-      if (_floor.text.trim().isNotEmpty) 'Этаж ${_floor.text.trim()}',
-      if (_apartment.text.trim().isNotEmpty) 'Кв. ${_apartment.text.trim()}',
-    ].join(' · ');
-    final addressCity = hasAddress && _addressCityMismatch
-        ? (ApiService.extractCityName(_address) ?? city)
-        : city;
+    final details =
+        checkoutDetailsSummary(_entrance.text, _floor.text, _apartment.text);
+    final comment = _comment.text.trim();
     final statusRows = <Widget>[
       if (_addressCityMismatch)
         _statusRow(
@@ -1906,28 +1970,30 @@ class _CheckoutPageState extends State<CheckoutPage>
         key: const ValueKey('checkout-address'),
         glyph: _glyphTile(
             AppIcon(AppIcons.location, size: 20, color: palette.accent)),
-        // Stored labels may carry the «• Под. 2, Эт. 7, Кв. 45» summary; the
-        // details have their own fields below, so the heading is the street.
         title: !hasAddress
             ? 'Выберите адрес доставки'
-            : (ApiService.extractAddressLabel(_address!) ??
-                    ApiService.formatAddressSummary(_address))
-                .split(' • ')
-                .first,
+            : checkoutAddressTitle(_address!),
         body: [
           _headerLine(
             !hasAddress
                 ? (city == null
                     ? 'Нужен перед подтверждением заказа'
                     : 'Нужен перед подтверждением заказа. Доставка по г. $city')
-                : addressCity == null
-                    ? 'Доставка по этому адресу'
-                    : 'г. $addressCity',
+                : details.isEmpty
+                    ? 'Добавьте подъезд, этаж и квартиру'
+                    : details,
+            maxLines: 2,
+            key: const ValueKey('checkout-address-details'),
           ),
+          if (hasAddress && comment.isNotEmpty)
+            _headerLine(
+              comment,
+              maxLines: 1,
+              key: const ValueKey('checkout-address-comment'),
+            ),
         ],
-        actionLabel: hasAddress ? 'Изменить' : 'Выбрать',
         tooltip: hasAddress ? 'Изменить адрес' : 'Выбрать адрес',
-        onTap: _editingLocked ? null : _pickAddress,
+        onTap: _editingLocked ? null : _openAddressSheet,
       ),
       if (_pickingAddress) const LinearProgressIndicator(),
       if (statusRows.isNotEmpty)
@@ -1944,84 +2010,8 @@ class _CheckoutPageState extends State<CheckoutPage>
           ),
         ),
       _hairline(),
-      _deliveryDetails(details),
-      _hairline(),
       _deliveryCostBlock(),
     ]);
-  }
-
-  Widget _deliveryDetails(String details) {
-    final palette = context.palette;
-    return ExpansionTile(
-      key: const ValueKey('checkout-delivery-details'),
-      maintainState: true,
-      initiallyExpanded: _deliveryDetailsExpanded,
-      minTileHeight: 56,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-      shape: const Border(),
-      collapsedShape: const Border(),
-      iconColor: palette.textSecondary,
-      collapsedIconColor: palette.textSecondary,
-      title: Text(
-        'Детали доставки',
-        key: const ValueKey('checkout-delivery-details-toggle'),
-        style:
-            AppTypography.bodySmallMedium.copyWith(color: palette.textPrimary),
-      ),
-      subtitle: _deliveryDetailsExpanded
-          ? null
-          : Text(
-              details.isEmpty
-                  ? 'Подъезд, этаж, квартира и комментарий · необязательно'
-                  : _comment.text.trim().isEmpty
-                      ? details
-                      : '$details · есть комментарий',
-              style:
-                  AppTypography.caption.copyWith(color: palette.textSecondary),
-            ),
-      onExpansionChanged: (expanded) {
-        setState(() => _deliveryDetailsExpanded = expanded);
-        if (!expanded) FocusManager.instance.primaryFocus?.unfocus();
-      },
-      children: [
-        LayoutBuilder(builder: (context, constraints) {
-          final fields = [
-            _addressField('Подъезд', _entrance, 'checkout-entrance'),
-            _addressField('Этаж', _floor, 'checkout-floor'),
-            _addressField('Квартира', _apartment, 'checkout-apartment'),
-          ];
-          return constraints.maxWidth < 240 || _largeText
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final (index, field) in fields.indexed) ...[
-                      if (index > 0) const SizedBox(height: 12),
-                      field,
-                    ],
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final (index, field) in fields.indexed) ...[
-                      if (index > 0) const SizedBox(width: 12),
-                      Expanded(child: field),
-                    ],
-                  ],
-                );
-        }),
-        const SizedBox(height: 12),
-        _addressField(
-          'Комментарий курьеру',
-          _comment,
-          'checkout-comment',
-          hint: 'Например: домофон не работает, позвоните',
-          multiline: true,
-        ),
-      ],
-    );
   }
 
   Widget _deliveryCostBlock() {
@@ -2145,69 +2135,6 @@ class _CheckoutPageState extends State<CheckoutPage>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
         child: Text(label, textAlign: TextAlign.center),
-      ),
-    );
-  }
-
-  Widget _addressField(
-    String label,
-    TextEditingController controller,
-    String key, {
-    String? hint,
-    bool multiline = false,
-  }) {
-    final palette = context.palette;
-    final enabled = !_editingLocked && _address != null;
-    OutlineInputBorder border(Color color, [double width = 0]) =>
-        OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: width == 0
-              ? BorderSide.none
-              : BorderSide(color: color, width: width),
-        );
-    return MergeSemantics(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text(label,
-                style: AppTypography.labelMedium
-                    .copyWith(color: palette.textSecondary)),
-          ),
-          TextField(
-            key: ValueKey(key),
-            controller: controller,
-            enabled: enabled,
-            keyboardType:
-                multiline ? TextInputType.multiline : TextInputType.text,
-            minLines: multiline ? 2 : 1,
-            maxLines: multiline ? 4 : 1,
-            textInputAction: multiline || key == 'checkout-apartment'
-                ? TextInputAction.done
-                : TextInputAction.next,
-            onChanged: (_) => setState(() => _addressError = null),
-            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-            scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
-            style: AppTypography.bodySmall.copyWith(color: palette.textPrimary),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTypography.bodySmall
-                  .copyWith(color: palette.textSecondary),
-              filled: true,
-              fillColor: enabled
-                  ? palette.background
-                  : palette.background.withValues(alpha: .5),
-              border: border(Colors.transparent),
-              enabledBorder: border(Colors.transparent),
-              disabledBorder: border(Colors.transparent),
-              focusedBorder: border(palette.accent, 1.5),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -2482,6 +2409,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       );
 
   Widget _item(CartDisplayGroup group) {
+    final palette = context.palette;
     final snapshot = group.itemSnapshot;
     final name = snapshot != null
         ? presentItem(snapshot,
@@ -2504,6 +2432,20 @@ class _CheckoutPageState extends State<CheckoutPage>
         .where((label) => label.trim().isNotEmpty)
         .join(', ');
     final bottles = group.bottleBreakdownLabel;
+    final scaler = MediaQuery.textScalerOf(context);
+    final scale = scaler.scale(14) / 14;
+    final direction = Directionality.of(context);
+    final price = _money(group.totalPrice);
+    final struck = group.totalPrice < group.subtotalBeforePromotions - 0.001
+        ? _money(group.subtotalBeforePromotions)
+        : null;
+    final priceStyle = AppTypography.bodyBold.copyWith(color: palette.accent);
+    final struckStyle = AppTypography.caption.copyWith(
+        color: palette.textSecondary, decoration: TextDecoration.lineThrough);
+    // The name owns its whole line: quantity, removal and price sit on the
+    // line below, so a 60-character name is never squeezed into a narrow
+    // column. Two lines at normal size, three once the text is enlarged; the
+    // full name is always in the semantics label.
     final identity = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2511,41 +2453,50 @@ class _CheckoutPageState extends State<CheckoutPage>
           label: [name.name, ...name.attributes].join(' · '),
           child: ExcludeSemantics(
             child: Text(name.name,
+                maxLines: scale > 1.5 ? 3 : 2,
+                overflow: TextOverflow.ellipsis,
                 style: AppTypography.bodyMedium
-                    .copyWith(color: context.palette.textPrimary)),
+                    .copyWith(color: palette.textPrimary)),
           ),
         ),
         if (secondary.isNotEmpty)
           Text(secondary,
-              style: AppTypography.caption
-                  .copyWith(color: context.palette.textSecondary)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  AppTypography.caption.copyWith(color: palette.textSecondary)),
         if (!perPiece && view != null)
           Text(view.unitPriceLabel,
-              style: AppTypography.caption
-                  .copyWith(color: context.palette.textSecondary)),
-        if (group.totalPrice < group.subtotalBeforePromotions - 0.001)
-          Text(_money(group.subtotalBeforePromotions),
-              style: AppTypography.caption.copyWith(
-                  color: context.palette.textSecondary,
-                  decoration: TextDecoration.lineThrough)),
-        Text(_money(group.totalPrice),
-            style:
-                AppTypography.bodyBold.copyWith(color: context.palette.accent)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  AppTypography.caption.copyWith(color: palette.textSecondary)),
+      ],
+    );
+    final priceBlock = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (struck != null) Text(struck, style: struckStyle),
+        Text(price, style: priceStyle),
       ],
     );
     return Padding(
       key: ValueKey('checkout-item-${group.key}'),
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: LayoutBuilder(builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        // Very narrow or very large text: the picture gives way to the name.
+        final showImage = width >= 280 && scale <= 1.3;
         final controlWidth = math.min(
-          constraints.maxWidth,
+          width,
           math.max(
             108.0,
             TextWidthCache.of(
                   formatQuantity(group.totalQuantity, perPiece ? '' : unit),
                   AppTypography.bodyMedium,
-                  MediaQuery.textScalerOf(context),
-                  Directionality.of(context),
+                  scaler,
+                  direction,
                 ) +
                 100,
           ),
@@ -2571,45 +2522,62 @@ class _CheckoutPageState extends State<CheckoutPage>
               _editingLocked ? null : () => _cart!.removeDisplayGroup(group),
           style: IconButton.styleFrom(
             minimumSize: const Size.square(44),
-            foregroundColor: context.palette.textSecondary,
+            foregroundColor: palette.textSecondary,
           ),
           icon: const Icon(Icons.delete_outline, size: 20),
         );
-        final compact = constraints.maxWidth - controlWidth - 106 >= 72 &&
-            MediaQuery.textScalerOf(context).scale(14) <= 17;
+        final priceWidth = math.max(
+          TextWidthCache.of(price, priceStyle, scaler, direction),
+          struck == null
+              ? 0.0
+              : TextWidthCache.of(struck, struckStyle, scaler, direction),
+        );
+        final oneLine = controlWidth + 44 + 12 + priceWidth <= width;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _itemImage(snapshot?.image ?? group.image),
-                const SizedBox(width: 10),
-                Expanded(child: identity),
-                if (compact) ...[
-                  const SizedBox(width: 8),
-                  quantity,
-                  remove,
+                if (showImage) ...[
+                  _itemImage(snapshot?.image ?? group.image),
+                  const SizedBox(width: 10),
                 ],
+                Expanded(child: identity),
               ],
             ),
-            if (!compact)
+            const SizedBox(height: 8),
+            if (oneLine)
+              Row(
+                children: [
+                  quantity,
+                  remove,
+                  Expanded(
+                    child: Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: priceBlock),
+                  ),
+                ],
+              )
+            else ...[
               Wrap(
-                alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
                 children: [quantity, remove],
               ),
+              Align(
+                  alignment: AlignmentDirectional.centerEnd, child: priceBlock),
+            ],
             if (parameters.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(parameters,
                   style: AppTypography.bodySmall
-                      .copyWith(color: context.palette.textSecondary)),
+                      .copyWith(color: palette.textSecondary)),
             ],
             if (bottles != null) ...[
               const SizedBox(height: 8),
               Text('Физическая тара: $bottles',
                   style: AppTypography.bodySmall
-                      .copyWith(color: context.palette.textSecondary)),
+                      .copyWith(color: palette.textSecondary)),
               _containerCosts(group),
             ],
           ],
@@ -2789,6 +2757,7 @@ class _CheckoutPageState extends State<CheckoutPage>
           final labelWidget = Text(label,
               style: style.copyWith(color: context.palette.textSecondary));
           final valueWidget = Text(value,
+              textAlign: TextAlign.end,
               style: style.copyWith(
                   color: emphasized
                       ? context.palette.accent
@@ -2800,7 +2769,14 @@ class _CheckoutPageState extends State<CheckoutPage>
               : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(child: labelWidget),
                   const SizedBox(width: 12),
-                  Flexible(child: valueWidget)
+                  // The value keeps its natural width (the label no longer
+                  // wraps at half the row) but never more than 60 %, so a long
+                  // status wraps instead of overflowing.
+                  ConstrainedBox(
+                    constraints:
+                        BoxConstraints(maxWidth: constraints.maxWidth * 0.6),
+                    child: valueWidget,
+                  ),
                 ]);
         }),
       );

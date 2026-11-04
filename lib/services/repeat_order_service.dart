@@ -8,7 +8,6 @@ import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/order_ui_helpers.dart' as order_ui;
 import 'package:naliv_delivery/utils/smart_cart.dart';
-import 'package:naliv_delivery/utils/promotion_engine.dart';
 
 class RepeatOrderException implements Exception {
   const RepeatOrderException(this.message);
@@ -210,39 +209,9 @@ class RepeatOrderService {
         skippedItems.add('${group.name}: выбранная тара больше не продаётся');
         continue;
       }
-      if (selection?.usesPourFlow == true) {
-        // Fulfilled rows are the physical bottles, which is what a pour cart stores; the gift is
-        // derived from the litres, so no total is ever impossible.
-        recovered.addAll(group.items);
-        continue;
-      }
-      if (selectSubtractPromotion(group.promotions,
-              paidQuantity: group.totalQuantity) ==
-          null) {
-        recovered.addAll(group.items);
-        continue;
-      }
-      if (group.items.any((item) => item.selectedVariants
-          .any(SmartCartSelection.looksBottleLikeVariant))) {
-        skippedItems.add('${group.name}: магазин не передал данные тары');
-        continue;
-      }
-      final paid = subtractPromotionPaidQuantityForPhysicalQuantity(
-          group.totalQuantity, group.promotions);
-      final step = group.items.first.stepQuantity;
-      if (paid == null ||
-          !step.isFinite ||
-          step <= 0 ||
-          (paid / step - (paid / step).round()).abs() > 0.0000001) {
-        skippedItems.add('${group.name}: нельзя точно восстановить количество');
-        continue;
-      }
-      var remaining = paid;
-      for (final row in group.items) {
-        final quantity = remaining < row.quantity ? remaining : row.quantity;
-        if (quantity > 0) recovered.add(row.copyWith(quantity: quantity));
-        remaining -= quantity;
-      }
+      // Fulfilled rows are what the customer received, which is exactly what a cart stores: the
+      // gift is derived from that quantity, so no total is ever impossible.
+      recovered.addAll(group.items);
     }
     return RepeatOrderBuildResult(
       items: recovered,

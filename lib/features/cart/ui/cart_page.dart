@@ -20,6 +20,7 @@ import '../../../ui/text_width_cache.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
 import '../../../utils/smart_cart.dart';
+import '../../../utils/promotion_engine.dart';
 import '../../../pages/product_detail_page.dart';
 import '../../catalog/catalog_data_source.dart';
 import '../../product/product_navigation.dart';
@@ -525,8 +526,7 @@ class _CartRow extends StatelessWidget {
     final snapshot = group.itemSnapshot;
     final view = snapshot == null ? null : ProductView.fromItem(snapshot);
     final pour = group.selection?.usesPourFlow == true;
-    final quantity =
-        pour ? evaluated.totalOrderQuantity : evaluated.totalQuantity;
+    final quantity = evaluated.totalOrderQuantity;
     final title = view?.title ?? group.name;
     final secondary = {
       if (view?.type ?? view?.category case final category?) category,
@@ -540,19 +540,26 @@ class _CartRow extends StatelessWidget {
     final allocationIssue = evaluated.allocationIssue;
     final bottles =
         allocationIssue == null ? evaluated.bottleBreakdownLabel : null;
-    final hasDetails = configuration.isNotEmpty ||
-        bottles != null ||
-        evaluated.freeQuantity > 0 ||
-        allocationIssue != null ||
-        onEdit != null;
     final unit = snapshot?.unit?.trim().isNotEmpty == true
         ? snapshot!.unit!.trim()
         : 'шт';
+    // One more step that costs nothing is offered, never added: the customer
+    // decides whether they want the free unit.
+    final bonus = evaluated.promotion.bonusQuantity;
+    final freeOffer = bonus != null &&
+        onIncrement != null &&
+        evaluated.canIncrease &&
+        (bonus - evaluated.incrementStep).abs() <= 0.0000001;
+    final hasDetails = configuration.isNotEmpty ||
+        bottles != null ||
+        evaluated.freeQuantity > 0 ||
+        freeOffer ||
+        allocationIssue != null ||
+        onEdit != null;
     final award = evaluated.award;
     final giftCaption = award == null
         ? null
-        : 'За каждые ${formatQuantity(award.baseAmount.toDouble(), unit)} '
-            '— ${formatQuantity(award.addAmount.toDouble(), unit)} этого товара в подарок';
+        : promotionRuleText(award, (value) => formatQuantity(value, unit));
 
     final priceLabel = allocationIssue == null
         ? formatTenge(evaluated.price.totalPrice)
@@ -715,6 +722,28 @@ class _CartRow extends StatelessWidget {
                       quantityLabel: formatQuantity(group.freeQuantity, unit),
                       caption: giftCaption,
                     ),
+            if (freeOffer)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md, AppSpacing.xs, AppSpacing.md, 0),
+                  child: OutlinedButton(
+                    key: ValueKey('cart-free-offer-${group.key}'),
+                    onPressed: onIncrement,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, AppSpacing.touchTarget),
+                      foregroundColor: palette.accent,
+                      side: BorderSide(color: palette.accent),
+                      shape: const StadiumBorder(),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                    ),
+                    child: Text(
+                        '+${formatQuantity(bonus, pour ? (quantityUnitLabel(snapshot?.unit) ?? unit) : unit)} в подарок'),
+                  ),
+                ),
+              ),
             if (allocationIssue != null)
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),

@@ -179,34 +179,53 @@ void main() {
       }
     });
 
-    test('repeat never restores an extra gift from a noncanonical invoice', () {
-      final snapshot = <String, dynamic>{
-        'item_id': 9401,
-        'name': 'Товар',
-        'price': 1000,
-        'unit': 'шт',
-        'step_quantity': 1,
-        'amount': 20,
-        'promotions': [
-          {'type': 'SUBTRACT', 'base_amount': 2, 'add_amount': 1},
-          {'type': 'SUBTRACT', 'base_amount': 3, 'add_amount': 1},
-        ],
-      };
-      final original = <String, dynamic>{
-        'business_id': 7,
-        'items': [
+    test('repeat restores every fulfilled packaged quantity exactly as it is',
+        () {
+      Map<String, dynamic> snapshot(
+              int id, List<Map<String, dynamic>> promos) =>
           {
-            'item_id': snapshot['item_id'],
-            'name': snapshot['name'],
-            'amount': 5,
-            'item_data': snapshot,
-          },
-        ],
-      };
-      final result = RepeatOrderService.buildCartItemsFromOrder(original);
-      expect(result.items, isEmpty);
-      expect(result.skippedItems, hasLength(1));
-      expect((original['items'] as List).single['amount'], 5);
+            'item_id': id,
+            'name': 'Товар',
+            'price': 1000,
+            'unit': 'шт',
+            'step_quantity': 1,
+            'amount': 20,
+            'promotions': promos,
+          };
+      final threePlusOne = [
+        {'type': 'SUBTRACT', 'base_amount': 3, 'add_amount': 1},
+      ];
+      // Neither three (a 3+1 never makes three bottles a set) nor five (no whole set of
+      // either promotion) is an impossible total any more: a cart holds what was received.
+      for (final (amount, gift, price) in [
+        (3, 0.0, 3000.0),
+        (4, 1.0, 3000.0),
+        (5, 1.0, 4000.0),
+        (8, 2.0, 6000.0),
+      ]) {
+        final original = <String, dynamic>{
+          'business_id': 7,
+          'items': [
+            {
+              'item_id': 9401,
+              'name': 'Товар',
+              'amount': amount,
+              'item_data': snapshot(9401, threePlusOne),
+            },
+          ],
+        };
+        final result = RepeatOrderService.buildCartItemsFromOrder(original);
+        expect(result.skippedItems, isEmpty, reason: '$amount received');
+        expect(result.items.single.quantity, amount);
+        final cart = CartProvider();
+        expect(cart.addDisplayGroupItems(result.items), isTrue);
+        final group = cart.activeDisplayGroups.single;
+        expect(group.totalQuantity, amount);
+        expect(group.freeQuantity, gift, reason: '$amount received');
+        expect(cart.getTotalPrice(), price, reason: '$amount received');
+        expect(cart.toJsonForOrder().single['amount'], amount);
+        expect((original['items'] as List).single['amount'], amount);
+      }
     });
 
     test(
@@ -267,7 +286,10 @@ void main() {
       expect(result.skippedItems, isEmpty);
       final cart = CartProvider();
       expect(cart.addDisplayGroupItems(result.items), isTrue);
-      expect(cart.activeDisplayGroups.single.totalQuantity, 4);
+      final group = cart.activeDisplayGroups.single;
+      expect(group.totalQuantity, 6);
+      expect(group.evaluate().paidQuantity, 4);
+      expect(group.freeQuantity, 2);
       expect(cart.toJsonForOrder().single['amount'], 6);
       expect(cart.getTotalPrice(), 4000);
     });

@@ -1,5 +1,4 @@
 import 'item.dart' as item_model;
-import '../utils/promotion_engine.dart';
 import '../utils/smart_cart.dart';
 
 typedef CartPriceBreakdown = ({
@@ -17,7 +16,7 @@ class CartItem {
   final double price;
   double quantity;
   final double stepQuantity;
-  // Pour groups persist physical litres in [quantity]; the evaluation splits a row into its paid
+  // Rows persist what the customer added in [quantity]; the evaluation splits a row into its paid
   // part ([quantity]) and the gift it carries ([bottledGiftQuantity]). Persisted rows carry no gift.
   final double bottledGiftQuantity;
   double get physicalQuantity => quantity + bottledGiftQuantity;
@@ -132,17 +131,10 @@ class CartItem {
     }
   }
 
-  Map<String, dynamic> toJsonForOrder({double? freeQuantity}) {
-    if (freeQuantity == null) {
-      final snapshot = snapshotItem;
-      final pour =
-          snapshot != null && SmartCartSelection(snapshot).usesPourFlow;
-      freeQuantity =
-          pour ? 0 : subtractPromotionFreeQuantity(quantity, promotions);
-    }
+  Map<String, dynamic> toJsonForOrder() {
     return {
       'item_id': itemId,
-      'amount': physicalQuantity + freeQuantity,
+      'amount': physicalQuantity,
       'options': selectedVariants.map((variant) {
         // API ожидает option_item_relation_id
         // Ищем ID варианта в разных возможных полях
