@@ -55,6 +55,8 @@ import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
+import 'package:naliv_delivery/services/app_update_service.dart';
+import 'package:naliv_delivery/widgets/app_update_notice.dart';
 import 'package:naliv_delivery/services/push_provider.dart';
 import 'package:naliv_delivery/utils/api.dart' show ApiService;
 import 'package:naliv_delivery/utils/business_provider.dart';
@@ -86,7 +88,15 @@ enum CardFixtureScenario {
 
   /// Six chargeable cards with different masks: the payment list scrolls and
   /// its last row must clear the pay bar.
-  many
+  many,
+}
+
+enum AppUpdateFixtureScenario {
+  off,
+  android,
+  ios,
+  androidOpenFailed,
+  iosOpenFailed,
 }
 
 const surfaceFixturePreferences = <String, Object>{
@@ -150,7 +160,7 @@ const _fixtureOrder = <String, dynamic>{
   'business': {
     'id': 1,
     'name': 'Тестовый магазин',
-    'address': 'Тестовый адрес, 16'
+    'address': 'Тестовый адрес, 16',
   },
   'items': [
     {'item_id': 1, 'name': 'Тестовый напиток', 'amount': 1, 'price': 13170},
@@ -159,11 +169,11 @@ const _fixtureOrder = <String, dynamic>{
   'cost_summary': {
     'items_total': 39510,
     'delivery_fee': 900,
-    'total_sum': 40410
+    'total_sum': 40410,
   },
   'current_status': {'status': '4'},
   'order_statuses': [
-    {'status': '4', 'log_timestamp': '2026-10-01T12:00:00Z'}
+    {'status': '4', 'log_timestamp': '2026-10-01T12:00:00Z'},
   ],
 };
 
@@ -220,45 +230,49 @@ final List<ProductView> _products = [
 void _seedCart(CartProvider cart) {
   for (final (id, quantity) in [(100, 1.0), (101, 6.0), (102, 1.0)]) {
     final item = _sampleItem(id);
-    cart.addItem(CartItem(
-      itemId: id,
-      name: item.name,
-      price: item.price,
-      quantity: quantity,
-      stepQuantity: 1,
-      image: item.image,
-      selectedVariants: const [],
-      promotions: const [],
-      itemData: item.toJson(),
-    ));
+    cart.addItem(
+      CartItem(
+        itemId: id,
+        name: item.name,
+        price: item.price,
+        quantity: quantity,
+        stepQuantity: 1,
+        image: item.image,
+        selectedVariants: const [],
+        promotions: const [],
+        itemData: item.toJson(),
+      ),
+    );
   }
   // One row carries a live `2+1` promotion so the shell exercises the gift line: the customer
   // added three units, so the third is free and the row must show it at 0 ₸ with the rule.
   final gifted = _sampleItem(109);
-  cart.addItem(CartItem(
-    itemId: gifted.itemId,
-    name: gifted.name,
-    price: gifted.price,
-    quantity: 3,
-    stepQuantity: 1,
-    image: gifted.image,
-    selectedVariants: const [],
-    promotions: const [
-      {
-        'detail_id': 8692,
-        'type': 'SUBTRACT',
-        'base_amount': 2,
-        'add_amount': 1,
-        'name': '2+1',
-        'promotion': {
-          'marketing_promotion_id': 355,
-          'name': 'Выгодный розлив',
-          'end_promotion_date': '2999-01-01T00:00:00.000Z',
+  cart.addItem(
+    CartItem(
+      itemId: gifted.itemId,
+      name: gifted.name,
+      price: gifted.price,
+      quantity: 3,
+      stepQuantity: 1,
+      image: gifted.image,
+      selectedVariants: const [],
+      promotions: const [
+        {
+          'detail_id': 8692,
+          'type': 'SUBTRACT',
+          'base_amount': 2,
+          'add_amount': 1,
+          'name': '2+1',
+          'promotion': {
+            'marketing_promotion_id': 355,
+            'name': 'Выгодный розлив',
+            'end_promotion_date': '2999-01-01T00:00:00.000Z',
+          },
         },
-      },
-    ],
-    itemData: gifted.toJson(),
-  ));
+      ],
+      itemData: gifted.toJson(),
+    ),
+  );
 }
 
 // Only explicitly recognized synthetic operations are accepted; unknown calls
@@ -293,7 +307,7 @@ class SurfaceFixtureClient extends MockClient {
           {
             'id': 'fixture-card-1',
             'card_id': 'fixture-card-1',
-            'mask': '4400••••1234'
+            'mask': '4400••••1234',
           },
         if (cardScenario == CardFixtureScenario.many)
           for (final (index, mask) in const [
@@ -312,7 +326,7 @@ class SurfaceFixtureClient extends MockClient {
           {
             'id': 'fixture-card-2',
             'card_id': 'fixture-card-2',
-            'mask': '4400••••5678'
+            'mask': '4400••••5678',
           },
       ];
 
@@ -342,7 +356,8 @@ class SurfaceFixtureClient extends MockClient {
   };
 
   static List<Map<String, dynamic>> _fixtureOrderItems(
-      List<Map<String, dynamic>> rows) {
+    List<Map<String, dynamic>> rows,
+  ) {
     final groups = _orderCart?.activeDisplayGroups;
     if (groups == null) {
       throw StateError('Fixture order requires its current cart snapshot');
@@ -402,9 +417,10 @@ class SurfaceFixtureClient extends MockClient {
       consumed.add(index);
       final physical = expected[index].$3;
       final lineTotal = applyPromotionsToPaidBaseTotal(
-              unitPrice: physical.paidUnitPrice,
-              quantity: physical.quantity,
-              promotions: expected[index].$1.promotions) +
+            unitPrice: physical.paidUnitPrice,
+            quantity: physical.quantity,
+            promotions: expected[index].$1.promotions,
+          ) +
           physical.optionsTotal;
       result.add({
         ...row,
@@ -422,9 +438,20 @@ class SurfaceFixtureClient extends MockClient {
   }
 
   static Future<http.Response> _respond(
-      http.Request request, void Function(String)? onUnexpectedRequest) async {
+    http.Request request,
+    void Function(String)? onUnexpectedRequest,
+  ) async {
     final url = request.url;
     if (url.scheme != 'https') return _reject(request, onUnexpectedRequest);
+    if (request.method == 'GET' &&
+        url.toString() == 'https://app.gradusy24.kz/app-update.json' &&
+        request.headers['Accept'] == 'application/json' &&
+        !request.headers.keys.any(
+          (key) => key.toLowerCase() == 'authorization',
+        ) &&
+        request.body.isEmpty) {
+      return _json({'android': '1.2.118', 'ios': '1.2.118'});
+    }
     if (url.host == 'bm.drawbridge.kz') {
       return _chatResponse(request, onUnexpectedRequest);
     }
@@ -434,8 +461,9 @@ class SurfaceFixtureClient extends MockClient {
     final authorized =
         request.headers['Authorization'] == 'Bearer fixture-only';
     if (!authorized &&
-        request.headers.keys
-            .any((key) => key.toLowerCase() == 'authorization')) {
+        request.headers.keys.any(
+          (key) => key.toLowerCase() == 'authorization',
+        )) {
       return _reject(request, onUnexpectedRequest);
     }
     final remaining = await RemainingMilestoneFixture.respond(
@@ -455,7 +483,7 @@ class SurfaceFixtureClient extends MockClient {
           body['phone_number'] == '+70000000000') {
         return _json({
           'success': true,
-          'message': 'Синтетический код: 123456. SMS не отправляется.'
+          'message': 'Синтетический код: 123456. SMS не отправляется.',
         });
       }
       return _reject(request, onUnexpectedRequest);
@@ -472,12 +500,13 @@ class SurfaceFixtureClient extends MockClient {
           configureCards(CardFixtureScenario.loaded);
         }
         return http.Response(
-            jsonEncode({
-              'success': true,
-              'data': {'token': 'fixture-only'},
-            }),
-            202,
-            headers: {'content-type': 'application/json'});
+          jsonEncode({
+            'success': true,
+            'data': {'token': 'fixture-only'},
+          }),
+          202,
+          headers: {'content-type': 'application/json'},
+        );
       }
       return _reject(request, onUnexpectedRequest);
     }
@@ -493,7 +522,7 @@ class SurfaceFixtureClient extends MockClient {
         'data': {
           'items': [for (final id in _fixtureLikes) _sampleItem(id).toJson()],
           'pagination': {'page': 1, 'total_pages': 1},
-        }
+        },
       });
     }
     if (request.method == 'GET' &&
@@ -522,7 +551,7 @@ class SurfaceFixtureClient extends MockClient {
               for (var id = 100; id < 103; id++) _sampleItem(id).toJson(),
           ],
           'pagination': {'page': 1, 'total_pages': 1},
-        }
+        },
       });
     }
     if (authorized &&
@@ -535,10 +564,10 @@ class SurfaceFixtureClient extends MockClient {
           'user': Map<String, dynamic>.from(_fixtureUser),
           'addresses': [_fixtureAddress],
           'cards': [
-            for (final card in cards) {'mask': card['mask']}
+            for (final card in cards) {'mask': card['mask']},
           ],
           'certificates': RemainingMilestoneFixture.certificates,
-        }
+        },
       });
     }
     if (authorized &&
@@ -547,13 +576,15 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters.isEmpty) {
       final body = jsonDecode(request.body);
       if (body is Map &&
-          body.keys.every(const {
-            'name',
-            'first_name',
-            'last_name',
-            'date_of_birth',
-            'sex'
-          }.contains) &&
+          body.keys.every(
+            const {
+              'name',
+              'first_name',
+              'last_name',
+              'date_of_birth',
+              'sex',
+            }.contains,
+          ) &&
           body['name'] is String &&
           body['first_name'] is String &&
           body['date_of_birth'] is String &&
@@ -561,7 +592,7 @@ class SurfaceFixtureClient extends MockClient {
         _fixtureUser.addAll(body.cast<String, dynamic>());
         return _json({
           'success': true,
-          'data': {'user': _fixtureUser}
+          'data': {'user': _fixtureUser},
         });
       }
       return _reject(request, onUnexpectedRequest);
@@ -577,7 +608,7 @@ class SurfaceFixtureClient extends MockClient {
         if (!liked) _fixtureLikes.remove(id);
         return _json({
           'success': true,
-          'data': {'is_liked': liked}
+          'data': {'is_liked': liked},
         });
       }
     }
@@ -587,7 +618,7 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters.isEmpty) {
       return _json({
         'success': true,
-        'data': {'order': _fixtureOrder}
+        'data': {'order': _fixtureOrder},
       });
     }
     if (authorized &&
@@ -596,26 +627,32 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters['page'] == '1' &&
         (url.queryParameters['business_id'] == null ||
             const {'1', '2'}.contains(url.queryParameters['business_id'])) &&
-        url.queryParameters.keys
-            .every(const {'page', 'business_id'}.contains)) {
+        url.queryParameters.keys.every(
+          const {'page', 'business_id'}.contains,
+        )) {
       return _json({
         'success': true,
         'data': {
           'orders': [
-            ...RemainingMilestoneFixture.orders.where((order) =>
-                url.queryParameters['business_id'] == null ||
-                order['business_id'].toString() ==
-                    url.queryParameters['business_id']),
+            ...RemainingMilestoneFixture.orders.where(
+              (order) =>
+                  url.queryParameters['business_id'] == null ||
+                  order['business_id'].toString() ==
+                      url.queryParameters['business_id'],
+            ),
             _fixtureOrder,
-          ]
-        }
+          ],
+        },
       });
     }
     if (authorized &&
         request.method == 'GET' &&
         url.path == '/api/certificates' &&
-        {'active', 'redeemed', 'canceled'}
-            .contains(url.queryParameters['status']) &&
+        {
+          'active',
+          'redeemed',
+          'canceled',
+        }.contains(url.queryParameters['status']) &&
         url.queryParameters['limit'] == '50' &&
         url.queryParameters['offset'] == '0' &&
         url.queryParameters.length == 3) {
@@ -629,9 +666,9 @@ class SurfaceFixtureClient extends MockClient {
               'code': 'FIXT-URE0-0000-0001',
               'balance': status == 'active' ? 10000 : 0,
               'initial_amount': 10000,
-              'status': status
+              'status': status,
             },
-          ]
+          ],
         },
       });
     }
@@ -641,8 +678,10 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters.isEmpty) {
       final body = jsonDecode(request.body);
       if (body is Map && body.length == 1 && body['code'] is String) {
-        return _json(
-            {'success': false, 'error': 'Фикстура: сертификат не найден'});
+        return _json({
+          'success': false,
+          'error': 'Фикстура: сертификат не найден',
+        });
       }
     }
     if (authorized &&
@@ -666,8 +705,11 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters['source'] == 'halyk' &&
         url.queryParameters.length == 1) {
       if (cardScenario == CardFixtureScenario.authentication) {
-        return http.Response('{"success":false}', 401,
-            headers: {'content-type': 'application/json'});
+        return http.Response(
+          '{"success":false}',
+          401,
+          headers: {'content-type': 'application/json'},
+        );
       }
       if (cardScenario == CardFixtureScenario.readTimeout &&
           !_cardScenarioConsumed) {
@@ -682,7 +724,7 @@ class SurfaceFixtureClient extends MockClient {
             if (cardScenario == CardFixtureScenario.partial ||
                 cardScenario == CardFixtureScenario.invalid)
               {'mask': '4400••••9999'}, // Summary-only: cannot be charged.
-          ]
+          ],
         },
       });
     }
@@ -700,13 +742,13 @@ class SurfaceFixtureClient extends MockClient {
               'bonusId': 1,
               'organizationId': 1,
               'amount': 250,
-              'timestamp': '2026-10-01T12:00:00Z'
+              'timestamp': '2026-10-01T12:00:00Z',
             },
             {
               'bonusId': 2,
               'organizationId': 1,
               'amount': -100,
-              'timestamp': '2026-09-29T12:00:00Z'
+              'timestamp': '2026-09-29T12:00:00Z',
             },
           ],
         },
@@ -719,7 +761,7 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters.length == 1) {
       return _json({
         'success': true,
-        'data': {'orders': []}
+        'data': {'orders': []},
       });
     }
     if (request.method == 'GET' &&
@@ -762,7 +804,7 @@ class SurfaceFixtureClient extends MockClient {
           'address': url.pathSegments.last == '1'
               ? _sampleAddress
               : 'Другой тестовый адрес, 20',
-          'city_id': 2
+          'city_id': 2,
         },
       });
     }
@@ -774,7 +816,7 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters.length == 3) {
       return _json({
         'success': true,
-        'data': {'promotions': []}
+        'data': {'promotions': []},
       });
     }
     if (request.method == 'GET' &&
@@ -797,7 +839,7 @@ class SurfaceFixtureClient extends MockClient {
         double.tryParse(url.queryParameters['lon'] ?? '')?.isFinite == true) {
       return _json({
         'success': true,
-        'data': [_fixtureAddressFeature]
+        'data': [_fixtureAddressFeature],
       });
     }
     if (request.method == 'GET' &&
@@ -813,13 +855,14 @@ class SurfaceFixtureClient extends MockClient {
       return _json({
         'success': true,
         'data': {
-          'features': [_fixtureAddressFeature]
-        }
+          'features': [_fixtureAddressFeature],
+        },
       });
     }
     if (request.method != 'GET' ||
-        request.headers.keys
-            .any((key) => key.toLowerCase() == 'authorization')) {
+        request.headers.keys.any(
+          (key) => key.toLowerCase() == 'authorization',
+        )) {
       return _reject(request, onUnexpectedRequest);
     }
     if (url.path == '/api/categories/supercategories' &&
@@ -834,7 +877,7 @@ class SurfaceFixtureClient extends MockClient {
               'description': 'Готовые блюда',
               'priority': 100,
               'categories': [
-                {'category_id': 90, 'name': 'Готовые блюда'}
+                {'category_id': 90, 'name': 'Готовые блюда'},
               ],
             },
             {
@@ -883,7 +926,7 @@ class SurfaceFixtureClient extends MockClient {
                 'name': name,
                 'priority': 90 - id,
                 'categories': [
-                  {'category_id': 30 + id, 'name': name}
+                  {'category_id': 30 + id, 'name': name},
                 ],
               },
           ],
@@ -933,7 +976,7 @@ class SurfaceFixtureClient extends MockClient {
               '218',
               '219',
               '220',
-              '221'
+              '221',
             }.contains(url.pathSegments[2]))
               for (var id = 100; id < 109; id++) _sampleItem(id).toJson(),
           ],
@@ -951,12 +994,14 @@ class SurfaceFixtureClient extends MockClient {
       'content': 'Здравствуйте! Чем можем помочь?',
       'fromMe': true,
       'timestamp': '2026-10-01T12:00:00Z',
-      'senderUser': {'name': 'Поддержка · фикстура'}
+      'senderUser': {'name': 'Поддержка · фикстура'},
     },
   ];
 
   static Future<http.Response> _chatResponse(
-      http.Request request, void Function(String)? onUnexpectedRequest) async {
+    http.Request request,
+    void Function(String)? onUnexpectedRequest,
+  ) async {
     final url = request.url;
     if (request.method == 'PATCH' &&
         url.path == '$_chatBase/sessions/fixture-session/profile' &&
@@ -966,7 +1011,8 @@ class SurfaceFixtureClient extends MockClient {
       if (body is Map &&
           body.isNotEmpty &&
           body.keys.every(
-              (key) => key == 'name' || key == 'phone' || key == 'email') &&
+            (key) => key == 'name' || key == 'phone' || key == 'email',
+          ) &&
           body.values.every((value) => value is String)) {
         return _json({'success': true});
       }
@@ -977,22 +1023,23 @@ class SurfaceFixtureClient extends MockClient {
       return _json({
         'widget': {
           'name': 'Поддержка',
-          'welcomeMessage': 'Напишите вопрос по заказу или оплате'
-        }
+          'welcomeMessage': 'Напишите вопрос по заказу или оплате',
+        },
       });
     }
     if (url.path == '$_chatBase/sessions/fixture-session/messages' &&
         request.headers['Authorization'] == 'Bearer fixture-chat') {
       if (request.method == 'GET' &&
           url.queryParameters['limit'] == '100' &&
-          url.queryParameters.keys
-              .every((key) => key == 'limit' || key == 'afterId')) {
+          url.queryParameters.keys.every(
+            (key) => key == 'limit' || key == 'afterId',
+          )) {
         final after = int.tryParse(url.queryParameters['afterId'] ?? '') ?? 0;
         return _json({
           'messages': [
             for (final message in _chatMessages)
               if ((message['id'] as int) > after) message,
-          ]
+          ],
         });
       }
       if (request.method == 'POST' && url.queryParameters.isEmpty) {
@@ -1006,8 +1053,11 @@ class SurfaceFixtureClient extends MockClient {
             'status': 'sent',
           };
           _chatMessages.add(message);
-          return http.Response(jsonEncode({'message': message}), 201,
-              headers: {'content-type': 'application/json; charset=utf-8'});
+          return http.Response(
+            jsonEncode({'message': message}),
+            201,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
         }
       }
     }
@@ -1021,7 +1071,9 @@ class SurfaceFixtureClient extends MockClient {
       );
 
   static Future<http.Response> _reject(
-      http.Request request, void Function(String)? onUnexpectedRequest) {
+    http.Request request,
+    void Function(String)? onUnexpectedRequest,
+  ) {
     final message =
         'Unrecognized fixture HTTP request: ${request.method} ${request.url}';
     unexpectedRequests.add(message);
@@ -1041,6 +1093,7 @@ class DesignSurfaceApp extends StatefulWidget {
     this.textScaler = TextScaler.noScaling,
     this.viewInsets = EdgeInsets.zero,
     this.cardScenario = CardFixtureScenario.loaded,
+    this.updateScenario = AppUpdateFixtureScenario.off,
     super.key,
   });
 
@@ -1051,6 +1104,7 @@ class DesignSurfaceApp extends StatefulWidget {
   final TextScaler textScaler;
   final EdgeInsets viewInsets;
   final CardFixtureScenario cardScenario;
+  final AppUpdateFixtureScenario updateScenario;
 
   @override
   State<DesignSurfaceApp> createState() => _DesignSurfaceAppState();
@@ -1062,6 +1116,9 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
   final BusinessProvider _business = BusinessProvider();
   late final Future<void> _businessReady = _prepareSurface();
   var _navigatorKey = GlobalKey<NavigatorState>();
+  var _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  Key _updateNoticeKey = UniqueKey();
+  late AppUpdateService _updateService;
   late String _surface = widget.surface;
   ChatApiService? _chatService;
   late ProfileAccount? _profileAccount =
@@ -1073,12 +1130,66 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
   @override
   void initState() {
     super.initState();
-    _restorePushProvider =
-        NotificationService.installProvider(InMemoryPushProvider());
-    SurfaceFixtureClient.configureCards(widget.surface == 'payment_kaspi'
-        ? CardFixtureScenario.empty
-        : widget.cardScenario);
+    _restorePushProvider = NotificationService.installProvider(
+      InMemoryPushProvider(),
+    );
+    SurfaceFixtureClient.configureCards(
+      widget.surface == 'payment_kaspi'
+          ? CardFixtureScenario.empty
+          : widget.cardScenario,
+    );
     SurfaceFixtureClient.useCartForOrders(_cart);
+    _updateService = _createUpdateService();
+  }
+
+  AppUpdateService _createUpdateService() {
+    final scenario = widget.updateScenario;
+    final platform = switch (scenario) {
+      AppUpdateFixtureScenario.off => null,
+      AppUpdateFixtureScenario.android ||
+      AppUpdateFixtureScenario.androidOpenFailed =>
+        AppUpdatePlatform.android,
+      AppUpdateFixtureScenario.ios ||
+      AppUpdateFixtureScenario.iosOpenFailed =>
+        AppUpdatePlatform.ios,
+    };
+    final messenger = _messengerKey;
+    return AppUpdateService(
+      platform: platform,
+      installedVersion: () async => '1.2.117',
+      openUrl: (uri) async {
+        final expected = platform == AppUpdatePlatform.android
+            ? 'https://play.google.com/store/apps/details?id=kz.gradusy24.app'
+            : 'https://apps.apple.com/kz/app/id6473792920';
+        if (platform == null || uri.toString() != expected) {
+          final message = 'Unexpected fixture update store URI: $uri';
+          SurfaceFixtureClient.unexpectedRequests.add(message);
+          throw StateError(message);
+        }
+        if (scenario == AppUpdateFixtureScenario.androidOpenFailed ||
+            scenario == AppUpdateFixtureScenario.iosOpenFailed) {
+          return false;
+        }
+        if (!mounted || !identical(messenger, _messengerKey)) return false;
+        messenger.currentState!.showSnackBar(
+          SnackBar(
+            content: Text(
+              platform == AppUpdatePlatform.android
+                  ? 'Фикстура Google Play · kz.gradusy24.app'
+                  : 'Фикстура App Store · 6473792920',
+            ),
+          ),
+        );
+        return true;
+      },
+    );
+  }
+
+  void _resetNavigation() {
+    _navigatorKey = GlobalKey<NavigatorState>();
+    _messengerKey = GlobalKey<ScaffoldMessengerState>();
+    _updateNoticeKey = UniqueKey();
+    _updateService = _createUpdateService();
   }
 
   Future<void> _prepareSurface() async {
@@ -1146,19 +1257,26 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
   void didUpdateWidget(DesignSurfaceApp oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.cardScenario != oldWidget.cardScenario) {
-      SurfaceFixtureClient.configureCards(widget.surface == 'payment_kaspi'
-          ? CardFixtureScenario.empty
-          : widget.cardScenario);
-      _navigatorKey = GlobalKey<NavigatorState>();
+      SurfaceFixtureClient.configureCards(
+        widget.surface == 'payment_kaspi'
+            ? CardFixtureScenario.empty
+            : widget.cardScenario,
+      );
+      _resetNavigation();
+    }
+    if (widget.updateScenario != oldWidget.updateScenario) {
+      _resetNavigation();
     }
     if (widget.surface != oldWidget.surface && _surface != widget.surface) {
       if (_surface == 'payment_kaspi' || widget.surface == 'payment_kaspi') {
-        SurfaceFixtureClient.configureCards(widget.surface == 'payment_kaspi'
-            ? CardFixtureScenario.empty
-            : widget.cardScenario);
+        SurfaceFixtureClient.configureCards(
+          widget.surface == 'payment_kaspi'
+              ? CardFixtureScenario.empty
+              : widget.cardScenario,
+        );
       }
       _surface = widget.surface;
-      _navigatorKey = GlobalKey<NavigatorState>();
+      _resetNavigation();
       if (_surface != 'support') _chatService = null;
       _quoteFailureConfigured = false;
       if ((_surface == 'cart' || _surface.startsWith('checkout_')) &&
@@ -1171,9 +1289,11 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
     if (widget.brightness != oldWidget.brightness) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _theme.setMode(widget.brightness == Brightness.dark
-              ? ThemeMode.dark
-              : ThemeMode.light);
+          _theme.setMode(
+            widget.brightness == Brightness.dark
+                ? ThemeMode.dark
+                : ThemeMode.light,
+          );
         }
       });
     }
@@ -1191,13 +1311,15 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
 
   void _select(String surface, {bool notifyParent = true}) {
     if (_surface == 'payment_kaspi' || surface == 'payment_kaspi') {
-      SurfaceFixtureClient.configureCards(surface == 'payment_kaspi'
-          ? CardFixtureScenario.empty
-          : widget.cardScenario);
+      SurfaceFixtureClient.configureCards(
+        surface == 'payment_kaspi'
+            ? CardFixtureScenario.empty
+            : widget.cardScenario,
+      );
     }
     setState(() {
       _surface = surface;
-      _navigatorKey = GlobalKey<NavigatorState>();
+      _resetNavigation();
       _quoteFailureConfigured = false;
       if ((surface == 'cart' || surface.startsWith('checkout_')) &&
           !_cart.hasActiveItems) {
@@ -1221,6 +1343,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         child: Consumer<ThemeController>(
           builder: (context, theme, _) => MaterialApp(
             navigatorKey: _navigatorKey,
+            scaffoldMessengerKey: _messengerKey,
             debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
@@ -1238,9 +1361,10 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
               data: MediaQuery.of(context).copyWith(
                 size: widget.size,
                 padding: designSurfaceInsets.copyWith(
-                    bottom: widget.viewInsets.bottom > 0
-                        ? 0
-                        : designSurfaceInsets.bottom),
+                  bottom: widget.viewInsets.bottom > 0
+                      ? 0
+                      : designSurfaceInsets.bottom,
+                ),
                 viewPadding: designSurfaceInsets,
                 viewInsets: widget.viewInsets,
                 textScaler: widget.textScaler,
@@ -1256,7 +1380,8 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
                   snapshot.connectionState == ConnectionState.done
                       ? _page(context)
                       : const Scaffold(
-                          body: Center(child: CircularProgressIndicator())),
+                          body: Center(child: CircularProgressIndicator()),
+                        ),
             ),
           ),
         ),
@@ -1272,7 +1397,9 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       );
 
   Future<void> _openProfileDestination(
-      BuildContext context, AppDestination destination) async {
+    BuildContext context,
+    AppDestination destination,
+  ) async {
     if (_profileAccount == null &&
         const {
           AppDestination.orders,
@@ -1294,7 +1421,8 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           onCart: () => _showFixtureCart(context),
           onOpenOrder: (order) => Navigator.of(context).push<void>(
             MaterialPageRoute(
-                builder: (_) => _fixtureOrderPage(context, order)),
+              builder: (_) => _fixtureOrderPage(context, order),
+            ),
           ),
         );
       case AppDestination.certificates:
@@ -1318,7 +1446,9 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         );
       case AppDestination.favorites:
         page = FavoritesPage(
-            businessId: 1, onCart: () => _showFixtureCart(context));
+          businessId: 1,
+          onCart: () => _showFixtureCart(context),
+        );
       case AppDestination.notifications:
         page = const NotificationSettingsPage();
       case AppDestination.bonuses:
@@ -1334,9 +1464,9 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         return;
     }
     if (context.mounted) {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(builder: (_) => page),
-      );
+      await Navigator.of(
+        context,
+      ).push<void>(MaterialPageRoute(builder: (_) => page));
     }
   }
 
@@ -1357,8 +1487,13 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           _surface == 'checkout_pickup' ? 'PICKUP' : 'DELIVERY',
       initialAddress: _fixtureAddress,
       onCatalog: () => _select('catalog'),
-      addressPicker: (context, address, detailsFirst,
-              {String? city, ({double lat, double lon})? fallbackCenter}) =>
+      addressPicker: (
+        context,
+        address,
+        detailsFirst, {
+        String? city,
+        ({double lat, double lon})? fallbackCenter,
+      }) =>
           AddressSelectionModalHelper.show(
         context,
         initialAddress: address,
@@ -1378,18 +1513,22 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         onSupport: (resolved) => _openFixtureSupport(context, order: resolved),
       );
 
-  Future<void> _openFixtureSupport(BuildContext context,
-      {Map<String, dynamic>? order}) async {
-    await Navigator.of(context).push<void>(MaterialPageRoute(
-      builder: (_) => HelpChatPage(
-        order: order,
-        entryPoint: order == null ? 'profile' : 'order_detail',
-        chatService: ChatApiService(
-          client: SurfaceFixtureClient(),
-          enableSocket: false,
+  Future<void> _openFixtureSupport(
+    BuildContext context, {
+    Map<String, dynamic>? order,
+  }) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => HelpChatPage(
+          order: order,
+          entryPoint: order == null ? 'profile' : 'order_detail',
+          chatService: ChatApiService(
+            client: SurfaceFixtureClient(),
+            enableSocket: false,
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _page(BuildContext context) {
@@ -1414,11 +1553,15 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
               builder: (_) => const HomeStoreSheet(
                 stores: [
                   HomeStore(
-                      id: 1, name: 'Тестовый магазин', address: _sampleAddress),
+                    id: 1,
+                    name: 'Тестовый магазин',
+                    address: _sampleAddress,
+                  ),
                   HomeStore(
-                      id: 2,
-                      name: 'Второй тестовый магазин',
-                      address: 'Другой тестовый адрес, 20'),
+                    id: 2,
+                    name: 'Второй тестовый магазин',
+                    address: 'Другой тестовый адрес, 20',
+                  ),
                 ],
                 selectedId: 1,
               ),
@@ -1434,105 +1577,129 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           onSignIn: () => _select('sign_in'),
         );
       case 'catalog':
-        return _withFixtureBack(SupercategoryPage(
-          supercategoryId: 1,
-          businessId: _business.selectedBusinessId ?? 1,
-          title: 'Слабоалкогольные напитки',
-          onSearch: () => _select('search'),
-          onCart: () => _select('cart'),
-        ));
+        return _withFixtureBack(
+          SupercategoryPage(
+            supercategoryId: 1,
+            businessId: _business.selectedBusinessId ?? 1,
+            title: 'Слабоалкогольные напитки',
+            onSearch: () => _select('search'),
+            onCart: () => _select('cart'),
+          ),
+        );
       case 'all_products':
-        return _withFixtureBack(CategoryProductsPage(
-          categoryId: 11,
-          title: 'Белое',
-          group: const CategoryRef(
-            id: 2,
-            name: 'Вино',
-            parentName: 'Слабоалкогольные напитки',
-            children: [
-              CategoryRef(id: 10, name: 'Аперитив', parentId: 2),
-              CategoryRef(id: 11, name: 'Белое', parentId: 2),
-              CategoryRef(id: 12, name: 'Розовое', parentId: 2),
-            ],
+        return _withFixtureBack(
+          CategoryProductsPage(
+            categoryId: 11,
+            title: 'Белое',
+            group: const CategoryRef(
+              id: 2,
+              name: 'Вино',
+              parentName: 'Слабоалкогольные напитки',
+              children: [
+                CategoryRef(id: 10, name: 'Аперитив', parentId: 2),
+                CategoryRef(id: 11, name: 'Белое', parentId: 2),
+                CategoryRef(id: 12, name: 'Розовое', parentId: 2),
+              ],
+            ),
+            businessId: _business.selectedBusinessId ?? 1,
+            initialItems: _products,
+            onSearch: () => _select('search'),
+            onCart: () => _select('cart'),
           ),
-          businessId: _business.selectedBusinessId ?? 1,
-          initialItems: _products,
-          onSearch: () => _select('search'),
-          onCart: () => _select('cart'),
-        ));
+        );
       case 'product':
-        return _withFixtureBack(ProductPage(
-          view: _products.first,
-          businessId: _business.selectedBusinessId ?? 1,
-          onLike: () => toggleItemLike(context,
-              businessId: _business.selectedBusinessId ?? 1, itemId: 100),
-          onCart: () => _select('cart'),
-        ));
-      case 'cart':
-        return _withFixtureBack(CartPage(
-          businessId: _business.selectedBusinessId ?? 1,
-          address: _sampleAddress,
-          onCatalog: () => _select('catalog'),
-          onCheckout: () => Navigator.of(context).push<void>(MaterialPageRoute(
-            builder: (_) => _fixtureCheckout(context),
-          )),
-        ));
-      case 'profile':
-        return _withFixtureBack(ProfilePage(
-          account: _profileAccount,
-          loadAccount: _loadFixtureAccount,
-          onLogout: () async {
-            await AuthService.clearToken();
-            _profileAccount = null;
-            _select('home');
-          },
-          onNavigate: (destination) =>
-              _openProfileDestination(context, destination),
-        ));
-      case 'profile_guest':
-        return _withFixtureBack(ProfilePage(
-          loadAccount: _loadFixtureAccount,
-          onSignIn: () async => _select('sign_in'),
-          onLogout: () async {
-            await AuthService.clearToken();
-            _profileAccount = null;
-            _select('home');
-          },
-          onNavigate: (destination) =>
-              _openProfileDestination(context, destination),
-        ));
-      case 'promotion':
-        return _withFixtureBack(PromotionItemsPage(
-          promotionId: 7,
-          promotionName: 'Предложения недели',
-          businessId: 1,
-          initialItems: [for (var id = 100; id < 109; id++) _sampleItem(id)],
-          onCart: () => _select('cart'),
-        ));
-      case 'orders':
-        return _withFixtureBack(OrdersPage(
-          businessId: 1,
-          onCart: () => _select('cart'),
-          onOpenOrder: (order) => Navigator.of(context).push<void>(
-            MaterialPageRoute(
-                builder: (_) => _fixtureOrderPage(context, order)),
+        return _withFixtureBack(
+          ProductPage(
+            view: _products.first,
+            businessId: _business.selectedBusinessId ?? 1,
+            onLike: () => toggleItemLike(
+              context,
+              businessId: _business.selectedBusinessId ?? 1,
+              itemId: 100,
+            ),
+            onCart: () => _select('cart'),
           ),
-        ));
+        );
+      case 'cart':
+        return _withFixtureBack(
+          CartPage(
+            businessId: _business.selectedBusinessId ?? 1,
+            address: _sampleAddress,
+            onCatalog: () => _select('catalog'),
+            onCheckout: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => _fixtureCheckout(context)),
+            ),
+          ),
+        );
+      case 'profile':
+        return _withFixtureBack(
+          ProfilePage(
+            account: _profileAccount,
+            loadAccount: _loadFixtureAccount,
+            onLogout: () async {
+              await AuthService.clearToken();
+              _profileAccount = null;
+              _select('home');
+            },
+            onNavigate: (destination) =>
+                _openProfileDestination(context, destination),
+          ),
+        );
+      case 'profile_guest':
+        return _withFixtureBack(
+          ProfilePage(
+            loadAccount: _loadFixtureAccount,
+            onSignIn: () async => _select('sign_in'),
+            onLogout: () async {
+              await AuthService.clearToken();
+              _profileAccount = null;
+              _select('home');
+            },
+            onNavigate: (destination) =>
+                _openProfileDestination(context, destination),
+          ),
+        );
+      case 'promotion':
+        return _withFixtureBack(
+          PromotionItemsPage(
+            promotionId: 7,
+            promotionName: 'Предложения недели',
+            businessId: 1,
+            initialItems: [for (var id = 100; id < 109; id++) _sampleItem(id)],
+            onCart: () => _select('cart'),
+          ),
+        );
+      case 'orders':
+        return _withFixtureBack(
+          OrdersPage(
+            businessId: 1,
+            onCart: () => _select('cart'),
+            onOpenOrder: (order) => Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => _fixtureOrderPage(context, order),
+              ),
+            ),
+          ),
+        );
       case 'order_detail':
         return _withFixtureBack(_fixtureOrderPage(context, _fixtureOrder));
       case 'support':
-        return _withFixtureBack(HelpChatPage(
-          entryPoint: 'profile',
-          chatService: _chatService ??= ChatApiService(
-            client: SurfaceFixtureClient(),
-            enableSocket: false,
+        return _withFixtureBack(
+          HelpChatPage(
+            entryPoint: 'profile',
+            chatService: _chatService ??= ChatApiService(
+              client: SurfaceFixtureClient(),
+              enableSocket: false,
+            ),
           ),
-        ));
+        );
       case 'certificates':
-        return _withFixtureBack(CertificatesPage(
-          openCardForm: (uri) => _openFixtureCardForm(context, uri),
-          onCart: () => _select('cart'),
-        ));
+        return _withFixtureBack(
+          CertificatesPage(
+            openCardForm: (uri) => _openFixtureCardForm(context, uri),
+            onCart: () => _select('cart'),
+          ),
+        );
       case 'onboarding':
         return OnboardingPage(
           initialCity: 'Караганда',
@@ -1550,85 +1717,109 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           ),
         );
       case 'addresses':
-        return _withFixtureBack(ProfileAddressesPage(
-          tileProvider: _tiles,
-          locate: _locateFixtureAddress,
-        ));
+        return _withFixtureBack(
+          ProfileAddressesPage(
+            tileProvider: _tiles,
+            locate: _locateFixtureAddress,
+          ),
+        );
       case 'address_map':
         return _withFixtureBack(_fixtureMapPage());
       case 'address_details':
-        return _withFixtureBack(AddressDetailsPage(
-          address: 'Тестовый адрес, 16',
-          city: 'Караганда',
-          initialEntrance: '2',
-          initialFloor: '7',
-          initialApartment: '45',
-          onChangeAddress: (_) async => null,
-        ));
+        return _withFixtureBack(
+          AddressDetailsPage(
+            address: 'Тестовый адрес, 16',
+            city: 'Караганда',
+            initialEntrance: '2',
+            initialFloor: '7',
+            initialApartment: '45',
+            onChangeAddress: (_) async => null,
+          ),
+        );
       case 'cards':
-        return _withFixtureBack(ProfileCardsPage(
-          openCardForm: (uri) => _openFixtureCardForm(context, uri),
-        ));
+        return _withFixtureBack(
+          ProfileCardsPage(
+            openCardForm: (uri) => _openFixtureCardForm(context, uri),
+          ),
+        );
       case 'payment_method':
       case 'payment_kaspi':
-        return _withFixtureBack(PaymentMethodPage(
-          orderData: const {
-            'order_id': 'fixture-order',
-            'payable_amount': 1200
-          },
-          openCardForm: (uri) => _openFixtureCardForm(context, uri),
-        ));
+        return _withFixtureBack(
+          PaymentMethodPage(
+            orderData: const {
+              'order_id': 'fixture-order',
+              'payable_amount': 1200,
+            },
+            openCardForm: (uri) => _openFixtureCardForm(context, uri),
+          ),
+        );
       case 'checkout_delivery':
       case 'checkout_pickup':
       case 'checkout_error':
         return _withFixtureBack(_fixtureCheckout(context));
       case 'certificate_purchase':
-        return _withFixtureBack(_CertificatePurchasePreview(
-          openCardForm: (uri) => _openFixtureCardForm(context, uri),
-          onIssued: () => _select('certificates'),
-        ));
+        return _withFixtureBack(
+          _CertificatePurchasePreview(
+            openCardForm: (uri) => _openFixtureCardForm(context, uri),
+            onIssued: () => _select('certificates'),
+          ),
+        );
       case 'product_options':
       case 'product_pour':
-        return _withFixtureBack(ProductDetailPage(
-          item: _surface == 'product_pour'
-              ? fixturePourItem()
-              : fixtureOptionItem(),
-          businessId: 1,
-          onCart: () => _showFixtureCart(context),
-        ));
+        return _withFixtureBack(
+          ProductDetailPage(
+            item: _surface == 'product_pour'
+                ? fixturePourItem()
+                : fixtureOptionItem(),
+            businessId: 1,
+            onCart: () => _showFixtureCart(context),
+          ),
+        );
       case 'product_pour_real':
       case 'product_pour_gift':
       case 'product_pour_three_plus_one':
       case 'product_pour_fractional':
       case 'product_replacement':
-        return _withFixtureBack(ProductDetailPage(
-          item: _surface == 'product_pour_real'
-              ? capturedPourSurfaceItem()
-              : _surface == 'product_pour_three_plus_one'
-                  ? syntheticThreePlusOneSurfaceItem()
-                  : _surface == 'product_pour_gift'
-                      ? capturedPourSurfaceItem(gift: true)
-                      : fractionalPourSurfaceItem(
-                          replacement: _surface == 'product_replacement'),
-          businessId: 1,
-          onCart: () => _showFixtureCart(context),
-        ));
+        return _withFixtureBack(
+          ProductDetailPage(
+            item: _surface == 'product_pour_real'
+                ? capturedPourSurfaceItem()
+                : _surface == 'product_pour_three_plus_one'
+                    ? syntheticThreePlusOneSurfaceItem()
+                    : _surface == 'product_pour_gift'
+                        ? capturedPourSurfaceItem(gift: true)
+                        : fractionalPourSurfaceItem(
+                            replacement: _surface == 'product_replacement',
+                          ),
+            businessId: 1,
+            onCart: () => _showFixtureCart(context),
+          ),
+        );
       case 'search':
-        return _withFixtureBack(SearchPage(
+        return _withFixtureBack(
+          SearchPage(
             businessId: _business.selectedBusinessId ?? 1,
-            onCart: () => _select('cart')));
+            onCart: () => _select('cart'),
+          ),
+        );
       case 'favorites':
-        return _withFixtureBack(FavoritesPage(
+        return _withFixtureBack(
+          FavoritesPage(
             businessId: _business.selectedBusinessId ?? 1,
-            onCart: () => _select('cart')));
+            onCart: () => _select('cart'),
+          ),
+        );
       case 'bonus_history':
-        return _withFixtureBack(BonusHistoryPage(
-          onHowItWorks: () => _select('bonus_explainer'),
-          onCart: () => _select('cart'),
-        ));
+        return _withFixtureBack(
+          BonusHistoryPage(
+            onHowItWorks: () => _select('bonus_explainer'),
+            onCart: () => _select('cart'),
+          ),
+        );
       case 'bonus_explainer':
         return _withFixtureBack(
-            BonusHowItWorksPage(onOpenFaq: () => _select('faq')));
+          BonusHowItWorksPage(onOpenFaq: () => _select('faq')),
+        );
       case 'faq':
         return _withFixtureBack(const FaqPage());
       case 'notifications':
@@ -1645,12 +1836,15 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       case 'startup':
         return const AppLoadingScreen(message: 'Подготавливаем приложение');
       case 'active_route':
-        return const AuthenticationWrapper();
+        return AppUpdateNotice(
+          key: _updateNoticeKey,
+          service: _updateService,
+          child: const AuthenticationWrapper(),
+        );
       case 'payment_success':
-        return _withFixtureBack(const PaymentSuccessPage(
-          orderId: '45',
-          businessId: 1,
-        ));
+        return _withFixtureBack(
+          const PaymentSuccessPage(orderId: '45', businessId: 1),
+        );
       default:
         throw StateError('Unknown design surface $_surface');
     }
@@ -1706,8 +1900,6 @@ class _CertificatePurchasePreviewState
   }
 
   @override
-  Widget build(BuildContext context) => CertificatesPage(
-        onBuy: _open,
-        openCardForm: widget.openCardForm,
-      );
+  Widget build(BuildContext context) =>
+      CertificatesPage(onBuy: _open, openCardForm: widget.openCardForm);
 }

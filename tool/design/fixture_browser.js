@@ -13,6 +13,7 @@ export async function openFixture(browser, {
   guest = false,
   cards = 'loaded',
   payment = 'completed',
+  updates = 'off',
 } = {}) {
   if (!name) throw new Error('A unique owned tab name is required.');
   const url = new URL(baseUrl);
@@ -27,7 +28,7 @@ export async function openFixture(browser, {
   }
   url.search = new URLSearchParams({
     surface, theme, scale: String(scale), keyboard: String(keyboard),
-    cards, payment, ...(guest ? {guest: '1'} : {}),
+    cards, payment, updates, ...(guest ? {guest: '1'} : {}),
   }).toString();
   const viewport = {width, height, deviceScaleFactor: 2};
   const tab = await browser.open({

@@ -14,75 +14,96 @@ import 'design/surface_manifest.dart';
 void main() {
   // Initialize the binding *inside* the HTTP zone so scheduled frames inherit the
   // strict fixture client. Preferences remain in memory, not the device account.
-  http.runWithClient(() {
-    NotificationService.installProvider(InMemoryPushProvider());
-    WidgetsFlutterBinding.ensureInitialized();
-    // This entry point is fixture-only; no device credentials or consent are read.
-    // Synthetic credentials only; the strict transport rejects unknown requests.
-    final query = Uri.base.queryParameters;
-    // ignore: invalid_use_of_visible_for_testing_member
-    SharedPreferences.setMockInitialValues({
-      ...surfaceFixturePreferences,
-    }..removeWhere((key, _) => query['guest'] == '1' && key == 'auth_token'));
-    try {
-      final options = FixtureOptions.parse(query,
+  http.runWithClient(
+    () {
+      NotificationService.installProvider(InMemoryPushProvider());
+      WidgetsFlutterBinding.ensureInitialized();
+      // This entry point is fixture-only; no device credentials or consent are read.
+      // Synthetic credentials only; the strict transport rejects unknown requests.
+      final query = Uri.base.queryParameters;
+      // ignore: invalid_use_of_visible_for_testing_member
+      SharedPreferences.setMockInitialValues(
+        {...surfaceFixturePreferences}..removeWhere(
+            (key, _) => query['guest'] == '1' && key == 'auth_token',
+          ),
+      );
+      try {
+        final options = FixtureOptions.parse(
+          query,
           cardScenarios: CardFixtureScenario.values.map((value) => value.name),
-          paymentScenarios:
-              PaymentFixtureScenario.values.map((value) => value.name));
-      RemainingMilestoneFixture.paymentScenario =
-          PaymentFixtureScenario.values.byName(options.payment);
-      final selected = options.surface;
-      runApp(selected != null
-          ? LayoutBuilder(
-              builder: (context, constraints) => DesignSurfaceApp(
-                surface: selected,
-                brightness: options.theme == 'light'
-                    ? Brightness.light
-                    : Brightness.dark,
-                size: constraints.biggest,
-                textScaler: TextScaler.linear(options.textScale),
-                viewInsets: EdgeInsets.only(bottom: options.keyboardInset),
-                cardScenario: CardFixtureScenario.values.byName(options.cards),
-              ),
-            )
-          : const _FixtureGallery());
-    } on FormatException catch (error) {
-      runApp(MaterialApp(
-        theme: ThemeData.dark(),
-        home: Scaffold(
-          appBar: AppBar(title: const Text('Fixture configuration')),
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Semantics(
-                    liveRegion: true,
-                    label: 'Invalid fixture configuration',
-                    child: const Text('Invalid fixture configuration'),
+          paymentScenarios: PaymentFixtureScenario.values.map(
+            (value) => value.name,
+          ),
+          updateScenarios: AppUpdateFixtureScenario.values.map(
+            (value) => value.name,
+          ),
+        );
+        RemainingMilestoneFixture.paymentScenario =
+            PaymentFixtureScenario.values.byName(options.payment);
+        final selected = options.surface;
+        runApp(
+          selected != null
+              ? LayoutBuilder(
+                  builder: (context, constraints) => DesignSurfaceApp(
+                    surface: selected,
+                    brightness: options.theme == 'light'
+                        ? Brightness.light
+                        : Brightness.dark,
+                    size: constraints.biggest,
+                    textScaler: TextScaler.linear(options.textScale),
+                    viewInsets: EdgeInsets.only(bottom: options.keyboardInset),
+                    cardScenario: CardFixtureScenario.values.byName(
+                      options.cards,
+                    ),
+                    updateScenario: AppUpdateFixtureScenario.values.byName(
+                      options.updates,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(error.message),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => runApp(const _FixtureGallery()),
-                    child: const Text('Open fixture gallery'),
+                )
+              : const _FixtureGallery(),
+        );
+      } on FormatException catch (error) {
+        runApp(
+          MaterialApp(
+            theme: ThemeData.dark(),
+            home: Scaffold(
+              appBar: AppBar(title: const Text('Fixture configuration')),
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Semantics(
+                        liveRegion: true,
+                        label: 'Invalid fixture configuration',
+                        child: const Text('Invalid fixture configuration'),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(error.message),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () => runApp(const _FixtureGallery()),
+                        child: const Text('Open fixture gallery'),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
+        );
+      }
+    },
+    () => SurfaceFixtureClient(
+      onUnexpectedRequest: (message) => FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: StateError(message),
+          library: 'fixture HTTP',
         ),
-      ));
-    }
-  },
-      () => SurfaceFixtureClient(
-            onUnexpectedRequest: (message) => FlutterError.reportError(
-              FlutterErrorDetails(
-                  exception: StateError(message), library: 'fixture HTTP'),
-            ),
-          ));
+      ),
+    ),
+  );
 }
 
 class _FixtureGallery extends StatefulWidget {
@@ -99,6 +120,7 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
   double _textScale = 1;
   double _keyboardInset = 0;
   CardFixtureScenario _cardScenario = CardFixtureScenario.loaded;
+  AppUpdateFixtureScenario _updateScenario = AppUpdateFixtureScenario.off;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -113,7 +135,8 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
                 children: [
                   const SizedBox(height: 16),
                   const Text(
-                      'Synthetic data · strict fixture transport · no live account'),
+                    'Synthetic data · strict fixture transport · no live account',
+                  ),
                   const SizedBox(height: 12),
                   Wrap(
                     alignment: WrapAlignment.center,
@@ -126,7 +149,9 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
                         items: [
                           for (final id in surfaceIds)
                             DropdownMenuItem(
-                                value: id, child: Text('Fixture: $id')),
+                              value: id,
+                              child: Text('Fixture: $id'),
+                            ),
                         ],
                         onChanged: (value) {
                           if (value != null) setState(() => _surface = value);
@@ -135,9 +160,13 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
                       SegmentedButton<Brightness>(
                         segments: const [
                           ButtonSegment(
-                              value: Brightness.dark, label: Text('Dark')),
+                            value: Brightness.dark,
+                            label: Text('Dark'),
+                          ),
                           ButtonSegment(
-                              value: Brightness.light, label: Text('Light')),
+                            value: Brightness.light,
+                            label: Text('Light'),
+                          ),
                         ],
                         selected: {_brightness},
                         onSelectionChanged: (values) =>
@@ -176,7 +205,8 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
                             DropdownMenuItem(
                               value: inset,
                               child: Text(
-                                  'Keyboard: ${inset.round()} px (simulated)'),
+                                'Keyboard: ${inset.round()} px (simulated)',
+                              ),
                             ),
                         ],
                         onChanged: (value) {
@@ -201,6 +231,22 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
                       if (value != null) setState(() => _cardScenario = value);
                     },
                   ),
+                  if (_surface == 'active_route')
+                    DropdownButton<AppUpdateFixtureScenario>(
+                      value: _updateScenario,
+                      items: [
+                        for (final scenario in AppUpdateFixtureScenario.values)
+                          DropdownMenuItem(
+                            value: scenario,
+                            child: Text('Updates: ${scenario.name}'),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _updateScenario = value);
+                        }
+                      },
+                    ),
                   const SizedBox(height: 12),
                   // The outer gallery controls are not part of the captured 375×812 surface.
                   LayoutBuilder(
@@ -217,6 +263,7 @@ class _FixtureGalleryState extends State<_FixtureGallery> {
                           textScaler: TextScaler.linear(_textScale),
                           viewInsets: EdgeInsets.only(bottom: _keyboardInset),
                           cardScenario: _cardScenario,
+                          updateScenario: _updateScenario,
                           brightness: _brightness,
                           onSurfaceChanged: (value) =>
                               setState(() => _surface = value),

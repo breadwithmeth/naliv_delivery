@@ -24,6 +24,46 @@ transferred 1,652,673 gzip bytes versus 4,882,480 uncompressed bytes (66.15% few
 payload bytes), with identical decoded content. This is local Nginx/runtime proof,
 not a Docker image build, production deployment or end-user latency measurement.
 
+### Optional mobile update metadata
+
+`web/app-update.json` is an owned static resource published as
+`https://app.gradusy24.kz/app-update.json` by the normal `build --tracked` output.
+Its contract is `{"android":"1.2.117","ios":"1.2.113"}`: independent **public store
+marketing versions**, not Flutter/ABI build codes, `version.json` or `manifest.json`.
+A missing/null platform value disables that platform's notice.
+
+Advance a platform value manually **only after** that release is available to the
+whole intended store audience. Keep the prior value during Play staged rollout or
+Apple review; never advance it automatically on a source-version bump or web build.
+For a withdrawn release, restore the prior value or set that platform to null.
+Initial versions were rechecked on 2026-11-11 against
+[Google Play's application metadata](https://play.google.com/store/apps/details?id=kz.gradusy24.app&hl=en&gl=KZ)
+and [Apple's existing bundle lookup](https://itunes.apple.com/lookup?bundleId=com.example.nalivDelivery&country=kz).
+Do not change the iOS bundle ID to the Android package.
+
+Both hosting configurations reserve the exact metadata path, serve JSON with
+`Cache-Control: no-cache, no-store, must-revalidate`, `Pragma: no-cache` and
+`Expires: 0`, and exclude it from SPA fallback: a missing file must be HTTP 404.
+Native HTTPS clients need no additional CORS policy. Build output is not deployment;
+host publication and read-back require separate release authorization.
+
+The notice is Android/iOS-only, optional and fail-open after at most five seconds.
+Later, barrier/back dismissal and successful store opening snooze that release for
+24 hours; another release has its own deadline. Failed persistence retains the
+session cooldown only. Store opening does not prove installation. A first mobile
+release containing this code must be published and installed before future notices
+can work; existing featureless binaries cannot acquire it remotely.
+
+Local Firebase Hosting emulator 15.13.0 on Windows served the built metadata as
+JSON/200 and kept a missing metadata file at 404, while ordinary routes retained
+SPA/200. **Header verification did not pass:** its `glob-slasher` dependency turns
+`/app-update.json` into `\app-update.json`, which its glob matcher rejects, so
+even existing `/version.json` cache headers were absent. Keep the
+[documented Hosting header syntax](https://firebase.google.com/docs/hosting/full-config#headers);
+re-exercise headers on a working Firebase host/emulator. nginx's `always` policy
+also remains unexercised here because no nginx binary/container was available.
+
+
 ## Fixture isolation and publication
 
 `dart run tool/design_harness.dart build` publishes fixture-only output under
@@ -55,7 +95,7 @@ establish real notification delivery.
 
 ## Firebase Hosting alternative
 
-`firebase.json` keeps the same static release directory, allows association dotfiles, supplies JSON/worker and no-cache headers, and excludes association/OneSignal/legacy-worker paths from SPA fallback. Real static files take precedence over rewrites.
+`firebase.json` keeps the same static release directory, allows association dotfiles, supplies JSON/worker and no-cache headers, and excludes association/OneSignal/legacy-worker paths and `/app-update.json` from SPA fallback. Real static files take precedence over rewrites.
 
 Select the intended Firebase project/site **explicitly** before any deployment. The existing `.firebaserc` default and historical FlutterFire registration metadata name different projects; neither establishes which site owns `app.gradusy24.kz`. Provider registrations are retained, not silently recreated or deleted. No deployment is part of local verification.
 

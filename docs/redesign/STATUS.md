@@ -9,6 +9,49 @@ Last updated: 2026-11-03. Current source release: **1.2.116+12116**. The latest 
 
 ---
 ## Current remediation gate
+### Optional mobile update notice — 2026-11-11
+
+- Android/iOS only, after completed onboarding, on the current foreground route.
+  The real `AppUpdateNotice` leaves its child mounted during metadata checks.
+  Update opens a fixed existing store listing only on tap; Later/back/barrier and
+  successful launch snooze that release for exactly 24 hours. Failed/hung storage
+  cannot hold dismissal, and failed launches retain an explicit retry.
+- `web/app-update.json` advertises independent public marketing versions:
+  Android `1.2.117`, iOS `1.2.113`, rechecked against store metadata on this date.
+  Source version and bundle/package identities are unchanged. See
+  [`../coolify_static_site.md`](../coolify_static_site.md#optional-mobile-update-metadata)
+  for publication/withdrawal rules; no host/store deployment is authorized here.
+- Final focused notice gate passed 22 cases with clean analysis. The fresh review
+  found a resume-during-pending-check race; its regression failed before the fix,
+  then passed after retaining independent foreground-visit guards over shared I/O.
+  The final `check --full --native` passed **800 tests**, clean analysis and the
+  Windows catalogue → paid history journey (1 native test). Fresh LCOV includes
+  the service (56/58 recorded lines hit) and notice (82/82).
+- Release-web fixtures exercised Android/iOS and both failure scenarios in light
+  and dark, including visible synthetic destinations, explicit retry, Later and
+  usable cart afterwards. Captures:
+  `.figma_cache/harness/review/app-update/` (contact sheet plus individual states).
+  At 320 px/2× text/300 px keyboard, both actions reflow and measure 44 px high;
+  body/error text scrolls independently. 375/768/1280 px checks retain both themes.
+  This inherits `AppTheme` dialogs, not a new Figma reference or pixel-parity claim.
+- Visual proof caught desktop compact density reducing Later to 42 px; the notice
+  alone now uses standard action density. Two browser tabs recorded transient
+  `FontManifest.json` aborts; a separate readiness probe fetched manifest/fonts
+  HTTP 200 with no errors. No application exception was observed.
+- `build --tracked` passed without a version bump. Its mobile manifest is actual
+  JSON and remains distinct from generated web `version.json` (`1.2.117`, build
+  `12117`). Guarded tracked-web startup against live stores 11 and 9 in both
+  themes issued no update-manifest request, showed no native-update notice and
+  sent no production writes; browser error lists were empty.
+- Firebase Hosting emulator exercised JSON/200, reserved missing-file 404 and
+  preserved ordinary SPA/200. Header proof is blocked by its Windows path/glob
+  mismatch (also affects the existing version headers), not claimed passed.
+  nginx runtime proof is unexercised: no binary/container available. Host
+  deployment and public read-back remain separately authorized release work.
+- ADB reports no connected Android devices; this Windows host cannot establish
+  iPhone store handoff. Synthetic URI/UI results do not prove native store-app
+  launch, installation, or delivery to existing featureless binaries.
+
 ### Order follow-ups — 2026-11-05
 
 - **Endless «Загружаем магазин».** The home wrapper cleared its data on a session change but only

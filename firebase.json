@@ -10,7 +10,7 @@
     ],
     "rewrites": [
       {
-        "source": "/!(.well-known|onesignal|flutter_service_worker.js){,/**}",
+        "source": "/!(.well-known|onesignal|flutter_service_worker.js|app-update.json){,/**}",
         "destination": "/index.html"
       }
     ],
@@ -19,6 +19,15 @@
         "source": "/{,index.html,manifest.json,version.json,flutter_bootstrap.js,flutter.js,main.dart.js,flutter_service_worker.js}",
         "headers": [
           {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/app-update.json",
+        "headers": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"},
+          {"key": "Pragma", "value": "no-cache"},
+          {"key": "Expires", "value": "0"}
         ]
       },
       {

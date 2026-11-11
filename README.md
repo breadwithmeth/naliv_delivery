@@ -29,6 +29,11 @@ flutter run -d windows -t tool/dev_surface.dart
 
 The gallery uses synthetic preferences and a strict HTTP fixture. Unexpected requests are rejected, never forwarded to production. Its controls select the surface, theme, width, text scaling and keyboard inset. A fixture web URL may use `?surface=active_route&guest=1` to remove only the synthetic auth token and exercise guest checkout/login continuation. Card/payment scenario names are the existing enums in `test/support/design_surfaces.dart`. VS Code's **Design fixtures (Windows)** launch configuration uses this entry point and supports hot reload.
 
+Optional mobile-update fixtures use `?surface=active_route&updates=android` (or
+`ios`, `androidOpenFailed`, `iosOpenFailed`; default `off`), or the gallery's Updates
+selector. They exercise the real notice with synthetic metadata and visible store
+results, never package-info or a native launcher. Other fixture surfaces remain off.
+
 The production API and personal account are read-only during verification: never send SMS, change addresses/cards, create real orders, buy certificates or execute real payments. Fixture checkout/payment is synthetic and does not establish authenticated production or bank/device acceptance.
 
 ## State ownership and recovery
@@ -60,6 +65,12 @@ The production API and personal account are read-only during verification: never
   retry/discard. Device-local addresses are distinct from account-derived data.
 - Pure catalogue DTOs live in `lib/model/category_items.dart`; shared payload
   normalization lives in `lib/core/json_payload.dart`, not HTTP transport helpers.
+- Optional mobile releases are advertised independently in `web/app-update.json`.
+  Only a newer numeric marketing version can show a dismissible notice after
+  onboarding, on the current foreground route. Later/back/barrier and successful
+  store opening snooze the same release for 24 hours without blocking shopping.
+  Web/desktop and failed/offline checks show nothing. Publisher rules and first
+  mobile-release requirements: [`docs/coolify_static_site.md`](docs/coolify_static_site.md#optional-mobile-update-metadata).
 
 Measured host results and release/device limits are recorded in
 [`docs/CLEANUP_PLAN.md`](docs/CLEANUP_PLAN.md) and

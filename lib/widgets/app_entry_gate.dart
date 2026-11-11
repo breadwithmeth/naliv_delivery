@@ -4,6 +4,7 @@ import 'package:naliv_delivery/pages/onboarding_page.dart';
 import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:naliv_delivery/widgets/app_loading_screen.dart';
+import 'package:naliv_delivery/widgets/app_update_notice.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppEntryGate extends StatefulWidget {
@@ -66,7 +67,7 @@ class _AppEntryGateState extends State<AppEntryGate> {
     }
 
     if (_isCompleted) {
-      return const AuthenticationWrapper();
+      return const AppUpdateNotice(child: AuthenticationWrapper());
     }
 
     return OnboardingPage(
