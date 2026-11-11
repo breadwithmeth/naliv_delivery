@@ -24,7 +24,50 @@ transferred 1,652,673 gzip bytes versus 4,882,480 uncompressed bytes (66.15% few
 payload bytes), with identical decoded content. This is local Nginx/runtime proof,
 not a Docker image build, production deployment or end-user latency measurement.
 
-### Optional mobile update metadata
+## Active Coolify Nginx configuration
+
+The [Coolify Static build pack](https://coolify.io/docs/applications/builds/static)
+uses its own generated Nginx configuration. A root `nginx.conf` in Git is not
+automatically loaded by that build pack.
+
+Before changing a server policy, inspect the application's actual **Build
+strategy** and configuration:
+
+- **Static:** open **General**, generate/open its Nginx configuration, and apply
+  the applicable policy from [`nginx.conf`](../nginx.conf) inside the active
+  server block. Preserve the actual document root/listen settings. A `root` inside
+  `location /` is not inherited by sibling locations: explicitly repeat the same
+  document root in each added exact location when the server has no root.
+  For the mobile manifest, apply `location = /app-update.json` with its document
+  root, three no-cache headers and strict missing-file 404. Save and
+  **redeploy/build a new image**; restarting the existing image cannot apply a
+  saved build-time configuration change.
+- **Dockerfile:** the root build context and root `Dockerfile` must be selected.
+  That Dockerfile copies `nginx.conf` into Nginx and packages prebuilt `build/web`;
+  it does not compile Flutter or use the Static-pack configuration editor.
+
+The operator-confirmed deployment uses **Static** with Publish Directory
+**`/build/web`**. Its generated configuration defines
+`root /usr/share/nginx/html;` inside `location /`, not at server level.
+The exact `/app-update.json` location therefore needs its own
+`root /usr/share/nginx/html;`. Omitting it caused the metadata URL to return the
+custom 404 page while `/version.json` still returned the current build. A custom
+`error_page` internal redirect can also change which location's headers apply.
+
+Before the exact-location fix, `index.html` lacked the repository's configured
+cache headers and a client-route probe returned 404 rather than SPA/200. These
+are active-host policies, not Flutter build/version issues. Copying the
+repository file without adapting root scope is insufficient. Without
+administrative Coolify/SSH access, have the operator change the active editor and
+redeploy, then verify the public response; do not claim a repository-only change
+fixed it.
+
+Use the release preflight and acceptance checks in
+[`RELEASING.md`](RELEASING.md). Verify the live host rather than assuming a
+successful Git push means that configuration has been deployed.
+
+
+## Optional mobile update metadata
 
 `web/app-update.json` is an owned static resource published as
 `https://app.gradusy24.kz/app-update.json` by the normal `build --tracked` output.

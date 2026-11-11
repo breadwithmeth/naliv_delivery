@@ -12,14 +12,14 @@ flutter pub get
 
 Keep signing keys, Figma credentials and account tokens local. Android signing configuration has an example at `android/key.properties.example`. Do not commit credentials.
 
-Android release versions come from `pubspec.yaml` (`1.2.117+12117`), not a second Gradle constant. The build uses Gradle 8.14.3, AGP 8.11.1, Kotlin 2.2.20 and Java/Kotlin target 17; AGP 9 migration is intentionally separate.
+Android release versions come from `pubspec.yaml`, not a second Gradle constant. The build uses Gradle 8.14.3, AGP 8.11.1, Kotlin 2.2.20 and Java/Kotlin target 17; AGP 9 migration is intentionally separate.
 
 ```sh
 flutter build apk --release
 flutter build apk --release --split-per-abi
 ```
 
-Current production outputs are **1.2.116** under `build/app/outputs/flutter-apk/`. Use the same ABI as an earlier split install: ARMv7/ARM64/x86_64 splits have version codes **13116/14116/16116**, higher than the universal APK's **12116**. All four signatures were verified against the previous delivery; package `kz.gradusy24.app` and minSdk 24 are unchanged. A same-signature matching update preserves app data; do not uninstall just to bypass a downgrade. The three existing `build/fixed_apks/FIXED-*` copies were refreshed to 1.2.116 and hash-checked against the standard outputs.
+Recorded Android delivery: **1.2.116** under `build/app/outputs/flutter-apk/`. Use the same ABI as an earlier split install: ARMv7/ARM64/x86_64 splits have version codes **13116/14116/16116**, higher than the universal APK's **12116**. All four signatures were verified against the previous delivery; package `kz.gradusy24.app` and minSdk 24 were unchanged. These numbers describe that delivery, not a promise about today's build outputs: inspect the actual artifacts for each release. A same-signature matching update preserves app data; do not uninstall just to bypass a downgrade. The three existing `build/fixed_apks/FIXED-*` copies were refreshed to 1.2.116 and hash-checked against the standard outputs.
 
 ## Safe local development
 
@@ -124,6 +124,13 @@ and `CL=/MP1` in the invoking shell. Flutter's test concurrency does not constra
 MSBuild/compiler jobs; an unrestricted run here exhausted memory in the C++ task.
 
 ## Visual review and release
+
+**Before planning a release, bumping versions, uploading mobile builds or pushing a
+web deployment, follow [the release checklist](docs/RELEASING.md).** It records
+source/build versions, independent publicly available store versions in
+`web/app-update.json`, generated artifacts, the active Coolify configuration and
+required live checks. Assistants must follow it through `.omp/AGENTS.md`; it is
+project-local, not a global skill.
 
 Optional Figma capture/diff uses the same fixture architecture:
 
