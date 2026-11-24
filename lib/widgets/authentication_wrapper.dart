@@ -34,11 +34,19 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
 import 'package:naliv_delivery/widgets/app_loading_screen.dart';
+import 'package:naliv_delivery/features/support/city_contacts.dart';
+import 'package:naliv_delivery/features/support/ui/city_contacts_sheet.dart';
+import 'package:naliv_delivery/services/onboarding_service.dart';
 
 class AuthenticationWrapper extends StatefulWidget {
   final AppDestination? initialDestination;
+  final Future<bool> Function(Uri)? contactLauncher;
 
-  const AuthenticationWrapper({super.key, this.initialDestination});
+  const AuthenticationWrapper({
+    super.key,
+    this.initialDestination,
+    this.contactLauncher,
+  });
 
   @override
   State<AuthenticationWrapper> createState() => _AuthenticationWrapperState();
@@ -353,6 +361,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
       }
       final cartStore = cart.hasActiveItems ? cart.businessId : null;
       final data = await HomeDataSource(
+        session: _authenticatedSession,
         businessId: cartStore ??
             (cart.hasUnresolvedBusiness ? null : selected.selectedBusinessId),
         allowDefaultBusiness: !cart.hasUnresolvedBusiness,
@@ -403,7 +412,35 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   Future<T?> _pushForResult<T>(Widget page) =>
       Navigator.of(context).push<T>(MaterialPageRoute(builder: (_) => page));
 
-  Future<void> _callSupport() => _navigate(AppDestination.support);
+  Future<void> _callSupport() async {
+    final data = _homeData;
+    final cart = context.read<CartProvider>();
+    final selected = context.read<BusinessProvider>();
+    int? cityId;
+    if (!cart.hasUnresolvedBusiness && !_selectingStore) {
+      final storeId = cart.hasActiveItems
+          ? cart.businessId
+          : selected.selectedBusinessId ?? cart.businessId;
+      if (storeId != null) {
+        cityId = data?.stores.where((store) => store.id == storeId).firstOrNull?.cityId;
+      } else {
+        try {
+          cityId = cityContactByName(
+            await OnboardingService.getSelectedCity(),
+          )?.id;
+        } catch (_) {
+          // An unreadable saved city is not a reason to suggest another city.
+        }
+      }
+    }
+    if (!mounted || !identical(data, _homeData)) return;
+    await showCityContactsSheet(
+      context,
+      cityId: cityId,
+      launch: widget.contactLauncher,
+      onChat: () => _navigate(AppDestination.support),
+    );
+  }
 
   Future<void> _selectStore() async {
     final data = _homeData;
@@ -457,6 +494,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
       'name': store.name,
       'address': store.address,
       if (store.city != null) '_cityName': store.city,
+      if (store.cityId != null) 'city_id': store.cityId,
     });
     final cartSaved = saved &&
         (cart.hasActiveItems
@@ -524,12 +562,15 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
       case AppDestination.notifications:
         await _push(const NotificationSettingsPage());
       case AppDestination.profile:
-        await _push(ProfilePage(
-          loadAccount: _loadProfileAccount,
-          onSignIn: _signIn,
-          onNavigate: _navigate,
-          onLogout: _logout,
-        ));
+        await _push(
+          ProfilePage(
+            loadAccount: _loadProfileAccount,
+            onSignIn: _signIn,
+            onNavigate: _navigate,
+            onLogout: _logout,
+            onContacts: _callSupport,
+          ),
+        );
       case AppDestination.orders:
         await _push(OrdersPage(
           businessId: _homeData?.storeId,

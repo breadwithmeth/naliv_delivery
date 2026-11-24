@@ -14,6 +14,7 @@ class HomeViewData {
     required this.storeName,
     required this.storeAddress,
     this.storeId,
+    this.storeCityId,
     required this.banners,
     required this.promoCard,
     required this.categories,
@@ -33,6 +34,7 @@ class HomeViewData {
 
   /// `businesses[].id` of [storeName] — screens that are still business-scoped need it.
   final int? storeId;
+  final int? storeCityId;
 
   /// Available stores from the same read-only businesses response.
   final List<HomeStore> stores;
@@ -80,12 +82,14 @@ class HomeStore {
     required this.name,
     required this.address,
     this.city,
+    this.cityId,
   });
 
   final int id;
   final String name;
   final String address;
   final String? city;
+  final int? cityId;
 }
 
 @immutable

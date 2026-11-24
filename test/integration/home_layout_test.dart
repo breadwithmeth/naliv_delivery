@@ -25,34 +25,48 @@ Future<void> _pumpHome(
   int cartItems = 0,
   num? cartTotal,
   VoidCallback? onCallCenter,
+  VoidCallback? onLiked,
+  VoidCallback? onProfile,
+  VoidCallback? onBonusHistory,
+  VoidCallback? onStore,
+  VoidCallback? onSearch,
+  num? bonusBalance,
   bool signedIn = true,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    theme: AppTheme.dark(),
-    builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        padding: const EdgeInsets.only(top: 48, bottom: 34),
-        textScaler: TextScaler.linear(textScale),
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          padding: const EdgeInsets.only(top: 48, bottom: 34),
+          textScaler: TextScaler.linear(textScale),
+        ),
+        child: child!,
       ),
-      child: child!,
-    ),
-    home: HomePage(
-      data: HomeViewData(
-        storeName: 'Градусы24 — Бухар Жырау 70',
-        storeAddress: 'Караганда, проспект Нуркена Абдирова, 17/2',
-        signedIn: signedIn,
-        banners: const [],
-        promoCard: null,
-        categories: _categories,
+      home: HomePage(
+        data: HomeViewData(
+          storeName: 'Градусы24 — Бухар Жырау 70',
+          storeAddress: 'Караганда, проспект Нуркена Абдирова, 17/2',
+          signedIn: signedIn,
+          bonusBalance: bonusBalance,
+          banners: const [],
+          promoCard: null,
+          categories: _categories,
+        ),
+        cartItemCount: cartItems,
+        cartTotal: cartTotal,
+        onCallCenter: onCallCenter,
+        onLiked: onLiked,
+        onProfile: onProfile,
+        onBonusHistory: onBonusHistory,
+        onStore: onStore,
+        onSearch: onSearch,
       ),
-      cartItemCount: cartItems,
-      cartTotal: cartTotal,
-      onCallCenter: onCallCenter,
     ),
-  ));
+  );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
 }
@@ -100,61 +114,141 @@ void main() {
   });
 
   group('header', () {
-    testWidgets('keeps support reachable without a broken label',
-        (tester) async {
-      for (final width in [320.0, 360.0, 375.0]) {
-        for (final scale in [1.0, 2.0]) {
-          var calls = 0;
-          await _pumpHome(tester,
-              size: Size(width, 812),
-              textScale: scale,
-              onCallCenter: () => calls++);
-          // The label is dropped when it cannot share the row with four 44 px
-          // actions; squeezed in, it used to wrap mid-word at 360 px.
-          final label = find.text('Поддержка');
-          if (label.evaluate().isNotEmpty) {
-            expect(tester.getSize(label).height, lessThan(12 * scale * 1.5),
-                reason: 'label wraps at $width px, x$scale text');
+    testWidgets(
+      'header actions, store and search work at 320 px with 2x text',
+      (tester) async {
+        final semantics = tester.ensureSemantics();
+        try {
+          for (final signedIn in [false, true]) {
+            final opened = <String>[];
+            await _pumpHome(
+              tester,
+              size: const Size(320, 812),
+              textScale: 2,
+              signedIn: signedIn,
+              onCallCenter: () => opened.add('contacts'),
+              onLiked: () => opened.add('favorites'),
+              onProfile: () => opened.add('profile'),
+              onBonusHistory: () => opened.add('bonuses'),
+              onStore: () => opened.add('store'),
+              onSearch: () => opened.add('search'),
+            );
+
+            final header = find.byKey(const ValueKey('home-header'));
+            final store = find.byKey(const ValueKey('home-store-card'));
+            final search = find.byKey(const ValueKey('home-search-field'));
+            expect(
+              tester.getRect(header).bottom,
+              lessThanOrEqualTo(tester.getRect(store).top),
+            );
+            expect(
+              tester.getRect(store).bottom,
+              lessThanOrEqualTo(tester.getRect(search).top),
+            );
+
+            final actions = [
+              find.bySemanticsLabel('Связаться'),
+              find.bySemanticsLabel('Избранные товары'),
+              find.bySemanticsLabel('Профиль'),
+              find.bySemanticsLabel('Бонусы'),
+              store,
+              search,
+            ];
+            for (final action in actions) {
+              final bounds = tester.getRect(action);
+              expect(bounds.width, greaterThanOrEqualTo(44));
+              expect(bounds.height, greaterThanOrEqualTo(44));
+              expect(bounds.left, greaterThanOrEqualTo(0));
+              expect(bounds.right, lessThanOrEqualTo(320));
+              await tester.tap(action);
+            }
+            expect(opened, [
+              'contacts',
+              'favorites',
+              'profile',
+              'bonuses',
+              'store',
+              'search',
+            ]);
+            expect(tester.takeException(), isNull);
           }
-          await tester.tap(find.byTooltip('Поддержка'));
-          expect(calls, 1, reason: 'support tap at $width px, x$scale text');
-          expect(tester.takeException(), isNull,
-              reason: 'header overflows at $width px, x$scale text');
+        } finally {
+          semantics.dispose();
         }
-      }
-    });
+      },
+    );
 
-    testWidgets('floats over the page and frosts once content scrolls under it',
-        (tester) async {
-      for (final signedIn in [true, false]) {
-        await _pumpHome(tester, size: const Size(375, 812), signedIn: signedIn);
-        bool frosted() =>
-            find.byKey(const ValueKey('header-scrim')).evaluate().isNotEmpty;
+    testWidgets(
+      'a loaded zero is visible, but guests see just the bonus entry',
+      (tester) async {
+        final header = find.byKey(const ValueKey('home-header'));
+        final zero = find.descendant(of: header, matching: find.text('0'));
+        final bonuses = find.descendant(
+          of: header,
+          matching: find.byTooltip('Бонусы'),
+        );
 
-        // At rest it is an ordinary header on the page, and the first block
-        // starts below it rather than under it.
-        expect(frosted(), isFalse, reason: 'signedIn=$signedIn');
-        final brand = find.byKey(const ValueKey('home-brand-mark'));
-        expect(tester.getTopLeft(brand).dy, greaterThanOrEqualTo(48));
-        final search = find.byKey(const ValueKey('home-search-field'));
-        expect(tester.getTopLeft(search).dy,
-            greaterThan(tester.getBottomLeft(brand).dy));
-        final restBrand = tester.getTopLeft(brand);
-        final restSearch = tester.getTopLeft(search);
+        await _pumpHome(tester, size: const Size(375, 812), bonusBalance: 0);
+        expect(bonuses, findsOneWidget);
+        expect(zero, findsOneWidget);
 
-        await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
-        await tester.pumpAndSettle();
-        expect(frosted(), isTrue, reason: 'signedIn=$signedIn');
-        // The header stays where it is while the page moves beneath it.
-        expect(tester.getTopLeft(brand), restBrand);
-        expect(tester.getTopLeft(search).dy, lessThan(restSearch.dy));
-
-        await tester.drag(find.byType(CustomScrollView), const Offset(0, 3000));
-        await tester.pumpAndSettle();
-        expect(frosted(), isFalse);
+        await _pumpHome(
+          tester,
+          size: const Size(375, 812),
+          signedIn: false,
+          bonusBalance: 0,
+        );
+        expect(bonuses, findsOneWidget);
+        expect(zero, findsNothing);
         expect(tester.takeException(), isNull);
-      }
-    });
+      },
+    );
+
+    testWidgets(
+      'floats over the page and frosts once content scrolls under it',
+      (tester) async {
+        for (final signedIn in [true, false]) {
+          await _pumpHome(
+            tester,
+            size: const Size(375, 812),
+            signedIn: signedIn,
+          );
+          bool frosted() =>
+              find.byKey(const ValueKey('header-scrim')).evaluate().isNotEmpty;
+
+          // At rest it is an ordinary header on the page, and the first block
+          // starts below it rather than under it.
+          expect(frosted(), isFalse, reason: 'signedIn=$signedIn');
+          final brand = find.byKey(const ValueKey('home-brand-mark'));
+          expect(tester.getTopLeft(brand).dy, greaterThanOrEqualTo(48));
+          final search = find.byKey(const ValueKey('home-search-field'));
+          expect(
+            tester.getTopLeft(search).dy,
+            greaterThan(tester.getBottomLeft(brand).dy),
+          );
+          final restBrand = tester.getTopLeft(brand);
+          final restSearch = tester.getTopLeft(search);
+
+          await tester.drag(
+            find.byType(CustomScrollView),
+            const Offset(0, -400),
+          );
+          await tester.pumpAndSettle();
+          expect(frosted(), isTrue, reason: 'signedIn=$signedIn');
+          // The header stays where it is while the page moves beneath it.
+          expect(tester.getTopLeft(brand), restBrand);
+          expect(tester.getTopLeft(search).dy, lessThan(restSearch.dy));
+
+          await tester.drag(
+            find.byType(CustomScrollView),
+            const Offset(0, 3000),
+          );
+          await tester.pumpAndSettle();
+          expect(frosted(), isFalse);
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
   });
 
   group('categories', () {

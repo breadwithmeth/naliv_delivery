@@ -43,6 +43,9 @@ class CategoryItemsData {
   final List<int> categoriesIncluded;
   final int subcategoriesCount;
 
+  /// Wire row count before client filtering; null for unproven/synthetic lists.
+  final int? receivedItemCount;
+
   CategoryItemsData({
     required this.category,
     required this.business,
@@ -50,6 +53,7 @@ class CategoryItemsData {
     required this.pagination,
     required this.categoriesIncluded,
     required this.subcategoriesCount,
+    this.receivedItemCount,
   });
 
   factory CategoryItemsData.fromJson(Map<String, dynamic> json) {
@@ -62,6 +66,8 @@ class CategoryItemsData {
       pagination: PaginationInfo.fromJson(payloadMap(json['pagination'])),
       categoriesIncluded: payloadInts(json['categories_included']),
       subcategoriesCount: payloadInt(json['subcategories_count']),
+      receivedItemCount:
+          json['items'] is List ? (json['items'] as List).length : null,
     );
   }
 
@@ -322,15 +328,39 @@ class PaginationInfo {
   final int total;
   final int totalPages;
 
+  /// Defaults preserve legacy pagination, but do not prove category completeness.
+  final bool hasExplicitValidMetadata;
+
   PaginationInfo({
     required this.page,
     required this.limit,
     required this.total,
     required this.totalPages,
+    this.hasExplicitValidMetadata = false,
   });
 
   factory PaginationInfo.fromJson(Map<String, dynamic> json) {
+    int? exactInt(Object? value) {
+      if (value is int) return value;
+      if (value is num && value.isFinite && value == value.roundToDouble()) {
+        return value.toInt();
+      }
+      return value is String ? int.tryParse(value) : null;
+    }
+
+    final page = exactInt(json['page']);
+    final total = exactInt(json['total']);
+    final last = exactInt(json['totalPages'] ?? json['total_pages']);
     return PaginationInfo(
+      hasExplicitValidMetadata: page != null &&
+          page > 0 &&
+          total != null &&
+          total >= 0 &&
+          last != null &&
+          last >= page &&
+          (!json.containsKey('totalPages') ||
+              !json.containsKey('total_pages') ||
+              exactInt(json['totalPages']) == exactInt(json['total_pages'])),
       page: payloadInt(json['page'], defaultValue: 1),
       limit: payloadInt(json['limit'], defaultValue: 20),
       total: payloadInt(json['total']),

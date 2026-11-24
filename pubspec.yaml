@@ -21,6 +21,7 @@ dependencies:
   provider: ^6.1.5+1
   latlong2: ^0.9.1
   url_launcher: ^6.3.2
+  flutter_markdown_plus: ^1.0.7
   barcode_widget: ^2.0.4
   flutter_svg: ^2.2.4
   sentry_flutter: ^9.16.1
@@ -48,6 +49,8 @@ flutter:
   assets:
     - assets/icons/design/
     - assets/icons/kaspi/
+    - assets/agreements/offer.md
+    - assets/agreements/privacy.md
   fonts:
     # Variable axes are applied centrally by lib/design/typography.dart.
     - family: TikTokSans

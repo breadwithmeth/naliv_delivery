@@ -3,6 +3,7 @@ import '../../core/product_view.dart';
 import '../../model/item.dart';
 import '../../utils/api.dart';
 import 'catalog_view_data.dart';
+import 'category_merchandising.dart';
 
 /// Reads the catalogue from the frozen API.
 ///
@@ -10,9 +11,15 @@ import 'catalog_view_data.dart';
 /// no parsing logic, and every call takes the business id because item prices, availability and
 /// promotions are per store.
 class CatalogDataSource {
-  const CatalogDataSource({required this.businessId});
+  const CatalogDataSource({
+    required this.businessId,
+    this.priorityItemIdsByCategory = const {},
+  });
 
   final int businessId;
+
+  /// Client adapter input, already scoped to [businessId]; not a wire contract.
+  final Map<int, List<int>> priorityItemIdsByCategory;
   static final _whitespace = RegExp(r'\s+');
 
   /// Reads supercategories without discarding their category hierarchy.
@@ -138,16 +145,30 @@ class CatalogDataSource {
     if (response == null || !response.success) {
       throw StateError('Не удалось загрузить товары категории');
     }
+    final items = KitchenPolicy.filterItems(
+      [
+        for (final entry in response.data.items)
+          ProductView.fromItem(Item.fromCategoryItem(entry)),
+      ],
+      businessId,
+      (view) => view.source,
+    );
+    final pagination = response.data.pagination;
+    final complete = page == 1 &&
+        pagination.hasExplicitValidMetadata &&
+        pagination.page == 1 &&
+        pagination.totalPages == 1 &&
+        pagination.total == response.data.receivedItemCount &&
+        response.data.receivedItemCount == response.data.items.length;
     return (
-      items: KitchenPolicy.filterItems(
-        [
-          for (final entry in response.data.items)
-            ProductView.fromItem(Item.fromCategoryItem(entry)),
-        ],
-        businessId,
-        (view) => view.source,
-      ),
-      hasMore: response.data.pagination.hasNextPage,
+      items: complete
+          ? rankCompleteCategory(
+              items,
+              priorityItemIds:
+                  priorityItemIdsByCategory[categoryId] ?? const [],
+            )
+          : items,
+      hasMore: pagination.hasNextPage,
     );
   }
 

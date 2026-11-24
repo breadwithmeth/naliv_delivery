@@ -2309,3 +2309,100 @@ The release-built development gallery uses strict synthetic credentials/transpor
 * **Profile settings.** Account block first, then grouped sections: «Заказы и покупки», «Оплата и доставка», «Приложение» (theme, notifications, information collection), «Помощь», and «Выйти» alone at the bottom. **Theme is a Светлая / Тёмная / Авто segmented choice** (`ThemeController` already supported `ThemeMode.system`; the old binary switch could not express it and showed the effective brightness). Information collection is a toggle with the current state in its subtitle and a footer saying what is sent, that it is off by default and revocable. «Уведомления» is now reachable from the profile. Saving/error states, snackbars and the keys `profile-telemetry-switch`, `profile-logout`, `profile-sign-in`, `profile-avatar`, `profile-name` are kept; `profile-theme-switch` is replaced by `profile-theme-choice` / `profile-theme-{light,dark,system}`.
 * **Notification settings** use the same sections and rows (device status + enable action, per-topic switches, subscription ID / clear, support-chat link) under `FrostedHeaderLayout`; behaviour and messages are unchanged.
 * Departures from Figma: the settings screen is grouped and has a segmented theme choice instead of the ambiguous moon/sun switch; the activation/composer controls use the shared glass tokens (`Frost.tint` / `Frost.accent`, 0.9 accent) rather than 75 % orange, so white text stays legible. Not yet visually verified.
+
+### 3ak. Локальные согласия, контакты, бонусы и граница мерчандайзинга — 2026-11-24
+
+- Настоящий bootstrap `Main` переключает ключ навигатора допуска на основной
+  `AppNavigator.key` только после интро, актуальных локальных согласий и
+  существующего выбора города. До этого не монтируются коммерческие маршруты,
+  `CartPersistenceNotice`, post-frame восстановление корзины и push startup.
+  MaterialApp остаётся владельцем системного Back/PopScope и Hero; холодный
+  неизвестный путь даёт один Home, холодный/тёплый FAQ не обходят допуск.
+- Старой завершённой установке без intro-флага нужны только согласия. Оферта и
+  privacy независимы, хранятся одной проверяемой записью текущих внутренних
+  редакций 1/1. Полные неизменённые Markdown-тексты поставляются офлайн; Back не
+  принимает документ и не сбрасывает выбор. Отказ записи, реальная ошибка чтения
+  и временная ошибка asset имеют восстановление; повреждённая запись не является
+  доказательством согласия. Город/корзина/сессия/разрешения/telemetry/snooze не
+  сбрасываются. Это не серверное согласие и не юридическое утверждение текстов.
+- Один `city_contacts.dart` задаёт четыре города, три hotline и WhatsApp; FAQ №49
+  использует те же константы. «Связаться» в Home и «Контакты» в Help профиля открывают
+  одну sheet, «Поддержка» по-прежнему ведёт прямо в HelpChat. Рекомендация берётся
+  из текущего подтверждённого/корзинного магазина и известных данных его города,
+  не из старого Home snapshot. Неизвестная/заблокированная привязка открывает весь
+  список без произвольной рекомендации. Внешний переход только по tap; отказ
+  даёт номер, работающие Copy и чат. Launcher-политика фикстуры сохраняется и при
+  замене маршрутов через `AppNavigator.goToHome`.
+- Header: подписанные контакты и бонусы, избранное/профиль; магазин и поиск ниже.
+  Баланс — конечный `total` подтверждённой сессии, включая настоящий 0, независимо
+  от формы bonusCard/cardUuid; старый ответ другой сессии не показывается. Гостю
+  доступен вход с продолжением в настоящую историю бонусов. QR остался в нижней
+  карточке. Фиктивного inbox, колокольчика и unread-бейджа нет.
+- `rankCompleteCategory` линейно сохраняет исходные карточки: явные приоритеты
+  store/category → активные доступные нескрытые акции → прежний остаток. Повторные
+  приоритетные ID не дублируют карточки, но повторные строки самого API не теряются;
+  применяется `Item.isVisible`. Локальный этап работает только при доказанной
+  полноте: requested/received page 1, явная валидная последняя страница 1, total
+  равен исходным строкам до фильтрации. Отсутствующие/плохие метаданные и page>1
+  сохраняют API-порядок, append/retry. Таксономия, поиск и избранное не пересортированы.
+  Production не имеет источника явных коммерческих ID; реальные активные акции
+  продвигаются только в полных категориях. Двухмагазинная strict fixture проводит
+  приоритеты через адаптер, превью, «Все» и добавление в правильно привязанную корзину.
+- Передаваемый контракт: [client-commerce-integrations.md](../client-commerce-integrations.md).
+  Для глобального ранжирования, inbox, двух оценок и собственной courier map
+  указаны владельцы/права/ошибки/повторы/примеры и стендовая приёмка. Новые URL и
+  wire-поля не объявлены действующими. Условный producer курьера (>50 м при
+  30-секундной проверке) не объявлен непрерывным heartbeat или покупательским read.
+  Эти три новые серверные функции и глобальное ранжирование пока не включены.
+- Проверки: исходный шестифайловый focused **82/82**; после найденного на рендере
+  keyboard-дефекта отдельные consent/contact suites **44/44**; актуальный полный
+  retained suite с coverage **851/851**, анализ **No issues found**, Windows native
+  shopping journey **1/1**. Финальный интеграционный лог (включая исправление
+  адреса fixture): `.figma_cache/harness/runs/2026-11-24T11-37-41.881094Z_9944.log`.
+  Системный Back при блокирующем PopScope, warm FAQ до/после допуска, неизвестный
+  cold path, pending push, launcher после route replacement, смена/отмена магазина,
+  guest OTP → бонусы, ошибка/повтор документа и 300 px inset проверены поведением,
+  а не только наличием виджетов. Реальный `Main` проверен отдельно от active_route.
+- До/после guest Home/категории сняты GET-only для магазинов 9 и 11 в обеих темах:
+  `commerce-final-real-home-sheet.png` / `commerce-final-real-category-sheet.png`
+  под `.figma_cache/render/`. Во всех четырёх live-проходах: ни отправленных, ни
+  заблокированных write-запросов; runtime errors пусты. Старый fixture bundle
+  сохранил baseline Home/profile/guest profile. Измерения
+  Figma `2098:29845`: header 343×57, brand около 51×50, store 343×57, glyphs 16/24.
+  Обоснованные отклонения: hit targets ≥44, читаемые подписи вместо 10 px,
+  перенос header при 320/2× вместо фиксированной высоты, без статичного телефона и
+  выдуманного badge. Новые legal/contacts — capture-only, точного Figma-референса нет.
+  Первый adaptive-проход выявил orphan в заголовке legal, разрыв hotline на
+  одиночную цифру и перекрытие чата клавиатурой. Внесены titleLarge/phone 12 px с
+  унаследованным TextScaler и однократный учёт inset (регрессии RED → GREEN).
+- Финальные native captures просмотрены при 375, 320/2×, 320/2×/inset 300 и
+  800/2× в обеих темах. `commerce-final-{canonical,320,keyboard,800}-sheet.png`
+  и actual Help `commerce-profile-help-{light,dark}-final.png` сохранены в
+  `.figma_cache/render/`; контролы/номера читаемы, header переносится, sheet
+  и документы прокручиваются. В настоящем web `Main`: чистый запуск → интро →
+  две независимые отметки → город; до согласия **0 API-запросов**. Старая установка
+  → реальные отметки → guest Home тоже пройдена. В strict web fixture проверены
+  оба документа/Back/продолжение, контакты/четыре города/WA/Copy/чат, отдельная
+  строка Help, guard избранного, synthetic OTP → история и QR, два магазина
+  preview → «Все» → добавление → корзина. Ни SMS, ни звонки, ни сообщения в
+  production не отправлялись.
+- Последняя runtime-проверка нашла только fixture-дефект: корзина магазина 2
+  имела правильную business-привязку, но старую подпись адреса магазина 1.
+  Регрессия наблюдалась RED, адрес берётся из выбранного fixture-магазина;
+  `catalog_flow_test.dart` **15/15**, анализ чистый, fixture bundle пересобран.
+  Actual web показал «Другой тестовый адрес, 20» и правильный товар/итог.
+- Chromium иногда зависал на GPU capture после route/viewport change; issue
+  отправлен, снимки с `fromSurface:false` оказались пустыми и удалены, не считаются
+  доказательством. Валидные live до/после, offline readers, Copy recovery и Help
+  сняты обычным surface capture. Eval Bun проигнорировал query cache-bust старого
+  JS-модуля; подтверждена stale identity, загружен актуальный helper из исходника.
+  Это не исправление API/приложения и не основание считать старый UI актуальным.
+- Ограничения: `adb devices -l` не показал подключённых устройств; реальный
+  dialer/WhatsApp на Android/iOS не подтверждён. Fixture OTP/телефоны не являются
+  проверкой production-аккаунта. Юридическое согласование, серверный стенд и
+  публичные store-релизы — отдельная приёмка. Версия `1.2.117+12117`,
+  `web/app-update.json` Android `1.2.117` / iOS `1.2.113` не повышаются: новых
+  общедоступных store-релизов эта поставка не устанавливает. Push/deploy нет.
+  Локальные fixture build и `build --tracked` успешны; отдельный guarded smoke
+  release bundle пройден. `build/web/version.json`: 1.2.117 / 12117,
+  `build/web/app-update.json`: Android 1.2.117 / iOS 1.2.113.
