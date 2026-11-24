@@ -132,8 +132,8 @@ class CatalogDataSource {
     int limit = 60,
   }) async {
     // The kitchen exists only at one store; elsewhere its categories are never requested.
-    if (KitchenPolicy.isKitchenCategoryId(categoryId) &&
-        !KitchenPolicy.isAvailableForBusiness(businessId)) {
+    final isKitchenCategory = KitchenPolicy.isKitchenCategoryId(categoryId);
+    if (isKitchenCategory && !KitchenPolicy.isAvailableForBusiness(businessId)) {
       return (items: const <ProductView>[], hasMore: false);
     }
     final response = await ApiService.getCategoryItemsTyped(
@@ -145,14 +145,21 @@ class CatalogDataSource {
     if (response == null || !response.success) {
       throw StateError('Не удалось загрузить товары категории');
     }
-    final items = KitchenPolicy.filterItems(
-      [
-        for (final entry in response.data.items)
-          ProductView.fromItem(Item.fromCategoryItem(entry)),
-      ],
-      businessId,
-      (view) => view.source,
-    );
+    final items = <ProductView>[];
+    for (final entry in response.data.items) {
+      var item = Item.fromCategoryItem(entry);
+      // Category results include descendants; keep any taxonomy the item carries.
+      // Only a known kitchen category can supply the otherwise missing distinction.
+      if (isKitchenCategory &&
+          (item.categoryId ?? 0) <= 0 &&
+          (item.category?.categoryId ?? 0) <= 0 &&
+          (item.category?.parentId ?? 0) <= 0) {
+        item = item.copyWith(categoryId: categoryId);
+      }
+      if (KitchenPolicy.allowsItem(item, businessId)) {
+        items.add(ProductView.fromItem(item));
+      }
+    }
     final pagination = response.data.pagination;
     final complete = page == 1 &&
         pagination.hasExplicitValidMetadata &&

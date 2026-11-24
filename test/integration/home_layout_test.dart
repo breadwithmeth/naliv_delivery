@@ -37,6 +37,9 @@ Future<void> _pumpHome(
   VoidCallback? onSearch,
   num? bonusBalance,
   bool signedIn = true,
+  int? storeId,
+  List<HomeBanner> banners = const [],
+  ValueChanged<HomeBanner>? onPromo,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -55,9 +58,10 @@ Future<void> _pumpHome(
         data: HomeViewData(
           storeName: 'Градусы24 — Бухар Жырау 70',
           storeAddress: 'Караганда, проспект Нуркена Абдирова, 17/2',
+          storeId: storeId,
           signedIn: signedIn,
           bonusBalance: bonusBalance,
-          banners: const [],
+          banners: banners,
           promoCard: null,
           categories: _categories,
         ),
@@ -70,6 +74,7 @@ Future<void> _pumpHome(
         onNotifications: onNotifications,
         onStore: onStore,
         onSearch: onSearch,
+        onPromo: onPromo,
       ),
     ),
   );
@@ -78,6 +83,118 @@ Future<void> _pumpHome(
 }
 
 void main() {
+  group('campaign rail', () {
+    final rail = find.byKey(const ValueKey('home-banner-carousel'));
+    final horizontal = find.descendant(
+      of: rail,
+      matching: find.byType(Scrollable),
+    );
+    const size = Size(375, 812);
+    const step = 305.0; // 295 px card plus the 10 px reference gap.
+
+    testWidgets('omits an empty rail and does not scroll a lone campaign',
+        (tester) async {
+      await _pumpHome(tester, size: size);
+      expect(rail, findsNothing);
+
+      final opened = <int?>[];
+      await _pumpHome(
+        tester,
+        size: size,
+        banners: const [HomeBanner(promotionId: 17, title: 'Одна акция')],
+        onPromo: (banner) => opened.add(banner.promotionId),
+      );
+      final title = find.text('Одна акция');
+      expect(title.hitTestable(), findsOneWidget);
+      expect(horizontal, findsNothing);
+      await tester.drag(rail, const Offset(-350, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(title);
+      expect(opened, [17]);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('wraps repeatedly both ways and exposes only nearby campaigns',
+        (tester) async {
+      final opened = <int?>[];
+      await _pumpHome(
+        tester,
+        size: size,
+        banners: [
+          for (var id = 1; id <= 53; id++)
+            HomeBanner(promotionId: id, title: 'Кампания $id'),
+        ],
+        onPromo: (banner) => opened.add(banner.promotionId),
+      );
+      final position = tester.state<ScrollableState>(horizontal).position;
+      for (final index in [0, -1, 53, 53 * 100 + 1, -53 * 100 - 2]) {
+        position.jumpTo(step * index);
+        await tester.pumpAndSettle();
+        expect(position.pixels, closeTo(step * index, .01));
+        final actions =
+            find.descendant(of: rail, matching: find.byType(InkWell));
+        expect(actions.evaluate().length, lessThanOrEqualTo(5));
+        final labels = find.bySemanticsLabel(RegExp(r'^Кампания \d+$'));
+        expect(labels.evaluate().length, inInclusiveRange(1, 3));
+        await tester.tapAt(tester.getCenter(rail));
+      }
+      expect(opened, [1, 53, 1, 2, 52]);
+
+      final before = position.pixels;
+      final y = tester.getTopLeft(rail).dy;
+      await tester.drag(rail, const Offset(0, -180));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(rail).dy, lessThan(y));
+      expect(position.pixels, before);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps the campaign on resize and resets changed sequences',
+        (tester) async {
+      const banners = [
+        HomeBanner(promotionId: 5, title: 'Первая'),
+        HomeBanner(promotionId: 9, title: 'Вторая'),
+        HomeBanner(promotionId: 7, title: 'Третья'),
+      ];
+      final opened = <int?>[];
+      Future<void> pump(List<HomeBanner> banners,
+          {int storeId = 1, Size viewport = size}) async {
+        await _pumpHome(
+          tester,
+          size: viewport,
+          banners: banners,
+          storeId: storeId,
+          onPromo: (banner) => opened.add(banner.promotionId),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await pump(banners);
+      tester.state<ScrollableState>(horizontal).position.jumpTo(step);
+      await tester.pumpAndSettle();
+
+      final refreshed = [
+        banners.first,
+        const HomeBanner(promotionId: 9, title: 'Вторая, обновлённая'),
+        banners.last,
+      ];
+      await pump(refreshed, viewport: const Size(320, 812));
+      expect(find.text('Вторая, обновлённая').hitTestable(), findsOneWidget);
+      await tester.tapAt(tester.getCenter(rail));
+
+      final reordered = [refreshed.last, ...refreshed.take(2)];
+      await pump(reordered);
+      await tester.tapAt(tester.getCenter(rail));
+
+      tester.state<ScrollableState>(horizontal).position.jumpTo(-step);
+      await tester.pumpAndSettle();
+      await pump(reordered, storeId: 2);
+      await tester.tapAt(tester.getCenter(rail));
+      expect(opened, [9, 7, 7]);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   for (final brightness in Brightness.values) {
     testWidgets('$brightness age confirmation fits 320 px and 2x text',
         (tester) async {

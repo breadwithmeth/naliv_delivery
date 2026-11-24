@@ -1,6 +1,10 @@
 library;
 
+import 'dart:math' as math;
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../../core/product_view.dart';
 import '../../../design/theme.dart';
@@ -136,6 +140,7 @@ class HomePage extends StatelessWidget {
                         KeyedSubtree(
                           key: const ValueKey('home-banner-carousel'),
                           child: _BannerCarousel(
+                            key: ValueKey(data.storeId),
                             banners: data.banners,
                             onTap: onPromo,
                           ),
@@ -586,12 +591,9 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// Full-bleed y = 272, h = 114. At 375 px the selected card is 295 px wide at x = 40.
-///
-/// One card per supplied campaign, without repeats. Entries without a promotion ID
-/// display their campaign copy but have no navigation destination.
+/// Full-bleed y = 272, h = 114. At 375 px the centered card is 295 px wide.
 class _BannerCarousel extends StatefulWidget {
-  const _BannerCarousel({required this.banners, this.onTap});
+  const _BannerCarousel({required this.banners, this.onTap, super.key});
 
   final List<HomeBanner> banners;
   final ValueChanged<HomeBanner>? onTap;
@@ -601,9 +603,41 @@ class _BannerCarousel extends StatefulWidget {
 }
 
 class _BannerCarouselState extends State<_BannerCarousel> {
-  static const _gap = 10.0;
-  final _controller = ScrollController();
+  static const _forwardKey = ValueKey('home-banner-forward');
+  final _controller = ScrollController(keepScrollOffset: false);
+  Key _sequenceKey = UniqueKey();
   double? _step;
+  late bool _hasSubtitle = _containsSubtitle(widget.banners);
+
+  static bool _containsSubtitle(List<HomeBanner> banners) =>
+      banners.any((banner) => banner.subtitle?.trim().isNotEmpty ?? false);
+
+  @override
+  void didUpdateWidget(covariant _BannerCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previous = oldWidget.banners;
+    final banners = widget.banners;
+    if (identical(previous, banners)) return;
+    _hasSubtitle = _containsSubtitle(banners);
+    if (_sameSequence(previous, banners)) return;
+    // A changed sequence starts at its first campaign; a content-only refresh
+    // keeps the same spot (and swaps in the latest artwork, copy and actions).
+    _sequenceKey = UniqueKey();
+    _step = null;
+  }
+
+  bool _sameSequence(List<HomeBanner> previous, List<HomeBanner> banners) {
+    if (previous.length != banners.length) return false;
+    for (var i = 0; i < banners.length; i++) {
+      final old = previous[i];
+      final current = banners[i];
+      if (old.promotionId != current.promotionId ||
+          (current.promotionId == null && old.title != current.title)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   @override
   void dispose() {
@@ -617,102 +651,132 @@ class _BannerCarouselState extends State<_BannerCarousel> {
           constraints: const BoxConstraints(maxWidth: 552),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // A lone campaign sits on the same gutters as every other block; several
-              // campaigns peek from either side so the row reads as a carousel.
-              final width = widget.banners.length == 1
-                  ? (constraints.maxWidth - AppSpacing.gutter * 2)
-                      .clamp(240.0, 520.0)
-                      .toDouble()
-                  : (constraints.maxWidth - 80).clamp(240.0, 420.0).toDouble();
-              final step = width + _gap;
-              if (_step != step) {
-                final index = _step != null && _controller.hasClients
-                    ? _controller.offset / _step!
-                    : widget.banners.length >= 3
-                        ? 1.0
-                        : 0.0;
-                _step = step;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && _controller.hasClients && _step == step) {
-                    _controller.jumpTo(
-                      (index * step)
-                          .clamp(0.0, _controller.position.maxScrollExtent)
-                          .toDouble(),
-                    );
-                  }
-                });
-              }
-              final textScaler = MediaQuery.textScalerOf(context);
-              final scale = textScaler.scale(20) / 20;
-              final textWidth = width - AppSpacing.md * 2;
-              final defaultStyle = DefaultTextStyle.of(context).style;
-              final textDirection = Directionality.of(context);
-              final locale = Localizations.maybeLocaleOf(context);
-              double textHeight(String text, TextStyle style) {
-                final painter = TextPainter(
-                  text: TextSpan(text: text, style: defaultStyle.merge(style)),
-                  textDirection: textDirection,
-                  locale: locale,
-                  textScaler: textScaler,
-                )..layout(maxWidth: textWidth);
-                final height = painter.height.ceilToDouble();
-                painter.dispose();
-                return height;
+              final viewport = constraints.maxWidth;
+              if (viewport <= 0) return const SizedBox.shrink();
+              if (widget.banners.length == 1) {
+                final width = (viewport - AppSpacing.gutter * 2)
+                    .clamp(viewport * .75, 520.0);
+                return Center(
+                  child: SizedBox(
+                    width: width,
+                    height: _heightFor(context, width),
+                    child: _cardAt(0, width),
+                  ),
+                );
               }
 
-              var height = 114.0 * (scale < 1 ? 1.0 : scale);
-              double? actionHeight;
-              for (final banner in widget.banners) {
-                final title = banner.title.trim();
-                final subtitle = banner.subtitle?.trim() ?? '';
-                var contentHeight = AppSpacing.md * 2;
-                if (title.isNotEmpty) {
-                  contentHeight += textHeight(title, AppTypography.headline);
-                }
-                if (title.isNotEmpty && subtitle.isNotEmpty) {
-                  contentHeight += AppSpacing.xs;
-                }
-                if (subtitle.isNotEmpty) {
-                  contentHeight +=
-                      textHeight(subtitle, AppTypography.bodySmall);
-                }
-                if (banner.promotionId != null && widget.onTap != null) {
-                  actionHeight ??= textHeight(
-                    'Смотреть товары →',
-                    AppTypography.bodySmall
-                        .copyWith(fontWeight: FontWeight.w600),
-                  );
-                  contentHeight += AppSpacing.sm + actionHeight;
-                }
-                if (contentHeight > height) height = contentHeight;
-              }
+              final width = (viewport - 80).clamp(viewport * .75, 420.0);
+              final gap = math.min(AppSpacing.lg, viewport / 32);
+              final step = width + gap;
+              _resizeStep(step);
+              final behavior = ScrollConfiguration.of(context);
               return SizedBox(
-                height: height,
-                child: ListView.separated(
+                height: _heightFor(context, width),
+                child: CustomScrollView(
+                  key: _sequenceKey,
                   controller: _controller,
                   scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: (constraints.maxWidth - width) / 2,
+                  scrollBehavior: behavior.copyWith(
+                    scrollbars: false,
+                    dragDevices: {
+                      ...behavior.dragDevices,
+                      PointerDeviceKind.mouse,
+                    },
                   ),
-                  itemCount: widget.banners.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: _gap),
-                  itemBuilder: (context, index) {
-                    final banner = widget.banners[index];
-                    return _BannerCard(
-                      key: ValueKey('home-banner-$index'),
-                      banner: banner,
-                      width: width,
-                      onTap: banner.promotionId == null || widget.onTap == null
-                          ? null
-                          : () => widget.onTap!(banner),
-                    );
-                  },
+                  center: _forwardKey,
+                  anchor: (viewport - step) / (2 * viewport),
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+                  // These two lazy slivers grow in opposite directions from
+                  // campaign zero. Neither direction has an edge to hide or
+                  // recenter, and no virtual index is exposed to assistive tech.
+                  slivers: [
+                    _half(step, gap, width, backwards: true),
+                    _half(step, gap, width, backwards: false),
+                  ],
                 ),
               );
             },
           ),
         ),
       );
+
+  void _resizeStep(double step) {
+    final previous = _step;
+    if (previous == step) return;
+    _step = step;
+    if (previous == null || !_controller.hasClients) return;
+    final position = _controller.position;
+    final itemOffset = position.pixels / previous;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          _step == step &&
+          _controller.hasClients &&
+          identical(_controller.position, position)) {
+        position.jumpTo(itemOffset * step);
+      }
+    });
+  }
+
+  Widget _half(double step, double gap, double width, {required bool backwards}) {
+    return SliverFixedExtentList.builder(
+      key: backwards ? null : _forwardKey,
+      itemExtent: step,
+      addAutomaticKeepAlives: false,
+      addSemanticIndexes: false,
+      itemBuilder: (context, index) => Padding(
+        padding: EdgeInsets.symmetric(horizontal: gap / 2),
+        child: _cardAt(backwards ? -index - 1 : index, width),
+      ),
+    );
+  }
+
+  Widget _cardAt(int index, double width) {
+    final banner = widget.banners[index % widget.banners.length];
+    final onTap = widget.onTap;
+    return _BannerCard(
+      key: ValueKey('home-banner-$index'),
+      banner: banner,
+      width: width,
+      onTap: banner.promotionId == null || onTap == null
+          ? null
+          : () => onTap(banner),
+    );
+  }
+
+  double _heightFor(BuildContext context, double width) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    final defaultStyle = DefaultTextStyle.of(context).style;
+    final textDirection = Directionality.of(context);
+    final locale = Localizations.maybeLocaleOf(context);
+    final textWidth = math.max(0.0, width - AppSpacing.md * 2);
+    double measure(String text, TextStyle style, int lines) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: defaultStyle.merge(style)),
+        textDirection: textDirection,
+        locale: locale,
+        textScaler: textScaler,
+        maxLines: lines,
+        ellipsis: '…',
+      )..layout(maxWidth: textWidth);
+      final height = painter.height.ceilToDouble();
+      painter.dispose();
+      return height;
+    }
+
+    // Reserve the same space for every card without shaping every campaign
+    // title. Fallbacks clamp to these line counts and semantics retain full copy.
+    var height = AppSpacing.md * 2 +
+        measure('А\nА', AppTypography.headline, _BannerCard._titleLines);
+    if (_hasSubtitle) {
+      height += AppSpacing.xs + measure('А', AppTypography.bodySmall, 1);
+    }
+    if (widget.onTap != null) {
+      height += AppSpacing.sm +
+          measure(_BannerCard._actionLabel, AppTypography.bodySmall,
+              _BannerCard._actionLines);
+    }
+    return math.max(height, 114.0 * math.max(1.0, textScaler.scale(20) / 20));
+  }
 }
 
 /// A single campaign card.
@@ -724,6 +788,10 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 class _BannerCard extends StatelessWidget {
   const _BannerCard(
       {required this.banner, required this.width, this.onTap, super.key});
+  static const _titleLines = 2;
+  static const _actionLines = 2;
+  static const _actionLabel = 'Смотреть товары →';
+
   final double width;
 
   final HomeBanner banner;
@@ -731,24 +799,26 @@ class _BannerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = banner.title.trim();
+    final rawTitle = banner.title.trim();
+    final title = rawTitle.isEmpty ? 'Акция' : rawTitle;
     final subtitle = banner.subtitle?.trim() ?? '';
-    final label = [title, subtitle].where((part) => part.isNotEmpty).join('\n');
-    final hasArtwork = (banner.imageUrl?.trim() ?? '').isNotEmpty;
+    final imageUrl = banner.imageUrl?.trim();
     final card = ClipRRect(
       borderRadius: BorderRadius.circular(AppRadii.lg),
       child: SizedBox(
         width: width,
-        child: hasArtwork
+        child: imageUrl != null && imageUrl.isNotEmpty
             ? Image.network(
-                banner.imageUrl!,
+                imageUrl,
                 fit: BoxFit.cover,
                 cacheWidth:
                     (width * MediaQuery.devicePixelRatioOf(context)).ceil(),
-                frameBuilder: fadeInImageFrame,
-                loadingBuilder: (context, child, progress) => progress == null
-                    ? child
-                    : _fallback(context, title, subtitle),
+                excludeFromSemantics: true,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) =>
+                    frame == null
+                        ? _fallback(context, title, subtitle)
+                        : fadeInImageFrame(
+                            context, child, frame, wasSynchronouslyLoaded),
                 errorBuilder: (context, _, __) =>
                     _fallback(context, title, subtitle),
               )
@@ -756,8 +826,9 @@ class _BannerCard extends StatelessWidget {
       ),
     );
     return Semantics(
+      container: true,
       button: onTap != null,
-      label: label.isEmpty ? null : label,
+      label: subtitle.isEmpty ? title : '$title\n$subtitle',
       child: onTap == null
           ? card
           : PressScale(
@@ -780,26 +851,29 @@ class _BannerCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (title.isNotEmpty)
-                Text(
-                  title,
-                  softWrap: true,
-                  style: AppTypography.headline
-                      .copyWith(color: palette.textOnAccent),
-                ),
-              if (title.isNotEmpty && subtitle.isNotEmpty)
+              Text(
+                title,
+                maxLines: _titleLines,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.headline
+                    .copyWith(color: palette.textOnAccent),
+              ),
+              if (subtitle.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xs),
-              if (subtitle.isNotEmpty)
                 Text(
                   subtitle,
-                  softWrap: true,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.bodySmall
                       .copyWith(color: palette.textOnAccent),
                 ),
+              ],
               if (onTap != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Смотреть товары →',
+                  _actionLabel,
+                  maxLines: _actionLines,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.bodySmall
                       .copyWith(color: palette.textOnAccent),
                 ),

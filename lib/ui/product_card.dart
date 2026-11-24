@@ -133,6 +133,7 @@ class ProductCard extends StatelessWidget {
     this.unitPriceLabel,
     this.quantityUnit,
     this.imageUrl,
+    this.coverImage = false,
     this.discount,
     this.promo,
     this.bonus,
@@ -156,6 +157,7 @@ class ProductCard extends StatelessWidget {
   final String? unitPriceLabel;
   final String? quantityUnit;
   final String? imageUrl;
+  final bool coverImage;
   final String? discount;
 
   /// The active gift promotion label.
@@ -237,6 +239,7 @@ class ProductCard extends StatelessWidget {
         promo: view.promo,
         bonus: view.bonus,
         imageUrl: view.imageUrl,
+        coverImage: view.isKitchen,
         available: view.available,
         quantity: quantity ?? view.quantity,
         step: (quantity ?? view.quantity) <= 0 ? 1 : _stepOf(view),
@@ -471,15 +474,20 @@ class ProductCard extends StatelessWidget {
     AppPalette palette,
     _CardMetrics metrics,
   ) {
-    final art = imageUrl?.isNotEmpty == true
+    final hasImage = imageUrl?.isNotEmpty == true;
+    final cover = coverImage && hasImage;
+    final art = hasImage
         ? Image.network(
             imageUrl!,
             width: double.infinity,
             height: double.infinity,
-            cacheWidth:
-                (metrics.innerWidth * MediaQuery.devicePixelRatioOf(context))
+            // A proportional decode at slot width can undersample a cover crop.
+            cacheWidth: cover
+                ? null
+                : (metrics.innerWidth *
+                        MediaQuery.devicePixelRatioOf(context))
                     .ceil(),
-            fit: BoxFit.contain,
+            fit: cover ? BoxFit.cover : BoxFit.contain,
             // Paint-time alpha instead of an Opacity layer: no offscreen buffer per card.
             opacity: available ? null : _dimmedArt,
             frameBuilder: fadeInImageFrame,
@@ -489,17 +497,16 @@ class ProductCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // The 6 px inset keeps the artwork inside the 8 px corner arc, so a rounded fill
-        // looks the same as clipping it and costs no clip layer per card.
+        // Only full-bleed artwork needs a clip; the contained art's 6 px inset
+        // keeps it inside the corner arc without clipping every card.
         DecoratedBox(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: AppRadii.mdAll,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: art,
-          ),
+          child: cover
+              ? ClipRRect(borderRadius: AppRadii.mdAll, child: art)
+              : Padding(padding: const EdgeInsets.all(6), child: art),
         ),
         if (discount != null || promo != null || bonus != null)
           Positioned(

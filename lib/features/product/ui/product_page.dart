@@ -275,6 +275,7 @@ class _ProductPageState extends State<ProductPage> {
                       children: [
                         _Hero(
                           imageUrl: widget.view.imageUrl,
+                          coverImage: widget.view.isKitchen,
                           height: _heroHeight,
                           label: widget.view.title,
                         ),
@@ -426,9 +427,15 @@ class _ProductPageState extends State<ProductPage> {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.imageUrl, required this.height, this.label});
+  const _Hero({
+    required this.imageUrl,
+    required this.coverImage,
+    required this.height,
+    this.label,
+  });
 
   final String? imageUrl;
+  final bool coverImage;
   final double height;
   final String? label;
 
@@ -437,27 +444,34 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const insets = EdgeInsets.fromLTRB(32, 88, 32, 16);
+    final url = imageUrl;
+    final cover = coverImage && url != null;
+    final placeholder = cover
+        ? const Padding(padding: insets, child: _placeholder)
+        : _placeholder;
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
       child: Container(
         height: height,
         width: double.infinity,
         color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(32, 88, 32, 16),
-        child: imageUrl == null
-            ? _placeholder
+        padding: cover ? EdgeInsets.zero : insets,
+        child: url == null
+            ? placeholder
             : Image.network(
-                imageUrl!,
-                fit: BoxFit.contain,
+                url,
+                fit: cover ? BoxFit.cover : BoxFit.contain,
                 alignment: Alignment.center,
                 filterQuality: FilterQuality.high,
                 frameBuilder: fadeInImageFrame,
-                // The artwork box is height - 104 tall; decode no larger than it.
-                cacheHeight: ((height - 104).clamp(1.0, height) *
-                        MediaQuery.devicePixelRatioOf(context))
-                    .ceil(),
+                cacheHeight: cover
+                    ? null
+                    : ((height - insets.vertical).clamp(1.0, height) *
+                            MediaQuery.devicePixelRatioOf(context))
+                        .ceil(),
                 semanticLabel: label,
-                errorBuilder: (_, __, ___) => _placeholder,
+                errorBuilder: (_, __, ___) => placeholder,
               ),
       ),
     );

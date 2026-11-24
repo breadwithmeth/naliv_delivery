@@ -48,6 +48,73 @@ void main() {
     },
   );
 
+  test('reads every store campaign in order, with or without a cover', () async {
+    final offsets = <int>[];
+    final home = await _withHomeApi(
+      () => const HomeDataSource(businessId: 2).load(),
+      onPromotions: (offset) {
+        offsets.add(offset);
+        return _response([
+          for (var id = offset == 0 ? 1 : offset;
+              id <= (offset == 0 ? 50 : 53);
+              id++)
+            {
+              'marketing_promotion_id': id,
+              'name': 'Кампания $id',
+              'cover': id.isEven ? 'https://example.com/cover-$id.jpg' : ' ',
+            },
+        ]);
+      },
+    );
+
+    expect(offsets, [0, 50]);
+    expect(
+      home.banners.map((banner) => banner.promotionId),
+      List.generate(53, (index) => index + 1),
+    );
+    expect(home.banners.first.title, 'Кампания 1');
+    expect(home.banners.first.imageUrl, isNull);
+    expect(home.banners[1].imageUrl, 'https://example.com/cover-2.jpg');
+    expect(home.banners.last.title, 'Кампания 53');
+    expect(home.banners.last.imageUrl, isNull);
+  });
+
+  for (final hasIds in [true, false]) {
+    test('stops when a full campaign page repeats (including IDs: $hasIds)',
+        () async {
+      final offsets = <int>[];
+      final page = [
+        for (var id = 1; id <= 50; id++)
+          {
+            if (hasIds) 'marketing_promotion_id': id,
+            'name': 'Кампания $id',
+          },
+      ];
+      final home = await _withHomeApi(
+        () => const HomeDataSource(businessId: 2).load(),
+        onPromotions: (offset) {
+          offsets.add(offset);
+          if (offset > 50) throw StateError('Repeated page did not stop');
+          return _response(page);
+        },
+      );
+
+      expect(offsets, [0, 50]);
+      expect(home.banners.map((banner) => banner.title), page.map((p) => p['name']));
+    });
+  }
+
+  test('does not load unscoped campaigns when no store can be selected',
+      () async {
+    final home = await _withHomeApi(
+      () => const HomeDataSource(allowDefaultBusiness: false).load(),
+      onPromotions: (_) => throw StateError('No store selected'),
+    );
+
+    expect(home.storeId, isNull);
+    expect(home.banners, isEmpty);
+  });
+
   for (final (name, cachedToken) in [
     ('malformed', 42),
     ('not verified', _token('cached-account')),
@@ -262,6 +329,7 @@ Future<T> _withHomeApi<T>(
   Future<T> Function() action, {
   FutureOr<http.Response> Function(String?)? onBonuses,
   FutureOr<http.Response> Function(String?)? onOrders,
+  http.Response Function(int offset)? onPromotions,
 }) {
   final unexpected = <String>[];
   addTearDown(() => expect(unexpected, isEmpty));
@@ -298,8 +366,10 @@ Future<T> _withHomeApi<T>(
                   query.length == 3 &&
                   query['business_id'] == '2' &&
                   query['limit'] == '50' &&
-                  query['offset'] == '0':
-            return _response({'promotions': <Object>[]});
+                  int.tryParse(query['offset'] ?? '') != null:
+            final offset = int.parse(query['offset']!);
+            if (onPromotions != null) return onPromotions(offset);
+            if (offset == 0) return _response({'promotions': <Object>[]});
           case '/api/bonuses' when query.isEmpty && onBonuses != null:
             return onBonuses(authorization);
           case '/api/orders/my-active-orders'

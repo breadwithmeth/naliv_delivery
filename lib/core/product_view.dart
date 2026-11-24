@@ -14,6 +14,7 @@ import '../utils/bonus_rules.dart';
 import '../utils/item_name_presentation.dart';
 import '../utils/promotion_engine.dart';
 import '../utils/smart_cart.dart';
+import 'kitchen_policy.dart';
 import 'money.dart';
 import 'quantity.dart';
 
@@ -110,6 +111,8 @@ class ProductView {
   final String? bonus;
 
   final String? imageUrl;
+
+  bool get isKitchen => KitchenPolicy.isKitchenItem(source);
 
   /// Units in the cart, for the stepper. A double: weight items are sold in fractions.
   final num quantity;

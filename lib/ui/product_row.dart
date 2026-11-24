@@ -34,6 +34,7 @@ class ProductRow extends StatelessWidget {
     this.oldPrice,
     this.saving,
     this.imageUrl,
+    this.coverImage = false,
     this.quantity = 0,
     this.liked = false,
     this.available = true,
@@ -57,6 +58,7 @@ class ProductRow extends StatelessWidget {
   final num? oldPrice;
   final num? saving;
   final String? imageUrl;
+  final bool coverImage;
   final num quantity;
   final bool liked;
   final bool available;
@@ -94,6 +96,7 @@ class ProductRow extends StatelessWidget {
         oldPrice: view.oldPrice,
         saving: view.saving,
         imageUrl: view.imageUrl,
+        coverImage: view.isKitchen,
         available: view.available,
         quantity: quantity ?? view.quantity,
         liked: liked,
@@ -130,10 +133,12 @@ class ProductRow extends StatelessWidget {
                     child: imageUrl?.isNotEmpty == true
                         ? Image.network(
                             imageUrl!,
-                            cacheWidth: (artWidth *
-                                    MediaQuery.devicePixelRatioOf(context))
-                                .ceil(),
-                            fit: BoxFit.contain,
+                            cacheWidth: coverImage
+                                ? null
+                                : (artWidth *
+                                        MediaQuery.devicePixelRatioOf(context))
+                                    .ceil(),
+                            fit: coverImage ? BoxFit.cover : BoxFit.contain,
                             frameBuilder: fadeInImageFrame,
                             errorBuilder: (_, __, ___) => _missingArt(palette),
                           )

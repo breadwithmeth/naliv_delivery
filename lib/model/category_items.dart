@@ -168,6 +168,7 @@ class CategoryItem {
   final double price;
   final String? img;
   final String? code;
+  final int? categoryId;
   final ItemCategory category;
   final int visible;
   final String? unit;
@@ -185,6 +186,7 @@ class CategoryItem {
     required this.price,
     this.img,
     this.code,
+    this.categoryId,
     required this.category,
     required this.visible,
     this.unit,
@@ -197,9 +199,10 @@ class CategoryItem {
   });
 
   factory CategoryItem.fromJson(Map<String, dynamic> json) {
+    final categoryId = payloadInt(json['category_id'] ?? json['categoryId']);
     final categoryData = nullablePayloadMap(json['category']) ??
         <String, dynamic>{
-          'category_id': json['category_id'] ?? json['categoryId'],
+          'category_id': categoryId,
           'name':
               payloadString(json['category_name'] ?? json['category']) ?? '',
           'parent_category': json['parent_category'] ?? json['parent_id'],
@@ -218,6 +221,7 @@ class CategoryItem {
       price: payloadDouble(json['price']) ?? 0.0,
       img: payloadString(json['img']) ?? payloadString(json['image']),
       code: payloadString(json['code']),
+      categoryId: categoryId > 0 ? categoryId : null,
       category: ItemCategory.fromJson(categoryData),
       visible: payloadInt(json['visible'], defaultValue: 1),
       unit: payloadString(json['unit'] ?? json['unit_name'] ?? json['measure']),
@@ -252,6 +256,7 @@ class CategoryItem {
       'price': price,
       if (img != null) 'img': img,
       if (code != null) 'code': code,
+      if (categoryId != null) 'category_id': categoryId,
       'category': category.toJson(),
       'visible': visible,
       if (unit != null) 'unit': unit,

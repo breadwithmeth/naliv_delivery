@@ -310,6 +310,61 @@ void main() {
   });
 
   group('catalogue and home', () {
+    test('only a kitchen category response supplies missing item taxonomy',
+        () async {
+      final unexpected = <String>[];
+      final client = MockClient((request) async {
+        final allowed = request.method == 'GET' &&
+            (request.url.path.endsWith('/categories/237/items') ||
+                request.url.path.endsWith('/categories/58/items')) &&
+            request.url.queryParameters['business_id'] == '11' &&
+            request.url.queryParameters['page'] == '1';
+        if (!allowed) {
+          unexpected.add('${request.method} ${request.url}');
+          throw StateError('Unexpected request: ${unexpected.last}');
+        }
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              'items': [
+                {'item_id': 1, 'name': 'Новинка', 'price': 1000},
+                _rawItem(_beerItem),
+                {
+                  'item_id': 2,
+                  'name': 'Новинка',
+                  'price': 1000,
+                  'category_id': '237',
+                  'category': {'name': 'Еда (Кухня)'},
+                },
+                {
+                  'item_id': 3,
+                  'name': 'Новинка',
+                  'price': 1000,
+                  'category': {'category_id': 999, 'parent_category': 237},
+                },
+              ],
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      const catalogue = CatalogDataSource(businessId: _kitchenStore);
+      await http.runWithClient(() async {
+        final kitchen = await catalogue.items(237);
+        final ordinary = await catalogue.items(58);
+        expect(kitchen.map((view) => KitchenPolicy.isKitchenItem(view.source)),
+            [true, false, true, true]);
+        expect(ordinary.map((view) => KitchenPolicy.isKitchenItem(view.source)),
+            [false, false, true, true]);
+        expect(kitchen.first.source.categoryId, 237,
+            reason: 'the inferred ID must survive opening or saving the dish');
+      }, () => client);
+      expect(unexpected, isEmpty);
+    });
+
     test('home has no kitchen card or tile outside store 11', () async {
       final requests = <Uri>[];
       final data = await http.runWithClient(
