@@ -1,7 +1,7 @@
 name: naliv_delivery
 description: Gradusy24 delivery app.
 publish_to: "none"
-version: 1.2.117+12117
+version: 1.2.118+12118
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
