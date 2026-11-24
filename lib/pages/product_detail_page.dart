@@ -16,6 +16,7 @@ import '../model/cart_item.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/frosted_dock.dart';
+import '../ui/catalog_photo_provider.dart';
 import '../ui/motion_widgets.dart';
 import '../ui/product_hero_header.dart';
 import '../ui/promotion_nudge.dart';
@@ -568,8 +569,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           padding: cover ? EdgeInsets.zero : heroInsets,
                           child: imageUrl == null
                               ? placeholder
-                              : Image.network(
-                                  imageUrl,
+                              : Image(
+                                  image: catalogPhotoProvider(imageUrl),
                                   fit: cover ? BoxFit.cover : BoxFit.contain,
                                   errorBuilder: (_, __, ___) => cover
                                       ? Padding(

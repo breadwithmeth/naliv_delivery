@@ -9,6 +9,7 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
+import 'catalog_photo_provider.dart';
 import 'motion_widgets.dart';
 import 'text_width_cache.dart';
 import '../utils/smart_cart.dart';
@@ -477,16 +478,16 @@ class ProductCard extends StatelessWidget {
     final hasImage = imageUrl?.isNotEmpty == true;
     final cover = coverImage && hasImage;
     final art = hasImage
-        ? Image.network(
-            imageUrl!,
+        ? Image(
+            image: catalogPhotoProvider(
+              imageUrl!,
+              // A proportional decode at slot width can undersample a cover crop.
+              cacheWidth: cover
+                  ? null
+                  : (metrics.innerWidth * MediaQuery.devicePixelRatioOf(context)).ceil(),
+            ),
             width: double.infinity,
             height: double.infinity,
-            // A proportional decode at slot width can undersample a cover crop.
-            cacheWidth: cover
-                ? null
-                : (metrics.innerWidth *
-                        MediaQuery.devicePixelRatioOf(context))
-                    .ceil(),
             fit: cover ? BoxFit.cover : BoxFit.contain,
             // Paint-time alpha instead of an Opacity layer: no offscreen buffer per card.
             opacity: available ? null : _dimmedArt,

@@ -9,6 +9,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
 import 'app_icon_button.dart';
+import 'catalog_photo_provider.dart';
 import 'motion_widgets.dart';
 import 'product_card.dart';
 import 'surfaces.dart';
@@ -131,13 +132,13 @@ class ProductRow extends StatelessWidget {
                   child: ColoredBox(
                     color: Colors.white,
                     child: imageUrl?.isNotEmpty == true
-                        ? Image.network(
-                            imageUrl!,
-                            cacheWidth: coverImage
-                                ? null
-                                : (artWidth *
-                                        MediaQuery.devicePixelRatioOf(context))
-                                    .ceil(),
+                        ? Image(
+                            image: catalogPhotoProvider(
+                              imageUrl!,
+                              cacheWidth: coverImage
+                                  ? null
+                                  : (artWidth * MediaQuery.devicePixelRatioOf(context)).ceil(),
+                            ),
                             fit: coverImage ? BoxFit.cover : BoxFit.contain,
                             frameBuilder: fadeInImageFrame,
                             errorBuilder: (_, __, ___) => _missingArt(palette),
