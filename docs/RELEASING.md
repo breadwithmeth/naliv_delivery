@@ -38,6 +38,17 @@ lockfile downgrades.
 - Build signed mobile outputs only for the requested platforms. Verify their
   embedded versions, signatures and upgrade behavior; a fixture cannot prove a
   native store handoff or preserve a real installed account.
+- For Android, build with `flutter build appbundle --release` so Flutter regenerates
+  the plugin list for release (after tests, `--no-pub` can leave a dev registrant).
+  Keep the Flutter Gradle plugin's release defaults: R8 full mode with optimized
+  rules and resource shrinking. Keep only resources/classes looked up by name;
+  avoid package-wide `-keep` rules that disable optimization for entire SDKs.
+- Run `android analyze --format=json build/app/outputs/bundle/release/app-release.aab`
+  on the **signed AAB**. Check the package/version, uncompressed DEX bytes, and
+  shrinking, optimization and obfuscation against the Play Console thresholds.
+  Retain that build's `build/app/outputs/mapping/release/mapping.txt` privately
+  for crash retracing; never reuse another release's map. Test an in-place
+  install and cold launch, and exercise native plugin paths before rollout.
 - Build production web with `build --tracked`, inspect the generated JSON, and
   smoke the tracked output with production writes blocked. Never publish
   `.figma_cache/harness/web`, which contains fixture-only synthetic data.
