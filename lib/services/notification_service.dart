@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import '../core/destinations.dart';
+import '../features/notifications/notification_history.dart';
 import '../pages/help_chat_page.dart';
 import '../pages/login_page.dart';
 import 'auth_service.dart';
@@ -67,6 +68,16 @@ class NotificationService {
   }
 
   static const String _deviceIdKey = 'onesignal_device_id';
+  static const _pushOwnerKey = 'notification_history_provider_owner_v1';
+  static const _mixedPushOwners = ':mixed';
+  static const _noPushOwner = ':anonymous';
+  static const _recipientKeys = [
+    'external_id',
+    'externalId',
+    'recipient_user_id',
+    'recipientUserId',
+  ];
+  final _pendingHistory = <String, (String, HistoryNotification)>{};
   bool _isInitialized = false;
   bool _disposed = false;
   bool _observingSession = false;
@@ -77,6 +88,8 @@ class NotificationService {
   int _observedRevision = -1;
   AuthSession? _providerSession;
   bool _providerIdentityKnown = false;
+  String? _providerBoundIdentity;
+  String? _implicitHistoryOwner;
 
   bool get isWebVapidKeyConfigured => _provider.isWeb;
   String? get oneSignalId => _provider.current.subscriptionId;
@@ -109,10 +122,10 @@ class NotificationService {
       onChange: () {
         if (!_disposed) unawaited(syncSubscriptionWithBackend());
       },
-      onNotification: (data, clicked) {
-        if (!_disposed) {
-          unawaited(handleNotificationData(data, clicked: clicked));
-        }
+      onNotification: (event) {
+        if (_disposed) return;
+        unawaited(_captureHistory(event).catchError(_reportHistoryFailure));
+        unawaited(handleNotificationData(event.data, clicked: event.clicked));
       },
     );
     if (_disposed) return;
@@ -146,7 +159,21 @@ class NotificationService {
 
   void _onSessionChanged() {
     final revision = AuthService.credentialRevision;
-    if (_disposed || revision == _observedRevision) return;
+    if (_disposed) return;
+    if (revision == _observedRevision) {
+      final identity = AuthService.verifiedIdentity;
+      if (identity != null && _pendingHistory.isNotEmpty) {
+        for (final (recipient, notification) in _pendingHistory.values) {
+          if (recipient == identity) {
+            unawaited(_appendHistory(identity, notification));
+          }
+        }
+        _pendingHistory.clear();
+      }
+      return;
+    }
+    _pendingHistory.clear();
+    _implicitHistoryOwner = null;
     _observedRevision = revision;
     if (!AuthService.isEndingSession) {
       final previous = _providerSession;
@@ -154,6 +181,118 @@ class NotificationService {
         unawaited(_queueCleanup(previous.token));
       }
       unawaited(syncTokenWithServerIfNeeded());
+    }
+  }
+
+  Future<void> _captureHistory(PushNotificationEvent event) async {
+    final id = event.id?.trim();
+    final title = event.title ?? '';
+    final body = event.body ?? '';
+    if (id == null || id.isEmpty || id.length > 128 ||
+        (title.trim().isEmpty && body.trim().isEmpty) ||
+        AuthService.isEndingSession) {
+      return;
+    }
+    String? recipient;
+    for (final key in _recipientKeys) {
+      if (!event.data.containsKey(key)) continue;
+      final value = SupportNotificationTarget.identifier(event.data[key]);
+      if (value == null || (recipient != null && recipient != value)) return;
+      recipient = value;
+    }
+    final revision = AuthService.credentialRevision;
+    bool current() => !_disposed && !AuthService.isEndingSession &&
+        AuthService.credentialRevision == revision;
+    final notification = HistoryNotification(
+      id: id,
+      title: title,
+      body: body,
+      receivedAt: DateTime.now().toUtc(),
+    );
+    if (recipient != null) {
+      var identity = AuthService.verifiedIdentity;
+      if (identity == null && event.clicked) {
+        // A click from a cold start may wait for the existing credentials to be
+        // verified. Never carry its display text through login or replacement.
+        final session = await AuthService.captureSession();
+        if (!current() || session == null || !session.isCurrent) return;
+        identity = AuthService.verifiedIdentity;
+        if (identity == null) {
+          if (!_pendingHistory.containsKey(id)) {
+            if (_pendingHistory.length >= 16) {
+              _pendingHistory.remove(_pendingHistory.keys.first);
+            }
+            _pendingHistory[id] = (recipient, notification);
+          }
+          return;
+        }
+      }
+      if (identity == recipient) await _appendHistory(recipient, notification);
+      return;
+    }
+    // A delayed click has no trustworthy recipient without an explicit ID.
+    // Only a live delivery on a continuously single-owner push association can
+    // use provider state to fill in a missing recipient.
+    final identity = AuthService.verifiedIdentity;
+    if (event.clicked || identity == null ||
+        _implicitHistoryOwner != identity || _providerSession?.revision != revision) {
+      return;
+    }
+    final identityRevision = AuthService.sessionRevision.value;
+    final externalId = await _provider.readExternalId();
+    if (!current() || externalId != identity) return;
+    final prefs = await SharedPreferences.getInstance();
+    await AuthService.reloadLocalPreferences(prefs);
+    if (!current() || _implicitHistoryOwner != identity ||
+        identityRevision != AuthService.sessionRevision.value ||
+        AuthService.verifiedIdentity != identity ||
+        prefs.get(_pushOwnerKey) != Uri.encodeComponent(identity)) {
+      return;
+    }
+    await _appendHistory(identity, notification);
+  }
+
+  Future<void> _appendHistory(String identity, HistoryNotification entry) async {
+    try {
+      await NotificationHistory.instance.append(identity, entry);
+    } catch (error) {
+      _reportHistoryFailure(error);
+    }
+  }
+
+  static void _reportHistoryFailure(Object _) {
+    debugPrint('Local notification history capture unavailable');
+  }
+
+  Future<bool> _trackPushOwner(String? identity) async {
+    try {
+      final existingProviderOwner = await _provider.readExternalId();
+      final prefs = await SharedPreferences.getInstance();
+      await AuthService.reloadLocalPreferences(prefs);
+      final previous = prefs.get(_pushOwnerKey);
+      final owner = identity == null ? null : Uri.encodeComponent(identity);
+      final sdkOwner = existingProviderOwner == null
+          ? null
+          : Uri.encodeComponent(existingProviderOwner);
+      // A legacy registration has no local account lineage. In particular,
+      // its previously targeted messages may arrive after a new provider login.
+      final known = switch (previous) {
+        null => prefs.containsKey(_deviceIdKey) ? _mixedPushOwners : _noPushOwner,
+        String stored => stored,
+        _ => _mixedPushOwners,
+      };
+      final first = known == _noPushOwner ? sdkOwner ?? owner : known;
+      final next = (sdkOwner != null && sdkOwner != first) ||
+              (owner != null && owner != first)
+          ? _mixedPushOwners
+          : first ?? _noPushOwner;
+      if (previous != next && !await prefs.setString(_pushOwnerKey, next)) {
+        return false;
+      }
+      return owner != null && owner == next;
+    } catch (error) {
+      _reportHistoryFailure(error);
+      return false;
     }
   }
 
@@ -235,25 +374,37 @@ class NotificationService {
         if (session != null && identity == null) return false;
         if (session == null &&
             (!_providerIdentityKnown || _providerSession != null)) {
+          await _trackPushOwner(null);
+          if (!current()) return false;
           await _provider.logout();
           _providerSession = null;
+          _providerBoundIdentity = null;
+          _implicitHistoryOwner = null;
           _providerIdentityKnown = true;
           if (!current()) return false;
         }
         if (session != null &&
             (!_providerIdentityKnown ||
                 _providerSession?.revision != session.revision ||
-                _providerSession?.token != session.token)) {
+                _providerSession?.token != session.token ||
+                _providerBoundIdentity != identity)) {
           _providerIdentityKnown = false;
           _providerSession = session;
-          await _provider.login(identity!);
+          _implicitHistoryOwner = null;
+          final owner = identity!;
+          final exclusive = await _trackPushOwner(owner);
+          if (!current() || AuthService.currentIdentity != owner) return false;
+          await _provider.login(owner);
           _providerIdentityKnown = true;
-          if (!current()) {
+          _providerBoundIdentity = identity;
+          if (!current() || AuthService.currentIdentity != identity) {
             await _provider.logout();
             _providerSession = null;
+            _providerBoundIdentity = null;
             _providerIdentityKnown = true;
             return false;
           }
+          _implicitHistoryOwner = exclusive ? identity : null;
         }
         final snapshot = await _provider.readSubscription();
         if (!current()) return false;
@@ -313,6 +464,8 @@ class NotificationService {
   Future<void> logoutUser({required String? authToken}) {
     _pendingSupport = null;
     _pendingDestination = null;
+    _pendingHistory.clear();
+    _implicitHistoryOwner = null;
     _handledSupportClicks.clear();
     return _queueCleanup(authToken);
   }
@@ -328,6 +481,8 @@ class NotificationService {
           }
           await _provider.logout();
           _providerSession = null;
+          _providerBoundIdentity = null;
+          _implicitHistoryOwner = null;
           _providerIdentityKnown = true;
         } catch (error) {
           debugPrint('Push cleanup unavailable: $error');
@@ -346,6 +501,7 @@ class NotificationService {
     _supportPages.clear();
     _pendingSupport = null;
     _pendingDestination = null;
+    _pendingHistory.clear();
     unawaited(_supportUpdates.close());
   }
 

@@ -26,6 +26,7 @@ import 'widgets/app_loading_screen_web_stub.dart'
     if (dart.library.js_interop) 'widgets/app_loading_screen_web_real.dart';
 import 'widgets/app_update_notice.dart';
 import 'widgets/authentication_wrapper.dart';
+import 'features/home/age_confirmation_session.dart';
 import 'features/support/ui/city_contacts_sheet.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
@@ -97,9 +98,10 @@ Future<void> main() async {
 }
 
 class Main extends StatefulWidget {
-  const Main({super.key, this.contactLauncher});
+  const Main({super.key, this.contactLauncher, this.ageConfirmation});
 
   final Future<bool> Function(Uri)? contactLauncher;
+  final AgeConfirmationSession? ageConfirmation;
 
   @override
   State<Main> createState() => _MainState();
@@ -107,31 +109,56 @@ class Main extends StatefulWidget {
 
 class _MainState extends State<Main> with WidgetsBindingObserver {
   final _admissionKey = GlobalKey<NavigatorState>();
+  late final AgeConfirmationSession _ageConfirmation =
+      widget.ageConfirmation ?? AgeConfirmationSession.currentRun;
   bool _admitted = false;
-  late String _pendingRoute = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+  late bool _pendingFaq =
+      WidgetsBinding.instance.platformDispatcher.defaultRouteName ==
+          FaqPage.routeName;
+
   @override
   void initState() {
     super.initState();
+    _ageConfirmation.addListener(_schedulePendingFaq);
     browserHistoryEnableExitWarning();
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    _ageConfirmation.removeListener(_schedulePendingFaq);
     WidgetsBinding.instance.removeObserver(this);
     browserHistoryDisableExitWarning();
     super.dispose();
   }
 
   void _admit() {
-    if (mounted && !_admitted) setState(() => _admitted = true);
+    if (!mounted || _admitted) return;
+    setState(() => _admitted = true);
+    _schedulePendingFaq();
+  }
+
+  void _schedulePendingFaq() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingFaq());
+  }
+
+  void _openPendingFaq() {
+    if (!mounted ||
+        !_admitted ||
+        !_ageConfirmation.isConfirmed ||
+        !_pendingFaq) {
+      return;
+    }
+    final navigator = AppNavigator.key.currentState;
+    if (navigator == null) return;
+    _pendingFaq = false;
+    unawaited(navigator.pushNamed<void>(FaqPage.routeName));
   }
 
   Future<bool> _platformRoute(String route) async {
     if (route == FaqPage.routeName) {
-      _pendingRoute = route;
-      final navigator = _admitted ? AppNavigator.key.currentState : null;
-      if (navigator != null) unawaited(navigator.pushNamed<void>(route));
+      _pendingFaq = true;
+      _openPendingFaq();
     }
     return true;
   }
@@ -148,16 +175,26 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
       return MaterialPageRoute<void>(
         settings: settings,
         builder: (_) => _admitted
-            ? const AppUpdateNotice(child: AuthenticationWrapper())
+            ? ListenableBuilder(
+                listenable: _ageConfirmation,
+                child: const AuthenticationWrapper(),
+                builder: (context, child) => AppUpdateNotice(
+                  enabled: _ageConfirmation.isConfirmed,
+                  child: child!,
+                ),
+              )
             : AppEntryGate(onAdmitted: _admit),
       );
     }
-    if (_admitted && settings.name == FaqPage.routeName) {
+    if (_admitted &&
+        _ageConfirmation.isConfirmed &&
+        settings.name == FaqPage.routeName) {
       return MaterialPageRoute<void>(
         settings: settings,
         builder: (_) => FaqPage(
           initialSection: settings.arguments is FaqSection
-              ? settings.arguments as FaqSection : null,
+              ? settings.arguments as FaqSection
+              : null,
         ),
       );
     }
@@ -166,8 +203,6 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
 
   List<Route<dynamic>> _initialRoutes(String _) => [
     _route(const RouteSettings(name: '/'))!,
-    if (_admitted && _pendingRoute == FaqPage.routeName)
-      _route(const RouteSettings(name: FaqPage.routeName))!,
   ];
   @override
   Widget build(BuildContext context) {
@@ -178,12 +213,20 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
           : const [],
       builder: (context, child) => !_admitted
           ? child!
-          : CityContactsLauncherScope(
-              launch: widget.contactLauncher,
-              child: _AdmittedApp(
-                child: CartPersistenceNotice(
-                  navigatorKey: AppNavigator.key,
-                  child: child!,
+          : ChangeNotifierProvider<AgeConfirmationSession>.value(
+              value: _ageConfirmation,
+              child: CityContactsLauncherScope(
+                launch: widget.contactLauncher,
+                child: _AdmittedApp(
+                  child: ListenableBuilder(
+                    listenable: _ageConfirmation,
+                    child: child,
+                    builder: (context, navigator) => CartPersistenceNotice(
+                      navigatorKey: AppNavigator.key,
+                      enabled: _ageConfirmation.isConfirmed,
+                      child: navigator!,
+                    ),
+                  ),
                 ),
               ),
             ),

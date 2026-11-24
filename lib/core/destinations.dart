@@ -6,6 +6,7 @@ enum AppDestination {
   cart,
   favorites,
   notifications,
+  notificationHistory,
   profile,
   orders,
   bonuses,

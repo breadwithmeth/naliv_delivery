@@ -2,6 +2,7 @@
 // A null frame means capture-only, not permission to borrow another reference.
 const surfaceReferenceFrames = <String, String?>{
   'home': 'Главная - Без входа в аккаунт',
+  'home_age': 'Главная - Подтверждение 21+',
   'catalog': 'Каталог',
   'all_products': 'Каталог - Все товары',
   'cart': 'Корзина',
@@ -43,6 +44,8 @@ const surfaceReferenceFrames = <String, String?>{
   'bonus_explainer': 'История бонусов - Как работают бонусы',
   'faq': 'FAQ',
   'notifications': null,
+  'notification_history': 'Уведомления',
+  'notification_history_empty': 'Уведомления - Уведомлений нет',
   'intro': 'Регистрация и логин - Слайд 1',
   'sign_in': 'Регистрация и логин - Вход по номеру телефона ',
   'profile_setup': null,

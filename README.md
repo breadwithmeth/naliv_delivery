@@ -156,10 +156,13 @@ The design reference is 375 × 812 logical pixels with 48 px top / 34 px bottom 
 The `startup` surface previews the one-shot [`go.gradusy24.kz`](https://go.gradusy24.kz/)
 intro over a loading route. Its four original PNGs ship in `assets/startup/`; startup
 never fetches artwork from the website. `AppLaunchIntro` owns Flutter motion and
-`web/index.html` owns the pre-Flutter web equivalent. Keep their keyframes together:
-the three seals start at 0/300/500 ms, reveal starts at 1600 ms, and the decorative
-line finishes at 4950 ms. The route mounts behind the intro. Reduced motion bypasses
-the flight; the web shell waits for the real `flutter-first-frame` event.
+`web/index.html` owns the pre-Flutter web equivalent. Keep the flight waypoints
+and timings together: the three seals start 2750 ms flights at 0/300/500 ms,
+with matching smoothed paths and their original echoes. Reveal starts at 1600 ms
+and takes 520 ms; the last seal finishes at 3250 ms. There is no progress line.
+The route mounts behind the intro. The web shell reveals it only after the real
+`flutter-first-frame` event and keeps the logo visible on slow boots. Reduced
+motion bypasses the flight and hands off without the reveal animation.
 
 Build the fixture gallery separately from the tracked deployment output:
 

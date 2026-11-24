@@ -10,6 +10,7 @@ import 'package:naliv_delivery/core/destinations.dart';
 import 'package:naliv_delivery/features/search/ui/search_page.dart';
 import 'package:naliv_delivery/features/home/home_data_source.dart';
 import 'package:naliv_delivery/features/favorites/ui/favorites_page.dart';
+import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
 import 'package:naliv_delivery/features/home/home_screen.dart';
 import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
 import 'package:naliv_delivery/features/profile/ui/profile_page.dart';
@@ -21,6 +22,7 @@ import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
 import 'package:naliv_delivery/pages/order_detail_page.dart';
 import 'package:naliv_delivery/pages/notification_settings_page.dart';
+import 'package:naliv_delivery/features/notifications/ui/notification_history_page.dart';
 import 'package:naliv_delivery/pages/profile_addresses_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
@@ -28,6 +30,7 @@ import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/promotion_items_page.dart';
+import 'package:naliv_delivery/features/home/ui/age_confirmation_dialog.dart';
 import 'package:naliv_delivery/features/home/ui/home_store_sheet.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
@@ -41,11 +44,13 @@ import 'package:naliv_delivery/services/onboarding_service.dart';
 class AuthenticationWrapper extends StatefulWidget {
   final AppDestination? initialDestination;
   final Future<bool> Function(Uri)? contactLauncher;
+  final AgeConfirmationSession? ageConfirmation;
 
   const AuthenticationWrapper({
     super.key,
     this.initialDestination,
     this.contactLauncher,
+    this.ageConfirmation,
   });
 
   @override
@@ -60,6 +65,10 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   bool _businessLoaded = false;
   bool _requiresProfileSetup = false;
   bool _initialDestinationQueued = false;
+  bool _homeEntryQueued = false;
+  bool _showingAgeConfirmation = false;
+  int? _navigationAuthRequest;
+  late final AgeConfirmationSession _ageConfirmation;
   Future<void>? _checkingAuth;
   String? _checkingAuthToken;
   int? _checkingCredentialRevision;
@@ -73,6 +82,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   @override
   void initState() {
     super.initState();
+    _ageConfirmation = widget.ageConfirmation ??
+        context.read<AgeConfirmationSession?>() ??
+        AgeConfirmationSession.currentRun;
     _credentialRevision = AuthService.credentialRevision;
     _observedEndingSession = AuthService.isEndingSession;
     AuthService.sessionRevision.addListener(_sessionChanged);
@@ -81,7 +93,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   }
 
   void _openCartFromAnywhere() {
-    if (!mounted) return;
+    if (!mounted || !_ageConfirmation.isConfirmed) return;
     Navigator.of(context).popUntil((route) => route.isFirst);
     _openCart();
   }
@@ -216,19 +228,6 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     if (mounted && revision == AuthService.credentialRevision) {
       await _loadHome();
     }
-    if (mounted &&
-        request == _authRequest &&
-        revision == AuthService.credentialRevision &&
-        _homeData != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted &&
-            request == _authRequest &&
-            revision == AuthService.credentialRevision) {
-          NotificationService.instance
-              .resumePendingNavigation(openDestination: _navigate);
-        }
-      });
-    }
   }
 
   Future<void> _handleProfileSetupCompleted(
@@ -261,6 +260,51 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     return null;
   }
 
+  void _queueHomeEntry() {
+    if (_homeEntryQueued || _showingAgeConfirmation) return;
+    final hasInitialDestination =
+        !_initialDestinationQueued && widget.initialDestination != null;
+    if (_ageConfirmation.isConfirmed &&
+        !hasInitialDestination &&
+        _navigationAuthRequest == _authRequest) {
+      return;
+    }
+    _homeEntryQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _homeEntryQueued = false;
+      if (!mounted ||
+          _homeData == null ||
+          (_isAuthenticated && _requiresProfileSetup) ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
+      if (!_ageConfirmation.isConfirmed) {
+        unawaited(_presentAgeConfirmation());
+        return;
+      }
+      final destination = widget.initialDestination;
+      if (!_initialDestinationQueued && destination != null) {
+        _initialDestinationQueued = true;
+        if (destination != AppDestination.home) {
+          unawaited(_navigate(destination));
+          return; // Resume pending push when Home becomes the top route again.
+        }
+      }
+      if (_navigationAuthRequest == _authRequest) return;
+      _navigationAuthRequest = _authRequest;
+      unawaited(NotificationService.instance
+          .resumePendingNavigation(openDestination: _navigate));
+    });
+  }
+
+  Future<void> _presentAgeConfirmation() async {
+    _showingAgeConfirmation = true;
+    final confirmed = await showAgeConfirmationDialog(context);
+    if (confirmed) _ageConfirmation.confirm();
+    _showingAgeConfirmation = false;
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -283,25 +327,33 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
       _healIfIdle();
       return const AppLoadingScreen();
     }
-    if (!_initialDestinationQueued && widget.initialDestination != null) {
-      _initialDestinationQueued = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _navigate(widget.initialDestination!);
-      });
-    }
 
-    return HomeScreen(
-      data: homeData,
-      onCart: () => _openCart(),
-      onSearch: _openSearch,
-      onCallCenter: _callSupport,
-      onStore: _selectStore,
-      onPromo: _openPromotion,
-      onActiveOrder: (order) => _push(OrderDetailPage(order: order.source)),
-      onBonusHistory: () => _navigate(AppDestination.bonuses),
-      onSignIn: _signIn,
-      onNavigate: _navigate,
-      onCategory: _openSupercategory,
+    if (ModalRoute.of(context)?.isCurrent == true) _queueHomeEntry();
+    final blocked = !_ageConfirmation.isConfirmed;
+    return PopScope<Object?>(
+      canPop: !blocked,
+      child: ExcludeSemantics(
+        excluding: blocked,
+        child: ExcludeFocus(
+          excluding: blocked,
+          child: IgnorePointer(
+            ignoring: blocked,
+            child: HomeScreen(
+              data: homeData,
+              onCart: _openCart,
+              onSearch: _openSearch,
+              onCallCenter: _callSupport,
+              onStore: _selectStore,
+              onPromo: _openPromotion,
+              onActiveOrder: (order) => _push(OrderDetailPage(order: order.source)),
+              onBonusHistory: () => _navigate(AppDestination.bonuses),
+              onSignIn: _signIn,
+              onNavigate: _navigate,
+              onCategory: _openSupercategory,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -538,10 +590,12 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   }
 
   Future<void> _navigate(AppDestination destination) async {
+    if (!mounted || !_ageConfirmation.isConfirmed) return;
     if (!_isAuthenticated &&
         (destination == AppDestination.favorites ||
             destination == AppDestination.orders ||
             destination == AppDestination.bonuses ||
+            destination == AppDestination.notificationHistory ||
             destination == AppDestination.cards ||
             destination == AppDestination.addresses ||
             destination == AppDestination.certificates)) {
@@ -561,6 +615,10 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
         ));
       case AppDestination.notifications:
         await _push(const NotificationSettingsPage());
+      case AppDestination.notificationHistory:
+        await _push(NotificationHistoryPage(
+          onSettings: () => _navigate(AppDestination.notifications),
+        ));
       case AppDestination.profile:
         await _push(
           ProfilePage(

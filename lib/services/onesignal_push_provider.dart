@@ -12,7 +12,7 @@ class OneSignalPushProvider implements PushProvider {
   bool _listening = false;
   String? _oneSignalId;
   VoidCallback? _onChange;
-  void Function(Map<String, dynamic>, bool)? _onNotification;
+  void Function(PushNotificationEvent)? _onNotification;
   OnPushSubscriptionChangeObserver? _subscriptionObserver;
   OnNotificationPermissionChangeObserver? _permissionObserver;
   OnUserChangeObserver? _userObserver;
@@ -46,7 +46,7 @@ class OneSignalPushProvider implements PushProvider {
   @override
   Future<void> initialize({
     required VoidCallback onChange,
-    required void Function(Map<String, dynamic>, bool) onNotification,
+    required void Function(PushNotificationEvent) onNotification,
   }) async {
     if (_disposed) throw StateError('Push provider is disposed');
     _onChange = onChange;
@@ -61,8 +61,8 @@ class OneSignalPushProvider implements PushProvider {
         if (!_disposed) _onChange?.call();
       });
       final notifications = await OneSignalWebBridge.setNotificationHandler(
-        (data, clicked) {
-          if (!_disposed) _onNotification?.call(data, clicked);
+        (event) {
+          if (!_disposed) _onNotification?.call(event);
         },
       );
       if (!changed || !notifications) {
@@ -77,12 +77,10 @@ class OneSignalPushProvider implements PushProvider {
     await OneSignal.User.setLanguage('ru');
     if (_disposed || _listening) return;
     _clickListener = (event) {
-      _onNotification?.call(
-          event.notification.additionalData ?? <String, dynamic>{}, true);
+      _emitNative(event.notification, clicked: true);
     };
     _foregroundListener = (event) {
-      _onNotification?.call(
-          event.notification.additionalData ?? <String, dynamic>{}, false);
+      _emitNative(event.notification, clicked: false);
     };
     _subscriptionObserver = (_) => _onChange?.call();
     _permissionObserver = (_) => _onChange?.call();
@@ -97,6 +95,16 @@ class OneSignalPushProvider implements PushProvider {
     OneSignal.Notifications.addPermissionObserver(_permissionObserver!);
     OneSignal.User.addObserver(_userObserver!);
     _listening = true;
+  }
+
+  void _emitNative(OSNotification notification, {required bool clicked}) {
+    _onNotification?.call(PushNotificationEvent(
+      id: notification.notificationId,
+      title: notification.title,
+      body: notification.body,
+      data: notification.additionalData ?? const {},
+      clicked: clicked,
+    ));
   }
 
   @override
@@ -118,6 +126,13 @@ class OneSignalPushProvider implements PushProvider {
       );
     }
     return current;
+  }
+
+  @override
+  Future<String?> readExternalId() async {
+    if (isWeb) return OneSignalWebBridge.getExternalId();
+    if (_mobile) return OneSignal.User.getExternalId();
+    return null;
   }
 
   @override

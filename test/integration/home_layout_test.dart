@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/home/home_view_data.dart';
 import 'package:naliv_delivery/features/home/ui/home_page.dart';
 import 'package:naliv_delivery/ui/app_cart_button.dart';
+
+import '../support/design_surfaces.dart';
 
 const _fill = Color(0xFFF16800);
 
@@ -28,6 +32,7 @@ Future<void> _pumpHome(
   VoidCallback? onLiked,
   VoidCallback? onProfile,
   VoidCallback? onBonusHistory,
+  VoidCallback? onNotifications,
   VoidCallback? onStore,
   VoidCallback? onSearch,
   num? bonusBalance,
@@ -62,6 +67,7 @@ Future<void> _pumpHome(
         onLiked: onLiked,
         onProfile: onProfile,
         onBonusHistory: onBonusHistory,
+        onNotifications: onNotifications,
         onStore: onStore,
         onSearch: onSearch,
       ),
@@ -72,6 +78,44 @@ Future<void> _pumpHome(
 }
 
 void main() {
+  for (final brightness in Brightness.values) {
+    testWidgets('$brightness age confirmation fits 320 px and 2x text',
+        (tester) async {
+      const size = Size(320, 600);
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      SharedPreferences.setMockInitialValues(surfaceFixturePreferences);
+      final client = SurfaceFixtureClient();
+      addTearDown(client.close);
+      SurfaceFixtureClient.resetUnexpectedRequests();
+      await http.runWithClient(() async {
+        await tester.pumpWidget(DesignSurfaceApp(
+          surface: 'home_age',
+          brightness: brightness,
+          size: size,
+          textScaler: const TextScaler.linear(2),
+          viewInsets: const EdgeInsets.only(bottom: 300),
+        ));
+        await tester.pumpAndSettle();
+        final offer = find.widgetWithText(TextButton, 'Договор оферты');
+        final confirm = find.widgetWithText(FilledButton, 'Мне есть 21 год');
+        await tester.ensureVisible(offer);
+        await tester.pumpAndSettle();
+        expect(tester.getSize(offer).height, greaterThanOrEqualTo(44));
+        expect(offer.hitTestable(), findsOneWidget);
+        await tester.ensureVisible(confirm);
+        await tester.pumpAndSettle();
+        expect(tester.getSize(confirm).height, greaterThanOrEqualTo(44));
+        await tester.tap(confirm);
+        await tester.pumpAndSettle();
+        expect(confirm, findsNothing);
+        expect(tester.takeException(), isNull);
+        expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => client);
+    });
+  }
+
   group('cart dock', () {
     testWidgets('stays a compact stamp, filled or empty', (tester) async {
       for (final (items, total) in [(0, null), (3, 45300)]) {
@@ -130,6 +174,7 @@ void main() {
               onLiked: () => opened.add('favorites'),
               onProfile: () => opened.add('profile'),
               onBonusHistory: () => opened.add('bonuses'),
+              onNotifications: () => opened.add('notifications'),
               onStore: () => opened.add('store'),
               onSearch: () => opened.add('search'),
             );
@@ -151,6 +196,7 @@ void main() {
               find.bySemanticsLabel('Избранные товары'),
               find.bySemanticsLabel('Профиль'),
               find.bySemanticsLabel('Бонусы'),
+              find.bySemanticsLabel('Уведомления'),
               store,
               search,
             ];
@@ -167,6 +213,7 @@ void main() {
               'favorites',
               'profile',
               'bonuses',
+              'notifications',
               'store',
               'search',
             ]);
@@ -179,7 +226,7 @@ void main() {
     );
 
     testWidgets(
-      'a loaded zero is visible, but guests see just the bonus entry',
+      'header actions never reveal the balance, including a genuine zero',
       (tester) async {
         final header = find.byKey(const ValueKey('home-header'));
         final zero = find.descendant(of: header, matching: find.text('0'));
@@ -190,7 +237,7 @@ void main() {
 
         await _pumpHome(tester, size: const Size(375, 812), bonusBalance: 0);
         expect(bonuses, findsOneWidget);
-        expect(zero, findsOneWidget);
+        expect(zero, findsNothing);
 
         await _pumpHome(
           tester,

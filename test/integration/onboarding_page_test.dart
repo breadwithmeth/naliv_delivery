@@ -27,6 +27,9 @@ import 'package:naliv_delivery/pages/login_page.dart';
 import '../support/design_surfaces.dart';
 import 'package:flutter/foundation.dart';
 import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
+import 'package:naliv_delivery/core/destinations.dart';
+import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
+import 'package:naliv_delivery/features/home/home_screen.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 
 class _CountingPush extends InMemoryPushProvider {
@@ -34,7 +37,7 @@ class _CountingPush extends InMemoryPushProvider {
   @override
   Future<void> initialize({
     required VoidCallback onChange,
-    required void Function(Map<String, dynamic>, bool) onNotification,
+    required void Function(PushNotificationEvent) onNotification,
   }) async {
     starts++;
   }
@@ -215,7 +218,9 @@ void main() {
   tearDown(() => SharedPreferences.setMockInitialValues({}));
 
   Future<void> pumpBootstrap(WidgetTester tester, {
-    AssetBundle? bundle, Future<bool> Function(Uri)? launch,
+    AssetBundle? bundle,
+    Future<bool> Function(Uri)? launch,
+    AgeConfirmationSession? ageConfirmation,
   }) async {
     await tester.runAsync(() async {
       await rootBundle.loadString('assets/agreements/offer.md');
@@ -233,7 +238,10 @@ void main() {
         ],
         child: DefaultAssetBundle(
           bundle: bundle ?? rootBundle,
-          child: Main(contactLauncher: launch),
+          child: Main(
+            contactLauncher: launch,
+            ageConfirmation: ageConfirmation ?? AgeConfirmationSession(),
+          ),
         ),
       ),
     );
@@ -245,9 +253,14 @@ void main() {
   }
 
   Future<void> withAdmitted(WidgetTester tester, Future<void> Function() exercise, {
-    String route = '/', Future<bool> Function(Uri)? launch,
+    String route = '/',
+    Future<bool> Function(Uri)? launch,
+    AgeConfirmationSession? ageConfirmation,
+    bool signedIn = false,
   }) async {
-    SharedPreferences.setMockInitialValues({...surfaceFixturePreferences}..remove('auth_token'));
+    final prefs = {...surfaceFixturePreferences};
+    if (!signedIn) prefs.remove('auth_token');
+    SharedPreferences.setMockInitialValues(prefs);
     final previous = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     tester.binding.platformDispatcher.defaultRouteNameTestValue = route;
@@ -257,7 +270,11 @@ void main() {
     try {
       await http.runWithClient(() async {
         try {
-          await pumpBootstrap(tester, launch: launch);
+          await pumpBootstrap(
+            tester,
+            launch: launch,
+            ageConfirmation: ageConfirmation ?? (AgeConfirmationSession()..confirm()),
+          );
           await exercise();
           expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
         } finally {
@@ -334,6 +351,67 @@ void main() {
     });
   });
 
+  testWidgets('cold FAQ cannot cover age confirmation or its offer reader',
+      (tester) async {
+    await withAdmitted(tester, () async {
+      final acknowledge = find.text('Мне есть 21 год');
+      expect(find.byType(HomeScreen, skipOffstage: false), findsOneWidget);
+      expect(acknowledge, findsOneWidget);
+      expect(find.byType(FaqPage), findsNothing);
+
+      await tester.tap(
+        find.byTooltip('Связаться', skipOffstage: false),
+        warnIfMissed: false,
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(acknowledge, findsOneWidget);
+      expect(find.text('Контакты'), findsNothing);
+
+      await tester.tap(find.text('Договор оферты'));
+      await tester.pump();
+      final bundle = DefaultAssetBundle.of(tester.element(find.text('Публичная оферта')));
+      await tester.runAsync(() => bundle.loadString('assets/agreements/offer.md', cache: false));
+      await tester.pumpAndSettle();
+      expect(find.text('Публичная оферта'), findsOneWidget);
+      expect(find.textContaining('Пользовательское соглашение'), findsWidgets);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(acknowledge, findsOneWidget);
+      expect(find.byType(FaqPage), findsNothing);
+
+      final prefs = await SharedPreferences.getInstance();
+      final before = prefs.getString(LegalAcceptance.preferenceKey);
+      await tester.tap(acknowledge);
+      await tester.pumpAndSettle();
+      expect(find.byType(FaqPage), findsOneWidget);
+      expect(prefs.getString(LegalAcceptance.preferenceKey), before);
+    }, route: '/faq', ageConfirmation: AgeConfirmationSession());
+  });
+
+  testWidgets('signed-in Home acknowledges age once across Home replacements',
+      (tester) async {
+    await withAdmitted(tester, () async {
+      final acknowledge = find.text('Мне есть 21 год');
+      expect(acknowledge, findsOneWidget);
+      expect(find.byType(LoginPage), findsNothing);
+      unawaited(AppNavigator.goToHome(destination: AppDestination.profile));
+      await tester.pumpAndSettle();
+      expect(acknowledge, findsOneWidget);
+      expect(find.text('Профиль'), findsNothing);
+      await tester.tap(acknowledge);
+      await tester.pumpAndSettle();
+      expect(find.text('Профиль'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeScreen), findsOneWidget);
+      unawaited(AppNavigator.goToHome());
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(acknowledge, findsNothing);
+    }, signedIn: true, ageConfirmation: AgeConfirmationSession());
+  });
+
   testWidgets('unknown cold route falls back to exactly one home',
       (tester) async {
     await withAdmitted(tester, () async {
@@ -356,7 +434,7 @@ void main() {
     }, launch: (uri) async { launches.add(uri); return true; });
   });
 
-  testWidgets('warm FAQ before consent stays deferred until admission',
+  testWidgets('warm FAQ stays deferred through legal and age confirmation',
       (tester) async {
     final previous = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -376,6 +454,10 @@ void main() {
         await _tap(tester, 'legal-offer-choice');
         await _tap(tester, 'legal-privacy-choice');
         await _tap(tester, 'legal-continue');
+        expect(find.byType(FaqPage), findsNothing);
+        expect(find.text('Мне есть 21 год'), findsOneWidget);
+        await tester.tap(find.text('Мне есть 21 год'));
+        await tester.pumpAndSettle();
         expect(find.byType(FaqPage), findsOneWidget);
         expect(push.starts, 1);
         await tester.tap(find.byTooltip('Назад'));
@@ -409,36 +491,64 @@ void main() {
   });
 
   testWidgets(
-    'clean install presents intro then independent legal choices before city',
+    'clean install presents intro, independent legal choices, city, then age',
     (tester) async {
-      await pumpBootstrap(tester);
-      expect(find.text('Персональные акции'), findsOneWidget);
-      expect(AppNavigator.key.currentState, isNull);
-      await tester.tap(find.text('Войти или зарегистрироваться'));
-      await tester.pump();
-      await tester.runAsync(() async {
-        await rootBundle.loadString('assets/agreements/offer.md');
-        await rootBundle.loadString('assets/agreements/privacy.md');
-      });
-      await tester.pumpAndSettle();
-      expect(find.text('Условия использования'), findsOneWidget);
-      expect(find.text('Ваш город'), findsNothing);
-      expect(
-        tester
-            .widget<CheckboxListTile>(
-              find.byKey(const ValueKey('legal-offer-choice')),
-            )
-            .value,
-        isFalse,
-      );
-      expect(
-        tester
-            .widget<CheckboxListTile>(
-              find.byKey(const ValueKey('legal-privacy-choice')),
-            )
-            .value,
-        isFalse,
-      );
+      final previous = debugDefaultTargetPlatformOverride;
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      final restore = NotificationService.installProvider(InMemoryPushProvider());
+      addTearDown(restore);
+      final fixture = SurfaceFixtureClient();
+      addTearDown(fixture.close);
+      SurfaceFixtureClient.resetUnexpectedRequests();
+      final acknowledge = find.text('Мне есть 21 год');
+      try {
+      await http.runWithClient(() async {
+        await pumpBootstrap(tester);
+        expect(find.text('Персональные акции'), findsOneWidget);
+        expect(acknowledge, findsNothing);
+        expect(AppNavigator.key.currentState, isNull);
+        await tester.tap(find.text('Войти или зарегистрироваться'));
+        await tester.pump();
+        await tester.runAsync(() async {
+          await rootBundle.loadString('assets/agreements/offer.md');
+          await rootBundle.loadString('assets/agreements/privacy.md');
+        });
+        await tester.pumpAndSettle();
+        expect(find.text('Условия использования'), findsOneWidget);
+        expect(find.text('Ваш город'), findsNothing);
+        expect(acknowledge, findsNothing);
+        expect(
+          tester
+              .widget<CheckboxListTile>(
+                find.byKey(const ValueKey('legal-offer-choice')),
+              )
+              .value,
+          isFalse,
+        );
+        expect(
+          tester
+              .widget<CheckboxListTile>(
+                find.byKey(const ValueKey('legal-privacy-choice')),
+              )
+              .value,
+          isFalse,
+        );
+        await _tap(tester, 'legal-offer-choice');
+        await _tap(tester, 'legal-privacy-choice');
+        await _tap(tester, 'legal-continue');
+        expect(find.text('Ваш город'), findsOneWidget);
+        expect(acknowledge, findsNothing);
+        expect(AppNavigator.key.currentState, isNull);
+        await _tap(tester, 'onboarding-city-2');
+        await _tap(tester, 'onboarding-continue');
+        expect(find.byType(HomeScreen, skipOffstage: false), findsOneWidget);
+        expect(acknowledge, findsOneWidget);
+        expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => fixture);
+      } finally {
+        debugDefaultTargetPlatformOverride = previous;
+      }
     },
   );
 
@@ -641,11 +751,15 @@ void main() {
       prefs.heldWrite!.complete(true);
       await tester.pumpAndSettle();
       expect(push.starts, 1);
+      expect(find.byType(LoginPage), findsNothing);
+      expect(find.text('Мне есть 21 год'), findsOneWidget);
+      await tester.tap(find.text('Мне есть 21 год'));
+      await tester.pumpAndSettle();
       expect(
         find.byType(LoginPage),
         findsOneWidget,
         reason:
-            'pending orders push resumes guest sign-in only after admission',
+            'pending orders push resumes guest sign-in after age confirmation',
       );
       expect(
         (await SharedPreferences.getInstance()).getString(

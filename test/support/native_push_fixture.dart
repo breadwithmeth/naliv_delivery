@@ -23,6 +23,8 @@ class NativePushFixture {
   Future<void> Function(String)? login;
   Future<void> Function()? logout;
 
+  String? externalId;
+
   void install() {
     for (final name in _channels) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -55,11 +57,13 @@ class NativePushFixture {
         final identity = call.arguments['externalId'] as String;
         logins.add(identity);
         await login?.call(identity);
+        externalId = identity;
         effects.add('login:$identity');
         return null;
       }
       if (method == 'OneSignal#logout' && call.arguments == null) {
         await logout?.call();
+        externalId = null;
         effects.add('logout');
         return null;
       }
@@ -87,6 +91,9 @@ class NativePushFixture {
       return null;
     }
     if (channel == 'OneSignal#user') {
+      if (method == 'OneSignal#getExternalId' && call.arguments == null) {
+        return externalId;
+      }
       if (method == 'OneSignal#addTags' && call.arguments is Map) {
         for (final entry in (call.arguments as Map).entries) {
           tags['${entry.key}'] = '${entry.value}';
@@ -119,6 +126,12 @@ class NativePushFixture {
     if (channel == 'OneSignal#notifications' &&
         method == 'OneSignal#addNativeClickListener' &&
         call.arguments == null) {
+      return null;
+    }
+    if (channel == 'OneSignal#notifications' &&
+        method == 'OneSignal#proceedWithWillDisplay' &&
+        call.arguments is Map &&
+        call.arguments['notificationId'] is String) {
       return null;
     }
     unexpected.add(rejected);

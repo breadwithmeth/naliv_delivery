@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_icon.dart';
-import '../../../ui/app_top_bar.dart';
 
 import '../legal_acceptance.dart';
+import 'legal_document_page.dart';
 
 class LegalAcceptancePage extends StatefulWidget {
   const LegalAcceptancePage({
@@ -87,28 +86,8 @@ class _LegalAcceptancePageState extends State<LegalAcceptancePage> {
     final text = _documents?[id];
     if (text == null) return;
     Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: AppTopBar(title: title),
-                ),
-                Expanded(
-                  child: Markdown(
-                    data: text,
-                    selectable: true,
-                    padding: const EdgeInsets.all(20),
-                    // Bundled texts are self-contained; never fetch remote attachments.
-                    imageBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      MaterialPageRoute<void>(
+        builder: (_) => LegalDocumentPage(title: title, text: text),
       ),
     );
   }
