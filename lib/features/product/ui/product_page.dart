@@ -14,6 +14,7 @@ import '../../../model/cart_item.dart';
 import '../../../model/item.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
+import '../../../ui/catalog_photo_provider.dart';
 import '../../../ui/frosted_dock.dart';
 import '../../../ui/motion_widgets.dart';
 import '../../../ui/product_hero_header.dart';
@@ -459,17 +460,18 @@ class _Hero extends StatelessWidget {
         padding: cover ? EdgeInsets.zero : insets,
         child: url == null
             ? placeholder
-            : Image.network(
-                url,
+            : Image(
+                image: catalogPhotoProvider(
+                  url,
+                  cacheHeight: cover
+                      ? null
+                      : ((height - insets.vertical).clamp(1.0, height) *
+                              MediaQuery.devicePixelRatioOf(context)).ceil(),
+                ),
                 fit: cover ? BoxFit.cover : BoxFit.contain,
                 alignment: Alignment.center,
                 filterQuality: FilterQuality.high,
                 frameBuilder: fadeInImageFrame,
-                cacheHeight: cover
-                    ? null
-                    : ((height - insets.vertical).clamp(1.0, height) *
-                            MediaQuery.devicePixelRatioOf(context))
-                        .ceil(),
                 semanticLabel: label,
                 errorBuilder: (_, __, ___) => placeholder,
               ),
