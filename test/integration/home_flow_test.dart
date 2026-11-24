@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:naliv_delivery/core/theme_controller.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
+import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
 import 'package:naliv_delivery/features/home/home_screen.dart';
 import 'package:naliv_delivery/features/search/ui/search_page.dart';
 import 'package:naliv_delivery/features/profile/ui/profile_page.dart';
@@ -23,10 +24,13 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../support/design_surfaces.dart';
 import 'package:naliv_delivery/features/bonuses/ui/bonus_history_page.dart';
+import 'package:naliv_delivery/features/notifications/ui/notification_history_page.dart';
+import 'package:naliv_delivery/pages/notification_settings_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 
 void main() {
-  testWidgets('guest header bonuses resumes actual history after fixture OTP', (
+  for (final inbox in [false, true]) {
+    testWidgets('guest header ${inbox ? "inbox" : "bonuses"} resumes after fixture OTP', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(
@@ -44,7 +48,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Бонусы'));
+      await tester.tap(find.byTooltip(inbox ? 'Уведомления' : 'Бонусы'));
       await tester.pumpAndSettle();
       expect(find.byType(LoginPage), findsOneWidget);
       await tester.enterText(
@@ -58,12 +62,23 @@ void main() {
         '123456',
       );
       await tester.pumpAndSettle();
-      expect(find.byType(BonusHistoryPage), findsOneWidget);
+      if (inbox) {
+        expect(find.byType(NotificationHistoryPage), findsOneWidget);
+        await tester.tap(find.bySemanticsLabel('Настройки уведомлений'));
+        await tester.pumpAndSettle();
+        expect(find.byType(NotificationSettingsPage), findsOneWidget);
+        await tester.tap(find.byTooltip('Назад'));
+        await tester.pumpAndSettle();
+        expect(find.byType(NotificationHistoryPage), findsOneWidget);
+      } else {
+        expect(find.byType(BonusHistoryPage), findsOneWidget);
+      }
       expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     client.close();
   });
+  }
 
   testWidgets('unknown store city never recommends saved onboarding city', (
     tester,
@@ -137,12 +152,16 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.dark(),
-          home: const AuthenticationWrapper(),
+          home: AuthenticationWrapper(
+            ageConfirmation: AgeConfirmationSession(),
+          ),
         ),
       ));
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
+      await tester.tap(find.text('Мне есть 21 год'));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-store-card')), findsOneWidget);
       // The account icon is the profile route, not the navigation drawer.
       await tester.tap(find.byWidgetPredicate(
@@ -386,7 +405,9 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.dark(),
-            home: const AuthenticationWrapper(),
+            home: AuthenticationWrapper(
+              ageConfirmation: AgeConfirmationSession()..confirm(),
+            ),
           ),
         ));
         await tester.pumpAndSettle();

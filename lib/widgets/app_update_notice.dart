@@ -5,10 +5,16 @@ import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/services/app_update_service.dart';
 
 class AppUpdateNotice extends StatefulWidget {
-  const AppUpdateNotice({super.key, required this.child, this.service});
+  const AppUpdateNotice({
+    super.key,
+    required this.child,
+    this.service,
+    this.enabled = true,
+  });
 
   final Widget child;
   final AppUpdateService? service;
+  final bool enabled;
 
   @override
   State<AppUpdateNotice> createState() => _AppUpdateNoticeState();
@@ -20,11 +26,13 @@ class _AppUpdateNoticeState extends State<AppUpdateNotice>
       widget.service ?? AppUpdateService.production();
   AppLifecycleState? _lifecycle;
   bool _routeCurrent = false;
+  bool _activationCheckPending = false;
   bool _showing = false;
   int _visit = 0;
 
   bool get _eligible =>
       mounted &&
+      widget.enabled &&
       (_lifecycle == null || _lifecycle == AppLifecycleState.resumed) &&
       ModalRoute.of(context)?.isCurrent == true;
 
@@ -37,11 +45,27 @@ class _AppUpdateNoticeState extends State<AppUpdateNotice>
   }
 
   @override
+  void didUpdateWidget(AppUpdateNotice oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.enabled && widget.enabled) {
+      _activationCheckPending = true;
+      _scheduleActivationCheck();
+    }
+  }
+
+  void _scheduleActivationCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_activationCheckPending && _eligible) unawaited(_check());
+    });
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final current = ModalRoute.of(context)?.isCurrent == true;
     if (_routeCurrent && !current) _visit++;
     _routeCurrent = current;
+    if (current && _activationCheckPending) _scheduleActivationCheck();
   }
 
   @override
@@ -56,6 +80,7 @@ class _AppUpdateNoticeState extends State<AppUpdateNotice>
 
   Future<void> _check() async {
     if (_showing || !_eligible) return;
+    _activationCheckPending = false;
     // Each foreground opportunity keeps its own visit guard. The service shares
     // pending I/O; an earlier visit must not swallow a later resume.
     final visit = _visit;

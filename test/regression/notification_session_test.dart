@@ -134,7 +134,7 @@ class _ControlledProvider extends InMemoryPushProvider {
   @override
   Future<void> initialize({
     required VoidCallback onChange,
-    required void Function(Map<String, dynamic>, bool) onNotification,
+    required void Function(PushNotificationEvent) onNotification,
   }) async {
     starts++;
     if (failStartup) throw StateError('fixture provider failure');

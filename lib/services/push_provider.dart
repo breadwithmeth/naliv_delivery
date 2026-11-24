@@ -17,6 +17,24 @@ class PushSubscriptionSnapshot {
   final bool optedIn;
 }
 
+/// A provider notification's display envelope and transient routing data.
+@immutable
+class PushNotificationEvent {
+  const PushNotificationEvent({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.clicked,
+    this.data = const {},
+  });
+
+  final String? id;
+  final String? title;
+  final String? body;
+  final bool clicked;
+  final Map<String, dynamic> data;
+}
+
 abstract interface class PushProvider {
   bool get supported;
   String get deviceType;
@@ -24,10 +42,10 @@ abstract interface class PushProvider {
   PushSubscriptionSnapshot get current;
   Future<void> initialize({
     required VoidCallback onChange,
-    required void Function(Map<String, dynamic> data, bool clicked)
-        onNotification,
+    required void Function(PushNotificationEvent) onNotification,
   });
   Future<PushSubscriptionSnapshot> readSubscription();
+  Future<String?> readExternalId();
   Future<void> login(String externalId);
   Future<void> logout();
   Future<bool> requestPermission();
@@ -55,11 +73,12 @@ class InMemoryPushProvider implements PushProvider {
   @override
   Future<void> initialize({
     required VoidCallback onChange,
-    required void Function(Map<String, dynamic> data, bool clicked)
-        onNotification,
+    required void Function(PushNotificationEvent) onNotification,
   }) async {}
   @override
   Future<PushSubscriptionSnapshot> readSubscription() async => current;
+  @override
+  Future<String?> readExternalId() async => externalId;
   @override
   Future<void> login(String externalId) async => this.externalId = externalId;
   @override

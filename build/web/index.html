@@ -61,12 +61,20 @@
       }
 
       function notifyNotification(event, clicked) {
-        var data = event && event.notification && event.notification.additionalData;
-        if (!data || typeof data !== "object") return;
+        var notification = event && event.notification;
+        if (!notification) return;
+        var args = [
+          typeof notification.notificationId === "string" ? notification.notificationId : null,
+          typeof notification.title === "string" ? notification.title : null,
+          typeof notification.body === "string" ? notification.body : null,
+          notification.additionalData || null,
+          clicked
+        ];
         if (typeof notificationHandler === "function") {
-          notificationHandler(data, clicked);
+          notificationHandler.apply(null, args);
         } else if (clicked) {
-          pendingClicks.push(data);
+          if (pendingClicks.length >= 16) pendingClicks.shift();
+          pendingClicks.push(args);
         }
       }
 
@@ -163,6 +171,11 @@
             return OneSignal.User.onesignalId || null;
           }, null);
         },
+        getExternalId: function () {
+          return withOneSignal(async function (OneSignal) {
+            return OneSignal.User.externalId || "";
+          }, null);
+        },
         getPermissionGranted: function () {
           return withOneSignal(async function (OneSignal) {
             return OneSignal.Notifications.permission === true;
@@ -184,7 +197,7 @@
           if (typeof callback === "function") {
             var clicks = pendingClicks;
             pendingClicks = [];
-            clicks.forEach(function (data) { callback(data, true); });
+            clicks.forEach(function (args) { callback.apply(null, args); });
           }
           return withOneSignal(async function () { return true; }, false);
         },
@@ -273,7 +286,7 @@
       z-index: 9999;
       overflow: hidden;
       background: #fff;
-      transition: opacity 520ms linear;
+      transition: opacity 520ms ease-in-out;
     }
 
     #splash.removing {
@@ -289,7 +302,7 @@
 
     .splash-orange {
       background: var(--splash-orange);
-      transition: opacity 240ms linear;
+      transition: opacity 240ms ease;
     }
 
     .splash-logo {
@@ -301,7 +314,7 @@
       max-height: calc(100% - 20px);
       object-fit: contain;
       transform: translate(-50%, -50%) scale(.8);
-      transition: opacity 240ms linear, transform 240ms linear;
+      transition: opacity 240ms ease, transform 240ms ease;
     }
 
     .splash-sweep {
@@ -326,7 +339,7 @@
       width: 553px;
       opacity: var(--layer-opacity);
       filter: var(--layer-filter);
-      transition: opacity 240ms linear, filter 240ms linear;
+      transition: opacity 240ms ease, filter 240ms ease;
     }
 
     .splash-revealing .splash-orange,
@@ -341,35 +354,12 @@
     .splash-revealing .splash-sweep {
       border-radius: 0;
       transform: translateY(0);
-      transition: transform 520ms linear, border-radius 520ms linear;
+      transition: transform 520ms ease-in-out, border-radius 520ms ease-in-out;
     }
 
     .splash-past-intro .splash-layer {
       opacity: var(--reveal-opacity);
       filter: var(--reveal-filter);
-    }
-
-    .splash-line {
-      position: absolute;
-      bottom: 16px;
-      left: 50%;
-      z-index: 3;
-      width: min(520px, calc(100% - 32px));
-      height: 2px;
-      background: rgb(255 255 255 / 30%);
-      transform: translateX(-50%);
-    }
-
-    .splash-line-fill {
-      height: 100%;
-      background: #fff;
-      transform-origin: left;
-      animation: splash-line 4.95s linear both;
-      transition: background-color 240ms linear;
-    }
-
-    .splash-revealing .splash-line-fill {
-      background: var(--splash-orange);
     }
 
     .splash-recovery {
@@ -456,11 +446,6 @@
       color: #ffffff;
     }
 
-    @keyframes splash-line {
-      from { transform: scaleX(0); }
-      to { transform: scaleX(1); }
-    }
-
     @media (prefers-reduced-motion: reduce) {
       #splash,
       .splash-orange,
@@ -469,8 +454,7 @@
       }
 
       .splash-sweep,
-      .splash-layers,
-      .splash-line-fill {
+      .splash-layers {
         display: none;
       }
 
@@ -575,7 +559,6 @@
     <img class="splash-logo" src="assets/assets/startup/logo1.png" width="2450" height="553" alt="Градусы24" draggable="false">
     <div class="splash-sweep"></div>
     <div class="splash-layers" aria-hidden="true"></div>
-    <div class="splash-line" aria-hidden="true"><div class="splash-line-fill"></div></div>
     <p class="splash-recovery" role="status"></p>
   </div>
   <script>
@@ -583,7 +566,9 @@
       const splash = document.getElementById("splash");
       const layers = splash.querySelector(".splash-layers");
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-      const lastLayerEnd = 3250;
+      const revealStart = 1600;
+      const flightDuration = 2750;
+      const lastSealDelay = 500;
       const handoffDuration = 520;
       let flutterReady = false;
       let revealStarted = false;
@@ -610,11 +595,11 @@
         revealStarted = true;
         splash.classList.add("splash-past-intro");
         handoffIfReady();
-      }, 1600);
+      }, revealStart);
       const settleTimer = setTimeout(() => {
         // A slow cold boot keeps its logo; do not reveal an empty white surface.
         layers.replaceChildren();
-      }, lastLayerEnd);
+      }, flightDuration + lastSealDelay);
       const recoveryTimer = setTimeout(() => {
         splash.querySelector(".splash-recovery").textContent =
           "Загрузка занимает дольше обычного — подождите или обновите страницу.";
@@ -628,9 +613,9 @@
 
       if (reduceMotion.matches || !Element.prototype.animate) return;
 
-      // Positions, timing and layer treatments from the public Gradusy24 intro.
+      // Keep the waypoints and timing in sync with Flutter's AppLaunchIntro.
       const offsets = [0, .2, .52, .8, 1];
-      const scaleSteps = [.96, 1, 1.04, 1.02, 1];
+      const spans = offsets.slice(1).map((end, i) => end - offsets[i]);
       const artwork = [
         {
           image: 3, delay: 0, scale: 1.2, opacity: .1, echo: [.2, .035, 2.5, 3.5, 130],
@@ -643,14 +628,72 @@
           rotation: [2, .9, -.5, -1.7, -2.7]
         },
         {
-          image: 1, delay: 500, scale: 1.5, opacity: .075, echo: [.16, .025, 1.5, 2.5, 72],
+          image: 1, delay: lastSealDelay, scale: 1.5, opacity: .075, echo: [.16, .025, 1.5, 2.5, 72],
           x: [-18, -6, 8, 20, 30], y: [1380, 900, 80, -720, -1460],
           rotation: [-1.2, -.4, .8, 1.8, 2.6]
         }
       ];
 
-      function addLayer(art, echo) {
-        const [echoOpacity, revealEchoOpacity, echoBlur, revealEchoBlur, echoOffset] = art.echo;
+      function smoothTrack(values) {
+        const slopes = spans.map((span, i) => (values[i + 1] - values[i]) / span);
+        const tangents = slopes.map((after, i) => {
+          if (i === 0) return after;
+          const before = slopes[i - 1];
+          return before * after <= 0 ? 0 : 2 * before * after / (before + after);
+        });
+        tangents.push(slopes[slopes.length - 1]);
+        return spans.map((span, i) => {
+          const start = values[i];
+          const delta = values[i + 1] - start;
+          const a = tangents[i] * span;
+          const b = tangents[i + 1] * span;
+          const quadratic = 3 * delta - 2 * a - b;
+          const cubic = a + b - 2 * delta;
+          return t => start + t * (a + t * (quadratic + t * cubic));
+        });
+      }
+
+      const scaleTrack = smoothTrack([.96, 1, 1.04, 1.02, 1]);
+
+      function transformFrame(offset, x, y, rotation, scale) {
+        return {
+          offset,
+          transform: `translate(-50%, -50%) translate(${x}px, ${y}px) ` +
+            `rotate(${rotation}deg) scale(${scale})`
+        };
+      }
+
+      function flightKeyframes(art) {
+        const xTrack = smoothTrack(art.x);
+        const yTrack = smoothTrack(art.y);
+        const rotationTrack = smoothTrack(art.rotation);
+        const echoOffset = art.echo[4];
+        const echoScale = art.scale * .92;
+        const main = [];
+        const echo = [];
+
+        function addFrame(i, t, offset) {
+          const x = xTrack[i](t);
+          const y = yTrack[i](t);
+          const rotation = rotationTrack[i](t);
+          main.push(transformFrame(offset, x, y, rotation, art.scale * scaleTrack[i](t)));
+          echo.push(transformFrame(offset, x * .6, y + echoOffset, rotation, echoScale));
+        }
+
+        // Sample the shared-tangent path once. WAAPI drives playback without a JS frame loop.
+        const stepsPerSpan = 8;
+        for (let i = 0; i < spans.length; i++) {
+          for (let step = 0; step < stepsPerSpan; step++) {
+            const t = step / stepsPerSpan;
+            addFrame(i, t, offsets[i] + spans[i] * t);
+          }
+        }
+        addFrame(spans.length - 1, 1, 1);
+        return { main, echo };
+      }
+
+      function addLayer(art, echo, keyframes) {
+        const [echoOpacity, revealEchoOpacity, echoBlur, revealEchoBlur] = art.echo;
         const img = document.createElement("img");
         img.className = "splash-layer";
         img.src = `assets/assets/startup/${art.image}.png`;
@@ -665,17 +708,13 @@
         img.style.setProperty("--layer-filter", echo ? `blur(${echoBlur}px) ${shadow}` : shadow);
         img.style.setProperty("--reveal-filter", echo ? `blur(${revealEchoBlur}px) ${shadow}` : shadow);
         layers.append(img);
-        img.animate(offsets.map((offset, i) => ({
-          offset,
-          transform: `translate(-50%, -50%) translate(${art.x[i] * (echo ? .6 : 1)}px, ` +
-            `${art.y[i] + (echo ? echoOffset : 0)}px) rotate(${art.rotation[i]}deg) ` +
-            `scale(${art.scale * (echo ? .92 : scaleSteps[i])})`
-        })), { duration: 2750, delay: art.delay, fill: "both" });
+        img.animate(keyframes, { duration: flightDuration, delay: art.delay, fill: "both" });
       }
 
       for (const art of artwork) {
-        addLayer(art, true);
-        addLayer(art, false);
+        const { main, echo } = flightKeyframes(art);
+        addLayer(art, true, echo);
+        addLayer(art, false, main);
       }
     })();
   </script>

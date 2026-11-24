@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
 import 'package:naliv_delivery/features/home/home_screen.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
@@ -81,7 +82,9 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.dark(),
-          home: const AuthenticationWrapper(),
+          home: AuthenticationWrapper(
+            ageConfirmation: AgeConfirmationSession()..confirm(),
+          ),
         ),
       ));
       for (var turn = 0; turn < 12; turn++) {
@@ -155,7 +158,9 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.dark(),
-            home: const AuthenticationWrapper(),
+            home: AuthenticationWrapper(
+              ageConfirmation: AgeConfirmationSession()..confirm(),
+            ),
           ),
         ));
         await tester.pump();

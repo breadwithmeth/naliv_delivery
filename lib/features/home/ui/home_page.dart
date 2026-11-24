@@ -30,6 +30,7 @@ class HomePage extends StatelessWidget {
     this.cartTotal,
     this.onSearch,
     this.onCallCenter,
+    this.onNotifications,
     this.onLiked,
     this.onProfile,
     this.onStore,
@@ -49,6 +50,7 @@ class HomePage extends StatelessWidget {
   final num? cartTotal;
   final VoidCallback? onSearch;
   final VoidCallback? onCallCenter;
+  final VoidCallback? onNotifications;
   final VoidCallback? onLiked;
   final VoidCallback? onProfile;
   final VoidCallback? onStore;
@@ -84,7 +86,7 @@ class HomePage extends StatelessWidget {
               child: KeyedSubtree(
                 key: const ValueKey('home-header'),
                 child: _HomeHeader(
-                  bonusBalance: data.signedIn ? data.bonusBalance : null,
+                  onNotifications: onNotifications,
                   onBonusHistory: onBonusHistory,
                   onCallCenter: onCallCenter,
                   onLiked: onLiked,
@@ -243,14 +245,14 @@ class _HomeBrandMark extends StatelessWidget {
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({
-    this.bonusBalance,
+    this.onNotifications,
     this.onBonusHistory,
     this.onCallCenter,
     this.onLiked,
     this.onProfile,
   });
 
-  final num? bonusBalance;
+  final VoidCallback? onNotifications;
   final VoidCallback? onBonusHistory;
   final VoidCallback? onCallCenter;
   final VoidCallback? onLiked;
@@ -258,8 +260,6 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final balance = bonusBalance;
-    final amount = balance == null ? null : bonusNumberLabel(balance);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -268,8 +268,7 @@ class _HomeHeader extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
-            child: LayoutBuilder(
-              builder: (context, constraints) => Wrap(
+            child: Wrap(
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: AppSpacing.xs,
@@ -285,14 +284,6 @@ class _HomeHeader extends StatelessWidget {
                   _HeaderAction(
                     icon: AppIcons.star,
                     label: 'Бонусы',
-                    showLabel: true,
-                    accent: true,
-                    detail: amount != null &&
-                            _fitsBalance(context, constraints.maxWidth, amount)
-                        ? amount
-                        : null,
-                    semanticsLabel:
-                        amount == null ? null : 'Бонусы, баланс $amount',
                     onTap: onBonusHistory,
                   ),
                   Row(
@@ -304,6 +295,12 @@ class _HomeHeader extends StatelessWidget {
                         onTap: onLiked,
                       ),
                       _HeaderAction(
+                        icon: AppIcons.bell,
+                        label: 'Уведомления',
+                        onTap: onNotifications,
+                        accent: true,
+                      ),
+                      _HeaderAction(
                         icon: AppIcons.user,
                         label: 'Профиль',
                         onTap: onProfile,
@@ -311,7 +308,6 @@ class _HomeHeader extends StatelessWidget {
                     ],
                   ),
                 ],
-              ),
             ),
           ),
         ),
@@ -319,23 +315,6 @@ class _HomeHeader extends StatelessWidget {
     );
   }
 
-  bool _fitsBalance(BuildContext context, double width, String amount) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: amount,
-        style: DefaultTextStyle.of(
-          context,
-        ).style.merge(AppTypography.labelBold),
-      ),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    final fits =
-        painter.width.ceilToDouble() + _HeaderAction._captionInset <= width;
-    painter.dispose();
-    return fits;
-  }
 }
 
 class _HeaderAction extends StatelessWidget {
@@ -345,8 +324,6 @@ class _HeaderAction extends StatelessWidget {
     this.onTap,
     this.showLabel = false,
     this.accent = false,
-    this.detail,
-    this.semanticsLabel,
   });
 
   final String icon;
@@ -354,13 +331,9 @@ class _HeaderAction extends StatelessWidget {
   final VoidCallback? onTap;
   final bool showLabel;
   final bool accent;
-  final String? detail;
-  final String? semanticsLabel;
 
   static const _captionPadding = AppSpacing.sm;
   static const _labelledIconSize = 18.0;
-  static const _captionInset =
-      _captionPadding * 2 + _labelledIconSize + AppSpacing.xs;
 
   @override
   Widget build(BuildContext context) {
@@ -375,7 +348,7 @@ class _HeaderAction extends StatelessWidget {
       excludeFromSemantics: true,
       child: Semantics(
         container: true,
-        label: semanticsLabel ?? label,
+        label: label,
         button: true,
         enabled: onTap != null,
         child: InkWell(
@@ -400,24 +373,11 @@ class _HeaderAction extends StatelessWidget {
                           glyph,
                           const SizedBox(width: AppSpacing.xs),
                           Flexible(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  label,
-                                  style: AppTypography.labelMedium.copyWith(
-                                    color: palette.textPrimary,
-                                  ),
-                                ),
-                                if (detail case final value?)
-                                  Text(
-                                    value,
-                                    style: AppTypography.labelBold.copyWith(
-                                      color: palette.textPrimary,
-                                    ),
-                                  ),
-                              ],
+                            child: Text(
+                              label,
+                              style: AppTypography.labelMedium.copyWith(
+                                color: palette.textPrimary,
+                              ),
                             ),
                           ),
                         ],

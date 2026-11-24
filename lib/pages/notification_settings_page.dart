@@ -10,7 +10,7 @@ import '../ui/app_top_bar.dart';
 import '../ui/frosted_surface.dart';
 import '../ui/settings_widgets.dart';
 
-/// Notification preferences, not an inbox without a backing history API.
+/// Device push permissions and topic preferences, separate from the inbox.
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
@@ -164,7 +164,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     setState(() => _actionRunning = true);
     try {
       await NotificationService.instance.clearAllNotifications();
-      if (mounted) _showMessage('Текущие уведомления очищены');
+      if (mounted) _showMessage('Системные уведомления очищены');
     } catch (_) {
       if (mounted) _showMessage('Не удалось очистить уведомления');
     } finally {
@@ -202,7 +202,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
             constraints: const BoxConstraints(maxWidth: _maxWidth),
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-              child: AppTopBar(title: 'Уведомления'),
+              child: AppTopBar(title: 'Настройки уведомлений'),
             ),
           ),
         ),
@@ -291,7 +291,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
               SettingsRow(
                 key: const ValueKey('notification-clear'),
                 icon: Icons.clear_all,
-                title: 'Очистить текущие уведомления',
+                title: 'Очистить системные уведомления',
                 onTap: _actionRunning ? null : _clearNotifications,
               ),
           ],

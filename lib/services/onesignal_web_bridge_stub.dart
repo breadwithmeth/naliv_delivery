@@ -1,3 +1,5 @@
+import 'push_provider.dart';
+
 class OneSignalWebBridge {
   static Future<bool> initialize() async => false;
 
@@ -9,6 +11,8 @@ class OneSignalWebBridge {
 
   static Future<String?> getOneSignalId() async => null;
 
+  static Future<String?> getExternalId() async => null;
+
   static Future<bool> getPermissionGranted() async => false;
 
   static Future<bool> getOptedIn() async => false;
@@ -16,7 +20,7 @@ class OneSignalWebBridge {
   static Future<bool> setChangeHandler(void Function() onChange) async => false;
 
   static Future<bool> setNotificationHandler(
-    void Function(Map<String, dynamic> data, bool clicked) onNotification,
+    void Function(PushNotificationEvent) onNotification,
   ) async => false;
 
   static Future<bool> login(String externalId) async => false;

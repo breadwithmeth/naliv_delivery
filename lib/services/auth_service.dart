@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
 import 'package:naliv_delivery/services/notification_service.dart';
+import '../features/notifications/notification_history.dart';
 
 @immutable
 class AuthSession {
@@ -22,6 +23,7 @@ class AuthService {
   static const String _tokenExpiryKey = 'token_expiry';
   static final ValueNotifier<int> sessionRevision = ValueNotifier(0);
   static String? _currentIdentity;
+  static String? _verifiedIdentity;
   static bool _endingSession = false;
   static int _identityVersion = 0;
   static int _credentialRevision = 0;
@@ -71,7 +73,20 @@ class AuthService {
   }
 
   static String? get currentIdentity => _currentIdentity;
+
+  /// The identity confirmed by an account response in this credential generation.
+  static String? get verifiedIdentity => _verifiedIdentity;
+
   static bool get isEndingSession => _endingSession;
+
+  // SharedPreferences reload replaces the whole cache, including optimistic
+  // credential writes. Order it with those writes rather than overwriting them.
+  static Future<void> reloadLocalPreferences(SharedPreferences prefs) =>
+      _serializeCredentialWrite(() async {
+        final previousToken = prefs.get(_tokenKey);
+        await prefs.reload();
+        if (previousToken != prefs.get(_tokenKey)) await notifySessionChanged();
+      });
 
   static Future<bool> isTokenExpired() async {
     try {
@@ -106,18 +121,32 @@ class AuthService {
     _credentialRevision++;
     _identityVersion++;
     _currentIdentity = null;
+    _verifiedIdentity = null;
     ChatApiService.suspendAllSessions();
     sessionRevision.value++;
   }
 
-  static Future<void> bindAuthenticatedIdentity(String? externalId) async {
+  static Future<void> bindAuthenticatedIdentity(
+    String? externalId, {
+    bool verified = true,
+  }) async {
     final normalized = externalId?.trim();
     final identity =
         normalized == null || normalized.isEmpty ? null : normalized;
-    if (_endingSession && identity != null) return;
-    if (_currentIdentity == identity) return;
+    if ((_endingSession || _credentialPublicationPending ||
+        _credentialStorageUnverified) && identity != null) {
+      return;
+    }
+    if (_currentIdentity == identity) {
+      if (verified && _verifiedIdentity != identity) {
+        _verifiedIdentity = identity;
+        sessionRevision.value++;
+      }
+      return;
+    }
     final version = ++_identityVersion;
     _currentIdentity = identity;
+    _verifiedIdentity = verified ? identity : null;
     Future<void>? retained;
     if (identity == null) {
       // Expired authentication hides live history immediately. The labelled
@@ -139,16 +168,20 @@ class AuthService {
   }) async {
     if (_endingSession) return null;
     final version = _identityVersion;
+    final revision = _credentialRevision;
     final token = await ApiService.getAuthToken();
     final identity = token == null
         ? null
         : await ApiService.getCurrentUserExternalId(verifiedInfo: verifiedInfo);
+    final currentToken = await ApiService.getAuthToken();
     if (_endingSession ||
-        version != _identityVersion ||
-        token != await ApiService.getAuthToken()) {
+        (version != _identityVersion &&
+            (verifiedInfo == null || identity != _currentIdentity)) ||
+        revision != _credentialRevision ||
+        token != currentToken) {
       return _currentIdentity;
     }
-    await bindAuthenticatedIdentity(identity);
+    await bindAuthenticatedIdentity(identity, verified: verifiedInfo != null);
     return identity;
   }
 
@@ -224,13 +257,16 @@ class AuthService {
   static Future<void> clearToken() {
     final pending = _clearing;
     if (pending != null) return pending;
+    final identity = _verifiedIdentity;
     _endingSession = true;
     _credentialRevision++;
     _identityVersion++;
     _currentIdentity = null;
+    _verifiedIdentity = null;
     ChatApiService.suspendAllSessions();
     sessionRevision.value++;
-    final operation = _serializeCredentialWrite(_clearLocalCredentials);
+    final operation =
+        _serializeCredentialWrite(() => _clearLocalCredentials(identity));
     _clearing = operation;
     return operation;
   }
@@ -266,7 +302,7 @@ class AuthService {
     }
   }
 
-  static Future<void> _clearLocalCredentials() async {
+  static Future<void> _clearLocalCredentials(String? identity) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final oldToken = prefs.getString(_tokenKey);
@@ -280,6 +316,13 @@ class AuthService {
       // that verification before removing chat state, or a parallel reload can
       // resurrect the capability in memory after its durable removal.
       final credentialsRemoved = await _removeStoredCredentials(prefs);
+      if (identity != null) {
+        unawaited(NotificationHistory.instance
+            .forgetOnLogout(identity)
+            .catchError((Object _) {
+          debugPrint('Could not remove local notification history');
+        }));
+      }
       await ChatApiService.clearPrivateSessions();
       if (!credentialsRemoved) {
         throw StateError('Could not remove local authentication credentials');

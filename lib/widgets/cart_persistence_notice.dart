@@ -10,11 +10,13 @@ class CartPersistenceNotice extends StatefulWidget {
   const CartPersistenceNotice({
     required this.child,
     required this.navigatorKey,
+    this.enabled = true,
     super.key,
   });
 
   final Widget child;
   final GlobalKey<NavigatorState> navigatorKey;
+  final bool enabled;
 
   @override
   State<CartPersistenceNotice> createState() => _CartPersistenceNoticeState();
@@ -83,7 +85,8 @@ class _CartPersistenceNoticeState extends State<CartPersistenceNotice> {
         builder: (context, status, content) {
           final palette = context.palette;
           final restoreFailed = status == CartSaveStatus.restoreFailed;
-          final showNotice = status == CartSaveStatus.failed || restoreFailed;
+          final showNotice =
+              widget.enabled && (status == CartSaveStatus.failed || restoreFailed);
           final actionStyle = showNotice
               ? TextButton.styleFrom(foregroundColor: palette.textPrimary)
               : null;

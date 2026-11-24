@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
+import 'push_provider.dart';
+
 class OneSignalWebBridge {
   static const Duration _timeout = Duration(seconds: 10);
   static JSExportedDartFunction? _changeHandler;
@@ -50,6 +52,12 @@ class OneSignalWebBridge {
   static Future<String?> getOneSignalId() async =>
       _call<String>('getOneSignalId');
 
+  static Future<String?> getExternalId() async {
+    final id = await _call<String>('getExternalId');
+    if (id == null) throw StateError('Web push user unavailable');
+    return id.isEmpty ? null : id;
+  }
+
   static Future<bool> getPermissionGranted() async =>
       (await _call<bool>('getPermissionGranted')) ?? false;
 
@@ -68,16 +76,21 @@ class OneSignalWebBridge {
   }
 
   static Future<bool> setNotificationHandler(
-    void Function(Map<String, dynamic> data, bool clicked) onNotification,
+    void Function(PushNotificationEvent) onNotification,
   ) async {
-    _notificationHandler = ((JSAny? value, JSAny? clicked) {
-      final data = value?.dartify();
-      if (data is Map) {
-        onNotification(
-          data.map((key, value) => MapEntry(key.toString(), value)),
-          clicked?.dartify() == true,
-        );
-      }
+    _notificationHandler =
+        ((JSString? id, JSString? title, JSString? body, JSAny? data,
+            JSBoolean clicked) {
+      final values = data?.dartify();
+      onNotification(PushNotificationEvent(
+        id: id?.toDart,
+        title: title?.toDart,
+        body: body?.toDart,
+        data: values is Map
+            ? values.map((key, value) => MapEntry(key.toString(), value))
+            : const {},
+        clicked: clicked.toDart,
+      ));
     }).toJS;
     return (await _call<bool>(
           'setNotificationHandler',

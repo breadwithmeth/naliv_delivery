@@ -27,6 +27,9 @@ import 'package:naliv_delivery/features/onboarding/ui/intro_slides_page.dart';
 import 'package:naliv_delivery/features/search/ui/search_page.dart';
 import 'package:naliv_delivery/features/favorites/ui/favorites_page.dart';
 import 'package:naliv_delivery/features/home/ui/home_store_sheet.dart';
+import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
+import 'package:naliv_delivery/features/notifications/notification_history.dart';
+import 'package:naliv_delivery/features/notifications/ui/notification_history_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 import 'package:naliv_delivery/pages/notification_settings_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
@@ -1133,6 +1136,8 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
   Key _updateNoticeKey = UniqueKey();
   late AppUpdateService _updateService;
   late String _surface = widget.surface;
+  final _confirmedAge = AgeConfirmationSession()..confirm();
+  final _freshAge = AgeConfirmationSession();
   ChatApiService? _chatService;
   late ProfileAccount? _profileAccount =
       widget.surface == 'profile_guest' ? null : _fixtureAccount;
@@ -1214,6 +1219,11 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
     _updateService = _createUpdateService();
   }
 
+  bool get _needsPreparation =>
+      _surface == 'legal' ||
+      _surface.startsWith('notification_history') ||
+      _surface.startsWith('merchandising_');
+
   Future<void> _prepareSurface() async {
     if (_surface == 'legal') {
       final prefs = await SharedPreferences.getInstance();
@@ -1221,6 +1231,27 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         throw StateError('Could not reset fixture legal acceptance');
       }
       return;
+    }
+    if (_surface.startsWith('notification_history')) {
+      final populated = _surface == 'notification_history';
+      final owner = await AuthService.refreshIdentity(
+        verifiedInfo: {'user': SurfaceFixtureClient._fixtureUser},
+      );
+      if (owner == null) throw StateError('Inbox fixture needs its account');
+      if (!populated) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('notification_history_v1.${base64Url.encode(utf8.encode(owner))}');
+      }
+      if (populated) {
+        for (final (id, title, body, day) in [
+          ('order', 'Заказ готов к выдаче', 'Можно забрать заказ в выбранном магазине.', 10),
+          ('support', 'Ответ поддержки', 'Мы ответили на ваш вопрос. Переписка доступна в разделе поддержки.', 8),
+        ]) {
+          await NotificationHistory.instance.append(owner, HistoryNotification(
+            id: id, title: title, body: body, receivedAt: DateTime.utc(2026, 6, day, 12),
+          ));
+        }
+      }
     }
     await _cart.ensureLoaded();
     final store = _surface == 'merchandising_store_2' ? 2 : 1;
@@ -1319,7 +1350,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         'merchandising_',
       );
       _contactsOpened = false;
-      if (_surface == 'legal' || _surface.startsWith('merchandising_')) {
+      if (_needsPreparation) {
         _businessReady = _prepareSurface();
       }
       _resetNavigation();
@@ -1369,7 +1400,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
     setState(() {
       _surface = surface;
       _contactsOpened = false;
-      if (_surface == 'legal' || _surface.startsWith('merchandising_')) {
+      if (_needsPreparation) {
         _businessReady = _prepareSurface();
       }
       _resetNavigation();
@@ -1456,6 +1487,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
     if (_profileAccount == null &&
         const {
           AppDestination.orders,
+          AppDestination.notificationHistory,
           AppDestination.certificates,
           AppDestination.addresses,
           AppDestination.cards,
@@ -1504,6 +1536,10 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         );
       case AppDestination.notifications:
         page = const NotificationSettingsPage();
+      case AppDestination.notificationHistory:
+        page = NotificationHistoryPage(
+          onSettings: () => _openProfileDestination(context, AppDestination.notifications),
+        );
       case AppDestination.bonuses:
         page = BonusHistoryPage(
           onHowItWorks: () => _select('bonus_explainer'),
@@ -1632,6 +1668,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
             onChat: () => _openFixtureSupport(context),
           ),
           onLiked: () => _select('favorites'),
+          onNotifications: () => _openProfileDestination(context, AppDestination.notificationHistory),
           onPromo: (_) => _select('promotion'),
           onBonusHistory: () => _select('bonus_history'),
           onCart: () => _select('cart'),
@@ -1939,6 +1976,11 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
         return _withFixtureBack(const FaqPage());
       case 'notifications':
         return _withFixtureBack(const NotificationSettingsPage());
+      case 'notification_history':
+      case 'notification_history_empty':
+        return _withFixtureBack(NotificationHistoryPage(
+          onSettings: () => _openProfileDestination(context, AppDestination.notifications),
+        ));
       case 'intro':
         return IntroSlidesPage(onContinue: () async => _select('sign_in'));
       case 'sign_in':
@@ -1953,10 +1995,20 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       case 'startup':
         return const AppLaunchIntro(child: AppLoadingScreen());
       case 'active_route':
-        return AppUpdateNotice(
-          key: _updateNoticeKey,
-          service: _updateService,
-          child: AuthenticationWrapper(contactLauncher: _fixtureContactLaunch),
+      case 'home_age':
+        final age = _surface == 'home_age' ? _freshAge : _confirmedAge;
+        return ListenableBuilder(
+          listenable: age,
+          child: AuthenticationWrapper(
+            contactLauncher: _fixtureContactLaunch,
+            ageConfirmation: age,
+          ),
+          builder: (_, child) => AppUpdateNotice(
+            key: _updateNoticeKey,
+            service: _updateService,
+            enabled: age.isConfirmed,
+            child: child!,
+          ),
         );
       case 'payment_success':
         return _withFixtureBack(

@@ -89,6 +89,7 @@ export async function openRealStore(browser, {
   width = 375,
   height = 812,
   onboardingCity = 'Караганда',
+  confirmAge = true,
 } = {}) {
   if (!name) throw new Error('A unique owned tab name is required.');
   if (!['dark', 'light'].includes(theme)) throw new Error('theme must be dark or light');
@@ -99,16 +100,19 @@ export async function openRealStore(browser, {
   try {
     await tab.addInitScript(READ_ONLY_GUARD);
     await tab.addInitScript(preferencesScript(store, theme, onboardingCity));
-    await tab.run(async ({page}, url, size) => {
+    await tab.run(async ({page}, url, size, confirmAge) => {
       await page.setViewport({...size, deviceScaleFactor: 2});
       await page.setBypassServiceWorker(true);
       await page.setCacheEnabled(false); // a cached older bundle silently hides changes
       await page.goto(url, {waitUntil: 'networkidle0', timeout: 60000});
       await page.waitForSelector('flt-semantics-placeholder', {timeout: 20000});
       await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
+      await page.waitForSelector('aria/Мне есть 21 год', {timeout: 30000});
+      if (!confirmAge) return;
+      await page.click('aria/Мне есть 21 год');
       await page.waitForSelector('aria/Открыть корзину', {timeout: 30000});
       await new Promise((resolve) => setTimeout(resolve, 3000));
-    }, {args: [url.toString(), {width, height}], timeout: 120});
+    }, {args: [url.toString(), {width, height}, confirmAge], timeout: 120});
     return tab;
   } catch (error) {
     await tab.close();

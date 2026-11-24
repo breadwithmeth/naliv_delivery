@@ -36,33 +36,46 @@ class AppLaunchIntro extends StatefulWidget {
   State<AppLaunchIntro> createState() => _AppLaunchIntroState();
 }
 
-const _duration = Duration(milliseconds: 4950);
-const _reveal = 1600 / 4950;
+// Shared timing in milliseconds for the seal flights and reveal.
+const _flightDuration = 2750;
+const _lastSealDelay = 500;
+const _introDuration = _flightDuration + _lastSealDelay;
+const _revealStart = 1600;
+const _revealDuration = 520;
+const _veilDuration = 240;
+const _revealAt = _revealStart / _introDuration;
+const _revealEnd = (_revealStart + _revealDuration) / _introDuration;
+
+enum _LaunchPhase { intro, reveal, tail, finished }
 
 class _AppLaunchIntroState extends State<AppLaunchIntro>
     with SingleTickerProviderStateMixin {
-  late final _clock = AnimationController(vsync: this, duration: _duration)
-    ..addListener(_advance);
-  bool _revealed = false;
-  bool _finished = false;
+  late final _clock = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: _introDuration),
+  )..addListener(_advance);
+  _LaunchPhase _phase = _LaunchPhase.intro;
+  bool get _revealed => _phase != _LaunchPhase.intro;
 
   void _advance() {
-    if (_clock.value >= _reveal && !_revealed ||
-        _clock.isCompleted && !_finished) {
-      setState(() {
-        _revealed = true;
-        _finished = _clock.isCompleted;
-      });
-    }
+    final progress = _clock.value;
+    final phase = _clock.isCompleted
+        ? _LaunchPhase.finished
+        : progress >= _revealEnd
+        ? _LaunchPhase.tail
+        : progress >= _revealAt
+        ? _LaunchPhase.reveal
+        : _LaunchPhase.intro;
+    if (phase != _phase) setState(() => _phase = phase);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_finished) return;
+    if (_phase == _LaunchPhase.finished) return;
     if (AppMotion.reduced(context)) {
       _clock.stop();
-      _revealed = _finished = true;
+      _phase = _LaunchPhase.finished;
     } else if (!_clock.isAnimating) {
       _clock.forward();
     }
@@ -86,12 +99,12 @@ class _AppLaunchIntroState extends State<AppLaunchIntro>
           child: IgnorePointer(ignoring: !_revealed, child: widget.child),
         ),
       ),
-      if (!_finished)
+      if (_phase != _LaunchPhase.finished)
         IgnorePointer(
           child: Semantics(
             textDirection: TextDirection.ltr,
             label: _revealed ? null : 'Загрузка Градусы24',
-            child: ExcludeSemantics(child: _IntroArtwork(_clock)),
+            child: ExcludeSemantics(child: _IntroArtwork(_clock, _phase)),
           ),
         ),
     ],
@@ -99,29 +112,31 @@ class _AppLaunchIntroState extends State<AppLaunchIntro>
 }
 
 class _IntroArtwork extends StatelessWidget {
-  const _IntroArtwork(this.clock);
+  const _IntroArtwork(this.clock, this.phase);
   final Animation<double> clock;
+  final _LaunchPhase phase;
 
   @override
   Widget build(BuildContext context) => Stack(
     alignment: Alignment.center,
     fit: StackFit.expand,
     children: [
-      ClipPath(
-        clipper: _RevealClip(clock),
-        child: ColoredBox(
-          color: _orange,
-          child: LayoutBuilder(
-            builder: (_, bounds) => Center(
-              child: Image.asset(
-                _logo,
-                width:
-                    .8 * math.min(420.0, math.max(0.0, bounds.maxWidth - 20)),
+      if (phase != _LaunchPhase.tail)
+        ClipPath(
+          clipper: phase == _LaunchPhase.reveal ? _RevealClip(clock) : null,
+          child: ColoredBox(
+            color: _orange,
+            child: LayoutBuilder(
+              builder: (_, bounds) => Center(
+                child: Image.asset(
+                  _logo,
+                  width:
+                      .8 * math.min(420.0, math.max(0.0, bounds.maxWidth - 20)),
+                ),
               ),
             ),
           ),
         ),
-      ),
       Flow(
         delegate: _StampFlight(clock),
         children: [
@@ -137,9 +152,6 @@ class _IntroArtwork extends StatelessWidget {
           ],
         ],
       ),
-      CustomPaint(
-        painter: _IntroLine(clock, MediaQuery.viewPaddingOf(context).bottom),
-      ),
     ],
   );
 }
@@ -151,7 +163,9 @@ class _RevealClip extends CustomClipper<Path> {
 
   @override
   Path getClip(Size size) {
-    final t = ((clock.value - _reveal) * 4950 / 520).clamp(0.0, 1.0);
+    final progress =
+        (clock.value * _introDuration - _revealStart) / _revealDuration;
+    final t = Curves.easeInOut.transform(progress.clamp(0.0, 1.0));
     final y = size.height * (1 - t);
     final arch = size.height * .18 * math.sin(math.pi * t);
     return Path()
@@ -165,12 +179,12 @@ class _RevealClip extends CustomClipper<Path> {
   bool shouldReclip(_RevealClip old) => old.clock != clock;
 }
 
-// Source layers 3 → 2 → 1, five linear keyframes at 0, .2, .52, .8, 1.
+// Source layers 3 → 2 → 1. Keep the waypoints and timing in sync with web/index.html.
 // Offsets are logical pixels relative to screen centre, not percentages.
 const _stamps = [
   (
     asset: 'assets/startup/3.png',
-    delay: 0.0,
+    delay: 0,
     scale: 1.2,
     echo: 130.0,
     blur: 2.5,
@@ -183,7 +197,7 @@ const _stamps = [
   ),
   (
     asset: 'assets/startup/2.png',
-    delay: .3,
+    delay: 300,
     scale: 1.3,
     echo: 100.0,
     blur: 2.0,
@@ -196,7 +210,7 @@ const _stamps = [
   ),
   (
     asset: 'assets/startup/1.png',
-    delay: .5,
+    delay: _lastSealDelay,
     scale: 1.5,
     echo: 72.0,
     blur: 1.5,
@@ -209,11 +223,63 @@ const _stamps = [
   ),
 ];
 
+const _waypoints = [0.0, .2, .52, .8, 1.0];
+
+// Hermite coefficients. Adjacent spans share a monotone tangent, so a seal
+// carries its velocity through a waypoint instead of starting a fresh ease.
+class _FlightSegment {
+  const _FlightSegment(this.start, this.linear, this.quadratic, this.cubic);
+
+  final double start;
+  final double linear;
+  final double quadratic;
+  final double cubic;
+
+  double sample(double t) => start + t * (linear + t * (quadratic + t * cubic));
+
+  static List<_FlightSegment> track(List<double> values) {
+    final slopes = [
+      for (var i = 0; i < values.length - 1; i++)
+        (values[i + 1] - values[i]) / (_waypoints[i + 1] - _waypoints[i]),
+    ];
+    double tangent(int i) {
+      if (i == 0) return slopes.first;
+      if (i == slopes.length) return slopes.last;
+      final before = slopes[i - 1];
+      final after = slopes[i];
+      return before * after <= 0 ? 0 : 2 * before * after / (before + after);
+    }
+
+    var from = tangent(0);
+    return List.generate(slopes.length, (i) {
+      final to = tangent(i + 1);
+      final span = _waypoints[i + 1] - _waypoints[i];
+      final a = from * span;
+      final b = to * span;
+      final delta = values[i + 1] - values[i];
+      from = to;
+      return _FlightSegment(
+        values[i],
+        a,
+        3 * delta - 2 * a - b,
+        a + b - 2 * delta,
+      );
+    }, growable: false);
+  }
+}
+
 class _StampFlight extends FlowDelegate {
   _StampFlight(this.clock) : super(repaint: clock);
   final Animation<double> clock;
-  static const _times = [0.0, .2, .52, .8, 1.0];
-  static const _scales = [.96, 1.0, 1.04, 1.02, 1.0];
+  static final _scaleTrack = _FlightSegment.track([.96, 1, 1.04, 1.02, 1]);
+  static final _paths = [
+    for (final stamp in _stamps)
+      (
+        x: _FlightSegment.track(stamp.x),
+        y: _FlightSegment.track(stamp.y),
+        angle: _FlightSegment.track(stamp.angle),
+      ),
+  ];
 
   @override
   BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) =>
@@ -221,25 +287,26 @@ class _StampFlight extends FlowDelegate {
 
   @override
   void paintChildren(FlowPaintingContext ctx) {
-    final seconds = clock.value * 4.95;
-    final fade = ((seconds - 1.6) / .24).clamp(0.0, 1.0);
+    final milliseconds = clock.value * _introDuration;
+    final fade = Curves.ease.transform(
+      ((milliseconds - _revealStart) / _veilDuration).clamp(0.0, 1.0),
+    );
     for (var i = 0; i < _stamps.length; i++) {
       final stamp = _stamps[i];
-      final t = (seconds - stamp.delay) / 2.75;
+      final t = (milliseconds - stamp.delay) / _flightDuration;
       if (t < 0 || t >= 1) continue;
       var k = 0;
-      while (t > _times[k + 1]) {
+      while (t > _waypoints[k + 1]) {
         k++;
       }
-      final u = (t - _times[k]) / (_times[k + 1] - _times[k]);
-      double sample(List<double> values) =>
-          values[k] + (values[k + 1] - values[k]) * u;
-      final y = sample(stamp.y);
-      final x = sample(stamp.x);
-      final angle = sample(stamp.angle) * math.pi / 180;
+      final u = (t - _waypoints[k]) / (_waypoints[k + 1] - _waypoints[k]);
+      final path = _paths[i];
+      final y = path.y[k].sample(u);
+      final x = path.x[k].sample(u);
+      final angle = path.angle[k].sample(u) * (math.pi / 180);
       for (var layer = 0; layer < 2; layer++) {
         final echo = layer == 0;
-        final scale = stamp.scale * (echo ? .92 : sample(_scales));
+        final scale = stamp.scale * (echo ? .92 : _scaleTrack[k].sample(u));
         final dy = ctx.size.height / 2 + y + (echo ? stamp.echo : 0);
         if (dy < -400 * scale || dy > ctx.size.height + 400 * scale) continue;
         ctx.paintChild(
@@ -263,27 +330,4 @@ class _StampFlight extends FlowDelegate {
 
   @override
   bool shouldRepaint(_StampFlight oldDelegate) => clock != oldDelegate.clock;
-}
-
-class _IntroLine extends CustomPainter {
-  _IntroLine(this.clock, this.bottom) : super(repaint: clock);
-  final Animation<double> clock;
-  final double bottom;
-  final _paint = Paint();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final width = math.min(520.0, size.width - 32);
-    if (width <= 0) return;
-    final x = (size.width - width) / 2;
-    final y = size.height - bottom - 18;
-    _paint.color = const Color(0x4dffffff);
-    canvas.drawRect(Rect.fromLTWH(x, y, width, 2), _paint);
-    _paint.color = clock.value < _reveal ? Colors.white : _orange;
-    canvas.drawRect(Rect.fromLTWH(x, y, width * clock.value, 2), _paint);
-  }
-
-  @override
-  bool shouldRepaint(_IntroLine old) =>
-      old.clock != clock || old.bottom != bottom;
 }
