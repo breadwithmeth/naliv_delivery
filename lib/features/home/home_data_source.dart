@@ -19,8 +19,8 @@ import 'home_view_data.dart';
 ///   only where [KitchenPolicy] sells the kitchen; the remaining supercategories, by priority,
 ///   become the (up to six) tiles. Tile artwork is the supercategory's first
 ///   category image, because the supercategory objects themselves carry no image field.
-/// * **Banners** — `GET /promotions/active` may return campaigns without cover
-///   artwork; their real names remain visible against the design's red fill.
+/// * **Banners** — all pages from `GET /promotions/active` for the current
+///   store, in API order. Campaigns without a cover keep their names on a red fill.
 /// * **Bonuses** — `GET /bonuses` gives `totalBonuses` and `bonusCard.cardUuid`; the QR payload
 ///   is the raw `cardUuid`, which is what the existing main page already sends to the till.
 class HomeDataSource {
@@ -90,13 +90,15 @@ class HomeDataSource {
         ),
     ];
     final (
-      promotions,
+      banners,
       productSections,
       activeOrder,
       bonusResponse,
       cityRows,
     ) = await (
-      ApiService.getActivePromotions(businessId: storeId),
+      storeId == null
+          ? Future.value(const <HomeBanner>[])
+          : _loadBanners(storeId),
       storeId == null
           ? Future.value(const <HomeProductSection>[])
           : _productSections(
@@ -158,7 +160,7 @@ class HomeDataSource {
       signedIn: signedIn,
       bonusBalance: balance != null && balance.isFinite ? balance : null,
       bonusCardCode: cardCode,
-      banners: _banners(_listOf(promotions, 'promotions')),
+      banners: banners,
       promoCard: promoSuper == null
           ? null
           : HomePromoCard(
@@ -265,29 +267,51 @@ class HomeDataSource {
     return allowDefaultBusiness ? businesses.first : null;
   }
 
-  List<HomeBanner> _banners(List<Map<String, dynamic>> promotions) {
-    final withArt =
-        promotions.where((p) => (_string(p['cover']) ?? '').isNotEmpty);
-    final source = withArt.isNotEmpty ? withArt : promotions.take(3);
-    return [
-      for (final promo in source.take(6))
-        HomeBanner(
-          promotionId: _int(
-                    promo['marketing_promotion_id'] ??
-                        promo['promotion_id'] ??
-                        promo['id'],
-                  ) >
-                  0
-              ? _int(
-                  promo['marketing_promotion_id'] ??
-                      promo['promotion_id'] ??
-                      promo['id'],
-                )
-              : null,
-          title: _string(promo['name']) ?? '',
-          imageUrl: _string(promo['cover']),
-        ),
-    ];
+  Future<List<HomeBanner>> _loadBanners(int storeId) async {
+    const pageSize = 50;
+    final banners = <HomeBanner>[];
+    final seenIds = <int>{};
+    final seenWithoutId = <(String, String?, String?, String?)>{};
+    var offset = 0;
+    while (true) {
+      final payload = _payloadOf(await ApiService.getActivePromotions(
+        businessId: storeId,
+        limit: pageSize,
+        offset: offset,
+      ));
+      final rows = payload is Map ? payload['promotions'] : payload;
+      if (rows is! List) return banners;
+      final previousCount = banners.length;
+
+      for (final promo in rows) {
+        if (promo is! Map) continue;
+        final id = _int(
+          promo['marketing_promotion_id'] ?? promo['promotion_id'] ?? promo['id'],
+        );
+        if (id > 0 && !seenIds.add(id)) continue;
+        final title = _string(promo['name']) ?? 'Акция';
+        final imageUrl = _string(promo['cover']);
+        if (id <= 0 &&
+            !seenWithoutId.add((
+              title,
+              imageUrl,
+              _string(promo['start_promotion_date']),
+              _string(promo['end_promotion_date']),
+            ))) {
+          continue;
+        }
+        banners.add(HomeBanner(
+          promotionId: id > 0 ? id : null,
+          title: title,
+          imageUrl: imageUrl,
+        ));
+      }
+      // A page that repeats previously seen campaigns cannot advance the rail.
+      if (rows.length < pageSize || banners.length == previousCount) {
+        return banners;
+      }
+      offset += rows.length;
+    }
   }
 
   String? _firstCategoryImage(Map<String, dynamic> supercategory) {

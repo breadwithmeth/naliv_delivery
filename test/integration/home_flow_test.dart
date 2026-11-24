@@ -267,14 +267,19 @@ void main() {
       tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('home-banner-0')));
+      final rail = find.byKey(const ValueKey('home-banner-carousel'));
+      expect(find.text('Акции').hitTestable(), findsOneWidget);
+      // The first campaign's predecessor is the last campaign for the new store.
+      await tester.drag(rail, const Offset(325, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Выгодный розлив').hitTestable());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(PromotionItemsPage), findsOneWidget,
           reason: 'Requests: $requests');
       expect(
           requests
-              .lastWhere((uri) => uri.path.endsWith('/promotions/44/items'))
+              .lastWhere((uri) => uri.path.endsWith('/promotions/91/items'))
               .queryParameters['business_id'],
           '2');
       expect(tester.takeException(), isNull);
@@ -327,10 +332,18 @@ void main() {
               } else if (path.endsWith('/promotions/active')) {
                 data = {
                   'promotions': [
-                    {'marketing_promotion_id': 44, 'name': 'Акции', 'cover': ''}
+                    if (request.url.queryParameters['business_id'] == '2') ...[
+                      {'marketing_promotion_id': 44, 'name': 'Акции', 'cover': ''},
+                      {
+                        'marketing_promotion_id': 91,
+                        'name': 'Выгодный розлив',
+                        'cover': '',
+                      },
+                    ] else
+                      {'marketing_promotion_id': 21, 'name': 'Акция первого магазина'},
                   ],
                 };
-              } else if (path.endsWith('/promotions/44/items')) {
+              } else if (path.endsWith('/promotions/91/items')) {
                 data = {
                   'items': [
                     {

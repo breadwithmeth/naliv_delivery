@@ -531,6 +531,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _invalidReason(cart, preview: _previewGroup, available: available);
     final description = widget.item.description?.trim() ?? '';
     final removal = _isRemoval(cart);
+    final heroHeight = _pour ? 144.0 : 320.0;
+    final heroInsets = EdgeInsets.fromLTRB(48, _pour ? 64 : 88, 48, 16);
+    final imageUrl = _view.imageUrl;
+    final cover = _view.isKitchen && imageUrl != null;
+    const placeholder =
+        Icon(Icons.inventory_2_outlined, color: Colors.black38, size: 56);
     final pageColor = Theme.of(context).brightness == Brightness.light
         ? palette.surface
         : palette.background;
@@ -557,19 +563,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(16)),
                         child: Container(
-                          height: _pour ? 144 : 320,
+                          height: heroHeight,
                           color: Colors.white,
-                          padding:
-                              EdgeInsets.fromLTRB(48, _pour ? 64 : 88, 48, 16),
-                          child: widget.item.hasImage
-                              ? Image.network(widget.item.image!,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                      Icons.inventory_2_outlined,
-                                      color: Colors.black38,
-                                      size: 56))
-                              : const Icon(Icons.inventory_2_outlined,
-                                  color: Colors.black38, size: 56),
+                          padding: cover ? EdgeInsets.zero : heroInsets,
+                          child: imageUrl == null
+                              ? placeholder
+                              : Image.network(
+                                  imageUrl,
+                                  fit: cover ? BoxFit.cover : BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => cover
+                                      ? Padding(
+                                          padding: heroInsets,
+                                          child: placeholder,
+                                        )
+                                      : placeholder,
+                                ),
                         ),
                       ),
                       Padding(
@@ -732,7 +740,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   right: 0,
                   child: ProductHeroHeader(
                     controller: _scroll,
-                    heroHeight: _pour ? 144 : 320,
+                    heroHeight: heroHeight,
                     title: _view.title,
                     background: pageColor,
                     leading: AppIconButton(
