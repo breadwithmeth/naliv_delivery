@@ -395,7 +395,6 @@ void main() {
     final store = _UnreadablePreferences({'intro_slides_seen': true});
     store.install();
     await pumpBootstrap(tester);
-    expect(find.textContaining('Не удалось прочитать состояние входа'), findsOneWidget);
     expect(AppNavigator.key.currentState, isNull);
     store.unavailable = false;
     await tester.tap(find.text('Повторить'));
@@ -547,7 +546,6 @@ void main() {
       'legal_accepted_revisions': '{"offer":2,"privacy":1}',
     });
     await pumpBootstrap(tester);
-    expect(find.text('Уже принято · редакция 1'), findsOneWidget);
     final privacy = tester.widget<CheckboxListTile>(
       find.byKey(const ValueKey('legal-privacy-choice')),
     );

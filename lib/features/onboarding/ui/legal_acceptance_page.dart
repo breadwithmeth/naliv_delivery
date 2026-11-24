@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+
+import '../../../design/theme.dart';
+import '../../../design/tokens.dart';
+import '../../../design/typography.dart';
+import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
 
 import '../legal_acceptance.dart';
@@ -53,9 +58,7 @@ class _LegalAcceptancePageState extends State<LegalAcceptancePage> {
       if (mounted) setState(() => _documents = documents);
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error = 'Не удалось открыть документы. Повторите загрузку.',
-        );
+        setState(() => _error = 'Не удалось открыть документы');
       }
     }
   }
@@ -73,9 +76,7 @@ class _LegalAcceptancePageState extends State<LegalAcceptancePage> {
       if (mounted) widget.onAccepted();
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error = 'Не удалось сохранить согласия. Повторите попытку.',
-        );
+        setState(() => _error = 'Не удалось сохранить согласия');
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -101,8 +102,7 @@ class _LegalAcceptancePageState extends State<LegalAcceptancePage> {
                     selectable: true,
                     padding: const EdgeInsets.all(20),
                     // Bundled texts are self-contained; never fetch remote attachments.
-                    imageBuilder: (_, __, ___) =>
-                        const Text('Внешнее изображение недоступно офлайн'),
+                    imageBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 ),
               ],
@@ -113,114 +113,138 @@ class _LegalAcceptancePageState extends State<LegalAcceptancePage> {
     );
   }
 
-  Widget _document(String id, String label, String title) {
-    final already = widget.accepted[id] == LegalAcceptance.current[id];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        CheckboxListTile(
-          key: ValueKey('legal-$id-choice'),
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
-          value: _choices[id],
-          onChanged: already || _saving || _documents == null
-              ? null
-              : (value) => setState(() => _choices[id] = value ?? false),
-          title: Text(label),
-          subtitle: already
-              ? Text('Уже принято · редакция ${LegalAcceptance.current[id]}')
-              : null,
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            key: ValueKey('legal-$id-document'),
-            style: TextButton.styleFrom(minimumSize: const Size(44, 48)),
-            onPressed: _documents == null ? null : () => _open(id, title),
-            child: Text(title),
+  Widget _document(String id, String title, {String? displayTitle}) {
+    final palette = context.palette;
+    return TextButton(
+      key: ValueKey('legal-$id-document'),
+      style: TextButton.styleFrom(
+        minimumSize: const Size(44, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        foregroundColor: palette.textPrimary,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadii.lgAll),
+      ),
+      onPressed: _documents == null ? null : () => _open(id, title),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              displayTitle ?? title,
+              semanticsLabel: title,
+              style: AppTypography.bodyMedium,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Icon(Icons.chevron_right, size: 20, color: palette.textSecondary),
+        ],
+      ),
+    );
+  }
+
+  Widget _choice(String id, String label) {
+    final already = widget.accepted[id] == LegalAcceptance.current[id];
+    return CheckboxListTile(
+      key: ValueKey('legal-$id-choice'),
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      value: _choices[id],
+      onChanged: already || _saving || _documents == null
+          ? null
+          : (value) => setState(() => _choices[id] = value ?? false),
+      title: Text(label, style: AppTypography.bodySmall),
+      subtitle: already ? const Text('Уже принято') : null,
     );
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(20),
-                sliver: SliverList.list(
-                  children: [
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        'Условия использования',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Перед продолжением ознакомьтесь с документами и подтвердите каждый выбор. Документы доступны без интернета.',
-                    ),
-                    const SizedBox(height: 24),
-                    if (_documents == null && _error == null)
-                      const Center(child: CircularProgressIndicator()),
-                    _document(
-                      'offer',
-                      'Принимаю условия публичной оферты',
-                      'Публичная оферта',
-                    ),
-                    const SizedBox(height: 12),
-                    _document(
-                      'privacy',
-                      'Даю согласие на обработку персональных данных',
-                      'Политика конфиденциальности',
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                      if (_documents == null)
-                        TextButton(
-                          onPressed: _loadDocuments,
-                          child: const Text('Повторить'),
-                        ),
-                    ],
-                  ],
-                ),
-              ),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        key: const ValueKey('legal-continue'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(44, 52),
-                        ),
-                        onPressed: _saving ||
-                                _documents == null ||
-                                _choices.values.any((value) => !value)
-                            ? null
-                            : _save,
-                        child: Text(_saving ? 'Сохраняем…' : 'Продолжить'),
-                      ),
-                    ),
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // The longest heading word needs more room than a narrow, 2× column.
+    final narrowText = MediaQuery.sizeOf(context).width - 32 <
+        MediaQuery.textScalerOf(context).scale(20) * 8;
+    return Scaffold(
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+              children: [
+                Center(
+                  child: AppIcon(
+                    dark ? AppIcons.wordmark : AppIcons.wordmarkLight,
+                    width: 166,
+                    height: 38,
                   ),
                 ),
-              ),
-            ],
+                SizedBox(height: narrowText ? 32 : 64),
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'Условия использования',
+                    textAlign: TextAlign.center,
+                    style: narrowText ? AppTypography.title : AppTypography.headline,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Material(
+                  color: palette.surface,
+                  borderRadius: AppRadii.lgAll,
+                  child: Column(
+                    children: [
+                      _document('offer', 'Публичная оферта'),
+                      Divider(
+                        height: 1,
+                        indent: 16,
+                        endIndent: 16,
+                        color: palette.divider,
+                      ),
+                      _document(
+                        'privacy',
+                        'Политика конфиденциальности',
+                        displayTitle: narrowText ? 'Политика о данных' : null,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _choice('offer', 'Принимаю условия публичной оферты'),
+                _choice('privacy', 'Даю согласие на обработку персональных данных'),
+                if (_documents == null && _error == null)
+                  const Center(child: CircularProgressIndicator()),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(_error!, style: TextStyle(color: palette.error)),
+                  ),
+                  if (_documents == null)
+                    TextButton(
+                      onPressed: _loadDocuments,
+                      child: const Text('Повторить'),
+                    ),
+                ],
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: const ValueKey('legal-continue'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(44, 52)),
+                  onPressed: _saving || _documents == null || _choices.containsValue(false)
+                      ? null
+                      : _save,
+                  child: Text(
+                    _saving
+                        ? 'Сохраняем…'
+                        : _error != null && _documents != null
+                            ? 'Повторить'
+                            : 'Продолжить',
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }

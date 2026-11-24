@@ -56,7 +56,7 @@ class _AppEntryGateState extends State<AppEntryGate> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'Не удалось прочитать состояние входа. Повторите попытку.';
+          _error = 'Не удалось открыть приложение';
         });
       }
     }

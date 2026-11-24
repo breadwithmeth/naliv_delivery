@@ -94,10 +94,14 @@ void main() {
         .expand((section) => section.entries)
         .singleWhere((entry) => entry.number == 49)
         .answer;
-    expect(answer, contains('+77719290003(для Павлодара)'));
-    expect(answer, contains('+77719290005(для Караганды и Темиртау)'));
-    expect(answer, contains('+77719291001(для Астаны)'));
-    expect(answer, contains('WhatsApp +77025834895'));
+    final lines = answer.split('\n');
+    for (final city in _cities) {
+      expect(lines.any((line) =>
+          line.contains(city.name) && line.contains(city.phone)), isTrue,
+          reason: city.name);
+    }
+    expect(lines.any((line) =>
+        line.contains(_whatsApp) && line.contains(_whatsAppNumber)), isTrue);
   });
 
   for (final city in _cities) {

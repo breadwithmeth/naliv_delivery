@@ -344,7 +344,6 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               key: const ValueKey('profile-row-contacts'),
               iconAsset: AppIcons.phone,
               title: 'Контакты',
-              subtitle: 'Телефоны по городам и WhatsApp',
               chevron: true,
               onTap: widget.onContacts,
             ),
