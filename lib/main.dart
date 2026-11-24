@@ -21,6 +21,9 @@ import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'widgets/cart_persistence_notice.dart';
+import 'widgets/app_loading_screen.dart';
+import 'widgets/app_loading_screen_web_stub.dart'
+    if (dart.library.js_interop) 'widgets/app_loading_screen_web_real.dart';
 import 'widgets/app_update_notice.dart';
 import 'widgets/authentication_wrapper.dart';
 import 'features/support/ui/city_contacts_sheet.dart';
@@ -81,7 +84,9 @@ Future<void> main() async {
             ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
             ChangeNotifierProvider(create: (_) => ThemeController()..load()),
           ],
-          child: const Main(),
+          child: isHtmlSplashManaged()
+              ? const Main()
+              : const AppLaunchIntro(child: Main()),
         ),
       );
     },

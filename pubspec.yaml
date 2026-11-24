@@ -49,6 +49,7 @@ flutter:
   assets:
     - assets/icons/design/
     - assets/icons/kaspi/
+    - assets/startup/
     - assets/agreements/offer.md
     - assets/agreements/privacy.md
   fonts:
@@ -58,10 +59,12 @@ flutter:
         - asset: assets/fonts/TikTokSans/TikTokSans-Variable.ttf
 
 flutter_native_splash:
-  background_image: "assets/splash.png"
+  color: "#F97300"
+  # Native splash images use 4x sources. Android 12+ masks the centered seal.
+  image: "assets/startup_native/wordmark.png"
+  android_screen_orientation: portrait
   android_12:
-    color: "#ffffff"
-    color_dark: "#121212"
+    image: "assets/startup_native/android12_seal.png"
   android: true
   ios: true
   web: false

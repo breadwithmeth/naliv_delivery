@@ -153,6 +153,14 @@ dart run tool/design_harness.dart capture catalog,checkout_pickup --theme both -
 
 The design reference is 375 × 812 logical pixels with 48 px top / 34 px bottom insets and DPR 2. Adaptive captures use isolated variant directories; they cannot overwrite canonical captures or manufacture fixed-reference diff metrics. Completed runs publish JSON evidence with dimensions and any measured differences. A fixture diff measures synthetic content, not usability or production behavior. Review interactions and both themes; preserve inherited text scaling and floating cart-only navigation. Unknown fixture URL scenarios fail visibly rather than falling back to loaded states.
 
+The `startup` surface previews the one-shot [`go.gradusy24.kz`](https://go.gradusy24.kz/)
+intro over a loading route. Its four original PNGs ship in `assets/startup/`; startup
+never fetches artwork from the website. `AppLaunchIntro` owns Flutter motion and
+`web/index.html` owns the pre-Flutter web equivalent. Keep their keyframes together:
+the three seals start at 0/300/500 ms, reveal starts at 1600 ms, and the decorative
+line finishes at 4950 ms. The route mounts behind the intro. Reduced motion bypasses
+the flight; the web shell waits for the real `flutter-first-frame` event.
+
 Build the fixture gallery separately from the tracked deployment output:
 
 ```sh

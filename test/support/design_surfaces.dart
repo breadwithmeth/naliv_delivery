@@ -1951,7 +1951,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       case 'legal':
         return Main(contactLauncher: _fixtureContactLaunch);
       case 'startup':
-        return const AppLoadingScreen(message: 'Подготавливаем приложение');
+        return const AppLaunchIntro(child: AppLoadingScreen());
       case 'active_route':
         return AppUpdateNotice(
           key: _updateNoticeKey,
