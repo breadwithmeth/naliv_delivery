@@ -22,10 +22,104 @@ import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../support/design_surfaces.dart';
+import 'package:naliv_delivery/features/bonuses/ui/bonus_history_page.dart';
+import 'package:naliv_delivery/pages/login_page.dart';
 
 void main() {
-  testWidgets('home chooses a store and scopes subsequent catalog requests',
-      (tester) async {
+  testWidgets('guest header bonuses resumes actual history after fixture OTP', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(
+      {...surfaceFixturePreferences}..remove('auth_token'),
+    );
+    SurfaceFixtureClient.resetUnexpectedRequests();
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final client = SurfaceFixtureClient();
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        const DesignSurfaceApp(
+          surface: 'active_route',
+          brightness: Brightness.dark,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Бонусы'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginPage), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('auth-phone-input')),
+        '0000000000',
+      );
+      await tester.tap(find.byKey(const ValueKey('request-code-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('auth-code-input')),
+        '123456',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(BonusHistoryPage), findsOneWidget);
+      expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    client.close();
+  });
+
+  testWidgets('unknown store city never recommends saved onboarding city', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(surfaceFixturePreferences);
+    SurfaceFixtureClient.resetUnexpectedRequests();
+    final fixture = SurfaceFixtureClient();
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/businesses') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              'businesses': [
+                {
+                  'id': 1,
+                  'name': 'Неизвестный город магазина',
+                  'address': 'Адрес',
+                  'city_id': 999,
+                },
+              ],
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      final copy = http.Request(request.method, request.url)
+        ..headers.addAll(request.headers)
+        ..bodyBytes = request.bodyBytes;
+      return http.Response.fromStream(await fixture.send(copy));
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(
+        const DesignSurfaceApp(
+          surface: 'active_route',
+          brightness: Brightness.light,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Связаться'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Позвонить ·'), findsNothing);
+      for (final name in ['Павлодар', 'Караганда', 'Астана', 'Темиртау']) {
+        expect(find.text(name), findsOneWidget);
+      }
+      expect(find.text('Написать в чат'), findsOneWidget);
+      expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    client.close();
+    fixture.close();
+  });
+  testWidgets('home chooses a store and scopes subsequent catalog requests', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -63,60 +157,84 @@ void main() {
       expect(find.byKey(const ValueKey('home-store-card')), findsOneWidget);
       expect(find.byType(ProfilePage), findsNothing);
 
-      final item = Item(
-        itemId: 17,
-        name: 'Товар',
-        price: 1000,
-        image: '',
-        amount: 10,
-        unit: 'шт.',
-        category: ItemCategory(categoryId: 10, name: 'Напитки'),
-      );
-      cart.addItem(CartItem(
-        itemId: 17,
-        name: item.name,
-        price: item.price,
-        quantity: 1,
-        stepQuantity: 1,
-        image: '',
-        selectedVariants: const [],
-        promotions: const [],
-        itemData: item.toJson(),
-      ));
+        Future<void> expectContact(String city, String phone) async {
+          await tester.tap(find.byTooltip('Связаться'));
+          await tester.pumpAndSettle();
+          expect(find.text('Позвонить · $city'), findsOneWidget);
+          expect(find.text(phone), findsOneWidget);
+          await tester.tap(find.byTooltip('Закрыть'));
+          await tester.pumpAndSettle();
+        }
 
-      await tester.tap(find.byKey(const ValueKey('home-store-card')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('home-store-2')), findsOneWidget);
-      expect(find.text('Астана  1'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('home-store-2')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Отмена'));
-      await tester.pumpAndSettle();
-      expect(business.selectedBusinessId, isNot(2));
-      expect(cart.hasActiveItems, isTrue);
+        await expectContact('Караганда', '+77719290005');
+        final firstStore = business.selectedBusiness;
+        await business.setSelectedBusiness({
+          'id': 2, 'name': 'Второй магазин', 'address': 'Улица 2', 'city_id': 3,
+        });
+        await cart.bindBusiness(2);
+        await expectContact('Астана', '+77719291001');
+        await business.setSelectedBusiness(firstStore);
+        await cart.bindBusiness(1);
 
-      await tester.tap(find.byKey(const ValueKey('home-store-card')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('home-store-2')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('confirm-store-change')));
-      for (var i = 0; i < 8; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      expect(cart.hasActiveItems, isFalse);
-      expect(business.selectedBusinessId, 2);
-      expect(
+        final item = Item(
+          itemId: 17,
+          name: 'Товар',
+          price: 1000,
+          image: '',
+          amount: 10,
+          unit: 'шт.',
+          category: ItemCategory(categoryId: 10, name: 'Напитки'),
+        );
+        cart.addItem(
+          CartItem(
+            itemId: 17,
+            name: item.name,
+            price: item.price,
+            quantity: 1,
+            stepQuantity: 1,
+            image: '',
+            selectedVariants: const [],
+            promotions: const [],
+            itemData: item.toJson(),
+          ),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('home-store-card')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('home-store-2')), findsOneWidget);
+        expect(find.text('Астана  1'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('home-store-2')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Отмена'));
+        await tester.pumpAndSettle();
+        expect(business.selectedBusinessId, isNot(2));
+        expect(cart.hasActiveItems, isTrue);
+        await expectContact('Караганда', '+77719290005');
+
+        await tester.tap(find.byKey(const ValueKey('home-store-card')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('home-store-2')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('confirm-store-change')));
+        for (var i = 0; i < 8; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(cart.hasActiveItems, isFalse);
+        expect(business.selectedBusinessId, 2);
+        expect(
           requests
               .where((uri) => uri.path.endsWith('/promotions/active'))
               .last
               .queryParameters['business_id'],
-          '2');
-      expect(find.text('Второй магазин'), findsWidgets);
-      await tester.tap(find.byKey(const ValueKey('home-search-field')));
-      await tester.pumpAndSettle();
-      expect(find.byType(SearchPage), findsOneWidget);
-      tester.state<NavigatorState>(find.byType(Navigator)).pop();
-      await tester.pumpAndSettle();
+          '2',
+        );
+        expect(find.text('Второй магазин'), findsWidgets);
+        await expectContact('Астана', '+77719291001');
+        await tester.tap(find.byKey(const ValueKey('home-search-field')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SearchPage), findsOneWidget);
+        tester.state<NavigatorState>(find.byType(Navigator)).pop();
+        await tester.pumpAndSettle();
 
       // Store 2 does not sell the kitchen: no promo card, the tiles are the remaining ones.
       expect(find.byKey(const ValueKey('home-promo-card')), findsNothing);

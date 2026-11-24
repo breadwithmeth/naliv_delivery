@@ -12,18 +12,249 @@ import 'package:naliv_delivery/features/catalog/ui/category_products_page.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
 import 'package:naliv_delivery/model/item.dart';
+import 'package:naliv_delivery/ui/app_cart_button.dart';
 import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/features/catalog/ui/category_switcher.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:naliv_delivery/features/catalog/catalog_data_source.dart';
+import 'package:naliv_delivery/features/catalog/category_merchandising.dart';
+import '../support/category_merchandising_fixture.dart';
+import '../support/design_surfaces.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('category card stepper updates the cart, card opens details',
+  test('only explicit complete category promotes active campaigns', () async {
+    final ordinary = {..._itemJson(1), 'name': 'Обычный'};
+    final promotion = {
+      ..._itemJson(2),
+      'name': 'Акция',
+      'promotions': [
+        {
+          'detail_id': 20,
+          'name': 'Действующая',
+          'type': 'DISCOUNT',
+          'discount': 10,
+          'start_date': '2020-01-01',
+          'end_date': '2099-01-01',
+        },
+      ],
+    };
+    final expired = {
+      ..._itemJson(3),
+      'name': 'Истёкшая',
+      'promotions': [
+        {
+          'detail_id': 21,
+          'name': 'Истёкшая',
+          'type': 'DISCOUNT',
+          'discount': 10,
+          'end_date': '2020-01-01',
+        },
+      ],
+    };
+    final rows = [ordinary, expired, promotion];
+    final unknown = <String>[];
+    Map<String, Object>? pagination = {'page': 1, 'total_pages': 1, 'total': 3};
+    final client = MockClient((request) async {
+      if (request.method == 'GET' &&
+          request.url.path == '/api/categories/2/items' &&
+          request.url.queryParameters['business_id'] == '1') {
+        return _okJson({
+          'items': rows,
+          if (pagination != null) 'pagination': pagination,
+        });
+      }
+      unknown.add('$request');
+      throw StateError('Unexpected $request');
+    });
+    await http.runWithClient(() async {
+      Future<List<int>> ids() async => (await const CatalogDataSource(
+            businessId: 1,
+          ).itemsPage(2))
+              .items
+              .map((view) => view.itemId)
+              .toList();
+      expect(await ids(), [2, 1, 3]);
+      for (final metadata in <Map<String, Object>?>[
+        null,
+        {'page': 1, 'total': 3},
+        {'page': 1, 'total_pages': 1, 'total': 4},
+        {'page': 1, 'total_pages': 2, 'total': 3},
+        {'page': 2, 'total_pages': 2, 'total': 3},
+        {'page': 1, 'total_pages': 1.5, 'total': 3},
+      ]) {
+        pagination = metadata;
+        expect(await ids(), [1, 3, 2], reason: '$metadata');
+      }
+      pagination = {'page': 1, 'total_pages': 1, 'total': 3};
+      expect(
+        (await const CatalogDataSource(
+          businessId: 1,
+        ).itemsPage(2, page: 2))
+            .items
+            .map((view) => view.itemId),
+        [1, 3, 2],
+      );
+    }, () => client);
+    expect(unknown, isEmpty);
+    client.close();
+  });
+
+  test('ranking preserves repeated input cards of one priority SKU', () {
+    final rows = CategoryMerchandisingFixture.rows(1);
+    final first = ProductView.fromItem(Item.fromJson(rows[0]));
+    final duplicate = ProductView.fromItem(Item.fromJson({...rows[0], 'price': 9999}));
+    final ordinary = ProductView.fromItem(Item.fromJson(rows[1]));
+    expect(rankCompleteCategory([ordinary, first, duplicate], priorityItemIds: [100, 100]),
+      [first, duplicate, ordinary]);
+  });
+
+  test('model-hidden rows are not promoted by an active campaign', () {
+    final rows = CategoryMerchandisingFixture.rows(1);
+    final ordinary = ProductView.fromItem(Item.fromJson(rows[1]));
+    final hidden = ProductView.fromItem(Item.fromJson({...rows[2], 'visible': -1}));
+    expect(rankCompleteCategory([ordinary, hidden]), [ordinary, hidden]);
+  });
+
+  test(
+    'priorities ignore repeats, foreign, hidden and unavailable IDs without repricing',
+    () {
+      final items = CategoryMerchandisingFixture.rows(
+        1,
+      ).map((row) => ProductView.fromItem(Item.fromJson(row))).toList();
+      final ranked = rankCompleteCategory(
+        items,
+        priorityItemIds: CategoryMerchandisingFixture.priorities[1]![2]!,
+      );
+      expect(ranked.map((view) => view.itemId), [
+        104,
+        105,
+        102,
+        100,
+        101,
+        103,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+      ]);
+      for (final view in ranked) {
+        final original = items.singleWhere(
+          (item) => item.itemId == view.itemId,
+        );
+        expect(identical(view, original), isTrue);
+        expect(view.source.price, 1000 + view.itemId);
+      }
+      expect(
+        rankCompleteCategory(
+          items,
+          priorityItemIds: [99999, 107, 108],
+        ).map((view) => view.itemId),
+        [
+          102,
+          105,
+          100,
+          101,
+          103,
+          104,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+        ],
+      );
+    },
+  );
+
+  for (final store in [1, 2]) {
+    testWidgets(
+      'store $store priorities reach preview and full grid through adapter',
       (tester) async {
+        SharedPreferences.setMockInitialValues(surfaceFixturePreferences);
+        SurfaceFixtureClient.resetUnexpectedRequests();
+        await tester.binding.setSurfaceSize(const Size(375, 812));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final client = SurfaceFixtureClient();
+        await http.runWithClient(() async {
+          await tester.pumpWidget(
+            DesignSurfaceApp(
+              surface: 'merchandising_store_$store',
+              brightness: Brightness.light,
+            ),
+          );
+          await tester.pumpAndSettle();
+          final expected = store == 1
+              ? 'Приоритет категории, Напиток'
+              : 'Действующая акция, Напиток';
+          expect(
+            tester
+                .widgetList<ProductCard>(find.byType(ProductCard))
+                .first
+                .title,
+            expected,
+          );
+          await tester.tap(find.byKey(const ValueKey('catalog-open-2')));
+          await tester.pumpAndSettle();
+          expect(find.byType(CategoryProductsPage), findsOneWidget);
+          expect(
+            tester
+                .widgetList<ProductCard>(find.byType(ProductCard))
+                .first
+                .title,
+            expected,
+          );
+          final cart = tester.element(find.byType(CategoryProductsPage)).read<CartProvider>();
+          expect(cart.businessId, store);
+          final firstAdd = find.descendant(
+            of: find.byKey(const ValueKey('category-product-0')),
+            matching: find.byWidgetPredicate((widget) => widget is StepTap && widget.label == 'Добавить'),
+          );
+          await tester.tap(firstAdd);
+          await tester.pumpAndSettle();
+          expect(cart.getTotalQuantityForItem(store == 1 ? 104 : 102), 1);
+          expect(cart.businessId, store);
+          await tester.tap(find.byTooltip('Назад'));
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widgetList<ProductCard>(find.byType(ProductCard))
+                .first
+                .title,
+            expected,
+          );
+          await tester.tap(find.byType(AppCartButton));
+          await tester.pumpAndSettle();
+          expect(find.text('Корзина'), findsOneWidget);
+          expect(find.text(store == 2
+              ? 'Другой тестовый адрес, 20' : 'Тестовый адрес, 16'), findsOneWidget);
+          expect(cart.businessId, store);
+          expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox.shrink());
+        }, () => client);
+        client.close();
+        SurfaceFixtureClient.resetUnexpectedRequests();
+      },
+    );
+  }
+
+  testWidgets('category card stepper updates the cart, card opens details', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final cart = CartProvider();
@@ -106,101 +337,100 @@ void main() {
   });
 
   testWidgets(
-      'failed leaf request retries; successful empty response stays empty',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    var reads = 0;
-    final client = MockClient((request) async {
-      if (request.method != 'GET' ||
-          request.url.path != '/api/categories/10/items' ||
-          request.url.queryParameters['business_id'] != '1') {
-        throw StateError('Unexpected request: $request');
-      }
-      reads++;
-      if (reads == 1) return http.Response('temporarily unavailable', 503);
-      return http.Response(
-        jsonEncode({
-          'success': true,
-          'data': {'items': <Object>[]},
-        }),
-        200,
-        headers: {'content-type': 'application/json; charset=utf-8'},
-      );
-    });
-    await http.runWithClient(() async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => CartProvider(),
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            home: const CategoryProductsPage(
-              categoryId: 10,
-              title: 'Белое',
-              businessId: 1,
+    'failed leaf request retries; successful empty response stays empty',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      var reads = 0;
+      final client = MockClient((request) async {
+        if (request.method != 'GET' ||
+            request.url.path != '/api/categories/10/items' ||
+            request.url.queryParameters['business_id'] != '1') {
+          throw StateError('Unexpected request: $request');
+        }
+        reads++;
+        if (reads == 1) return http.Response('temporarily unavailable', 503);
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {'items': <Object>[]},
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      await http.runWithClient(() async {
+        await tester.pumpWidget(
+          ChangeNotifierProvider(
+            create: (_) => CartProvider(),
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              home: const CategoryProductsPage(
+                categoryId: 10,
+                title: 'Белое',
+                businessId: 1,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Не удалось загрузить товары'), findsOneWidget);
-      await tester.tap(find.text('Повторить'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('В этой категории пока нет товаров'), findsOneWidget);
-      expect(reads, 2);
-      expect(tester.takeException(), isNull);
-    }, () => client);
-  });
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('Не удалось загрузить товары'), findsOneWidget);
+        await tester.tap(find.text('Повторить'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('В этой категории пока нет товаров'), findsOneWidget);
+        expect(reads, 2);
+        expect(tester.takeException(), isNull);
+      }, () => client);
+    },
+  );
 
   testWidgets(
-      'failed catalog landing retries; missing category is not a spinner',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    var reads = 0;
-    final client = MockClient((request) async {
-      if (request.method != 'GET' ||
-          request.url.path != '/api/categories/supercategories') {
-        throw StateError('Unexpected request: $request');
-      }
-      reads++;
-      if (reads == 1) return http.Response('temporarily unavailable', 503);
-      return http.Response(
-        jsonEncode({
-          'success': true,
-          'data': {'supercategories': <Object>[]},
-        }),
-        200,
-        headers: {'content-type': 'application/json; charset=utf-8'},
-      );
-    });
-    await http.runWithClient(() async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => CartProvider(),
-          child: MaterialApp(
-            theme: AppTheme.dark(),
-            home: const SupercategoryPage(
-              supercategoryId: 1,
-              businessId: 1,
+    'failed catalog landing retries; missing category is not a spinner',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      var reads = 0;
+      final client = MockClient((request) async {
+        if (request.method != 'GET' ||
+            request.url.path != '/api/categories/supercategories') {
+          throw StateError('Unexpected request: $request');
+        }
+        reads++;
+        if (reads == 1) return http.Response('temporarily unavailable', 503);
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {'supercategories': <Object>[]},
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      await http.runWithClient(() async {
+        await tester.pumpWidget(
+          ChangeNotifierProvider(
+            create: (_) => CartProvider(),
+            child: MaterialApp(
+              theme: AppTheme.dark(),
+              home: const SupercategoryPage(supercategoryId: 1, businessId: 1),
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Не удалось загрузить категорию'), findsOneWidget);
-      await tester.tap(find.text('Повторить'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('В этой категории пока нет товаров'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(reads, 2);
-      expect(tester.takeException(), isNull);
-    }, () => client);
-  });
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('Не удалось загрузить категорию'), findsOneWidget);
+        await tester.tap(find.text('Повторить'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('В этой категории пока нет товаров'), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(reads, 2);
+        expect(tester.takeException(), isNull);
+      }, () => client);
+    },
+  );
 
   testWidgets('opening a category keeps every prefetched first-page product',
       (tester) async {
@@ -319,93 +549,102 @@ void main() {
   });
 
   testWidgets(
-      'prefetched pagination retries without refetching or losing items',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final pages = <String>[];
-    final unexpected = <String>[];
-    await http.runWithClient(() async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => CartProvider(),
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            home: CategoryProductsPage(
-              categoryId: 10,
-              title: 'Аперитив',
-              businessId: 1,
-              initialItems: _products,
-              initialHasMore: true,
+    'prefetched pagination retries without refetching or losing items',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final pages = <String>[];
+      final unexpected = <String>[];
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(
+            ChangeNotifierProvider(
+              create: (_) => CartProvider(),
+              child: MaterialApp(
+                theme: AppTheme.light(),
+                home: CategoryProductsPage(
+                  categoryId: 10,
+                  title: 'Аперитив',
+                  businessId: 1,
+                  initialItems: _products,
+                  initialHasMore: true,
+                ),
+              ),
             ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final scrollable = find.descendant(
-        of: find.byKey(const ValueKey('category-products-grid')),
-        matching: find.byType(Scrollable),
-      );
-      await tester.scrollUntilVisible(
-        find.text('Повторить загрузку'),
-        300,
-        scrollable: scrollable,
-      );
-      await Scrollable.ensureVisible(
-        tester.element(find.text('Повторить загрузку')),
-        alignment: .3,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Повторить загрузку'));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('После первой страницы'),
-        300,
-        scrollable: scrollable,
-      );
-      expect(find.text('После первой страницы'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('category-product-5')),
-        -300,
-        scrollable: scrollable,
-      );
-      expect(find.byKey(const ValueKey('category-product-5')), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('category-product-0')),
-        -300,
-        scrollable: scrollable,
-      );
-      expect(find.byKey(const ValueKey('category-product-0')), findsOneWidget);
-      expect(pages, ['2', '2']);
-      expect(unexpected, isEmpty);
-      expect(tester.takeException(), isNull);
-    },
+          );
+          await tester.pumpAndSettle();
+          final scrollable = find.descendant(
+            of: find.byKey(const ValueKey('category-products-grid')),
+            matching: find.byType(Scrollable),
+          );
+          await tester.scrollUntilVisible(
+            find.text('Повторить загрузку'),
+            300,
+            scrollable: scrollable,
+          );
+          await Scrollable.ensureVisible(
+            tester.element(find.text('Повторить загрузку')),
+            alignment: .3,
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Повторить загрузку'));
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(
+            find.text('После первой страницы'),
+            300,
+            scrollable: scrollable,
+          );
+          expect(find.text('После первой страницы'), findsOneWidget);
+          await tester.scrollUntilVisible(
+            find.byKey(const ValueKey('category-product-5')),
+            -300,
+            scrollable: scrollable,
+          );
+          expect(
+            find.byKey(const ValueKey('category-product-5')),
+            findsOneWidget,
+          );
+          await tester.scrollUntilVisible(
+            find.byKey(const ValueKey('category-product-0')),
+            -300,
+            scrollable: scrollable,
+          );
+          expect(
+            find.byKey(const ValueKey('category-product-0')),
+            findsOneWidget,
+          );
+          expect(pages, ['2', '2']);
+          expect(unexpected, isEmpty);
+          expect(tester.takeException(), isNull);
+        },
         () => MockClient((request) async {
-              final query = request.url.queryParameters;
-              if (request.method != 'GET' ||
-                  request.url.path != '/api/categories/10/items' ||
-                  query['business_id'] != '1' ||
-                  query['page'] != '2') {
-                unexpected.add('$request');
-                throw StateError('Unexpected request: $request');
-              }
-              pages.add(query['page']!);
-              if (pages.length == 1) return http.Response('', 503);
-              return http.Response(
-                jsonEncode({
-                  'success': true,
-                  'data': {
-                    'items': [
-                      {..._itemJson(200), 'name': 'После первой страницы'},
-                    ],
-                    'pagination': {'page': 2, 'total_pages': 2},
-                  },
-                }),
-                200,
-                headers: {'content-type': 'application/json; charset=utf-8'},
-              );
-            }));
-  });
+          final query = request.url.queryParameters;
+          if (request.method != 'GET' ||
+              request.url.path != '/api/categories/10/items' ||
+              query['business_id'] != '1' ||
+              query['page'] != '2') {
+            unexpected.add('$request');
+            throw StateError('Unexpected request: $request');
+          }
+          pages.add(query['page']!);
+          if (pages.length == 1) return http.Response('', 503);
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': {
+                'items': [
+                  {..._itemJson(200), 'name': 'После первой страницы'},
+                ],
+                'pagination': {'page': 2, 'total_pages': 2},
+              },
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+    },
+  );
 
   testWidgets('parents hold their children; every level opens its own products',
       (tester) async {
@@ -572,40 +811,46 @@ void main() {
       ],
     );
     final unexpected = <String>[];
-    await http.runWithClient(() async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => CartProvider(),
-          child: MaterialApp(
-            theme: AppTheme.dark(),
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(context)
-                  .copyWith(textScaler: const TextScaler.linear(2)),
-              child: child!,
-            ),
-            home: CategoryProductsPage(
-              categoryId: 139,
-              title: 'Светлое',
-              businessId: 1,
-              group: group,
-              initialItems: _products.take(1).toList(),
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(
+          ChangeNotifierProvider(
+            create: (_) => CartProvider(),
+            child: MaterialApp(
+              theme: AppTheme.dark(),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(2)),
+                child: child!,
+              ),
+              home: CategoryProductsPage(
+                categoryId: 139,
+                title: 'Светлое',
+                businessId: 1,
+                group: group,
+                initialItems: _products.take(1).toList(),
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final selected = find.byKey(const ValueKey('category-chip-139'));
-      expect(selected.hitTestable(), findsOneWidget);
-      expect(_selected(tester, 'category-chip-139'), Tristate.isTrue);
-      expect(find.text('Безалкогольное пиво'), findsOneWidget);
-      expect(find.byKey(const ValueKey('category-product-0')), findsOneWidget);
-      expect(unexpected, isEmpty);
-      expect(tester.takeException(), isNull);
-    },
-        () => MockClient((request) async {
-              unexpected.add('$request');
-              throw StateError('Unexpected request: $request');
-            })).whenComplete(semantics.dispose);
+        );
+        await tester.pumpAndSettle();
+        final selected = find.byKey(const ValueKey('category-chip-139'));
+        expect(selected.hitTestable(), findsOneWidget);
+        expect(_selected(tester, 'category-chip-139'), Tristate.isTrue);
+        expect(find.text('Безалкогольное пиво'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('category-product-0')),
+          findsOneWidget,
+        );
+        expect(unexpected, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+      () => MockClient((request) async {
+        unexpected.add('$request');
+        throw StateError('Unexpected request: $request');
+      }),
+    ).whenComplete(semantics.dispose);
   });
 
   testWidgets('a far parent is reached from the grouped sheet at large text',

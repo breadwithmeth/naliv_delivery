@@ -23,6 +23,7 @@ class ProfilePage extends StatefulWidget {
     this.account,
     this.loadAccount,
     this.onNavigate,
+    this.onContacts,
     this.onSignIn,
     this.onLogout,
     super.key,
@@ -31,6 +32,7 @@ class ProfilePage extends StatefulWidget {
   final ProfileAccount? account;
   final Future<ProfileAccount?> Function()? loadAccount;
   final FutureOr<void> Function(AppDestination)? onNavigate;
+  final VoidCallback? onContacts;
   final Future<void> Function()? onSignIn;
   final Future<void> Function()? onLogout;
 
@@ -337,6 +339,14 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
             chevron: true,
             onTap: open(AppDestination.support),
           ),
+          if (widget.onContacts != null)
+            SettingsRow(
+              key: const ValueKey('profile-row-contacts'),
+              iconAsset: AppIcons.phone,
+              title: 'Контакты',
+              chevron: true,
+              onTap: widget.onContacts,
+            ),
           SettingsRow(
             key: const ValueKey('profile-row-faq'),
             iconAsset: AppIcons.faq,

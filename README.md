@@ -36,8 +36,20 @@ results, never package-info or a native launcher. Other fixture surfaces remain 
 
 The production API and personal account are read-only during verification: never send SMS, change addresses/cards, create real orders, buy certificates or execute real payments. Fixture checkout/payment is synthetic and does not establish authenticated production or bank/device acceptance.
 
+The `legal` fixture boots the real `Main` admission path with current acceptance
+removed; `active_route` deliberately starts at the admitted wrapper and is not
+first-launch evidence. `contacts` / `contacts_unknown` intercept external launches,
+and `merchandising_store_1` / `merchandising_store_2` exercise scoped category
+priorities through the actual adapter, preview and full grid.
+
 ## State ownership and recovery
 
+
+- Admission is intro → independent local offer/privacy revisions → existing city
+  onboarding → main navigator. Cart restoration and push startup wait for admission;
+  named routes and pending notifications cannot mount commerce early. Bundled
+  texts are offline; storage/document failures block with retry. See
+  [local acceptance](docs/agreement_system.md); legal owner approval is separate.
 - `AuthService` publishes credentials only after checked persistence. Capture an
   immutable token/revision with `captureSession()` for private async work; identity
   binding alone is not a credential change. Optional push startup/login failures
@@ -141,6 +153,14 @@ dart run tool/design_harness.dart capture catalog,checkout_pickup --theme both -
 
 The design reference is 375 × 812 logical pixels with 48 px top / 34 px bottom insets and DPR 2. Adaptive captures use isolated variant directories; they cannot overwrite canonical captures or manufacture fixed-reference diff metrics. Completed runs publish JSON evidence with dimensions and any measured differences. A fixture diff measures synthetic content, not usability or production behavior. Review interactions and both themes; preserve inherited text scaling and floating cart-only navigation. Unknown fixture URL scenarios fail visibly rather than falling back to loaded states.
 
+The `startup` surface previews the one-shot [`go.gradusy24.kz`](https://go.gradusy24.kz/)
+intro over a loading route. Its four original PNGs ship in `assets/startup/`; startup
+never fetches artwork from the website. `AppLaunchIntro` owns Flutter motion and
+`web/index.html` owns the pre-Flutter web equivalent. Keep their keyframes together:
+the three seals start at 0/300/500 ms, reveal starts at 1600 ms, and the decorative
+line finishes at 4950 ms. The route mounts behind the intro. Reduced motion bypasses
+the flight; the web shell waits for the real `flutter-first-frame` event.
+
 Build the fixture gallery separately from the tracked deployment output:
 
 ```sh
@@ -184,4 +204,7 @@ remains separate.
 - [Repository cleanup](docs/CLEANUP_PLAN.md): scope, decisions and measured reductions.
 - [Whole-app redesign plan](docs/redesign/PLAN.md): active-route controls and acceptance gates.
 - [Current implementation evidence](docs/redesign/STATUS.md): exercised paths and limitations.
+- [Pending integration contracts](docs/client-commerce-integrations.md): catalogue
+  ranking, inbox, two ratings and own-courier map. These specifications do not
+  declare new production endpoints or enabled client screens.
 - [Figma measurements](docs/redesign/FIDELITY.md): diagnostic comparisons, not pixel-parity acceptance.

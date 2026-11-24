@@ -35,6 +35,7 @@ class CategoryProductsPage extends StatefulWidget {
     this.initialHasMore,
     this.onSearch,
     this.onCart,
+    this.priorityItemIdsByCategory = const {},
     super.key,
   });
 
@@ -44,6 +45,7 @@ class CategoryProductsPage extends StatefulWidget {
   /// Used while [categoryId] cannot be found in [group].
   final String title;
   final int businessId;
+  final Map<int, List<int>> priorityItemIdsByCategory;
 
   /// The parent category; its children are the filter chips. Null shows a plain list.
   final CategoryRef? group;
@@ -143,8 +145,10 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
         ..page = 1;
     });
     try {
-      final result =
-          await CatalogDataSource(businessId: widget.businessId).itemsPage(id);
+      final result = await CatalogDataSource(
+        businessId: widget.businessId,
+        priorityItemIdsByCategory: widget.priorityItemIdsByCategory,
+      ).itemsPage(id);
       if (!mounted) return;
       setState(() {
         feed
@@ -168,8 +172,10 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
         ..moreFailed = false;
     });
     try {
-      final result = await CatalogDataSource(businessId: widget.businessId)
-          .itemsPage(id, page: feed.page);
+      final result = await CatalogDataSource(
+        businessId: widget.businessId,
+        priorityItemIdsByCategory: widget.priorityItemIdsByCategory,
+      ).itemsPage(id, page: feed.page);
       if (!mounted) return;
       setState(() {
         feed

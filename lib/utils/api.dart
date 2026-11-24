@@ -215,10 +215,13 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>?> getAvailableCities() async {
+  static Future<List<Map<String, dynamic>>?> getAvailableCities({
+    bool useCachedCredential = true,
+  }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(_authTokenKey);
+      final token = useCachedCredential
+          ? (await SharedPreferences.getInstance()).getString(_authTokenKey)
+          : null;
       final uri = Uri.parse('$baseUrl/users/cities');
 
       final headers = <String, String>{
@@ -2546,11 +2549,12 @@ class ApiService {
   static Future<Map<String, dynamic>?> getMyActiveOrders({
     int? businessId,
     String? deliveryType,
+    String? credentialToken,
   }) async {
     final paymentReadRevision = OrderPaymentGuard.beginOrderRead();
     final credentialRevision = AuthService.credentialRevision;
     final accountId = AuthService.currentIdentity;
-    final token = await getAuthToken();
+    final token = credentialToken ?? await getAuthToken();
     if (token == null) {
       debugPrint('API getMyActiveOrders: no auth token');
       return null;
@@ -2603,10 +2607,12 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getMyActiveOrdersList({
     int? businessId,
     String? deliveryType,
+    String? credentialToken,
   }) async {
     final response = await getMyActiveOrders(
       businessId: businessId,
       deliveryType: deliveryType,
+      credentialToken: credentialToken,
     );
     return _extractOrderList(
       response,

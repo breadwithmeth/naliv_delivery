@@ -33,11 +33,13 @@ class SupercategoryPage extends StatefulWidget {
     this.title,
     this.onSearch,
     this.onCart,
+    this.priorityItemIdsByCategory = const {},
     super.key,
   });
 
   final int supercategoryId;
   final int businessId;
+  final Map<int, List<int>> priorityItemIdsByCategory;
 
   /// Title to show immediately, before the API answers.
   final String? title;
@@ -162,6 +164,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
           categoryId: parent.id,
           title: parent.name,
           businessId: widget.businessId,
+          priorityItemIdsByCategory: widget.priorityItemIdsByCategory,
           group: parent,
           initialItems: initialItems ?? preview?.$1,
           initialHasMore: initialHasMore ?? preview?.$2,
@@ -179,6 +182,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
           categoryId: child.id,
           title: child.name,
           businessId: widget.businessId,
+          priorityItemIdsByCategory: widget.priorityItemIdsByCategory,
           group: _parentOf(child),
           onSearch: widget.onSearch,
           onCart: widget.onCart,
@@ -464,6 +468,7 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
               child: _ParentSection(
                 parent: parent,
                 businessId: widget.businessId,
+                priorityItemIdsByCategory: widget.priorityItemIdsByCategory,
                 previewLimit: _previewLimit,
                 initialPreview: _previews[parent.id],
                 onLoaded: (items, hasMore) =>
@@ -495,10 +500,12 @@ class _ParentSection extends StatefulWidget {
     this.onOpen,
     this.onOpenChild,
     this.onCart,
+    this.priorityItemIdsByCategory = const {},
   });
 
   final CategoryRef parent;
   final int businessId;
+  final Map<int, List<int>> priorityItemIdsByCategory;
   final int previewLimit;
   final (List<ProductView>, bool)? initialPreview;
   final void Function(List<ProductView>, bool)? onLoaded;
@@ -534,8 +541,10 @@ class _ParentSectionState extends State<_ParentSection> {
     });
     try {
       // A parent's products already include those of its children.
-      final result = await CatalogDataSource(businessId: widget.businessId)
-          .itemsPage(widget.parent.id);
+      final result = await CatalogDataSource(
+        businessId: widget.businessId,
+        priorityItemIdsByCategory: widget.priorityItemIdsByCategory,
+      ).itemsPage(widget.parent.id);
       if (!mounted) return;
       setState(() {
         _items = result.items;

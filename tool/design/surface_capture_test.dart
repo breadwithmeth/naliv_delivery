@@ -51,6 +51,16 @@ void main() {
 
         final boundaryKey = GlobalKey();
         await http.runWithClient(() async {
+          if (surface == 'startup') {
+            // PNG decoding uses the engine clock. Warm the real images before
+            // stepping the fake animation clock, even on the first cold capture.
+            await tester.pumpWidget(const SizedBox());
+            final context = tester.element(find.byType(SizedBox));
+            await tester.runAsync(() => Future.wait([
+              for (final name in ['logo1', '3', '2', '1'])
+                precacheImage(AssetImage('assets/startup/$name.png'), context),
+            ]));
+          }
           await tester.pumpWidget(RepaintBoundary(
             key: boundaryKey,
             child: DesignSurfaceApp(
@@ -69,6 +79,10 @@ void main() {
           // Store readiness mounts nested pages on a later frame; settle their
           // enabled-state and purchase-sheet transitions without waiting on home animation.
           await tester.pump(const Duration(milliseconds: 400));
+          if (surface == 'startup') {
+            // The three seals overlap just before the route is revealed at 1.6s.
+            await tester.pump(const Duration(milliseconds: 520));
+          }
         }, () => SurfaceFixtureClient());
 
         expect(SurfaceFixtureClient.unexpectedRequests, isEmpty,

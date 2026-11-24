@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru" data-html-splash>
 
 <head>
   <!--
@@ -33,6 +33,7 @@
 
   <title>Градусы24</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preload" href="assets/assets/startup/logo1.png" as="image">
 
   <script>
     // The value below is injected by flutter build, do not touch.
@@ -250,10 +251,7 @@
     :root {
       --bg-deep: #121212;
       --bg-top: #161616;
-      --card: #1e1e1e;
-      --orange: #f6a10c;
-      --text: #ffffff;
-      --text-mute: #9fb0c8;
+      --splash-orange: #f97300;
     }
 
     html,
@@ -269,20 +267,13 @@
       font-family: "Raleway", "Segoe UI", sans-serif;
     }
 
-    /* ── fullscreen overlay ─── */
     #splash {
       position: fixed;
       inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background:
-        radial-gradient(circle at 20% 15%, rgba(246, 161, 12, 0.06), transparent 40%),
-        radial-gradient(circle at 80% 85%, rgba(255, 255, 255, 0.03), transparent 40%),
-        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-deep) 100%);
       z-index: 9999;
-      transition: opacity 0.4s ease;
+      overflow: hidden;
+      background: #fff;
+      transition: opacity 520ms linear;
     }
 
     #splash.removing {
@@ -290,86 +281,105 @@
       pointer-events: none;
     }
 
-    /* ── glowing icon ─────── */
-    .sp-icon {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(circle, rgba(246, 161, 12, 0.12), transparent 70%);
-      animation: sp-icon-in 0.7s ease-out, sp-glow 2.4s ease-in-out 0.7s infinite;
+    .splash-orange,
+    .splash-layers {
+      position: absolute;
+      inset: 0;
     }
 
-    .sp-icon-inner {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--card);
-      border: 1.5px solid rgba(246, 161, 12, 0.25);
-      display: grid;
-      place-items: center;
-      box-shadow: 0 0 20px rgba(246, 161, 12, 0.12);
+    .splash-orange {
+      background: var(--splash-orange);
+      transition: opacity 240ms linear;
     }
 
-    .sp-icon-inner svg {
-      width: 24px;
-      height: 24px;
+    .splash-logo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(420px, calc(100% - 20px));
+      height: auto;
+      max-height: calc(100% - 20px);
+      object-fit: contain;
+      transform: translate(-50%, -50%) scale(.8);
+      transition: opacity 240ms linear, transform 240ms linear;
     }
 
-    /* ── text ──────────────── */
-    .sp-title {
-      margin: 28px 0 8px;
-      color: var(--text);
-      font-size: 21px;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      animation: sp-fade-up 0.6s ease-out 0.15s both;
+    .splash-sweep {
+      position: absolute;
+      inset: auto -30% 0;
+      z-index: 1;
+      height: 120%;
+      border-radius: 48% 48% 0 0;
+      background: #fff;
+      transform: translateY(112%);
     }
 
-    .sp-tagline {
-      margin: 0 auto;
-      max-width: 280px;
-      color: var(--text-mute);
-      font-size: 13px;
-      line-height: 1.55;
-      text-align: center;
-      animation: sp-fade-up 0.6s ease-out 0.35s both;
+    .splash-layers {
+      z-index: 2;
+      pointer-events: none;
     }
 
-    /* ── progress bar ─────── */
-    .sp-bar-wrap {
-      width: 180px;
-      height: 3px;
-      margin-top: 32px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.06);
-      overflow: hidden;
-      animation: sp-fade-up 0.5s ease-out 0.55s both;
+    .splash-layer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 553px;
+      opacity: var(--layer-opacity);
+      filter: var(--layer-filter);
+      transition: opacity 240ms linear, filter 240ms linear;
     }
 
-    .sp-bar-shimmer {
-      width: 40%;
+    .splash-revealing .splash-orange,
+    .splash-revealing .splash-logo {
+      opacity: 0;
+    }
+
+    .splash-revealing .splash-logo {
+      transform: translate(-50%, calc(-50% - 8px)) scale(.9);
+    }
+
+    .splash-revealing .splash-sweep {
+      border-radius: 0;
+      transform: translateY(0);
+      transition: transform 520ms linear, border-radius 520ms linear;
+    }
+
+    .splash-past-intro .splash-layer {
+      opacity: var(--reveal-opacity);
+      filter: var(--reveal-filter);
+    }
+
+    .splash-line {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      z-index: 3;
+      width: min(520px, calc(100% - 32px));
+      height: 2px;
+      background: rgb(255 255 255 / 30%);
+      transform: translateX(-50%);
+    }
+
+    .splash-line-fill {
       height: 100%;
-      border-radius: 2px;
-      background: linear-gradient(90deg, transparent, var(--orange), transparent);
-      animation: sp-shimmer 2s ease-in-out infinite;
+      background: #fff;
+      transform-origin: left;
+      animation: splash-line 4.95s linear both;
+      transition: background-color 240ms linear;
     }
 
-    /* ── rotating fact ────── */
-    .sp-fact {
-      margin-top: 18px;
-      color: var(--orange);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      min-height: 18px;
-      animation: sp-fade-up 0.5s ease-out 0.7s both;
+    .splash-revealing .splash-line-fill {
+      background: var(--splash-orange);
     }
 
-    .sp-fact span {
-      display: inline-block;
-      animation: sp-fact-cycle 14s step-end infinite;
+    .splash-recovery {
+      position: absolute;
+      inset: auto 16px max(40px, 16%);
+      margin: 0 auto;
+      max-width: 360px;
+      color: #201000;
+      font: 600 1rem/1.5 "Raleway", "Segoe UI", sans-serif;
+      text-align: center;
     }
 
     #ios-app-open {
@@ -446,110 +456,34 @@
       color: #ffffff;
     }
 
-    /* ── keyframes ─────────── */
-    @keyframes sp-icon-in {
-      from {
-        opacity: 0;
-        transform: scale(0.8);
+    @keyframes splash-line {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #splash,
+      .splash-orange,
+      .splash-logo {
+        transition: none;
       }
 
-      to {
+      .splash-sweep,
+      .splash-layers,
+      .splash-line-fill {
+        display: none;
+      }
+
+      .splash-revealing .splash-orange,
+      .splash-revealing .splash-logo {
         opacity: 1;
-        transform: scale(1);
-      }
-    }
-
-    @keyframes sp-glow {
-
-      0%,
-      100% {
-        transform: scale(1);
       }
 
-      50% {
-        transform: scale(1.06);
+      .splash-revealing .splash-logo {
+        transform: translate(-50%, -50%) scale(.8);
       }
-    }
-
-    @keyframes sp-fade-up {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes sp-shimmer {
-      0% {
-        transform: translateX(-180px);
-      }
-
-      100% {
-        transform: translateX(360px);
-      }
-    }
-
-    @keyframes sp-fact-cycle {
-      0% {
-        content: "";
-      }
-
-      /* JS handles text rotation */
     }
   </style>
-  <script id="splash-screen-script">
-    var __splashRemoved = false;
-    var splashFactInterval;
-    var splashFactTransition;
-    function stopSplashFacts() {
-      clearInterval(splashFactInterval);
-      clearTimeout(splashFactTransition);
-    }
-    function removeSplashFromWeb() {
-      if (__splashRemoved) return;
-      __splashRemoved = true;
-      stopSplashFacts();
-      var el = document.getElementById("splash");
-      if (el) {
-        el.classList.add("removing");
-        setTimeout(function () { el.remove(); }, 450);
-      }
-      document.getElementById("splash-branding")?.remove();
-      document.body.style.background = "transparent";
-    }
-    // Fallback: watch for Flutter root element in the DOM
-    (function () {
-      var obs = new MutationObserver(function () {
-        if (document.querySelector('flutter-view, flt-glass-pane')) {
-          obs.disconnect();
-          removeSplashFromWeb();
-        }
-      });
-      obs.observe(document.documentElement, { childList: true, subtree: true });
-      // Slow boots are real: a cold debug-web load fetches over a thousand modules and can take
-      // a minute. Removing the splash on a timer left a blank dark page with no explanation —
-      // which is exactly what happened. The net now waits for Flutter before handing over, and if
-      // Flutter still has not appeared it keeps the branded splash and says what to do.
-      setTimeout(function () {
-        if (document.querySelector('flutter-view, flt-glass-pane')) {
-          obs.disconnect();
-          removeSplashFromWeb();
-          return;
-        }
-        stopSplashFacts();
-        var fact = document.getElementById("sp-fact-text");
-        if (fact) {
-          fact.style.opacity = "1";
-          fact.style.transform = "translateY(0)";
-          fact.textContent = "Загрузка занимает дольше обычного — подождите или обновите страницу.";
-        }
-      }, 60000);
-    })();
-  </script>
 </head>
 
 <body>
@@ -636,52 +570,113 @@
       });
     })();
   </script>
-  <div id="splash" aria-hidden="true">
-    <div class="sp-icon">
-      <div class="sp-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 2L6.5 6H3.5L2 2H8Z" fill="#f6a10c" opacity="0.5" />
-          <path d="M16 2L17.5 6H20.5L22 2H16Z" fill="#f6a10c" opacity="0.5" />
-          <path d="M6 7H18L17 14C16.5 17 14.5 19 12 19C9.5 19 7.5 17 7 14L6 7Z" stroke="#f6a10c" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <path d="M12 19V22" stroke="#f6a10c" stroke-width="1.6" stroke-linecap="round" />
-          <path d="M8 22H16" stroke="#f6a10c" stroke-width="1.6" stroke-linecap="round" />
-          <path d="M9 11C9 11 10 13 12 13C14 13 15 11 15 11" stroke="#f6a10c" stroke-width="1.2" stroke-linecap="round" />
-        </svg>
-      </div>
-    </div>
-    <div class="sp-title">Градусы24</div>
-    <p class="sp-tagline">Круглосуточный маркет-бар для тех,<br>кто выбирает вкус и качество</p>
-    <div class="sp-bar-wrap">
-      <div class="sp-bar-shimmer"></div>
-    </div>
-    <div class="sp-fact"><span id="sp-fact-text">Доставка 24/7</span></div>
+  <div id="splash">
+    <div class="splash-orange"></div>
+    <img class="splash-logo" src="assets/assets/startup/logo1.png" width="2450" height="553" alt="Градусы24" draggable="false">
+    <div class="splash-sweep"></div>
+    <div class="splash-layers" aria-hidden="true"></div>
+    <div class="splash-line" aria-hidden="true"><div class="splash-line-fill"></div></div>
+    <p class="splash-recovery" role="status"></p>
   </div>
   <script>
-    // Rotate facts in the splash
-    (function () {
-      var facts = [
-        "Доставка 24/7",
-        "Более 3\u00A0000 позиций алкоголя",
-        "Доставка за 35 минут",
-        "Свежее разливное пиво",
-        "Элитный алкоголь 21+",
-        "Собственная система лояльности"
+    (() => {
+      const splash = document.getElementById("splash");
+      const layers = splash.querySelector(".splash-layers");
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const lastLayerEnd = 3250;
+      const handoffDuration = 520;
+      let flutterReady = false;
+      let revealStarted = false;
+
+      // A mounted Flutter view does not mean it has painted a frame.
+      function handoffIfReady() {
+        if (!flutterReady || (!revealStarted && !reduceMotion.matches)) return;
+        clearTimeout(revealTimer);
+        clearTimeout(settleTimer);
+        clearTimeout(recoveryTimer);
+        reduceMotion.removeEventListener?.("change", handoffIfReady);
+        splash.setAttribute("aria-hidden", "true");
+        if (!reduceMotion.matches) splash.classList.add("splash-revealing");
+        splash.classList.add("removing");
+        document.body.style.background = "transparent";
+        if (reduceMotion.matches) {
+          splash.remove();
+        } else {
+          setTimeout(() => splash.remove(), handoffDuration);
+        }
+      }
+
+      const revealTimer = setTimeout(() => {
+        revealStarted = true;
+        splash.classList.add("splash-past-intro");
+        handoffIfReady();
+      }, 1600);
+      const settleTimer = setTimeout(() => {
+        // A slow cold boot keeps its logo; do not reveal an empty white surface.
+        layers.replaceChildren();
+      }, lastLayerEnd);
+      const recoveryTimer = setTimeout(() => {
+        splash.querySelector(".splash-recovery").textContent =
+          "Загрузка занимает дольше обычного — подождите или обновите страницу.";
+      }, 60000);
+
+      window.addEventListener("flutter-first-frame", () => {
+        flutterReady = true;
+        handoffIfReady();
+      }, { once: true });
+      reduceMotion.addEventListener?.("change", handoffIfReady);
+
+      if (reduceMotion.matches || !Element.prototype.animate) return;
+
+      // Positions, timing and layer treatments from the public Gradusy24 intro.
+      const offsets = [0, .2, .52, .8, 1];
+      const scaleSteps = [.96, 1, 1.04, 1.02, 1];
+      const artwork = [
+        {
+          image: 3, delay: 0, scale: 1.2, opacity: .1, echo: [.2, .035, 2.5, 3.5, 130],
+          x: [-40, -18, 6, 26, 42], y: [1420, 980, 280, -520, -1420],
+          rotation: [-2.2, -1.1, .4, 1.5, 2.4]
+        },
+        {
+          image: 2, delay: 300, scale: 1.3, opacity: .085, echo: [.18, .03, 2, 3, 100],
+          x: [30, 14, -4, -24, -38], y: [1400, 940, 180, -620, -1440],
+          rotation: [2, .9, -.5, -1.7, -2.7]
+        },
+        {
+          image: 1, delay: 500, scale: 1.5, opacity: .075, echo: [.16, .025, 1.5, 2.5, 72],
+          x: [-18, -6, 8, 20, 30], y: [1380, 900, 80, -720, -1460],
+          rotation: [-1.2, -.4, .8, 1.8, 2.6]
+        }
       ];
-      var i = 0;
-      var el = document.getElementById("sp-fact-text");
-      if (!el || __splashRemoved) return;
-      splashFactInterval = setInterval(function () {
-        i = (i + 1) % facts.length;
-        el.style.opacity = "0";
-        el.style.transform = "translateY(6px)";
-        el.style.transition = "opacity 0.3s, transform 0.3s";
-        splashFactTransition = setTimeout(function () {
-          el.textContent = facts[i];
-          el.style.opacity = "1";
-          el.style.transform = "translateY(0)";
-        }, 300);
-      }, 2800);
+
+      function addLayer(art, echo) {
+        const [echoOpacity, revealEchoOpacity, echoBlur, revealEchoBlur, echoOffset] = art.echo;
+        const img = document.createElement("img");
+        img.className = "splash-layer";
+        img.src = `assets/assets/startup/${art.image}.png`;
+        img.alt = "";
+        img.width = 553;
+        img.height = 545;
+        img.draggable = false;
+        img.style.setProperty("--layer-opacity", echo ? echoOpacity : 1);
+        img.style.setProperty("--reveal-opacity", echo ? revealEchoOpacity : art.opacity);
+        const shadow = echo ? "drop-shadow(0 18px 32px rgb(16 16 16 / 10%))" :
+          "drop-shadow(0 22px 36px rgb(16 16 16 / 14%))";
+        img.style.setProperty("--layer-filter", echo ? `blur(${echoBlur}px) ${shadow}` : shadow);
+        img.style.setProperty("--reveal-filter", echo ? `blur(${revealEchoBlur}px) ${shadow}` : shadow);
+        layers.append(img);
+        img.animate(offsets.map((offset, i) => ({
+          offset,
+          transform: `translate(-50%, -50%) translate(${art.x[i] * (echo ? .6 : 1)}px, ` +
+            `${art.y[i] + (echo ? echoOffset : 0)}px) rotate(${art.rotation[i]}deg) ` +
+            `scale(${art.scale * (echo ? .92 : scaleSteps[i])})`
+        })), { duration: 2750, delay: art.delay, fill: "both" });
+      }
+
+      for (const art of artwork) {
+        addLayer(art, true);
+        addLayer(art, false);
+      }
     })();
   </script>
   <script src="flutter_bootstrap.js" async=""></script>

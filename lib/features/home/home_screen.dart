@@ -40,6 +40,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final navigate = onNavigate;
     return HomePage(
       data: data,
       cartDock: Selector<CartProvider, (int, double?)>(
@@ -56,9 +57,10 @@ class HomeScreen extends StatelessWidget {
       onCart: onCart,
       onSearch: onSearch,
       onCallCenter: onCallCenter,
-      onLiked: () => onNavigate?.call(AppDestination.favorites),
+      onLiked:
+          navigate == null ? null : () => navigate(AppDestination.favorites),
       onProfile:
-          onNavigate == null ? null : () => onNavigate!(AppDestination.profile),
+          navigate == null ? null : () => navigate(AppDestination.profile),
       onStore: onStore,
       onPromo: onPromo,
       onActiveOrder: onActiveOrder,

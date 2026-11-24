@@ -1,2 +1,2 @@
-/// Stub for non-web platforms. Does nothing.
-void removeHtmlSplash() {}
+/// Native platforms have no HTML startup animation.
+bool isHtmlSplashManaged() => false;

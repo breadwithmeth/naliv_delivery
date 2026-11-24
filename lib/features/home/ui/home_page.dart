@@ -76,35 +76,20 @@ class HomePage extends StatelessWidget {
         top: false,
         bottom: false,
         child: FrostedHeaderLayout(
-          estimatedHeaderHeight:
-              AppSpacing.huge + (data.signedIn ? 48 : 57) + _headerBottom,
+          estimatedHeaderHeight: AppSpacing.huge + 48 + _headerBottom,
           header: Padding(
             padding: const EdgeInsets.only(
                 top: AppSpacing.huge, bottom: _headerBottom),
             child: _ContentWidth(
               child: KeyedSubtree(
                 key: const ValueKey('home-header'),
-                child: data.signedIn
-                    ? _HomeHeader(
-                        onCallCenter: onCallCenter,
-                        onLiked: onLiked,
-                        onProfile: onProfile,
-                      )
-                    : Row(
-                        children: [
-                          const _HomeBrandMark(),
-                          const SizedBox(width: AppSpacing.xl),
-                          Expanded(
-                            child: KeyedSubtree(
-                              key: const ValueKey('home-store-card'),
-                              child: _StoreCard(
-                                  data: data,
-                                  onTap: onStore,
-                                  onProfile: onProfile),
-                            ),
-                          ),
-                        ],
-                      ),
+                child: _HomeHeader(
+                  bonusBalance: data.signedIn ? data.bonusBalance : null,
+                  onBonusHistory: onBonusHistory,
+                  onCallCenter: onCallCenter,
+                  onLiked: onLiked,
+                  onProfile: onProfile,
+                ),
               ),
             ),
           ),
@@ -116,18 +101,13 @@ class HomePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(height: topInset),
-                      if (data.signedIn) ...[
-                        const SizedBox(height: AppSpacing.xl - _headerBottom),
-                        _ContentWidth(
-                          child: KeyedSubtree(
-                            key: const ValueKey('home-store-card'),
-                            child: _StoreCard(
-                                data: data,
-                                onTap: onStore,
-                                onProfile: onProfile),
-                          ),
+                      const SizedBox(height: AppSpacing.xl - _headerBottom),
+                      _ContentWidth(
+                        child: KeyedSubtree(
+                          key: const ValueKey('home-store-card'),
+                          child: _StoreCard(data: data, onTap: onStore),
                         ),
-                      ],
+                      ),
                       if (data.activeOrder case final order?) ...[
                         const SizedBox(height: AppSpacing.xl),
                         _ContentWidth(
@@ -142,10 +122,7 @@ class HomePage extends StatelessWidget {
                           ),
                         ),
                       ],
-                      SizedBox(
-                          height: data.signedIn
-                              ? AppSpacing.huge
-                              : AppSpacing.huge - _headerBottom),
+                      const SizedBox(height: AppSpacing.huge),
                       _ContentWidth(
                         child: KeyedSubtree(
                           key: const ValueKey('home-search-field'),
@@ -266,154 +243,191 @@ class _HomeBrandMark extends StatelessWidget {
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({
+    this.bonusBalance,
+    this.onBonusHistory,
     this.onCallCenter,
     this.onLiked,
     this.onProfile,
   });
 
+  final num? bonusBalance;
+  final VoidCallback? onBonusHistory;
   final VoidCallback? onCallCenter;
   final VoidCallback? onLiked;
   final VoidCallback? onProfile;
 
-  static const _supportLabel = 'Поддержка';
-  static const _brandWidth = 48.0;
-  static const _actionCount = 2;
-
-  /// The support entry keeps its label only when it fits on one line beside the
-  /// actions. Squeezed into a narrow phone it used to break mid-word
-  /// ("Поддержк/а"); the phone glyph, tooltip and semantics stay either way.
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final painter = TextPainter(
-            text: TextSpan(
-              text: _supportLabel,
-              style:
-                  DefaultTextStyle.of(context).style.merge(AppTypography.label),
-            ),
-            textDirection: Directionality.of(context),
-            textScaler: MediaQuery.textScalerOf(context),
-            maxLines: 1,
-          )..layout();
-          final labelledWidth =
-              18 + AppSpacing.xs + painter.width.ceilToDouble();
-          painter.dispose();
-
-          Widget support(bool showLabel) => Tooltip(
-                message: _supportLabel,
-                child: Semantics(
-                  button: true,
-                  child: InkWell(
+  Widget build(BuildContext context) {
+    final balance = bonusBalance;
+    final amount = balance == null ? null : bonusNumberLabel(balance);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _HomeBrandMark(),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  _HeaderAction(
+                    icon: AppIcons.phone,
+                    label: 'Связаться',
+                    showLabel: true,
+                    accent: true,
                     onTap: onCallCenter,
-                    borderRadius: AppRadii.mdAll,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minWidth: AppSpacing.touchTarget,
-                        minHeight: AppSpacing.touchTarget,
+                  ),
+                  _HeaderAction(
+                    icon: AppIcons.star,
+                    label: 'Бонусы',
+                    showLabel: true,
+                    accent: true,
+                    detail: amount != null &&
+                            _fitsBalance(context, constraints.maxWidth, amount)
+                        ? amount
+                        : null,
+                    semanticsLabel:
+                        amount == null ? null : 'Бонусы, баланс $amount',
+                    onTap: onBonusHistory,
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HeaderAction(
+                        icon: AppIcons.heart,
+                        label: 'Избранные товары',
+                        onTap: onLiked,
+                      ),
+                      _HeaderAction(
+                        icon: AppIcons.user,
+                        label: 'Профиль',
+                        onTap: onProfile,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _fitsBalance(BuildContext context, double width, String amount) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: amount,
+        style: DefaultTextStyle.of(
+          context,
+        ).style.merge(AppTypography.labelBold),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final fits =
+        painter.width.ceilToDouble() + _HeaderAction._captionInset <= width;
+    painter.dispose();
+    return fits;
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.showLabel = false,
+    this.accent = false,
+    this.detail,
+    this.semanticsLabel,
+  });
+
+  final String icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool showLabel;
+  final bool accent;
+  final String? detail;
+  final String? semanticsLabel;
+
+  static const _captionPadding = AppSpacing.sm;
+  static const _labelledIconSize = 18.0;
+  static const _captionInset =
+      _captionPadding * 2 + _labelledIconSize + AppSpacing.xs;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final glyph = AppIcon(
+      icon,
+      size: showLabel ? _labelledIconSize : 24,
+      color: accent ? palette.accent : palette.textPrimary,
+    );
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        container: true,
+        label: semanticsLabel ?? label,
+        button: true,
+        enabled: onTap != null,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadii.mdAll,
+          child: ExcludeSemantics(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: AppSpacing.touchTarget,
+                minHeight: AppSpacing.touchTarget,
+              ),
+              child: showLabel
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _captionPadding,
+                        vertical: AppSpacing.xs,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          AppIcon(AppIcons.phone,
-                              size: showLabel ? 18 : 22,
-                              color: context.palette.accent),
-                          if (showLabel) ...[
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              _supportLabel,
-                              maxLines: 1,
-                              softWrap: false,
-                              style: AppTypography.label.copyWith(
-                                  color: context.palette.textSecondary),
+                          glyph,
+                          const SizedBox(width: AppSpacing.xs),
+                          Flexible(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label,
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: palette.textPrimary,
+                                  ),
+                                ),
+                                if (detail case final value?)
+                                  Text(
+                                    value,
+                                    style: AppTypography.labelBold.copyWith(
+                                      color: palette.textPrimary,
+                                    ),
+                                  ),
+                              ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
+                    )
+                  : SizedBox(
+                      width: AppSpacing.touchTarget,
+                      height: AppSpacing.touchTarget,
+                      child: Center(child: glyph),
                     ),
-                  ),
-                ),
-              );
-          final actions = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _HeaderAction(
-                  icon: AppIcons.heart,
-                  label: 'Избранные товары',
-                  onTap: onLiked),
-              _HeaderAction(
-                  icon: AppIcons.user, label: 'Профиль', onTap: onProfile),
-            ],
-          );
-          final inlineSupportWidth = constraints.maxWidth -
-              _brandWidth -
-              AppSpacing.md -
-              AppSpacing.xs -
-              AppSpacing.touchTarget * _actionCount;
-          if (inlineSupportWidth < AppSpacing.touchTarget) {
-            // Not even the bare phone button fits beside the actions.
-            final stackedSupportWidth =
-                constraints.maxWidth - _brandWidth - AppSpacing.xl;
-            return Column(
-              children: [
-                Row(
-                  children: [
-                    const _HomeBrandMark(),
-                    const SizedBox(width: AppSpacing.xl),
-                    Expanded(
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: support(stackedSupportWidth >= labelledWidth),
-                      ),
-                    ),
-                  ],
-                ),
-                Align(alignment: Alignment.centerRight, child: actions),
-              ],
-            );
-          }
-          return Row(
-            children: [
-              const _HomeBrandMark(),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: support(inlineSupportWidth >= labelledWidth),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              actions,
-            ],
-          );
-        },
-      );
-}
-
-class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({required this.icon, required this.label, this.onTap});
-
-  final String icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            width: AppSpacing.touchTarget,
-            height: AppSpacing.touchTarget,
-            child: Center(
-              child: AppIcon(
-                icon,
-                size: 24,
-                color: context.palette.textPrimary,
-              ),
             ),
           ),
         ),
@@ -422,118 +436,95 @@ class _HeaderAction extends StatelessWidget {
   }
 }
 
-/// y = 141, 343 × 57.
 class _StoreCard extends StatelessWidget {
-  const _StoreCard({required this.data, required this.onProfile, this.onTap});
+  const _StoreCard({required this.data, this.onTap});
 
   final HomeViewData data;
   final VoidCallback? onTap;
-  final VoidCallback? onProfile;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final glyph = AppSurface(
-      radius: AppRadii.md,
-      fill: Color.alphaBlend(palette.accentSoft, palette.surface),
-      width: 32,
-      height: 32,
-      child: Center(
-        child: data.signedIn
-            ? const AppIcon(AppIcons.shopGlyph, size: 24, color: Colors.white)
-            : const AppIcon(AppIcons.user, size: 24, color: Colors.white),
-      ),
-    );
-    return InkWell(
-      onTap: data.signedIn ? onTap : null,
-      borderRadius: AppRadii.lgAll,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 57),
-        padding: data.signedIn
-            ? const EdgeInsets.fromLTRB(12, 8, 12, 8)
-            : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Semantics(
-                button: !data.signedIn,
-                enabled: onTap != null,
-                child: InkWell(
-                  onTap: data.signedIn ? null : onTap,
-                  child: ConstrainedBox(
-                    constraints: data.signedIn
-                        ? const BoxConstraints()
-                        : const BoxConstraints(
-                            minHeight: AppSpacing.touchTarget),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            AppIcon(AppIcons.shopGlyph,
-                                size: 16, color: palette.accent),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                data.storeName,
-                                style: AppTypography.labelBold.copyWith(
-                                  color: palette.textPrimary,
-                                ),
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.lgAll,
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: AppRadii.lgAll,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 41),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          AppIcon(
+                            AppIcons.shopGlyph,
+                            size: 16,
+                            color: palette.accent,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              data.storeName,
+                              style: AppTypography.labelBold.copyWith(
+                                color: palette.textPrimary,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Row(
-                          children: [
-                            AppIcon(
-                              AppIcons.location,
-                              size: 12,
-                              color: palette.textSecondary,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                data.storeAddress.isEmpty
-                                    ? 'Выберите магазин'
-                                    : data.storeAddress,
-                                style: AppTypography.label
-                                    .copyWith(color: palette.textSecondary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          AppIcon(
+                            AppIcons.location,
+                            size: 12,
+                            color: palette.textSecondary,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              data.storeAddress.isEmpty
+                                  ? 'Выберите магазин'
+                                  : data.storeAddress,
+                              style: AppTypography.label.copyWith(
+                                color: palette.textSecondary,
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                AppSurface(
+                  radius: AppRadii.md,
+                  fill: Color.alphaBlend(palette.accentSoft, palette.surface),
+                  width: 32,
+                  height: 32,
+                  child: const Center(
+                    child: AppIcon(
+                      AppIcons.shopGlyph,
+                      size: 24,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.md),
-            if (data.signedIn)
-              glyph
-            else
-              Tooltip(
-                message: 'Профиль',
-                child: Semantics(
-                  button: true,
-                  enabled: onProfile != null,
-                  child: InkWell(
-                    onTap: onProfile,
-                    child: SizedBox(
-                      width: AppSpacing.touchTarget,
-                      height: AppSpacing.touchTarget,
-                      child: Center(child: glyph),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -664,95 +655,102 @@ class _BannerCarouselState extends State<_BannerCarousel> {
   Widget build(BuildContext context) => Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 552),
-          child: LayoutBuilder(builder: (context, constraints) {
-            // A lone campaign sits on the same gutters as every other block; several
-            // campaigns peek from either side so the row reads as a carousel.
-            final width = widget.banners.length == 1
-                ? (constraints.maxWidth - AppSpacing.gutter * 2)
-                    .clamp(240.0, 520.0)
-                    .toDouble()
-                : (constraints.maxWidth - 80).clamp(240.0, 420.0).toDouble();
-            final step = width + _gap;
-            if (_step != step) {
-              final index = _step != null && _controller.hasClients
-                  ? _controller.offset / _step!
-                  : widget.banners.length >= 3
-                      ? 1.0
-                      : 0.0;
-              _step = step;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && _controller.hasClients && _step == step) {
-                  _controller.jumpTo((index * step)
-                      .clamp(0.0, _controller.position.maxScrollExtent)
-                      .toDouble());
-                }
-              });
-            }
-            final textScaler = MediaQuery.textScalerOf(context);
-            final scale = textScaler.scale(20) / 20;
-            final textWidth = width - AppSpacing.md * 2;
-            final defaultStyle = DefaultTextStyle.of(context).style;
-            final textDirection = Directionality.of(context);
-            final locale = Localizations.maybeLocaleOf(context);
-            double textHeight(String text, TextStyle style) {
-              final painter = TextPainter(
-                text: TextSpan(text: text, style: defaultStyle.merge(style)),
-                textDirection: textDirection,
-                locale: locale,
-                textScaler: textScaler,
-              )..layout(maxWidth: textWidth);
-              final height = painter.height.ceilToDouble();
-              painter.dispose();
-              return height;
-            }
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // A lone campaign sits on the same gutters as every other block; several
+              // campaigns peek from either side so the row reads as a carousel.
+              final width = widget.banners.length == 1
+                  ? (constraints.maxWidth - AppSpacing.gutter * 2)
+                      .clamp(240.0, 520.0)
+                      .toDouble()
+                  : (constraints.maxWidth - 80).clamp(240.0, 420.0).toDouble();
+              final step = width + _gap;
+              if (_step != step) {
+                final index = _step != null && _controller.hasClients
+                    ? _controller.offset / _step!
+                    : widget.banners.length >= 3
+                        ? 1.0
+                        : 0.0;
+                _step = step;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && _controller.hasClients && _step == step) {
+                    _controller.jumpTo(
+                      (index * step)
+                          .clamp(0.0, _controller.position.maxScrollExtent)
+                          .toDouble(),
+                    );
+                  }
+                });
+              }
+              final textScaler = MediaQuery.textScalerOf(context);
+              final scale = textScaler.scale(20) / 20;
+              final textWidth = width - AppSpacing.md * 2;
+              final defaultStyle = DefaultTextStyle.of(context).style;
+              final textDirection = Directionality.of(context);
+              final locale = Localizations.maybeLocaleOf(context);
+              double textHeight(String text, TextStyle style) {
+                final painter = TextPainter(
+                  text: TextSpan(text: text, style: defaultStyle.merge(style)),
+                  textDirection: textDirection,
+                  locale: locale,
+                  textScaler: textScaler,
+                )..layout(maxWidth: textWidth);
+                final height = painter.height.ceilToDouble();
+                painter.dispose();
+                return height;
+              }
 
-            var height = 114.0 * (scale < 1 ? 1.0 : scale);
-            double? actionHeight;
-            for (final banner in widget.banners) {
-              final title = banner.title.trim();
-              final subtitle = banner.subtitle?.trim() ?? '';
-              var contentHeight = AppSpacing.md * 2;
-              if (title.isNotEmpty) {
-                contentHeight += textHeight(title, AppTypography.headline);
-              }
-              if (title.isNotEmpty && subtitle.isNotEmpty) {
-                contentHeight += AppSpacing.xs;
-              }
-              if (subtitle.isNotEmpty) {
-                contentHeight += textHeight(subtitle, AppTypography.bodySmall);
-              }
-              if (banner.promotionId != null && widget.onTap != null) {
-                actionHeight ??= textHeight(
+              var height = 114.0 * (scale < 1 ? 1.0 : scale);
+              double? actionHeight;
+              for (final banner in widget.banners) {
+                final title = banner.title.trim();
+                final subtitle = banner.subtitle?.trim() ?? '';
+                var contentHeight = AppSpacing.md * 2;
+                if (title.isNotEmpty) {
+                  contentHeight += textHeight(title, AppTypography.headline);
+                }
+                if (title.isNotEmpty && subtitle.isNotEmpty) {
+                  contentHeight += AppSpacing.xs;
+                }
+                if (subtitle.isNotEmpty) {
+                  contentHeight +=
+                      textHeight(subtitle, AppTypography.bodySmall);
+                }
+                if (banner.promotionId != null && widget.onTap != null) {
+                  actionHeight ??= textHeight(
                     'Смотреть товары →',
                     AppTypography.bodySmall
-                        .copyWith(fontWeight: FontWeight.w600));
-                contentHeight += AppSpacing.sm + actionHeight;
-              }
-              if (contentHeight > height) height = contentHeight;
-            }
-            return SizedBox(
-              height: height,
-              child: ListView.separated(
-                controller: _controller,
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(
-                    horizontal: (constraints.maxWidth - width) / 2),
-                itemCount: widget.banners.length,
-                separatorBuilder: (_, __) => const SizedBox(width: _gap),
-                itemBuilder: (context, index) {
-                  final banner = widget.banners[index];
-                  return _BannerCard(
-                    key: ValueKey('home-banner-$index'),
-                    banner: banner,
-                    width: width,
-                    onTap: banner.promotionId == null || widget.onTap == null
-                        ? null
-                        : () => widget.onTap!(banner),
+                        .copyWith(fontWeight: FontWeight.w600),
                   );
-                },
-              ),
-            );
-          }),
+                  contentHeight += AppSpacing.sm + actionHeight;
+                }
+                if (contentHeight > height) height = contentHeight;
+              }
+              return SizedBox(
+                height: height,
+                child: ListView.separated(
+                  controller: _controller,
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: (constraints.maxWidth - width) / 2,
+                  ),
+                  itemCount: widget.banners.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: _gap),
+                  itemBuilder: (context, index) {
+                    final banner = widget.banners[index];
+                    return _BannerCard(
+                      key: ValueKey('home-banner-$index'),
+                      banner: banner,
+                      width: width,
+                      onTap: banner.promotionId == null || widget.onTap == null
+                          ? null
+                          : () => widget.onTap!(banner),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ),
       );
 }

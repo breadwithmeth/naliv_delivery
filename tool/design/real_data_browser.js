@@ -62,6 +62,7 @@ function preferencesScript(store, theme, city) {
   const prefs = {
     intro_slides_seen: true,
     onboarding_completed: true,
+    legal_accepted_revisions: JSON.stringify({offer: 1, privacy: 1}),
     onboarding_selected_city: city,
     telemetry_consent_enabled: false,
     selected_business_id: store.id,
