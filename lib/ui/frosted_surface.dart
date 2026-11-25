@@ -1,29 +1,34 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../design/theme.dart';
 import '../design/tokens.dart';
 
 /// The app's one translucent material: the "glass" of the design (`#141414` /
-/// `#FFFFFF` at 75 % over a background blur) done as X or YouTube do it, with a
-/// single small backdrop blur, a theme tint, a hairline edge and a shadow that
-/// stays outside the shape.
+/// `#FFFFFF` at 75 % over a background blur) drawn by liquid_glass_widgets as
+/// iOS-style liquid glass. The design's blur and tint stay the tokens below;
+/// the package adds the specular rim and bevel of real glass, as X or YouTube
+/// do it.
 ///
 /// [FrostedDock] (the bottom bar), the cart button, the round top-bar discs
 /// (`AppIconButton`), floating fields and orange controls use these tokens so
 /// the material reads the same everywhere.
 abstract final class Frost {
-  /// Blur radius. Strong enough that text behind turns into colour, small
-  /// enough to stay cheap for control-sized regions.
-  static const double sigma = 18;
+  /// Blur radius of the frost: light, softening content behind just enough
+  /// that it reads as colour masses instead of text.
+  static const double sigma = 8;
 
-  static final ui.ImageFilter blur = ui.ImageFilter.blur(
-    sigmaX: sigma,
-    sigmaY: sigma,
-    tileMode: TileMode.clamp,
-  );
+  /// How far the glass lens bends the backdrop behind it. Kept high so the
+  /// refraction — not the frost — is what reads: the bevel folds the content
+  /// behind the surface into a mirrored, compressed copy of itself.
+  static const double refraction = 1.55;
+
+  /// Depth of the glass bevel: the band the lens distorts.
+  static const double depth = 32;
+
+  /// Colour fringing at the refracted rim, part of the strong-lens look.
+  static const double dispersion = 0.2;
 
   /// Neutral fill for controls and fields.
   static Color tint(BuildContext context) =>
@@ -42,6 +47,54 @@ abstract final class Frost {
       Theme.of(context).brightness == Brightness.dark
           ? Colors.white.withValues(alpha: 0.08)
           : Colors.black.withValues(alpha: 0.06);
+
+  /// The liquid-glass settings for a frosted shape: the light [sigma] frost
+  /// under the exact [tint], with a strong lens ([refraction], [depth],
+  /// [dispersion]) warping the backdrop. `bodyMode` composites the token's own
+  /// colour instead of the package's luminance-preserving shift, the backdrop
+  /// keeps its own saturation, and the package's built-in elevation shadow is
+  /// off because [FrostedSurface] draws the design's own outer shadow.
+  static LiquidGlassSettings glass(BuildContext context, {Color? tint}) =>
+      LiquidGlassSettings(
+        blur: sigma,
+        glassColor: tint ?? Frost.tint(context),
+        bodyMode: GlassBodyMode.clear,
+        saturation: 1.0,
+        refractiveIndex: refraction,
+        thickness: depth,
+        chromaticAberration: dispersion,
+        shadow: const [],
+        shadowElevation: 0,
+      );
+}
+
+/// The liquid-glass shape for a design [BorderRadius]: a superellipse when all
+/// corners match, a vertical one when only the top and bottom pairs differ.
+LiquidShape liquidShapeFor(BorderRadius radius) {
+  final top = radius.topLeft.x;
+  final bottom = radius.bottomLeft.x;
+  if (radius.topLeft.x == radius.topRight.x &&
+      radius.topRight.x == radius.bottomRight.x &&
+      radius.bottomRight.x == radius.bottomLeft.x) {
+    return LiquidRoundedSuperellipse(borderRadius: top);
+  }
+  if (radius.topLeft.x == radius.topRight.x &&
+      radius.bottomLeft.x == radius.bottomRight.x) {
+    return LiquidVerticalRoundedSuperellipse(
+      topRadius: top,
+      bottomRadius: bottom,
+    );
+  }
+  // Fully asymmetric radii have no liquid-glass shape; the dominant radius
+  // keeps the silhouette close. No current caller reaches this branch.
+  final largest = radius.topLeft.x < radius.topRight.x
+      ? radius.topRight.x
+      : radius.topLeft.x;
+  return LiquidRoundedSuperellipse(
+    borderRadius: largest < radius.bottomRight.x
+        ? radius.bottomRight.x
+        : (largest < radius.bottomLeft.x ? radius.bottomLeft.x : largest),
+  );
 }
 
 /// Marks a subtree that is already drawn over a frosted backdrop, such as the
@@ -58,8 +111,9 @@ class FrostedScope extends InheritedWidget {
   bool updateShouldNotify(FrostedScope oldWidget) => false;
 }
 
-/// A frosted shape: blurred backdrop, [tint], hairline edge and an outer
-/// shadow, clipped to [borderRadius].
+/// A frosted shape: the liquid-glass material ([Frost] blur and tint with the
+/// package's specular rim), a hairline edge and an outer shadow, clipped to
+/// [borderRadius].
 ///
 /// With [MediaQueryData.highContrast] the surface is opaque instead.
 class FrostedSurface extends StatelessWidget {
@@ -89,24 +143,29 @@ class FrostedSurface extends StatelessWidget {
     final opaque = MediaQuery.highContrastOf(context);
     final content = DecoratedBox(
       decoration: BoxDecoration(
-        color: opaque ? Color.alphaBlend(fill, palette.background) : fill,
+        color: opaque ? Color.alphaBlend(fill, palette.background) : null,
         borderRadius: borderRadius,
         border:
             edge ? Border.all(color: Frost.edge(context), width: 0.5) : null,
       ),
       child: Padding(padding: padding, child: child),
     );
-    final blurred = opaque || FrostedScope.isInside(context)
+    final glass = opaque || FrostedScope.isInside(context)
         ? content
-        : BackdropFilter(filter: Frost.blur, child: content);
-    final clipped = ClipRRect(borderRadius: borderRadius, child: blurred);
-    if (!shadow) return clipped;
+        : AdaptiveGlass(
+            shape: liquidShapeFor(borderRadius),
+            settings: Frost.glass(context, tint: fill),
+            quality: GlassQuality.standard,
+            allowElevation: false,
+            child: content,
+          );
+    if (!shadow) return glass;
     return CustomPaint(
       painter: _OuterShadowPainter(
         borderRadius: borderRadius,
         color: palette.shadow,
       ),
-      child: clipped,
+      child: glass,
     );
   }
 }

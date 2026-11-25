@@ -2,6 +2,7 @@
 // Fixture-only gallery: synthetic content, no authentication or production mutations.
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:naliv_delivery/services/notification_service.dart';
@@ -11,13 +12,16 @@ import '../test/support/remaining_milestone_fixture.dart';
 import 'design/fixture_options.dart' show FixtureOptions;
 import 'design/surface_manifest.dart';
 
-void main() {
+Future<void> main() async {
   // Initialize the binding *inside* the HTTP zone so scheduled frames inherit the
   // strict fixture client. Preferences remain in memory, not the device account.
   http.runWithClient(
-    () {
+    () async {
       NotificationService.installProvider(InMemoryPushProvider());
       WidgetsFlutterBinding.ensureInitialized();
+      // Pre-warm the liquid-glass shaders so fixture surfaces render the real
+      // material, not the shader-loading fallback, from the first frame.
+      await LiquidGlassWidgets.initialize();
       // This entry point is fixture-only; no device credentials or consent are read.
       // Synthetic credentials only; the strict transport rejects unknown requests.
       final query = Uri.base.queryParameters;

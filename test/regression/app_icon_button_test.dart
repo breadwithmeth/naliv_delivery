@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/ui/app_icon.dart';
@@ -49,7 +50,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppIconButton),
-          matching: find.byType(BackdropFilter),
+          matching: find.byType(AdaptiveGlass),
         ),
         findsOneWidget,
       );
@@ -69,7 +70,7 @@ void main() {
       final surface =
           tester.widget<FrostedSurface>(find.byType(FrostedSurface));
       expect(surface.tint, AppIconButton.likedFill(palette));
-      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.byType(AdaptiveGlass), findsOneWidget);
     });
   }
 
@@ -79,13 +80,13 @@ void main() {
       tester,
       const FrostedScope(child: AppIconButton(asset: AppIcons.back)),
     );
-    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.byType(AdaptiveGlass), findsNothing);
   });
 
   testWidgets('opaque fill stays a flat cheap disc', (tester) async {
     final fill = AppPalette.dark.surfaceMuted;
     await _pump(tester, AppIconButton(asset: AppIcons.heart, fill: fill));
-    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.byType(AdaptiveGlass), findsNothing);
     expect(
       find.descendant(
         of: find.byType(AppIconButton),

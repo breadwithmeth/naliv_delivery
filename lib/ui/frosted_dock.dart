@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../design/theme.dart';
 import '../design/tokens.dart';
@@ -17,9 +18,9 @@ import 'frosted_surface.dart';
 /// with [DockOverhang]; that strip belongs to the foreground's layout box, so
 /// the projecting part stays hit-testable, but the bar starts below it.
 ///
-/// The material is the app's one [Frost] glass, as on the scrolled header and
-/// floating controls: the page runs full-bleed behind it in its own repaint
-/// boundary, one [Frost.blur] backdrop softens only the bar's rectangle, and
+/// The material is the app's one [Frost] liquid glass, as on the scrolled
+/// header and floating controls: the page runs full-bleed behind it in its own
+/// repaint boundary, one glass surface softens only the bar's rectangle, and
 /// the [Frost.tint] plus a hairline top edge finish it. The foreground sits in
 /// a [FrostedScope], so frosted controls on the bar do not blur a second time.
 /// With [MediaQueryData.highContrast] the bar is an opaque surface instead.
@@ -94,8 +95,9 @@ class _DockOverhangState extends State<DockOverhang> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final next =
-        context.dependOnInheritedWidgetOfExactType<_DockScope>()?.overhang;
+    final next = context
+        .dependOnInheritedWidgetOfExactType<_DockScope>()
+        ?.overhang;
     if (next == _target) return;
     _target?.value = 0;
     _target = next;
@@ -207,17 +209,26 @@ class _FrostedBar extends StatelessWidget {
       return ClipRRect(
         borderRadius: borderRadius,
         child: ColoredBox(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).colorScheme.error,
           child: edge,
         ),
       );
     }
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: Frost.blur,
-        child: ColoredBox(color: tint ?? Frost.tint(context), child: edge),
+    return AdaptiveGlass(
+      shape: liquidShapeFor(borderRadius),
+      settings: LiquidGlassSettings(
+        edgeAbsorption: 10,
+        refractiveIndex: 0.1,
+        chromaticAberration: 900,
+        fresnelStrength: 100,
+        frost: 4,
+        thickness: 50,
+        blurWeight: 0,
+        blur: 0,
       ),
+      quality: GlassQuality.standard,
+      allowElevation: true,
+      child: edge,
     );
   }
 }

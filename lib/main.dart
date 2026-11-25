@@ -16,6 +16,7 @@ import 'package:naliv_delivery/widgets/app_entry_gate.dart';
 import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
 import 'package:naliv_delivery/features/faq/models/faq.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -52,6 +53,9 @@ Future<void> main() async {
       final bootstrap = await Future.wait<Object?>([
         PackageInfo.fromPlatform(),
         TelemetryConsentService.loadConsent(),
+        // Pre-warms the liquid-glass shaders alongside the other bootstrap
+        // work so the first frosted surface never renders a fallback frame.
+        LiquidGlassWidgets.initialize(),
       ]);
       final packageInfo = bootstrap[0] as PackageInfo;
 
@@ -78,16 +82,22 @@ Future<void> main() async {
         }),
       );
       runApp(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => CartProvider()),
-            ChangeNotifierProvider(create: (_) => BusinessProvider()),
-            ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
-            ChangeNotifierProvider(create: (_) => ThemeController()..load()),
-          ],
-          child: isHtmlSplashManaged()
-              ? const Main()
-              : const AppLaunchIntro(child: Main()),
+        LiquidGlassWidgets.wrap(
+          // Glass brightness follows the app's ThemeMode (and the user's
+          // in-app theme switch), not just the OS setting.
+          brightnessResolver: Theme.maybeBrightnessOf,
+          child: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => CartProvider()),
+              ChangeNotifierProvider(create: (_) => BusinessProvider()),
+              ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
+              ChangeNotifierProvider(
+                  create: (_) => ThemeController()..load()),
+            ],
+            child: isHtmlSplashManaged()
+                ? const Main()
+                : const AppLaunchIntro(child: Main()),
+          ),
         ),
       );
     },

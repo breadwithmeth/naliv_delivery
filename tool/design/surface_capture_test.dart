@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test/support/design_surfaces.dart';
@@ -21,6 +22,11 @@ Future<void> _loadCaptureAssets() async {
   final icons = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   await icons.load();
+  // Compile the liquid-glass shader before any widget mounts: inside the
+  // per-test fake async zone its lazy load never lands, so without this the
+  // captures would show the package's shader-loading fallback tint instead
+  // of the real glass material.
+  await LightweightLiquidGlass.preWarm();
 }
 
 void main() {

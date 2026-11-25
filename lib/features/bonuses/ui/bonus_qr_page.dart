@@ -1,9 +1,9 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../design/motion.dart';
 import '../../../design/theme.dart';
@@ -194,13 +194,30 @@ class _BonusQrPageState extends State<BonusQrPage>
                       if (t <= 0 || MediaQuery.highContrastOf(context)) {
                         return scrim;
                       }
-                      return BackdropFilter(
-                        filter: ui.ImageFilter.blur(
-                          sigmaX: 24 * t,
-                          sigmaY: 24 * t,
-                          tileMode: TileMode.clamp,
+                      // The liquid-glass scrim: the package's standard path
+                      // blurs the page behind under the near-black tint —
+                      // flat, with no specular, so nothing competes with the
+                      // code.
+                      return AdaptiveGlass(
+                        shape: const LiquidRoundedRectangle(borderRadius: 0),
+                        settings: LiquidGlassSettings(
+                          blur: 24 * t,
+                          glassColor:
+                              Colors.black.withValues(alpha: 0.94 * t),
+                          bodyMode: GlassBodyMode.clear,
+                          saturation: 1.0,
+                          lightIntensity: 0,
+                          ambientStrength: 0,
+                          fresnelStrength: 0,
+                          glowIntensity: 0,
+                          chromaticAberration: 0,
+                          thickness: 0,
+                          shadow: const [],
+                          shadowElevation: 0,
                         ),
-                        child: scrim,
+                        quality: GlassQuality.standard,
+                        allowElevation: false,
+                        child: const SizedBox.expand(),
                       );
                     },
                   ),
