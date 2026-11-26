@@ -71,7 +71,7 @@ successful Git push means that configuration has been deployed.
 
 `web/app-update.json` is an owned static resource published as
 `https://app.gradusy24.kz/app-update.json` by the normal `build --tracked` output.
-Its contract is `{"android":"1.2.117","ios":"1.2.113"}`: independent **public store
+Its contract is `{"android":"1.2.120","ios":"1.2.113"}`: independent **public store
 marketing versions**, not Flutter/ABI build codes, `version.json` or `manifest.json`.
 A missing/null platform value disables that platform's notice.
 
@@ -82,6 +82,8 @@ For a withdrawn release, restore the prior value or set that platform to null.
 Initial versions were rechecked on 2026-11-11 against
 [Google Play's application metadata](https://play.google.com/store/apps/details?id=kz.gradusy24.app&hl=en&gl=KZ)
 and [Apple's existing bundle lookup](https://itunes.apple.com/lookup?bundleId=com.example.nalivDelivery&country=kz).
+On 2026-11-26 at 15:37 UTC, after the operator confirmed availability, the
+public Google Play listing for Kazakhstan reported `1.2.120`; only Android advanced.
 Do not change the iOS bundle ID to the Android package.
 
 Both hosting configurations reserve the exact metadata path, serve JSON with
