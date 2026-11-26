@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../../core/money.dart';
 import '../../../core/product_view.dart';
 import '../../../core/quantity.dart';
+import '../../../design/motion.dart';
 import '../../../design/theme.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
@@ -20,6 +22,7 @@ import '../../../ui/surfaces.dart';
 import '../../../ui/text_width_cache.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
+import '../../../utils/item_name_presentation.dart';
 import '../../../utils/smart_cart.dart';
 import '../../../pages/product_detail_page.dart';
 import '../../catalog/catalog_data_source.dart';
@@ -216,28 +219,32 @@ class _CartPageState extends State<CartPage> {
   /// the next removal or until the customer leaves the cart. One at a time: a
   /// trail of removed rows is clutter, and nothing else in the app keeps a
   /// removed item.
-  final _removed = <String, _Removed>{};
+  _Removed? _removed;
 
-  void _remove(CartProvider cart, CartDisplayGroup group) {
+  void _remove(CartProvider cart, CartDisplayGroup group, double rowHeight) {
     final order = cart.displayOrderOf(group.key);
     final rows = [for (final row in group.items) row.copyWith()];
     cart.removeDisplayGroup(group);
     if (cart.displayGroups.any((entry) => entry.key == group.key)) return;
-    setState(() => _removed
-      ..clear()
-      ..[group.key] = _Removed(
-        rows: rows,
-        order: order ?? 1 << 30,
-        name: group.name,
-        image: group.image,
-      ));
+    setState(() => _removed = _Removed(
+          key: group.key,
+          rows: rows,
+          order: order ?? 1 << 30,
+          name: _presentCartGroupItem(group).name,
+          height: rowHeight,
+        ));
+    AppHaptics.quantityChanged();
   }
 
-  void _undo(CartProvider cart, String key) {
-    final removed = _removed[key];
-    if (removed == null) return;
+  void _undo(CartProvider cart, _Removed removed) {
+    if (!identical(_removed, removed) ||
+        cart.hasUnresolvedBusiness ||
+        cart.displayGroups.any((group) => group.key == removed.key)) {
+      return;
+    }
     if (cart.restoreDisplayGroupRows(removed.rows, order: removed.order)) {
-      setState(() => _removed.remove(key));
+      setState(() => _removed = null);
+      AppHaptics.quantityChanged();
     }
   }
 
@@ -253,40 +260,51 @@ class _CartPageState extends State<CartPage> {
         reserved + evaluated.nextOrderQuantity <= stock + 0.0000001;
   }
 
-  void _adjustGroup(CartProvider cart, CartDisplayGroup group, int direction) {
+  void _adjustGroup(
+    CartProvider cart,
+    String key,
+    int direction, {
+    double rowHeight = 0,
+  }) {
+    // Another tap can arrive before the visible controls have rebuilt.
+    final groups = cart.displayGroups;
+    final index = groups.indexWhere((group) => group.key == key);
+    if (index < 0) return;
+    final group = groups[index];
     if (direction < 0 && _lastBatch(group)) {
-      _remove(cart, group);
+      _remove(cart, group, rowHeight);
       return;
     }
     if (direction > 0) {
       final evaluation = cart.evaluate();
-      final current = evaluation.groups
-          .where((entry) => entry.group.key == group.key)
-          .firstOrNull;
-      if (current == null || !_canIncrement(evaluation, current)) return;
+      if (!_canIncrement(evaluation, evaluation.groups[index])) return;
     }
+    final before = group.totalQuantity;
     final snapshot = group.itemSnapshot;
     if (snapshot == null) {
-      direction > 0
-          ? cart.incrementDisplayGroup(group)
-          : cart.decrementDisplayGroup(group);
-      return;
-    }
-    final counts = group.bottleCounts;
-    if (group.selection?.usesPourFlow == true) {
+      if (direction > 0) {
+        cart.incrementDisplayGroup(group);
+      } else {
+        cart.decrementDisplayGroup(group);
+      }
+    } else if (group.selection?.usesPourFlow == true) {
       final batches = _batches(group);
       if (batches == 0) return;
       // Repeat/remove the exact allocation, never silently replace its bottles.
       cart.syncItemBottleCounts(snapshot, group.baseVariants, {
-        for (final entry in counts.entries)
+        for (final entry in group.bottleCounts.entries)
           entry.key: entry.value ~/ batches * (batches + direction),
       });
     } else {
       cart.syncItemSelectionQuantity(
         snapshot,
         group.baseVariants,
-        group.totalQuantity + _batchVolume(group) * direction,
+        before + _batchVolume(group) * direction,
       );
+    }
+    final after = cart.getCatalogQuantityForKey(key);
+    if ((after - before) * direction > 0.0000001) {
+      AppHaptics.quantityChanged();
     }
   }
 
@@ -355,13 +373,11 @@ class _CartPageState extends State<CartPage> {
                     onCart: () => Navigator.of(context).maybePop(),
                   ),
                   onIncrement: item.available
-                      ? () => context
-                          .read<CartProvider>()
-                          .incrementCatalogItem(item.source)
+                      ? () => AppHaptics.addCatalogStep(
+                          context.read<CartProvider>(), item)
                       : null,
-                  onDecrement: () => context
-                      .read<CartProvider>()
-                      .decrementCatalogItem(item.source),
+                  onDecrement: () => AppHaptics.removeCatalogStep(
+                      context.read<CartProvider>(), item),
                 ),
               );
             },
@@ -381,13 +397,21 @@ class _CartPageState extends State<CartPage> {
     final groups = cart.displayGroups;
     // A removed row that came back some other way (re-added) is no longer
     // removed.
-    _removed.removeWhere((key, _) => groups.any((group) => group.key == key));
-    final entries = <(int, int?, String?)>[
+    if (_removed case final removed?
+        when groups.any((group) => group.key == removed.key)) {
+      _removed = null;
+    }
+    final removed = _removed;
+    final entries = <({int order, int? activeIndex, ValueKey<String> key})>[
       for (final (index, group) in groups.indexed)
-        (cart.displayOrderOf(group.key) ?? index, index, null),
-      for (final entry in _removed.entries)
-        (entry.value.order, null, entry.key),
-    ]..sort((left, right) => left.$1.compareTo(right.$1));
+        (
+          order: cart.displayOrderOf(group.key) ?? index,
+          activeIndex: index,
+          key: ValueKey(group.key),
+        ),
+      if (removed != null)
+        (order: removed.order, activeIndex: null, key: ValueKey(removed.key)),
+    ]..sort((left, right) => left.order.compareTo(right.order));
     final allocationIssue =
         evaluated.groups.any((group) => group.allocationIssue != null);
     final bonuses = allocationIssue
@@ -397,6 +421,9 @@ class _CartPageState extends State<CartPage> {
                 evaluated.activeGroups));
     final unresolvedBusiness = cart.hasUnresolvedBusiness;
     final issueCount = unresolvedBusiness ? 1 : 0;
+    final rowPositions = {
+      for (final (index, entry) in entries.indexed) entry.key: index + issueCount,
+    };
     final showRecommendations = _recommendations.isNotEmpty ||
         _recommendationsLoading ||
         _recommendationsFailed;
@@ -443,7 +470,7 @@ class _CartPageState extends State<CartPage> {
                     ),
                   );
                 }
-                if (groups.isEmpty && _removed.isEmpty) {
+                if (groups.isEmpty && removed == null) {
                   return Padding(
                     padding: EdgeInsets.only(top: topInset),
                     child: AppEmptyState(
@@ -468,6 +495,7 @@ class _CartPageState extends State<CartPage> {
                   itemCount: issueCount +
                       entries.length +
                       (showRecommendations ? 1 : 0),
+                  findChildIndexCallback: (key) => rowPositions[key],
                   itemBuilder: (context, position) {
                     if (position < issueCount) {
                       return Padding(
@@ -485,42 +513,43 @@ class _CartPageState extends State<CartPage> {
                     if (slot == entries.length) {
                       return _recommendationSection(palette);
                     }
-                    final (_, index, removedKey) = entries[slot];
-                    final bottom =
-                        slot == entries.length - 1 ? 0.0 : AppSpacing.xs;
-                    if (removedKey != null) {
-                      final removed = _removed[removedKey]!;
-                      return Padding(
-                        padding: EdgeInsets.fromLTRB(
-                            AppSpacing.xxxl, 0, AppSpacing.xxxl, bottom),
-                        child: _RemovedRow(
-                          key: ValueKey('cart-removed-$removedKey'),
-                          name: removed.name,
-                          onUndo: unresolvedBusiness
-                              ? null
-                              : () => _undo(cart, removedKey),
-                        ),
+                    final entry = entries[slot];
+                    final index = entry.activeIndex;
+                    final Widget row;
+                    if (index == null) {
+                      final undo = removed!;
+                      row = _RemovedRow(
+                        name: undo.name,
+                        minHeight: undo.height,
+                        onUndo:
+                            unresolvedBusiness ? null : () => _undo(cart, undo),
                       );
-                    }
-                    final group = groups[index!];
-                    return Padding(
-                      padding: EdgeInsets.fromLTRB(
-                          AppSpacing.xxxl, 0, AppSpacing.xxxl, bottom),
-                      child: _CartRow(
-                        key: ValueKey('cart-row-$index'),
+                    } else {
+                      final group = groups[index];
+                      final evaluation = evaluated.groups[index];
+                      row = _CartRow(
+                        key: ValueKey('cart-row-${entry.order}'),
                         group: group,
-                        evaluated: evaluated.groups[index],
+                        evaluated: evaluation,
                         lastBatch: _lastBatch(group),
                         onOpen: group.itemSnapshot == null
                             ? null
                             : () => _openRow(group),
                         onIncrement: !unresolvedBusiness &&
-                                _canIncrement(
-                                    evaluated, evaluated.groups[index])
-                            ? () => _adjustGroup(cart, group, 1)
+                                _canIncrement(evaluated, evaluation)
+                            ? () => _adjustGroup(cart, group.key, 1)
                             : null,
-                        onDelete: () => _adjustGroup(cart, group, -1),
-                      ),
+                        onDelete: (height) => _adjustGroup(
+                            cart, group.key, -1, rowHeight: height),
+                      );
+                    }
+                    final bottom =
+                        slot == entries.length - 1 ? 0.0 : AppSpacing.xs;
+                    return Padding(
+                      key: entry.key,
+                      padding: EdgeInsets.fromLTRB(
+                          AppSpacing.xxxl, 0, AppSpacing.xxxl, bottom),
+                      child: _CartRowSwap(removed: index == null, child: row),
                     );
                   },
                 );
@@ -566,6 +595,54 @@ bool _lastBatch(CartDisplayGroup group) => group.selection?.usesPourFlow == true
     ? _batches(group) <= 1
     : group.totalQuantity <= _batchVolume(group) + 0.001;
 
+/// Only the incoming row lays out the slot and exposes its controls.
+class _CartRowSwap extends StatelessWidget {
+  const _CartRowSwap({required this.removed, required this.child});
+
+  final bool removed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = AppMotion.of(context, AppMotion.swap);
+    if (duration == Duration.zero) return child;
+    return AnimatedSwitcher(
+      duration: duration,
+      reverseDuration: duration * .7,
+      switchInCurve: AppMotion.out,
+      switchOutCurve: AppMotion.leave,
+      transitionBuilder: _fade,
+      layoutBuilder: _layout,
+      child: KeyedSubtree(key: ValueKey(removed), child: child),
+    );
+  }
+
+  static Widget _fade(Widget child, Animation<double> animation) =>
+      FadeTransition(
+        opacity: animation,
+        alwaysIncludeSemantics: true,
+        child: child,
+      );
+
+  static Widget _layout(Widget? current, List<Widget> previous) => Stack(
+        fit: StackFit.passthrough,
+        children: [
+          if (previous.isNotEmpty)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: ExcludeFocus(
+                  child: ExcludeSemantics(child: previous.last),
+                ),
+              ),
+            ),
+          if (current != null) current,
+        ],
+      );
+}
+
 /// A readable cart line preserving its selected options and physical bottle mix.
 class _CartRow extends StatelessWidget {
   const _CartRow({
@@ -573,7 +650,7 @@ class _CartRow extends StatelessWidget {
     required this.evaluated,
     required this.lastBatch,
     this.onIncrement,
-    this.onDelete,
+    required this.onDelete,
     this.onOpen,
     super.key,
   });
@@ -582,7 +659,7 @@ class _CartRow extends StatelessWidget {
   final CartGroupEvaluation evaluated;
   final bool lastBatch;
   final VoidCallback? onIncrement;
-  final VoidCallback? onDelete;
+  final ValueChanged<double> onDelete;
 
   /// Opens the product with this row's exact configuration.
   final VoidCallback? onOpen;
@@ -594,11 +671,14 @@ class _CartRow extends StatelessWidget {
     final view = snapshot == null ? null : ProductView.fromItem(snapshot);
     final pour = group.selection?.usesPourFlow == true;
     final quantity = evaluated.totalOrderQuantity;
-    final title = view?.title ?? group.name;
+    final legacy = view == null ? _presentCartGroupItem(group) : null;
+    final title = view?.title ?? legacy!.name;
+    final type = view?.type ??
+        view?.category ??
+        (group.itemType?.trim().isNotEmpty == true ? legacy?.type : null);
     final secondary = {
-      if (view?.type ?? view?.category case final category?) category,
+      if (type != null) type,
       if (view?.country case final country?) country,
-      if (view == null && group.itemType != null) group.itemType!,
     }.where((part) => part.trim().isNotEmpty).join(' · ');
     final configuration = group.baseVariants
         .map((variant) => variant['item_name']?.toString() ?? '')
@@ -681,7 +761,9 @@ class _CartRow extends StatelessWidget {
       child: Container(
         width: imageSize,
         height: imageSize,
-        color: Colors.white,
+        color: group.image == null && Theme.of(context).brightness == Brightness.light
+            ? palette.surfaceMuted
+            : Colors.white,
         child: group.image == null
             ? const Icon(Icons.inventory_2_outlined, color: Colors.black38)
             : Image.network(
@@ -697,11 +779,11 @@ class _CartRow extends StatelessWidget {
     );
     return AppSurface(
       padding: const EdgeInsets.all(AppSpacing.xs),
-      child: LayoutBuilder(builder: (context, constraints) {
-        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      child: LayoutBuilder(builder: (layoutContext, constraints) {
+        final scale = MediaQuery.textScalerOf(layoutContext).scale(14) / 14;
         final stepperWidth = (100 +
                 _cartTextWidth(
-                  context,
+                  layoutContext,
                   _cartQuantityLabel(quantity, unit),
                   AppTypography.bodyMedium,
                 ))
@@ -713,9 +795,9 @@ class _CartRow extends StatelessWidget {
           lastBatch: lastBatch,
           pour: pour,
           onIncrement: onIncrement,
-          onDelete: onDelete,
+          onDelete: () => onDelete(context.size!.height),
         );
-        final priceWidth = _cartTextWidth(context, priceLabel, priceStyle);
+        final priceWidth = _cartTextWidth(layoutContext, priceLabel, priceStyle);
         // Price and stepper share the first line only when the name keeps a
         // readable column; otherwise they sit on their own line under the name.
         final compact = !hasDetails &&
@@ -1041,65 +1123,89 @@ double _cartTextWidth(BuildContext context, String text, TextStyle style) =>
       Directionality.of(context),
     );
 
+ItemTitlePresentation _presentCartGroupItem(CartDisplayGroup group) {
+  final snapshot = group.itemSnapshot;
+  return snapshot != null
+      ? presentItem(snapshot)
+      : presentItemName(
+          rawName: group.name,
+          storedType: group.itemType,
+          storedPackagingType: group.packagingType,
+        );
+}
+
 /// A group the customer removed on the cart page: its exact rows (bottle mix
 /// included) and list position, so «Вернуть» restores it as it was.
 class _Removed {
   const _Removed({
+    required this.key,
     required this.rows,
     required this.order,
     required this.name,
-    this.image,
+    required this.height,
   });
 
+  final String key;
   final List<CartItem> rows;
   final int order;
   final String name;
-  final String? image;
+  // Preserve the list extent at the current text size, without capping the
+  // removed row if its own contents need more space.
+  final double height;
 }
 
 /// The removed row in place: what was removed, and one action to bring it back.
 class _RemovedRow extends StatelessWidget {
-  const _RemovedRow({required this.name, this.onUndo, super.key});
+  const _RemovedRow({
+    required this.name,
+    required this.minHeight,
+    this.onUndo,
+  });
 
   final String name;
+  final double minHeight;
   final VoidCallback? onUndo;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return AppSurface(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.xs, AppSpacing.xs, AppSpacing.xs),
-      child: Row(
-        children: [
-          Icon(Icons.delete_outline_rounded,
-              size: 20, color: palette.textSecondary),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text.rich(
-              TextSpan(children: [
-                const TextSpan(text: 'Удалено · '),
-                TextSpan(
-                    text: name, style: TextStyle(color: palette.textSecondary)),
-              ]),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySmallMedium
-                  .copyWith(color: palette.textPrimary),
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: minHeight),
+      child: AppSurface(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl, AppSpacing.xs, AppSpacing.xs, AppSpacing.xs),
+        child: Row(
+          children: [
+            Icon(Icons.delete_outline_rounded,
+                size: 20, color: palette.textSecondary),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text.rich(
+                TextSpan(children: [
+                  const TextSpan(text: 'Удалено · '),
+                  TextSpan(
+                      text: name,
+                      style: TextStyle(color: palette.textSecondary)),
+                ]),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySmallMedium
+                    .copyWith(color: palette.textPrimary),
+              ),
             ),
-          ),
-          TextButton(
-            key: const ValueKey('cart-undo'),
-            onPressed: onUndo,
-            style: TextButton.styleFrom(
-              minimumSize:
-                  const Size(AppSpacing.touchTarget, AppSpacing.touchTarget),
-              foregroundColor: palette.accent,
-              textStyle: AppTypography.bodySmallBold,
+            TextButton(
+              key: const ValueKey('cart-undo'),
+              onPressed: onUndo,
+              style: TextButton.styleFrom(
+                minimumSize:
+                    const Size(AppSpacing.touchTarget, AppSpacing.touchTarget),
+                foregroundColor: palette.accent,
+                textStyle: AppTypography.bodySmallBold,
+              ),
+              child: const Text('Вернуть'),
             ),
-            child: const Text('Вернуть'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/destinations.dart';
 import '../../utils/cart_provider.dart';
 import '../../ui/app_cart_button.dart';
+import '../../ui/app_haptics.dart';
 import '../../ui/product_card.dart';
 import '../product/product_navigation.dart';
 import 'home_view_data.dart';
@@ -84,9 +85,9 @@ class HomeScreen extends StatelessWidget {
             onCart: onCart,
           ),
           onIncrement: () =>
-              context.read<CartProvider>().incrementCatalogItem(product.source),
-          onDecrement: () =>
-              context.read<CartProvider>().decrementCatalogItem(product.source),
+              AppHaptics.addCatalogStep(context.read<CartProvider>(), product),
+          onDecrement: () => AppHaptics.removeCatalogStep(
+              context.read<CartProvider>(), product),
         ),
       ),
     );

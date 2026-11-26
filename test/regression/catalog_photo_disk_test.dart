@@ -49,7 +49,11 @@ void main() {
   test('replacement publishes new bytes and check time together', () async {
     await store.write(url, original);
     final later = checkedAt.add(const Duration(minutes: 1));
-    await store.write(url, (bytes: Uint8List.fromList([7]), checkedAt: later));
+    await store.write(
+      url,
+      (bytes: Uint8List.fromList([7]), checkedAt: later),
+      previousCheck: checkedAt,
+    );
 
     final saved = await DiskPhotoStore(cache).read(url);
     expect(saved?.bytes, [7]);
@@ -58,10 +62,14 @@ void main() {
 
   test('an oversized replacement leaves the previous record intact', () async {
     await store.write(url, original);
-    await store.write(url, (
-      bytes: Uint8List(8 * _mib + 1),
-      checkedAt: checkedAt.add(const Duration(days: 1)),
-    ));
+    await store.write(
+      url,
+      (
+        bytes: Uint8List(8 * _mib + 1),
+        checkedAt: checkedAt.add(const Duration(days: 1)),
+      ),
+      previousCheck: checkedAt,
+    );
 
     final saved = await DiskPhotoStore(cache).read(url);
     expect(saved?.bytes, [1, 2, 3]);
@@ -77,7 +85,11 @@ void main() {
     await sentinel.writeAsString('keep');
 
     await expectLater(
-      store.write(url, (bytes: Uint8List.fromList([7]), checkedAt: checkedAt)),
+      store.write(
+        url,
+        (bytes: Uint8List.fromList([7]), checkedAt: checkedAt),
+        previousCheck: checkedAt,
+      ),
       throwsA(isA<FileSystemException>()),
     );
     final saved = await DiskPhotoStore(cache).read(url);
@@ -103,12 +115,78 @@ void main() {
     final variant = url.replace(query: 'v=2');
     await store.write(url, original);
     await store.write(variant, original);
-    await store.remove(url);
-    await store.remove(url);
+    await store.remove(url, previousCheck: checkedAt);
+    await store.remove(url, previousCheck: checkedAt);
 
     final reopened = DiskPhotoStore(cache);
     expect(await reopened.read(url), isNull);
     expect((await reopened.read(variant))?.bytes, [1, 2, 3]);
+  });
+
+  test('the next sweep removes untouched v1 records at the cutoff', () async {
+    final retainedUrl = url.replace(query: 'v=2');
+    final oldestRetained = checkedAt.add(const Duration(microseconds: 1));
+    await store.write(url, original);
+    final expired = (await cache.list().single) as File;
+    // File mtime is not successful validation time.
+    await expired.setLastModified(checkedAt.add(const Duration(days: 29)));
+    await store.write(retainedUrl, (
+      bytes: Uint8List.fromList([9]),
+      checkedAt: oldestRetained,
+    ));
+    final unrelated = File(p.join(cache.path, 'keep.txt'));
+    await unrelated.writeAsString('keep');
+
+    final reopened = DiskPhotoStore(cache);
+    await reopened.pruneExpired(checkedAt);
+
+    expect(await expired.exists(), isFalse);
+    expect((await reopened.read(retainedUrl))?.checkedAt, oldestRetained);
+    expect(await unrelated.readAsString(), 'keep');
+
+    await reopened.pruneExpired(oldestRetained);
+    expect(await cache.list().map((entry) => entry.path).toList(), [
+      unrelated.path,
+    ]);
+  });
+
+  test('a queued sweep does not delete a same-URL replacement', () async {
+    await store.write(url, original);
+    await store.pruneExpired(checkedAt.subtract(const Duration(microseconds: 1)));
+    final renewedAt = checkedAt.add(const Duration(days: 1));
+    await Future.wait([
+      store.write(
+        url,
+        (bytes: Uint8List.fromList([7]), checkedAt: renewedAt),
+        previousCheck: checkedAt,
+      ),
+      store.pruneExpired(checkedAt),
+    ]);
+    final saved = await DiskPhotoStore(cache).read(url);
+    expect(saved?.bytes, [7]);
+    expect(saved?.checkedAt, renewedAt);
+  });
+
+  test('late mutations cannot replace or delete a renewed disk record', () async {
+    await store.write(url, original);
+    final updated = (
+      bytes: Uint8List.fromList([9]),
+      checkedAt: checkedAt.add(const Duration(days: 1)),
+    );
+    await store.write(url, updated, previousCheck: checkedAt);
+    await store.write(
+      url,
+      (
+        bytes: original.bytes,
+        checkedAt: updated.checkedAt.add(const Duration(seconds: 1)),
+      ),
+      previousCheck: checkedAt,
+    );
+    await store.remove(url, previousCheck: checkedAt);
+
+    final saved = await DiskPhotoStore(cache).read(url);
+    expect(saved?.bytes, [9]);
+    expect(saved?.checkedAt, updated.checkedAt);
   });
 
   test(

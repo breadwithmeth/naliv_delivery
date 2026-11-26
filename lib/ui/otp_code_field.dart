@@ -12,7 +12,7 @@ import 'frosted_surface.dart';
 
 /// Returns the one-time code of exactly [length] digits contained in [text], or
 /// null. Accepts a bare code, a code split by spaces or dashes ("123 456",
-/// "123-456") and an SMS sentence ("Ваш код: 123456. Никому не сообщайте").
+/// "123-456") and a message ("Ваш код: 123456. Никому не сообщайте").
 /// A phone number or any other digit string is not a code.
 String? extractOtpCode(String text, {required int length}) {
   final run = RegExp('(?<!\\d)\\d{$length}(?!\\d)').firstMatch(text);
@@ -68,10 +68,9 @@ class OtpCodeFormatter extends TextInputFormatter {
 /// One-time code entry drawn as separate boxes and driven by **one** real
 /// (invisible) [TextField].
 ///
-/// Because the field is real, the platform treats it as a code field: iOS
-/// offers the code from Messages, Android keyboards suggest a copied code, long
-/// press offers Paste, and hardware keyboards and screen readers work. The
-/// boxes only render [controller]; the field lies on top of them, so tapping
+/// Because the field is real, it supports platform autofill, long-press Paste,
+/// hardware keyboards and screen readers. The boxes only render [controller];
+/// the field lies on top of them, so tapping
 /// any box focuses it, and a collapsed caret is always kept at the end so
 /// typing appends and backspace removes the last digit.
 ///
@@ -85,9 +84,8 @@ class OtpCodeField extends StatefulWidget {
     this.autofocus = true,
     this.busy = false,
     this.errorText,
-    this.errorShake = 0,
     this.onSubmitted,
-    this.semanticLabel = 'Код из SMS',
+    this.semanticLabel = 'Код из WhatsApp',
     super.key,
   });
 
@@ -106,8 +104,6 @@ class OtpCodeField extends StatefulWidget {
   /// Tints the boxes and replaces the status slot with this message.
   final String? errorText;
 
-  /// Each increase plays the shake.
-  final int errorShake;
   final ValueChanged<String>? onSubmitted;
   final String semanticLabel;
 
@@ -115,18 +111,13 @@ class OtpCodeField extends StatefulWidget {
   State<OtpCodeField> createState() => _OtpCodeFieldState();
 }
 
-class _OtpCodeFieldState extends State<OtpCodeField>
-    with SingleTickerProviderStateMixin {
+class _OtpCodeFieldState extends State<OtpCodeField> {
   static const _boxMaxWidth = 51.0;
   static const _boxMinHeight = 45.0;
   static const _gap = 4.0;
   static const _groupGap = 10.0;
   static const _caretHalfPeriod = Duration(milliseconds: 530);
 
-  late final AnimationController _shake = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 420),
-  );
   final ValueNotifier<bool> _caretOn = ValueNotifier<bool>(true);
   Timer? _caretTimer;
   bool _hadFocus = false;
@@ -151,10 +142,6 @@ class _OtpCodeFieldState extends State<OtpCodeField>
       oldWidget.focusNode.removeListener(_onFocusChanged);
       widget.focusNode.addListener(_onFocusChanged);
     }
-    if (widget.errorShake > oldWidget.errorShake) {
-      unawaited(HapticFeedback.heavyImpact().catchError((_) {}));
-      if (!AppMotion.reduced(context)) _shake.forward(from: 0);
-    }
   }
 
   @override
@@ -163,7 +150,6 @@ class _OtpCodeFieldState extends State<OtpCodeField>
     widget.focusNode.removeListener(_onFocusChanged);
     _caretTimer?.cancel();
     _caretOn.dispose();
-    _shake.dispose();
     super.dispose();
   }
 
@@ -206,6 +192,14 @@ class _OtpCodeFieldState extends State<OtpCodeField>
     _caretTimer = Timer.periodic(_caretHalfPeriod, (_) {
       _caretOn.value = !_caretOn.value;
     });
+  }
+
+  void _completeEditing() {
+    widget.controller.clearComposing();
+    // Done on a partial code is not a submission; keep the digits editable.
+    if (widget.controller.text.length == widget.length) {
+      widget.focusNode.unfocus();
+    }
   }
 
   @override
@@ -382,23 +376,11 @@ class _OtpCodeFieldState extends State<OtpCodeField>
         children: [
           Positioned.fill(
             child: ExcludeSemantics(
-              child: AnimatedBuilder(
-                animation: _shake,
-                builder: (context, child) {
-                  final t = _shake.value;
-                  final dx = math.sin(t * math.pi * 6) * (1 - t) * 10;
-                  return Transform.translate(
-                    offset: Offset(t == 0 ? 0 : dx, 0),
-                    child: child,
-                  );
-                },
-                // The row is the only thing painted; it must not intercept the
-                // field's gestures.
-                child: IgnorePointer(
-                  // The page behind is flat: boxes paint only tint and edge
-                  // instead of six backdrop blurs.
-                  child: FrostedScope(child: Row(children: boxes)),
-                ),
+              // The painted boxes must not intercept the field's gestures.
+              child: IgnorePointer(
+                // The page behind is flat: boxes paint only tint and edge
+                // instead of six backdrop blurs.
+                child: FrostedScope(child: Row(children: boxes)),
               ),
             ),
           ),
@@ -446,6 +428,7 @@ class _OtpCodeFieldState extends State<OtpCodeField>
                     filled: false,
                   ),
                   scrollPadding: const EdgeInsets.only(bottom: 160),
+                  onEditingComplete: _completeEditing,
                   onSubmitted: widget.onSubmitted,
                 ),
               ),

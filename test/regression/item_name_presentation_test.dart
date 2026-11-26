@@ -13,6 +13,96 @@ void main() {
       expect(presentItemName(rawName: 'Разливное пиво').name, 'Разливное пиво');
       expect(presentItemName(rawName: 'Бутон').name, 'Бутон');
     });
+
+    test('removes a standalone kitchen marker without creating a type', () {
+      final result = presentItemName(rawName: '  кУхНя — / ёжики с BBQ  ');
+
+      expect(result.name, 'Ёжики с BBQ');
+      expect(result.type, isNull);
+      expect(result.attributes, isEmpty);
+    });
+
+    test('preserves kitchen inside a word or later in the product name', () {
+      expect(presentItemName(rawName: 'КухняLab бургер').name, 'КухняLab бургер');
+      expect(presentItemName(rawName: 'Кухня2Go').name, 'Кухня2Go');
+      expect(presentItemName(rawName: 'Бургер Кухня').name, 'Бургер Кухня');
+    });
+
+    test('uses a product fallback when the kitchen marker is the whole title',
+        () {
+      expect(presentItemName(rawName: 'Кухня').name, 'Товар');
+
+      final result = presentItemName(
+        rawName: 'КУХНЯ — /',
+        categoryName: 'Кухня',
+      );
+      expect(result.name, 'Товар');
+      expect(result.attributes, isEmpty);
+    });
+
+    test('only suppresses the kitchen value of structured type metadata', () {
+      final kitchen = presentItemName(rawName: 'Суп', storedType: ' кУхНя ');
+      final other = presentItemName(rawName: 'Кухня суп', storedType: 'первые блюда');
+      final beer = presentItemName(rawName: 'пиво brandName');
+
+      expect(kitchen.attributes, isEmpty);
+      expect(other.name, 'Суп');
+      expect(other.attributes, ['первые блюда']);
+      expect(beer.name, 'brandName');
+      expect(beer.type, 'пиво');
+    });
+
+    test('catalogue and cart snapshots retain the kitchen category and weight',
+        () {
+      const rawName = 'Кухня: сырный бургер BBQ 250 г';
+      const categoryName = 'Еда (Кухня)';
+      final source = item_model.Item.fromCategoryItem(CategoryItem.fromJson({
+        'item_id': 806,
+        'name': rawName,
+        'price': 1500,
+        'unit': 'шт',
+        'amount': 5,
+        'item_type': 'Кухня',
+        'category': {'category_id': 237, 'name': categoryName},
+      }));
+      final restored = CartItem.fromJson(CartItem(
+        itemId: source.itemId,
+        name: source.name,
+        price: source.price,
+        quantity: 1,
+        stepQuantity: source.effectiveStepQuantity,
+        selectedVariants: const [],
+        promotions: const [],
+        itemData: source.toJson(),
+      ).toJson());
+
+      for (final item in [source, restored.snapshotItem!]) {
+        final view = ProductView.fromItem(item);
+        expect(view.title, 'Сырный бургер BBQ');
+        expect(view.source.name, rawName);
+        expect(view.category, categoryName);
+        expect(view.metadata, [categoryName, '0,25 кг']);
+      }
+    });
+
+    test('order history projects the historical kitchen title without a chip',
+        () {
+      final history = presentOrderItem({
+        'item_id': 807,
+        'item_name': 'КУХНЯ / ролл iMix 0,3 кг',
+        'item_type': 'Кухня',
+        'item_data': {
+          'name': 'Кухня старое название',
+          'item_type': 'Роллы',
+          'category': {'category_id': 237, 'name': 'Еда (Кухня)'},
+          'unit': 'кг',
+        },
+      });
+
+      expect(history.name, 'Ролл iMix');
+      expect(history.attributes, ['Еда (Кухня)', '0,3 кг']);
+    });
+
     test('preserves three-decimal liters like 0.355', () {
       final result = presentItemName(
         rawName: 'Пиво Bud 0.355 4,8%',

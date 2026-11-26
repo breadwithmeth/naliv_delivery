@@ -11,6 +11,8 @@ import 'package:naliv_delivery/ui/frosted_controls.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/haptic_calls.dart';
+
 http.Response _json(Object data) => http.Response(jsonEncode(data), 200,
     headers: {'content-type': 'application/json; charset=utf-8'});
 http.Response _list(List<Map<String, dynamic>> entries) => _json({
@@ -28,6 +30,7 @@ void main() {
 
   testWidgets('refused activation retains code and never reports success',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final client = MockClient((request) async {
       if (request.method == 'GET' && request.url.path == '/api/certificates') {
         return _list([]);
@@ -50,8 +53,103 @@ void main() {
       expect(find.text('Сертификат активирован'), findsNothing);
       expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
           'NOT-FOUND');
+      expect(calls, isEmpty);
     }, () => client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  for (final (hasDetails, backgrounded) in [
+    (true, false),
+    (false, false),
+    (true, true),
+  ]) {
+    testWidgets(
+        backgrounded
+            ? 'a claim interrupted by backgrounding does not present feedback'
+            : hasDetails
+                ? 'claim presents server nominal and status only after confirmation'
+                : 'confirmed claim with no details cannot invent a certificate',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final calls = recordHapticCalls(tester);
+      final claim = Completer<http.Response>();
+      final unexpected = <String>[];
+      var claims = 0;
+      var reads = 0;
+      final client = MockClient((request) async {
+        if (request.url.origin == 'https://njt25.naliv.kz' &&
+            request.headers['authorization'] == 'Bearer fixture-only') {
+          if (request.method == 'GET' &&
+              request.url.path == '/api/certificates' &&
+              request.url.queryParameters.length == 3 &&
+              request.url.queryParameters['limit'] == '50' &&
+              request.url.queryParameters['offset'] == '0' &&
+              request.url.queryParameters['status'] == 'active') {
+            reads++;
+            return _list([]);
+          }
+          if (request.method == 'POST' &&
+              request.url.path == '/api/certificates/claim' &&
+              request.url.query.isEmpty &&
+              request.body == jsonEncode({'code': 'CLAIM-ONLY'})) {
+            claims++;
+            return claim.future;
+          }
+        }
+        unexpected.add('${request.method} ${request.url}');
+        throw StateError(unexpected.last);
+      });
+      await http.runWithClient(() async {
+        await tester.pumpWidget(_host());
+        await tester.pumpAndSettle();
+        final field = find.byType(TextField);
+        final confirmation = find.textContaining('Сертификат активирован');
+        await tester.enterText(field, '  CLAIM-ONLY  ');
+        await tester.pump();
+        await tester.tap(find.text('Ок'));
+        await tester.pump();
+        expect(claims, 1);
+        expect(confirmation, findsNothing);
+        expect(calls, isEmpty);
+
+        if (backgrounded) {
+          tester.binding
+              .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+          tester.binding
+              .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        }
+        claim.complete(_json({
+          'success': true,
+          if (hasDetails)
+            'data': {
+              'certificate': {
+                'code': 'CLAIM-ONLY',
+                'initial_amount': '7500.25',
+                'balance': 420,
+                'status': 'active',
+              },
+            },
+        }));
+        await tester.pumpAndSettle();
+        if (backgrounded) {
+          expect(confirmation, findsNothing);
+        } else {
+          expect(
+              find.text(hasDetails
+                  ? 'Сертификат активирован · 7\u00a0500,25 ₸ · Активен'
+                  : 'Сертификат активирован'),
+              findsOneWidget);
+        }
+        expect(find.text('Сертификатов нет'), findsOneWidget);
+        expect(find.text('CLAIM-ONLY'), findsNothing);
+        expect(tester.widget<TextField>(field).controller!.text, isEmpty);
+        expect(reads, 2);
+        expect(calls, backgrounded ? isEmpty : [selectionClick]);
+        expect(unexpected, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
 
   testWidgets('activation field and button are glass with a gated «Ок»',
       (tester) async {
@@ -93,6 +191,7 @@ void main() {
   testWidgets(
       'older active response cannot replace selected redeemed certificates',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final active = Completer<http.Response>();
     final client = MockClient((request) async {
       if (request.method != 'GET' || request.url.path != '/api/certificates') {
@@ -121,8 +220,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('REDEEMED'), findsOneWidget);
       expect(find.text('ACTIVE'), findsNothing);
+      expect(calls, isEmpty);
     }, () => client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('certificates beyond the first page remain reachable',
       (tester) async {

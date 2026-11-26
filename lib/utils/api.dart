@@ -139,13 +139,9 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         if (jsonResponse['success'] == true) {
-          // Ожидаем, что в data будет новое значение is_liked или сам liked_item
-          if (jsonResponse['data'] is Map &&
-              jsonResponse['data']['is_liked'] != null) {
-            return jsonResponse['data']['is_liked'] == true;
-          }
-          // fallback: возможно success=true означает теперь лайк стоит
-          return true;
+          final data = jsonResponse['data'];
+          final liked = data is Map ? data['is_liked'] : null;
+          return liked is bool ? liked : null;
         } else {
           debugPrint('API toggleLikeItem error: ${jsonResponse['message']}');
           return null;

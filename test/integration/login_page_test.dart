@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -34,6 +35,15 @@ Future<void> _disposeLogin(WidgetTester tester) async {
   await tester.pump();
   await tester.binding.setSurfaceSize(null);
 }
+
+bool _isCodeSend(http.Request request) =>
+    request.method == 'POST' &&
+    request.url.toString() == 'https://njt25.naliv.kz/api/auth/send-code' &&
+    request.headers['content-type'] == 'application/json' &&
+    request.headers['authorization'] == null &&
+    request.body == '{"phone_number":"+77001234567"}';
+
+bool _showsKeyboard(MethodCall call) => call.method == 'TextInput.show';
 
 void main() {
   setUp(() {
@@ -213,10 +223,17 @@ void main() {
     await _disposeLogin(tester);
   });
 
-  testWidgets('shows the server cooldown without leaving phone entry',
+  testWidgets('a phone cooldown retains input without restoring the keyboard',
       (tester) async {
     final requests = <http.Request>[];
+    final rejected = <http.Request>[];
+    addTearDown(() => expect(rejected, isEmpty));
+    addTearDown(tester.view.resetViewInsets);
     final client = MockClient((request) async {
+      if (!_isCodeSend(request)) {
+        rejected.add(request);
+        throw StateError('Unexpected ${request.method} ${request.url}');
+      }
       requests.add(request);
       return http.Response(
         jsonEncode({
@@ -231,6 +248,7 @@ void main() {
       );
     });
 
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await http.runWithClient(() async {
       await _pumpLogin(tester, AppTheme.dark());
       await _openPhoneForm(tester);
@@ -245,16 +263,48 @@ void main() {
 
       expect(requests, hasLength(1));
       expect(find.text('Повторить через 00:45'), findsOneWidget);
+      tester.view.viewInsets =
+          FakeViewPadding(bottom: 240 * tester.view.devicePixelRatio);
+      await tester.pump();
       expect(find.text('Вход по номеру телефона'), findsOneWidget);
+      final phone = find.byKey(const ValueKey('auth-phone-input'));
+      tester.testTextInput.log.clear();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Повторить через 00:44'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(tester.testTextInput.log.where(_showsKeyboard), isEmpty);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.testTextInput.hide();
+      tester.view.resetViewInsets();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('Повторить через 00:43'), findsOneWidget);
+      expect(tester.widget<TextFormField>(phone).controller!.text,
+          '+7 700 123 45 67');
+      expect(find.byKey(const ValueKey('auth-code-input')), findsNothing);
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(tester.testTextInput.log.where(_showsKeyboard), isEmpty);
       expect(tester.takeException(), isNull);
 
       await _disposeLogin(tester);
     }, () => client);
   });
 
-  testWidgets('successful send advances to six-digit verification',
+  testWidgets('phone and OTP steps name WhatsApp as the delivery channel',
       (tester) async {
+    final rejected = <http.Request>[];
+    addTearDown(() => expect(rejected, isEmpty));
     final client = MockClient((request) async {
+      if (!_isCodeSend(request)) {
+        rejected.add(request);
+        throw StateError('Unexpected ${request.method} ${request.url}');
+      }
       return http.Response(
         jsonEncode({'success': true, 'message': 'Код отправлен'}),
         200,
@@ -265,6 +315,8 @@ void main() {
     await http.runWithClient(() async {
       await _pumpLogin(tester, AppTheme.dark());
       await _openPhoneForm(tester);
+      expect(find.text('Отправим код подтверждения в WhatsApp'), findsOneWidget);
+      expect(find.text('Не приходит код в WhatsApp?'), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('auth-phone-input')),
         '+7 700 123 45 67',
@@ -276,8 +328,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('Введите код'), findsOneWidget);
-      expect(find.text('СМС отправлено на +7 700 123 45 67'), findsOneWidget);
-      expect(find.text('Проблемы с кодом? Открыть FAQ'), findsOneWidget);
+      expect(find.text('Отправили код в WhatsApp на номер +7 700 123 45 67'),
+          findsOneWidget);
+      expect(find.text('Не приходит код в WhatsApp?'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Код из WhatsApp')), findsOneWidget);
       expect(find.byKey(const ValueKey('auth-code-input')), findsOneWidget);
       expect(find.text('Изменить номер'), findsOneWidget);
       expect(tester.takeException(), isNull);

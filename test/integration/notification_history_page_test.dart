@@ -11,6 +11,7 @@ import 'package:naliv_delivery/pages/notification_settings_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/ui/settings_widgets.dart';
 
+import '../support/haptic_calls.dart';
 import '../support/preferences_store.dart';
 
 const _accountA = 'inbox-fixture-a';
@@ -116,6 +117,7 @@ void main() {
 
   testWidgets('storage failure is not empty and retry reads persisted history',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final received = DateTime(DateTime.now().year, 6, 10, 12);
     await _append(_accountA, 'Заказ собран', received);
     final read = Completer<bool>();
@@ -140,8 +142,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Заказ собран'), findsOneWidget);
     expect(find.text('10 июня'), findsOneWidget);
+    expect(calls, isEmpty);
     expect(tester.takeException(), isNull);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('live entries sort by receipt time and long text scrolls safely',
       (tester) async {

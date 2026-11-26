@@ -6,10 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/core/like_action.dart';
+import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/favorites/ui/favorites_page.dart';
+import 'package:naliv_delivery/features/product/product_navigation.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/ui/app_icon.dart';
+import 'package:naliv_delivery/ui/app_icon_button.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/utils/liked_storage_service.dart';
@@ -18,6 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 import '../support/configuration_items.dart';
+import '../support/haptic_calls.dart';
 
 void main() {
   setUp(() async {
@@ -45,8 +50,7 @@ void main() {
       () async {
     final likes = LikedItemsProvider()..updateLike(1, 502, true);
     addTearDown(likes.dispose);
-    await (await SharedPreferences.getInstance()).remove('auth_token');
-    await AuthService.notifySessionChanged();
+    await _signOutLocally();
     expect(likes.isLiked(1, 502), isFalse);
   });
 
@@ -84,6 +88,7 @@ void main() {
   testWidgets(
       'delayed prior-account toggle cannot publish or persist into new account',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final transport = _SessionLikesTransport();
     final likes = LikedItemsProvider();
     bool? result;
@@ -112,12 +117,14 @@ void main() {
       expect(result, isNull);
       expect(likes.isLiked(1, 502), isFalse);
       expect(await LikedStorageService.getLikedIds(businessId: 1), isEmpty);
+      expect(calls, isEmpty);
     }, () => transport.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'confirmed toggle survives rejected local cache write with visible warning',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final previous = SharedPreferencesStorePlatform.instance;
     SharedPreferences.resetStatic();
     final store = _RefusingLikesStore({'flutter.auth_token': 'account-a'});
@@ -156,12 +163,14 @@ void main() {
       expect(await LikedStorageService.getLikedIds(businessId: 1), isEmpty);
       expect(find.text('Избранное изменено, но не сохранено на устройстве'),
           findsOneWidget);
+      expect(calls, [selectionClick]);
       expect(tester.takeException(), isNull);
     }, () => transport.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('delayed options-detail toggle cannot publish into next account',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final transport = _SessionLikesTransport();
     final likes = LikedItemsProvider();
     await http.runWithClient(() async {
@@ -179,8 +188,9 @@ void main() {
       expect(await LikedStorageService.getLikedIds(businessId: 1), isEmpty);
       expect(find.byTooltip('В избранное'), findsOneWidget);
       expect(find.byTooltip('Убрать из избранного'), findsNothing);
+      expect(calls, isEmpty);
     }, () => transport.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'pending prior-account favorites page cannot display private rows',
@@ -198,31 +208,178 @@ void main() {
     }, () => transport.client);
   });
 
-  for (final guest in [false, true]) {
-    testWidgets(
-        'ownerless legacy likes do not color ${guest ? 'guest' : 'new account'} detail heart',
+  testWidgets('ownerless legacy likes do not color a new account detail heart',
+      (tester) async {
+    await AuthService.saveToken('account-b');
+    await AuthService.bindAuthenticatedIdentity('user-b');
+    await _mount(tester, LikedItemsProvider(),
+        ProductDetailPage(item: fixtureOptionItem(), businessId: 1));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('В избранное'), findsOneWidget);
+    expect(find.byTooltip('Убрать из избранного'), findsNothing);
+    expect((await SharedPreferences.getInstance()).getString('liked_items_1'),
+        '[502]');
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final interruption in [
+    'popped',
+    'covered then returned',
+    'backgrounded then resumed',
+    'switched away from the account and back',
+  ]) {
+    testWidgets('pending simple detail like is silent when $interruption',
         (tester) async {
-      if (guest) {
-        await (await SharedPreferences.getInstance()).remove('auth_token');
-        await AuthService.notifySessionChanged();
-      } else {
-        await AuthService.saveToken('account-b');
-        await AuthService.bindAuthenticatedIdentity('user-b');
-      }
-      await _mount(tester, LikedItemsProvider(),
-          ProductDetailPage(item: fixtureOptionItem(), businessId: 1));
-      await tester.pumpAndSettle();
-      expect(find.byTooltip('В избранное'), findsOneWidget);
-      expect(find.byTooltip('Убрать из избранного'), findsNothing);
-      expect((await SharedPreferences.getInstance()).getString('liked_items_1'),
-          '[502]');
-      expect(tester.takeException(), isNull);
-    });
+      final calls = recordHapticCalls(tester);
+      final transport = _SessionLikesTransport();
+      final likes = LikedItemsProvider();
+      final product = ProductView.fromItem(
+          fixtureOptionItem().copyWith(options: const []));
+      await http.runWithClient(() async {
+        await _mount(
+          tester,
+          likes,
+          Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => openProduct(context, product, businessId: 1),
+                child: const Text('Открыть товар'),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Открыть товар'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('В избранное'));
+        await tester.pump();
+        await transport.started.future;
+        expect(calls, isEmpty);
+
+        final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+        switch (interruption) {
+          case 'popped':
+            navigator.pop();
+            await tester.pumpAndSettle();
+            expect(find.text('Открыть товар'), findsOneWidget);
+          case 'covered then returned':
+            navigator.push<void>(MaterialPageRoute(
+              builder: (_) => const Scaffold(body: Text('Другой экран')),
+            ));
+            await tester.pumpAndSettle();
+            expect(find.text('Другой экран'), findsOneWidget);
+            navigator.pop();
+            await tester.pumpAndSettle();
+            expect(find.byTooltip('В избранное'), findsOneWidget);
+          case 'backgrounded then resumed':
+            final binding = tester.binding;
+            binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+            binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+            binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+            binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+            binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+            binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+          case 'switched away from the account and back':
+            await AuthService.bindAuthenticatedIdentity('user-b');
+            await AuthService.bindAuthenticatedIdentity('user-a');
+        }
+
+        transport.completeToggle();
+        await tester.pumpAndSettle();
+        final remainsOwned =
+            interruption != 'switched away from the account and back';
+        expect(likes.isLiked(1, 502), remainsOwned);
+        expect(await LikedStorageService.getLikedIds(businessId: 1),
+            remainsOwned ? {502} : isEmpty);
+        expect(transport.toggleCount, 1);
+        expect(calls, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => transport.client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   }
+
+  for (final configurable in [false, true]) {
+    testWidgets(
+        '${configurable ? 'configurable' : 'simple'} detail favorite is hidden '
+        'until sign-in is resolved and after logout', (tester) async {
+      final calls = recordHapticCalls(tester);
+      final transport = _SessionLikesTransport();
+      final item = fixtureOptionItem();
+      final product = ProductView.fromItem(
+          configurable ? item : item.copyWith(options: const []));
+      final open = find.text('Открыть товар');
+      final back = find.byTooltip(
+          configurable ? 'Назад без сохранения' : 'Назад',
+          skipOffstage: false);
+      final addFavorite = find.byTooltip('В избранное', skipOffstage: false);
+      final removeFavorite =
+          find.byTooltip('Убрать из избранного', skipOffstage: false);
+      final filledHeart = find.byWidgetPredicate((widget) =>
+          widget is AppIconButton && widget.asset == AppIcons.heartFilled);
+
+      await http.runWithClient(() async {
+        await _mount(
+          tester,
+          LikedItemsProvider(),
+          Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => openProduct(context, product, businessId: 1),
+                child: const Text('Открыть товар'),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(open);
+        await tester.pump();
+        expect(back, findsOneWidget);
+        expect(addFavorite, findsNothing);
+        expect(removeFavorite, findsNothing);
+        expect(transport.toggleCount, 0);
+
+        await tester.pumpAndSettle();
+        expect(addFavorite.hitTestable(), findsOneWidget);
+        await tester.tap(addFavorite);
+        await tester.pump();
+        expect(transport.toggleCount, 1);
+        expect(calls, isEmpty);
+        transport.completeToggle();
+        await tester.pumpAndSettle();
+        expect(calls, [selectionClick]);
+        expect(filledHeart, findsOneWidget);
+
+        await _signOutLocally();
+        await tester.pumpAndSettle();
+        expect(back, findsOneWidget);
+        expect(addFavorite, findsNothing);
+        expect(removeFavorite, findsNothing);
+        expect(filledHeart, findsNothing);
+
+        await tester.tap(back);
+        await tester.pumpAndSettle();
+        await tester.tap(open);
+        await tester.pumpAndSettle();
+        expect(back, findsOneWidget);
+        expect(addFavorite, findsNothing);
+        expect(removeFavorite, findsNothing);
+        expect(filledHeart, findsNothing);
+        expect(transport.toggleCount, 1);
+        expect(calls, [selectionClick]);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => transport.client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
+}
+
+Future<void> _signOutLocally() async {
+  await (await SharedPreferences.getInstance()).remove('auth_token');
+  await AuthService.notifySessionChanged();
 }
 
 Future<void> _mount(WidgetTester tester, LikedItemsProvider likes, Widget home,
     {bool withCart = true}) async {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   final cart = withCart ? CartProvider() : null;
   if (cart != null) {
     await cart.bindBusiness(1);
@@ -234,7 +391,11 @@ Future<void> _mount(WidgetTester tester, LikedItemsProvider likes, Widget home,
       if (cart != null) ChangeNotifierProvider.value(value: cart),
       ChangeNotifierProvider.value(value: likes),
     ],
-    child: MaterialApp(theme: AppTheme.light(), home: home),
+    child: MaterialApp(
+      theme: AppTheme.light(),
+      home: home,
+      navigatorObservers: [FavoriteRouteObserver()],
+    ),
   ));
   await tester.pump();
 }
@@ -266,6 +427,7 @@ class _SessionLikesTransport {
       if (authorization != 'Bearer account-a' || started.isCompleted) {
         return _reject(request);
       }
+      if (validToggle) toggleCount++;
       started.complete();
       return _response.future;
     });
@@ -277,6 +439,7 @@ class _SessionLikesTransport {
 
   late final MockClient client;
   final started = Completer<void>();
+  int toggleCount = 0;
   final _response = Completer<http.Response>();
   final unexpected = <String>[];
 

@@ -10,6 +10,7 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/telemetry_consent_service.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_controls.dart';
@@ -64,6 +65,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     _account = widget.account;
     _refreshAccount();
     _loadConsent();
+    if (AppHaptics.supported) unawaited(AppHaptics.preference.load());
   }
 
   @override
@@ -300,6 +302,24 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               ],
             ),
           ),
+          if (AppHaptics.supported)
+            ListenableBuilder(
+              listenable: AppHaptics.preference,
+              builder: (context, _) {
+                final pref = AppHaptics.preference;
+                return SettingsRow(
+                  icon: Icons.vibration,
+                  title: 'Тактильный отклик',
+                  subtitle: pref.loadFailed ? 'Не удалось загрузить · повторить'
+                      : pref.enabled == null ? 'Загрузка настройки…'
+                      : 'При добавлении товара и изменении выбора',
+                  switchKey: const ValueKey('profile-haptics-switch'),
+                  switchValue: pref.enabled ?? false,
+                  onTap: pref.loadFailed ? pref.load : null,
+                  onSwitch: pref.enabled == null || pref.saving ? null : _setHaptics,
+                );
+              },
+            ),
           SettingsRow(
             key: const ValueKey('profile-row-notifications'),
             iconAsset: AppIcons.bell,
@@ -496,6 +516,17 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         ],
       ],
     );
+  }
+
+  Future<void> _setHaptics(bool value) async {
+    try {
+      await AppHaptics.preference.setEnabled(value);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось сохранить тактильный отклик')),
+      );
+    }
   }
 
   Future<void> _setTheme(ThemeController theme, ThemeMode mode) async {

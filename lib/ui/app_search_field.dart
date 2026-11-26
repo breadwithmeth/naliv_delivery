@@ -13,6 +13,7 @@ class AppSearchField extends StatelessWidget {
     this.hint = 'Найти любимый напиток...',
     this.autofocus = false,
     this.onChanged,
+    this.onEditingComplete,
     this.onSubmitted,
     super.key,
   });
@@ -22,6 +23,7 @@ class AppSearchField extends StatelessWidget {
   final String hint;
   final bool autofocus;
   final ValueChanged<String>? onChanged;
+  final VoidCallback? onEditingComplete;
   final ValueChanged<String>? onSubmitted;
 
   @override
@@ -44,6 +46,7 @@ class AppSearchField extends StatelessWidget {
                 focusNode: focusNode,
                 autofocus: autofocus,
                 onChanged: onChanged,
+                onEditingComplete: onEditingComplete,
                 onSubmitted: onSubmitted,
                 textInputAction: TextInputAction.search,
                 cursorColor: palette.accent,

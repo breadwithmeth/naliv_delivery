@@ -5,11 +5,8 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 
-/// The app's one translucent material: the "glass" of the design (`#141414` /
-/// `#FFFFFF` at 75 % over a background blur) drawn by liquid_glass_widgets as
-/// iOS-style liquid glass. The design's blur and tint stay the tokens below;
-/// the package adds the specular rim and bevel of real glass, as X or YouTube
-/// do it.
+/// Shared smoked/opal glass. The tint keeps controls readable over product
+/// photos; the standard renderer supplies a narrow highlight at the edge.
 ///
 /// [FrostedDock] (the bottom bar), the cart button, the round top-bar discs
 /// (`AppIconButton`), floating fields and orange controls use these tokens so
@@ -19,27 +16,23 @@ abstract final class Frost {
   /// that it reads as colour masses instead of text.
   static const double sigma = 8;
 
-  /// How far the glass lens bends the backdrop behind it. Kept high so the
-  /// refraction — not the frost — is what reads: the bevel folds the content
-  /// behind the surface into a mirrored, compressed copy of itself.
-  static const double refraction = 1.55;
+  static const double refraction = 1.45;
 
-  /// Depth of the glass bevel: the band the lens distorts.
-  static const double depth = 32;
+  /// The standard shader uses thickness to shape the specular rim; it does
+  /// not sample or displace the scrolling backdrop.
+  static const double depth = 26;
 
-  /// Colour fringing at the refracted rim, part of the strong-lens look.
-  static const double dispersion = 0.2;
+  static const double dispersion = 0.035;
 
   /// Neutral fill for controls and fields.
   static Color tint(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF141414).withValues(alpha: 0.72)
-          : Colors.white.withValues(alpha: 0.78);
+          ? const Color(0xF2191817)
+          : const Color(0xF3FFFDFA);
 
-  /// Fill for orange glass (cart, primary floating actions). Kept nearly
-  /// opaque so white text and glyphs stay legible over any content.
+  /// Nearly opaque fill for orange glass controls.
   static Color accent(BuildContext context) =>
-      context.palette.accent.withValues(alpha: 0.9);
+      context.palette.accent.withValues(alpha: 0.96);
 
   /// Hairline drawn around frosted shapes so they separate from content of a
   /// similar colour.
@@ -48,21 +41,24 @@ abstract final class Frost {
           ? Colors.white.withValues(alpha: 0.08)
           : Colors.black.withValues(alpha: 0.06);
 
-  /// The liquid-glass settings for a frosted shape: the light [sigma] frost
-  /// under the exact [tint], with a strong lens ([refraction], [depth],
-  /// [dispersion]) warping the backdrop. `bodyMode` composites the token's own
-  /// colour instead of the package's luminance-preserving shift, the backdrop
-  /// keeps its own saturation, and the package's built-in elevation shadow is
-  /// off because [FrostedSurface] draws the design's own outer shadow.
-  static LiquidGlassSettings glass(BuildContext context, {Color? tint}) =>
+  /// The native refracting dock has a shallower, achromatic rim than controls.
+  static LiquidGlassSettings glass(
+    BuildContext context, {
+    Color? tint,
+    double blur = sigma,
+    bool refractingDock = false,
+  }) =>
       LiquidGlassSettings(
-        blur: sigma,
+        blur: blur,
         glassColor: tint ?? Frost.tint(context),
         bodyMode: GlassBodyMode.clear,
         saturation: 1.0,
-        refractiveIndex: refraction,
-        thickness: depth,
-        chromaticAberration: dispersion,
+        refractiveIndex: refractingDock ? 1.32 : refraction,
+        thickness: refractingDock ? 22 : depth,
+        lightIntensity: refractingDock ? 0.35 : 0.7,
+        chromaticAberration: refractingDock ? 0 : dispersion,
+        rimShade: refractingDock ? 0.50 : 0,
+        rimLight: refractingDock ? 0.65 : 0,
         shadow: const [],
         shadowElevation: 0,
       );
@@ -141,16 +137,17 @@ class FrostedSurface extends StatelessWidget {
     final palette = context.palette;
     final fill = tint ?? Frost.tint(context);
     final opaque = MediaQuery.highContrastOf(context);
+    final flat = opaque || FrostedScope.isInside(context);
     final content = DecoratedBox(
       decoration: BoxDecoration(
-        color: opaque ? Color.alphaBlend(fill, palette.background) : null,
+        color: opaque ? Color.alphaBlend(fill, palette.background) : (flat ? fill : null),
         borderRadius: borderRadius,
         border:
             edge ? Border.all(color: Frost.edge(context), width: 0.5) : null,
       ),
       child: Padding(padding: padding, child: child),
     );
-    final glass = opaque || FrostedScope.isInside(context)
+    final glass = flat
         ? content
         : AdaptiveGlass(
             shape: liquidShapeFor(borderRadius),

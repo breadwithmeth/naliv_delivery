@@ -237,6 +237,20 @@ final List<ProductView> _products = [
     ProductView.fromItem(_sampleItem(id, category: 'Белое')),
 ];
 
+// A repeatable ten-product shopping trip, separate from the screenshot catalogue.
+final _pilotProducts = [
+  for (final (index, name) in const [
+    'Тоник классический', 'Имбирный эль', 'Лимонад тархун',
+    'Грейпфрутовый тоник', 'Минеральная вода', 'Вишнёвый сок',
+    'Яблочный сок', 'Клюквенный морс', 'Лимонад с мятой',
+    'Негазированная вода',
+  ].indexed)
+    ProductView.fromItem(Item(
+      itemId: 1500 + index, name: name, price: 500.0 + 50 * index,
+      unit: 'шт.', amount: 20, image: '',
+    )),
+];
+
 void _seedCart(CartProvider cart) {
   for (final (id, quantity) in [(100, 1.0), (101, 6.0), (102, 1.0)]) {
     final item = _sampleItem(id);
@@ -358,6 +372,7 @@ class SurfaceFixtureClient extends MockClient {
 
   static final _orderCatalog = <int, Item>{
     for (var id = 100; id < 109; id++) id: _sampleItem(id),
+    for (final view in _pilotProducts) view.itemId: view.source,
     1: fixturePourItem(),
     502: fixtureOptionItem(),
     30318: capturedPourSurfaceItem(),
@@ -499,7 +514,7 @@ class SurfaceFixtureClient extends MockClient {
           body['phone_number'] == '+70000000000') {
         return _json({
           'success': true,
-          'message': 'Синтетический код: 123456. SMS не отправляется.',
+          'message': 'Тестовый код: 123456. Сообщение в WhatsApp не отправляется.',
         });
       }
       return _reject(request, onUnexpectedRequest);
@@ -508,6 +523,14 @@ class SurfaceFixtureClient extends MockClient {
         url.path == '/api/auth/verify-code' &&
         url.queryParameters.isEmpty) {
       final body = jsonDecode(request.body);
+      // Only the documented synthetic failure is allowed; other codes still
+      // go through the unexpected-request guard.
+      if (body is Map && body.length == 2 &&
+          body['phone_number'] == '+70000000000' &&
+          body['onetime_code'] == '000000') {
+        return http.Response('{"success":false}', 503,
+            headers: {'content-type': 'application/json'});
+      }
       if (body is Map &&
           body.length == 2 &&
           body['phone_number'] == '+70000000000' &&
@@ -694,6 +717,18 @@ class SurfaceFixtureClient extends MockClient {
         url.queryParameters.isEmpty) {
       final body = jsonDecode(request.body);
       if (body is Map && body.length == 1 && body['code'] is String) {
+        if (body['code'] == 'FIXT-GIFT-1500-0001') {
+          final certificates = RemainingMilestoneFixture.certificates;
+          if (certificates.any((c) => c['code'] == body['code'])) {
+            return _json({'success': false, 'error': 'Сертификат уже активирован'});
+          }
+          final certificate = <String, dynamic>{
+            'code': body['code'], 'initial_amount': 1500,
+            'balance': 1500, 'status': 'active',
+          };
+          certificates.add(certificate);
+          return _json({'success': true, 'data': {'certificate': certificate}});
+        }
         return _json({
           'success': false,
           'error': 'Фикстура: сертификат не найден',
@@ -1133,11 +1168,13 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
   late Future<void> _businessReady = _prepareSurface();
   var _navigatorKey = GlobalKey<NavigatorState>();
   var _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  final _favoriteRouteObserver = FavoriteRouteObserver();
   Key _updateNoticeKey = UniqueKey();
   late AppUpdateService _updateService;
   late String _surface = widget.surface;
-  final _confirmedAge = AgeConfirmationSession()..confirm();
-  final _freshAge = AgeConfirmationSession();
+  final _confirmedAge = AgeConfirmationSession.inMemory(confirmed: true);
+  final _freshAge = AgeConfirmationSession.inMemory();
+  final _legalAge = AgeConfirmationSession.inMemory();
   ChatApiService? _chatService;
   late ProfileAccount? _profileAccount =
       widget.surface == 'profile_guest' ? null : _fixtureAccount;
@@ -1225,6 +1262,13 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       _surface.startsWith('merchandising_');
 
   Future<void> _prepareSurface() async {
+    if (_surface == 'pilot_favorite_product') {
+      SurfaceFixtureClient._fixtureLikes.clear();
+      final owner = await AuthService.refreshIdentity(
+        verifiedInfo: {'user': SurfaceFixtureClient._fixtureUser},
+      );
+      if (owner == null) throw StateError('Favorite trial needs its fixture account');
+    }
     if (_surface == 'legal') {
       final prefs = await SharedPreferences.getInstance();
       if (!await prefs.remove('legal_accepted_revisions')) {
@@ -1382,6 +1426,9 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
     _restorePushProvider();
     _cart.dispose();
     _business.dispose();
+    _confirmedAge.dispose();
+    _freshAge.dispose();
+    _legalAge.dispose();
     _theme.dispose();
     super.dispose();
   }
@@ -1423,10 +1470,14 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           ChangeNotifierProvider<ThemeController>.value(value: _theme),
           ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
           ChangeNotifierProvider<BusinessProvider>.value(value: _business),
+          ChangeNotifierProvider<AgeConfirmationSession>.value(
+            value: _surface == 'home_age' ? _freshAge : _confirmedAge,
+          ),
         ],
         child: Consumer<ThemeController>(
           builder: (context, theme, _) => MaterialApp(
             navigatorKey: _navigatorKey,
+            navigatorObservers: [_favoriteRouteObserver],
             scaffoldMessengerKey: _messengerKey,
             debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
@@ -1585,6 +1636,7 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
       }) =>
           AddressSelectionModalHelper.show(
         context,
+        collectDetails: false,
         initialAddress: address,
         openDetailsFirst: detailsFirst,
         city: city,
@@ -1726,6 +1778,14 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
             onCart: () => _select('cart'),
           ),
         );
+      case 'quantity_pilot_catalog':
+        return _withFixtureBack(CategoryProductsPage(
+          categoryId: 10,
+          title: 'Напитки',
+          businessId: _business.selectedBusinessId ?? 1,
+          initialItems: _pilotProducts,
+          onCart: () => _showFixtureCart(context),
+        ));
       case 'all_products':
         return _withFixtureBack(
           CategoryProductsPage(
@@ -1747,16 +1807,12 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
             onCart: () => _select('cart'),
           ),
         );
+      case 'pilot_favorite_product':
       case 'product':
         return _withFixtureBack(
           ProductPage(
             view: _products.first,
             businessId: _business.selectedBusinessId ?? 1,
-            onLike: () => toggleItemLike(
-              context,
-              businessId: _business.selectedBusinessId ?? 1,
-              itemId: 100,
-            ),
             onCart: () => _select('cart'),
           ),
         );
@@ -1991,7 +2047,10 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           onCompleted: (_) async => _select('profile'),
         );
       case 'legal':
-        return Main(contactLauncher: _fixtureContactLaunch);
+        return Main(
+          contactLauncher: _fixtureContactLaunch,
+          ageConfirmation: _legalAge,
+        );
       case 'startup':
         return const AppLaunchIntro(child: AppLoadingScreen());
       case 'active_route':
@@ -2001,7 +2060,6 @@ class _DesignSurfaceAppState extends State<DesignSurfaceApp> {
           listenable: age,
           child: AuthenticationWrapper(
             contactLauncher: _fixtureContactLaunch,
-            ageConfirmation: age,
           ),
           builder: (_, child) => AppUpdateNotice(
             key: _updateNoticeKey,

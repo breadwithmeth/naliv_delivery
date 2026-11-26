@@ -28,9 +28,10 @@ import '../support/design_surfaces.dart';
 import 'package:flutter/foundation.dart';
 import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
 import 'package:naliv_delivery/core/destinations.dart';
-import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
 import 'package:naliv_delivery/features/home/home_screen.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
+
+import '../support/haptic_calls.dart';
 
 class _CountingPush extends InMemoryPushProvider {
   int starts = 0;
@@ -42,6 +43,8 @@ class _CountingPush extends InMemoryPushProvider {
     starts++;
   }
 }
+
+const _ageConfirmationKey = 'age_confirmation_21_plus';
 
 class _MissingLegalBundle extends CachingAssetBundle {
   @override
@@ -220,7 +223,6 @@ void main() {
   Future<void> pumpBootstrap(WidgetTester tester, {
     AssetBundle? bundle,
     Future<bool> Function(Uri)? launch,
-    AgeConfirmationSession? ageConfirmation,
   }) async {
     await tester.runAsync(() async {
       await rootBundle.loadString('assets/agreements/offer.md');
@@ -238,10 +240,7 @@ void main() {
         ],
         child: DefaultAssetBundle(
           bundle: bundle ?? rootBundle,
-          child: Main(
-            contactLauncher: launch,
-            ageConfirmation: ageConfirmation ?? AgeConfirmationSession(),
-          ),
+          child: Main(contactLauncher: launch),
         ),
       ),
     );
@@ -255,12 +254,14 @@ void main() {
   Future<void> withAdmitted(WidgetTester tester, Future<void> Function() exercise, {
     String route = '/',
     Future<bool> Function(Uri)? launch,
-    AgeConfirmationSession? ageConfirmation,
+    bool ageConfirmed = true,
+    OnboardingPreferences? preferences,
     bool signedIn = false,
   }) async {
     final prefs = {...surfaceFixturePreferences};
     if (!signedIn) prefs.remove('auth_token');
-    SharedPreferences.setMockInitialValues(prefs);
+    if (ageConfirmed) prefs[_ageConfirmationKey] = true;
+    (preferences ?? OnboardingPreferences(prefs)).install();
     final previous = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     tester.binding.platformDispatcher.defaultRouteNameTestValue = route;
@@ -270,13 +271,10 @@ void main() {
     try {
       await http.runWithClient(() async {
         try {
-          await pumpBootstrap(
-            tester,
-            launch: launch,
-            ageConfirmation: ageConfirmation ?? (AgeConfirmationSession()..confirm()),
-          );
+          await pumpBootstrap(tester, launch: launch);
           await exercise();
           expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
+          expect(tester.takeException(), isNull);
         } finally {
           await tester.pumpWidget(const SizedBox.shrink());
         }
@@ -382,14 +380,16 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       final before = prefs.getString(LegalAcceptance.preferenceKey);
+      expect(prefs.containsKey(_ageConfirmationKey), isFalse);
       await tester.tap(acknowledge);
       await tester.pumpAndSettle();
       expect(find.byType(FaqPage), findsOneWidget);
+      expect(prefs.getBool(_ageConfirmationKey), isTrue);
       expect(prefs.getString(LegalAcceptance.preferenceKey), before);
-    }, route: '/faq', ageConfirmation: AgeConfirmationSession());
+    }, route: '/faq', ageConfirmed: false);
   });
 
-  testWidgets('signed-in Home acknowledges age once across Home replacements',
+  testWidgets('signed-in Home confirms age across route changes and foreground',
       (tester) async {
     await withAdmitted(tester, () async {
       final acknowledge = find.text('Мне есть 21 год');
@@ -407,9 +407,89 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
       unawaited(AppNavigator.goToHome());
       await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(acknowledge, findsNothing);
-    }, signedIn: true, ageConfirmation: AgeConfirmationSession());
+    }, signedIn: true, ageConfirmed: false);
+  });
+
+  testWidgets('a fresh app restores age confirmation without an account',
+      (tester) async {
+    await withAdmitted(tester, () async {
+      final acknowledge = find.text('Мне есть 21 год');
+      expect(acknowledge, findsOneWidget);
+      await tester.tap(acknowledge);
+      await tester.pumpAndSettle();
+      expect(acknowledge, findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      final prefs = await SharedPreferences.getInstance();
+      expect(await prefs.remove('auth_token'), isTrue);
+      SharedPreferences.resetStatic();
+      tester.binding.platformDispatcher.defaultRouteNameTestValue = '/faq';
+      await pumpBootstrap(tester);
+
+      expect(acknowledge, findsNothing);
+      expect(find.byType(FaqPage), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(acknowledge, findsNothing);
+    }, signedIn: true, ageConfirmed: false);
+  });
+
+  testWidgets('dismissing the age dialog without tapping does not admit',
+      (tester) async {
+    await withAdmitted(tester, () async {
+      final acknowledge = find.text('Мне есть 21 год');
+      expect(acknowledge, findsOneWidget);
+      AppNavigator.key.currentState!.pop();
+      await tester.pumpAndSettle();
+
+      expect(acknowledge, findsOneWidget);
+      expect(find.byType(FaqPage), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      expect(prefs.containsKey(_ageConfirmationKey), isFalse);
+    }, route: '/faq', ageConfirmed: false);
+  });
+
+  testWidgets('failed age write keeps FAQ blocked and can be retried',
+      (tester) async {
+    final firstWrite = Completer<bool>();
+    final store = OnboardingPreferences(
+      {...surfaceFixturePreferences}..remove('auth_token'),
+    )
+      ..heldKey = _ageConfirmationKey
+      ..heldWrite = firstWrite;
+    await withAdmitted(tester, () async {
+      final acknowledge = find.text('Мне есть 21 год');
+      await tester.tap(acknowledge);
+      await tester.pump();
+      expect(find.text('Сохраняем…'), findsOneWidget);
+      expect(find.byType(FaqPage), findsNothing);
+
+      firstWrite.complete(false);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Не удалось сохранить подтверждение'),
+        findsOneWidget,
+      );
+      expect(acknowledge, findsOneWidget);
+      expect(find.byType(FaqPage), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      expect(prefs.containsKey(_ageConfirmationKey), isFalse);
+
+      store.heldWrite = null;
+      await tester.tap(acknowledge);
+      await tester.pumpAndSettle();
+      expect(acknowledge, findsNothing);
+      expect(find.byType(FaqPage), findsOneWidget);
+      expect(prefs.getBool(_ageConfirmationKey), isTrue);
+    }, route: '/faq', ageConfirmed: false, preferences: store);
   });
 
   testWidgets('unknown cold route falls back to exactly one home',
@@ -822,9 +902,56 @@ void main() {
     }, () => _client(() => _cityResponse(_availableCities)));
   });
 
+  testWidgets('manual city feedback waits for an accepted saved change',
+      (tester) async {
+    final calls = recordHapticCalls(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final preferences = OnboardingPreferences({
+      'onboarding_selected_city': 'Город А',
+    })
+      ..heldKey = 'onboarding_selected_city'
+      ..heldWrite = Completer<bool>();
+    preferences.install();
+    var completed = 0;
+    await http.runWithClient(() async {
+      await _pumpPage(tester,
+          initialCity: 'Город А', onCompleted: () => completed++);
+      await _tap(tester, 'onboarding-city-7');
+      expect(calls, isEmpty);
+      await _tap(tester, 'onboarding-city-8');
+      expect(_selected(tester), 'Город Б');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('onboarding-city-8')),
+          matching: find.byIcon(Icons.check),
+        ),
+        findsOneWidget,
+      );
+      expect(calls, isEmpty);
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 0);
+      expect(calls, isEmpty);
+      preferences.heldWrite!.complete(false);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Не удалось сохранить город'), findsOneWidget);
+      expect(completed, 0);
+      expect(calls, isEmpty);
+      expect(await OnboardingService.getSelectedCity(), 'Город А');
+
+      preferences.heldKey = null;
+      await _tap(tester, 'onboarding-continue');
+      expect(completed, 1);
+      expect(await OnboardingService.getSelectedCity(), 'Город Б');
+      expect(calls, [selectionClick]);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => _client(() => _cityResponse(_availableCities)));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   testWidgets('a single city needs no choice and is preselected',
       (tester) async {
     var completed = 0;
+    final calls = recordHapticCalls(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await http.runWithClient(() async {
       await _pumpPage(tester, onCompleted: () => completed++);
       expect(_selected(tester), 'Город А');
@@ -834,8 +961,9 @@ void main() {
       await _tap(tester, 'onboarding-continue');
       expect(completed, 1);
       expect((await OnboardingService.getState()).selectedCity, 'Город А');
+      expect(calls, isEmpty);
     }, () => _client(() => _cityResponse([_availableCities.first])));
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'failure and confirmed empty availability both block continuation until a retry brings cities',
@@ -1006,6 +1134,8 @@ void main() {
     (tester) async {
       var completed = 0;
       var permissionRequests = 0;
+      final calls = recordHapticCalls(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await http.runWithClient(
         () async {
           await _pumpPage(
@@ -1041,6 +1171,7 @@ void main() {
           await _tap(tester, 'onboarding-continue');
           expect(completed, 1);
           expect(await OnboardingService.getSelectedCity(), 'Город Б');
+          expect(calls, isEmpty);
         },
         () => _client(
           () => _cityResponse(_availableCities),
@@ -1048,6 +1179,7 @@ void main() {
         ),
       );
     },
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
 
   testWidgets(

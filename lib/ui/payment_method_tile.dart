@@ -79,6 +79,7 @@ class PaymentMethodTile extends StatelessWidget {
         child: InkWell(
           key: inkKey,
           onTap: onTap,
+          enableFeedback: false,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 64),
             child: Padding(

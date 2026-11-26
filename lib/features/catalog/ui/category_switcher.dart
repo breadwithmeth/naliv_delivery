@@ -347,7 +347,7 @@ class _CategoryTab extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: selected
-                    ? (light ? Colors.white : palette.surface)
+                    ? (light ? palette.background : palette.surface)
                     : Colors.transparent,
                 borderRadius: AppRadii.pillAll,
                 boxShadow: selected && light

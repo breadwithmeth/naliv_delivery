@@ -6,11 +6,14 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/certificates/ui/certificates_page.dart';
+import 'package:naliv_delivery/pages/card_widgets.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/ui/frosted_controls.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/haptic_calls.dart';
 
 http.Response _json(Object body, {int status = 200}) =>
     http.Response(jsonEncode(body), status,
@@ -74,6 +77,55 @@ void main() {
     await AuthService.notifySessionChanged();
     await AuthService.bindAuthenticatedIdentity('certificate-fixture-user');
   });
+
+  testWidgets('only a distinct manually chosen saved card clicks',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final calls = recordHapticCalls(tester);
+    final unexpected = <String>[];
+    final client = MockClient((request) async {
+      if (request.method == 'GET' &&
+          request.url.origin == 'https://njt25.naliv.kz' &&
+          request.headers['authorization'] == 'Bearer fixture-only') {
+        if (request.url.path == '/api/certificates' &&
+            request.url.queryParameters.length == 3 &&
+            request.url.queryParameters['limit'] == '50' &&
+            request.url.queryParameters['offset'] == '0' &&
+            request.url.queryParameters['status'] == 'active') {
+          return _json({
+            'success': true,
+            'data': {'certificates': []},
+          });
+        }
+        if (request.url.path == '/api/user/cards' &&
+            request.url.query == 'source=halyk') {
+          return _cards([_card('default-card'), _card('chosen-card')]);
+        }
+      }
+      unexpected.add('${request.method} ${request.url}');
+      throw StateError(unexpected.last);
+    });
+    bool selected(String id) => tester
+        .widget<SavedCardRow>(find.byKey(ValueKey('certificate-card-$id')))
+        .selected;
+    await http.runWithClient(() async {
+      await _pump(tester);
+      expect(selected('default-card'), isTrue);
+      expect(calls, isEmpty);
+      await _tap(tester, 'certificate-card-default-card');
+      expect(calls, isEmpty);
+      await _tap(tester, 'certificate-card-chosen-card');
+      expect(selected('chosen-card'), isTrue);
+      expect(calls, [selectionClick]);
+      await _tap(tester, 'certificate-card-chosen-card');
+      await _tap(tester, 'certificate-refresh-cards');
+      expect(selected('chosen-card'), isTrue);
+      expect(calls, [selectionClick]);
+      expect(unexpected, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'failed cards read disables purchase and retry recovers real selection',

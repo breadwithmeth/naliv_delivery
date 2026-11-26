@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 
+import '../../../core/like_action.dart';
 import '../../../core/money.dart';
 import '../../../core/product_view.dart';
 import '../../../core/quantity.dart';
@@ -12,6 +12,7 @@ import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../model/cart_item.dart';
 import '../../../model/item.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
 import '../../../ui/catalog_photo_provider.dart';
@@ -34,19 +35,13 @@ import '../../../utils/smart_cart.dart';
 class ProductPage extends StatefulWidget {
   const ProductPage({
     required this.view,
-    this.liked = false,
     this.businessId,
-    this.onLike,
     this.onCart,
     super.key,
   });
 
   final ProductView view;
-  final bool liked;
   final int? businessId;
-
-  /// Toggles the favourite flag; the caller owns the API call.
-  final VoidCallback? onLike;
 
   /// Opens the cart; null hides the action bar's cart affordance.
   final VoidCallback? onCart;
@@ -55,7 +50,7 @@ class ProductPage extends StatefulWidget {
   State<ProductPage> createState() => _ProductPageState();
 }
 
-class _ProductPageState extends State<ProductPage> {
+class _ProductPageState extends State<ProductPage> with FavoriteSessionVisibility {
   /// True for a moment after this page added the item, to confirm the change.
   bool _justAdded = false;
   bool _expanded = false;
@@ -118,12 +113,14 @@ class _ProductPageState extends State<ProductPage> {
       return;
     }
     if (!_canIncrement(cart, quantity)) return;
-    cart.incrementCatalogItem(widget.view.source);
-    if (cart.getCatalogQuantityForKey(widget.view.catalogKey) <= 0) return;
-    HapticFeedback.lightImpact();
+    if (!AppHaptics.addCatalogStep(cart, widget.view)) return;
     setState(() => _justAdded = true);
     await Future<void>.delayed(const Duration(milliseconds: 1400));
     if (mounted) setState(() => _justAdded = false);
+  }
+
+  void _incrementQuantity() {
+    AppHaptics.addCatalogStep(context.read<CartProvider>(), widget.view);
   }
 
   /// The active `N+M` promotion: its name and rule, once. At the exact
@@ -223,10 +220,11 @@ class _ProductPageState extends State<ProductPage> {
       final quantity = cart.getCatalogQuantityForKey(widget.view.catalogKey);
       return (quantity, _canIncrement(cart, quantity));
     });
-    final liked = widget.businessId == null
-        ? widget.liked
-        : context.select<LikedItemsProvider, bool>(
-            (likes) => likes.isLiked(widget.businessId!, widget.view.itemId));
+    final favoriteStore = canFavorite ? widget.businessId : null;
+    final liked = favoriteStore != null &&
+        context.select<LikedItemsProvider, bool>(
+          (likes) => likes.isLiked(favoriteStore, widget.view.itemId),
+        );
     final quantity = cartState.$1;
     final canIncrement = cartState.$2;
     final pageColor = Theme.of(context).brightness == Brightness.light
@@ -326,25 +324,19 @@ class _ProductPageState extends State<ProductPage> {
                                 ? _selection.minBottleVolume
                                 : widget.view.source.effectiveStepQuantity,
                             unit: widget.view.unit,
-                            onIncrement: canIncrement
-                                ? () => context
-                                    .read<CartProvider>()
-                                    .incrementCatalogItem(widget.view.source)
-                                : null,
+                            onIncrement:
+                                canIncrement ? _incrementQuantity : null,
                             onDecrement: quantity > 0
-                                ? () => context
-                                    .read<CartProvider>()
-                                    .decrementCatalogItem(widget.view.source)
+                                ? () => AppHaptics.removeCatalogStep(
+                                      context.read<CartProvider>(),
+                                      widget.view,
+                                    )
                                 : null,
                           ),
                         ),
                         if (_promotionCard(quantity,
-                                onIncrement: canIncrement
-                                    ? () => context
-                                        .read<CartProvider>()
-                                        .incrementCatalogItem(
-                                            widget.view.source)
-                                    : null)
+                                onIncrement:
+                                    canIncrement ? _incrementQuantity : null)
                             case final promoCard?) ...[
                           const SizedBox(height: AppSpacing.huge),
                           Padding(
@@ -381,14 +373,19 @@ class _ProductPageState extends State<ProductPage> {
                         onTap: () => Navigator.of(context).maybePop(),
                         tooltip: 'Назад',
                       ),
-                      trailing: AnimatedSwap(
+                      trailing: favoriteStore == null ? const SizedBox.shrink() : AnimatedSwap(
                         stateKey: liked,
                         duration: AppMotion.pop,
                         scale: .6,
                         scaleCurve: AppMotion.overshoot,
                         child: AppIconButton(
                           asset: liked ? AppIcons.heartFilled : AppIcons.heart,
-                          onTap: widget.onLike,
+                          onTap: () => toggleItemLike(
+                            context,
+                            businessId: favoriteStore,
+                            itemId: widget.view.itemId,
+                            wasLiked: liked,
+                          ),
                           tooltip: 'В избранное',
                           size: AppSpacing.touchTarget,
                           glyphSize: 24,
@@ -456,7 +453,9 @@ class _Hero extends StatelessWidget {
       child: Container(
         height: height,
         width: double.infinity,
-        color: Colors.white,
+        color: url == null && Theme.of(context).brightness == Brightness.light
+            ? context.palette.surfaceMuted
+            : Colors.white,
         padding: cover ? EdgeInsets.zero : insets,
         child: url == null
             ? placeholder
@@ -588,11 +587,10 @@ class _PriceStack extends StatelessWidget {
   }
 }
 
-/// White (light) / surface (dark) card with the frame's soft shadow, shared by the quantity
-/// stepper and the spec chips.
+/// Raised fill for the quantity stepper and spec chips.
 Color _raisedFill(BuildContext context) =>
     Theme.of(context).brightness == Brightness.light
-        ? Colors.white
+        ? context.palette.background
         : context.palette.surface;
 
 class _QuantityControl extends StatelessWidget {

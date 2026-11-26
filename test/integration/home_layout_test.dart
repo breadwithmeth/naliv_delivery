@@ -8,6 +8,7 @@ import 'package:naliv_delivery/features/home/ui/home_page.dart';
 import 'package:naliv_delivery/ui/app_cart_button.dart';
 
 import '../support/design_surfaces.dart';
+import '../support/haptic_calls.dart';
 
 const _fill = Color(0xFFF16800);
 
@@ -94,14 +95,17 @@ void main() {
 
     testWidgets('omits an empty rail and does not scroll a lone campaign',
         (tester) async {
+      final calls = recordHapticCalls(tester);
       await _pumpHome(tester, size: size);
       expect(rail, findsNothing);
 
       final opened = <int?>[];
+      var openedSearch = 0;
       await _pumpHome(
         tester,
         size: size,
         banners: const [HomeBanner(promotionId: 17, title: 'Одна акция')],
+        onSearch: () => openedSearch++,
         onPromo: (banner) => opened.add(banner.promotionId),
       );
       final title = find.text('Одна акция');
@@ -111,8 +115,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(title);
       expect(opened, [17]);
+      await tester.tap(find.byKey(const ValueKey('home-search-field')));
+      expect(openedSearch, 1);
+      expect(calls, isEmpty);
       expect(tester.takeException(), isNull);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
     testWidgets('wraps repeatedly both ways and exposes only nearby campaigns',
         (tester) async {
@@ -226,6 +233,8 @@ void main() {
         await tester.tap(confirm);
         await tester.pumpAndSettle();
         expect(confirm, findsNothing);
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.containsKey('age_confirmation_21_plus'), isFalse);
         expect(tester.takeException(), isNull);
         expect(SurfaceFixtureClient.unexpectedRequests, isEmpty);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -239,9 +248,10 @@ void main() {
         await _pumpHome(tester,
             size: const Size(375, 812), cartItems: items, cartTotal: total);
         final dock = tester.getRect(find.byType(AppCartButton));
-        // The dock once took 124 px plus margins (a fifth of the screen).
-        expect(dock.height, inInclusiveRange(48, 812 * 0.1),
-            reason: 'dock with $items items is ${dock.height} px tall');
+        final stamp = tester.getRect(find.byKey(const ValueKey('cart-stamp')));
+        // The visible control stays compact despite the extra bottom spacing.
+        expect(stamp.height, inInclusiveRange(48, 812 * 0.1),
+            reason: 'stamp with $items items is ${stamp.height} px tall');
         expect(dock.width, lessThanOrEqualTo(375 - 32));
         expect(tester.takeException(), isNull);
       }

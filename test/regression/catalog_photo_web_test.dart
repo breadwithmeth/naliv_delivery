@@ -55,7 +55,7 @@ void main() {
     final store = createPhotoStore(cacheName: cacheName);
     await store.write(photoUrl, first);
     await store.write(otherUrl, first);
-    await store.write(photoUrl, updated);
+    await store.write(photoUrl, updated, previousCheck: first.checkedAt);
 
     final reopened = createPhotoStore(cacheName: cacheName);
     final saved = (await reopened.read(photoUrl))!;
@@ -66,13 +66,75 @@ void main() {
       orderedEquals([255, 216, 1, 2]),
     );
 
-    await reopened.remove(photoUrl);
+    await reopened.remove(photoUrl, previousCheck: updated.checkedAt);
     final afterRemoval = createPhotoStore(cacheName: cacheName);
     expect(await afterRemoval.read(photoUrl), isNull);
     expect(
       (await afterRemoval.read(otherUrl))!.bytes,
       orderedEquals([255, 216, 1, 2]),
     );
+  });
+
+  test('the next sweep physically removes untouched v1 responses', () async {
+    final store = createPhotoStore(cacheName: cacheName);
+    final browserCache = await web.window.caches.open(cacheName).toDart;
+    final headers = web.Headers()
+      ..set(
+        'x-catalog-photo-checked-at-us',
+        '${first.checkedAt.microsecondsSinceEpoch}',
+      );
+    await browserCache
+        .put(
+          photoUrl.toString().toJS,
+          web.Response(first.bytes.toJS, web.ResponseInit(headers: headers)),
+        )
+        .toDart;
+    await store.write(otherUrl, updated);
+
+    final reopened = createPhotoStore(cacheName: cacheName);
+    await reopened.pruneExpired(first.checkedAt);
+
+    expect(await browserCache.match(photoUrl.toString().toJS).toDart, isNull);
+    expect((await reopened.read(otherUrl))?.checkedAt, updated.checkedAt);
+    await reopened.pruneExpired(updated.checkedAt);
+    expect(await browserCache.match(otherUrl.toString().toJS).toDart, isNull);
+  });
+
+  test('a queued sweep does not delete a same-URL replacement', () async {
+    final store = createPhotoStore(cacheName: cacheName);
+    await store.write(photoUrl, first);
+    await store.pruneExpired(
+      first.checkedAt.subtract(const Duration(microseconds: 1)),
+    );
+
+    await Future.wait([
+      store.write(photoUrl, updated, previousCheck: first.checkedAt),
+      store.pruneExpired(first.checkedAt),
+    ]);
+    final reopened = createPhotoStore(cacheName: cacheName);
+    final saved = await reopened.read(photoUrl);
+    expect(saved?.bytes, [255, 216, 3, 4]);
+    expect(saved?.checkedAt, updated.checkedAt);
+  });
+
+  test('late mutations cannot replace or delete a renewed web response', () async {
+    final store = createPhotoStore(cacheName: cacheName);
+    final otherStore = createPhotoStore(cacheName: cacheName);
+    await store.write(photoUrl, first);
+    await otherStore.write(photoUrl, updated, previousCheck: first.checkedAt);
+    await store.write(
+      photoUrl,
+      (
+        bytes: first.bytes,
+        checkedAt: updated.checkedAt.add(const Duration(seconds: 1)),
+      ),
+      previousCheck: first.checkedAt,
+    );
+    await store.remove(photoUrl, previousCheck: first.checkedAt);
+
+    final saved = await store.read(photoUrl);
+    expect(saved?.bytes, [255, 216, 3, 4]);
+    expect(saved?.checkedAt, updated.checkedAt);
   });
 
   test(

@@ -1,9 +1,8 @@
 /// Design tokens for the Градусы24 redesign.
 ///
-/// Every value here was measured from the design file (`Design System (Dark)` +
-/// `Design System (Light)`, 212 frames, 375 × 812) with `tool/design_report.dart`; the
-/// frequency of each value is what decided whether it earned a token. Nothing is invented,
-/// and nothing that appears once became part of the scale.
+/// Based on measurements from `Design System (Dark)` and `Design System (Light)`
+/// (212 frames, 375 × 812) with `tool/design_report.dart`. Light neutrals are
+/// intentionally softer than the reference white and black.
 ///
 /// Regenerate the source data with:
 ///   dart run tool/figma_spec.dart spec && dart run tool/design_report.dart
@@ -148,12 +147,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
   );
 
   static const AppPalette light = AppPalette(
-    background: Color(0xFFFFFFFF),
-    surface: Color(0xFFF2F2F2),
-    surfaceMuted: Color(0xFFF9F9F9),
+    background: Color(0xFFF2F1EE),
+    surface: Color(0xFFE6E5E1),
+    surfaceMuted: Color(0xFFEDECE9),
     surfaceInverse: Color(0xFF191919),
-    textPrimary: Color(0xFF000000),
-    textSecondary: Color(0xFF676767),
+    textPrimary: Color(0xFF242320),
+    textSecondary: Color(0xFF62615E),
     textOnAccent: Color(0xFFFFFFFF),
     accent: Color(0xFFF16800),
     accentSoft: Color(0xBFF16800),
@@ -163,7 +162,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     purple: Color(0xFF4D2161),
     success: Color(0xFF64DC30),
     error: Color(0xFFFF3636),
-    divider: Color(0xFFEDEDED),
+    divider: Color(0xFFDAD9D5),
     shadow: Color(0x29000000),
   );
 

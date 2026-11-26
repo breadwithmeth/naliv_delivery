@@ -73,14 +73,16 @@ function preferencesScript(store, theme, city) {
   };
   return `(() => {
     if (location.hostname !== '127.0.0.1') return;
-    localStorage.clear();
+    for (const key of Object.keys(localStorage)) {
+      if (key !== 'flutter.age_confirmation_21_plus') localStorage.removeItem(key);
+    }
     for (const [key, value] of Object.entries(${JSON.stringify(prefs)})) {
       localStorage.setItem('flutter.' + key, JSON.stringify(value));
     }
   })();`;
 }
 
-/// Opens the served release as a guest of [store]. Reloading the tab resets to this state.
+/// Opens the served release as a guest of [store], preserving 21+ confirmation on reload.
 export async function openRealStore(browser, {
   name,
   store = STORES.bukharZhyrau,
@@ -107,10 +109,17 @@ export async function openRealStore(browser, {
       await page.goto(url, {waitUntil: 'networkidle0', timeout: 60000});
       await page.waitForSelector('flt-semantics-placeholder', {timeout: 20000});
       await page.evaluate(() => document.querySelector('flt-semantics-placeholder').click());
-      await page.waitForSelector('aria/Мне есть 21 год', {timeout: 30000});
-      if (!confirmAge) return;
-      await page.click('aria/Мне есть 21 год');
-      await page.waitForSelector('aria/Открыть корзину', {timeout: 30000});
+      const age = 'aria/Мне есть 21 год';
+      const cart = 'aria/Открыть корзину';
+      const needsConfirmation = await Promise.race([
+        page.waitForSelector(age, {timeout: 30000}).then(() => true),
+        page.waitForSelector(cart, {timeout: 30000}).then(() => false),
+      ]);
+      if (needsConfirmation) {
+        if (!confirmAge) return;
+        await page.click(age);
+        await page.waitForSelector(cart, {timeout: 30000});
+      }
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }, {args: [url.toString(), {width, height}, confirmAge], timeout: 120});
     return tab;

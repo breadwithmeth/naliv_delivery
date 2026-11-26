@@ -141,9 +141,9 @@ class ProductRow extends StatelessWidget {
                             ),
                             fit: coverImage ? BoxFit.cover : BoxFit.contain,
                             frameBuilder: fadeInImageFrame,
-                            errorBuilder: (_, __, ___) => _missingArt(palette),
+                            errorBuilder: (_, __, ___) => _missingArt(context, palette),
                           )
-                        : _missingArt(palette),
+                        : _missingArt(context, palette),
                   ),
                 ),
               ),
@@ -391,8 +391,10 @@ class ProductRow extends StatelessWidget {
     );
   }
 
-  Widget _missingArt(AppPalette palette) => ColoredBox(
-        color: Colors.white,
+  Widget _missingArt(BuildContext context, AppPalette palette) => ColoredBox(
+        color: Theme.of(context).brightness == Brightness.light
+            ? palette.surfaceMuted
+            : Colors.white,
         child: Center(
             child: Icon(Icons.image_outlined,
                 color: palette.textSecondary, size: 32)),

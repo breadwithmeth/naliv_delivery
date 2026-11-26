@@ -13,6 +13,8 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/haptic_calls.dart';
+
 http.Response _account(num balance, {String? cardCode}) => http.Response(
       jsonEncode({
         'success': true,
@@ -58,6 +60,7 @@ void main() {
 
   testWidgets('server signed ledger and balance refresh when help is closed',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final cart = CartProvider();
     var reads = 0;
     var balance = 164.5;
@@ -81,14 +84,16 @@ void main() {
       expect(reads, 2);
       expect(find.text('200,75 бонусов', findRichText: true), findsOneWidget);
       expect(find.text('−2\u00a0100,75 бонусов'), findsOneWidget);
+      expect(calls, isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     cart.dispose();
     await tester.binding.setSurfaceSize(null);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('the card QR opens full screen from the balance card',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final cart = CartProvider();
     final client = MockClient((request) async {
       expect(request.method, 'GET');
@@ -110,11 +115,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('bonus-qr-close')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('bonus-qr-page')), findsNothing);
+      expect(calls, isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     cart.dispose();
     await tester.binding.setSurfaceSize(null);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('no card code, no QR row', (tester) async {
     final cart = CartProvider();

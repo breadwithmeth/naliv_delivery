@@ -13,6 +13,8 @@ import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/services/chat_api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/haptic_calls.dart';
+
 const _widgetPath = '/api/widget/wgt_Ioj4vp2arln68wZeSMeyWd4l';
 const _input = ValueKey('support-message-input');
 const _send = ValueKey('support-send');
@@ -127,35 +129,75 @@ void main() {
     addTearDown(() => expect(fixture.unexpected, isEmpty));
   }
 
-  testWidgets(
-      'failed send keeps draft and retry produces only accepted history',
+  testWidgets('outgoing message retries itself and keeps a changed draft',
+      (tester) async {
+    final calls = recordHapticCalls(tester);
+    final fixture = _ChatFixture();
+    final first = Completer<http.Response>();
+    final retry = Completer<http.Response>();
+    var attempts = 0;
+    fixture.send = (_) => ++attempts == 1 ? first.future : retry.future;
+    await pumpChat(tester, fixture);
+    final input = find.byKey(_input);
+    await tester.enterText(input, 'Сохранённый вопрос');
+    await tester.pump();
+    await tester.tap(find.byKey(_send));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Сохранённый вопрос'), findsAtLeastNWidgets(2));
+    expect(find.text('Отправляется…'), findsOneWidget);
+    expect(find.text('Отправлено'), findsNothing);
+
+    first.complete(http.Response('', 503));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(input).controller!.text,
+        'Сохранённый вопрос');
+    expect(find.text('Не отправлено'), findsOneWidget);
+    expect(find.byKey(const ValueKey('support-message-7')), findsNothing);
+    expect(find.byKey(const ValueKey('support-empty-conversation')),
+        findsNothing);
+
+    await tester.enterText(input, 'Следующий вопрос');
+    await tester.pumpAndSettle();
+    final retryButton = find.text('Повторить отправку');
+    await tester.ensureVisible(retryButton);
+    await tester.tap(retryButton);
+    await tester.pump();
+    expect(find.text('Отправляется…'), findsOneWidget);
+    expect(find.text('Отправлено'), findsNothing);
+
+    retry.complete(_json({
+      'message': _message(7, 'Сохранённый вопрос', operator: false),
+    }, 201));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('support-message-7')), findsOneWidget);
+    expect(find.text('Отправлено'), findsOneWidget);
+    expect(find.text('Не отправлено'), findsNothing);
+    expect(tester.widget<TextField>(input).controller!.text, 'Следующий вопрос');
+    expect(fixture.sends, ['Сохранённый вопрос', 'Сохранённый вопрос']);
+    expect(calls, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('an incomplete acknowledgement never marks a message sent',
       (tester) async {
     final fixture = _ChatFixture();
-    var attempts = 0;
-    fixture.send = (_) async => ++attempts == 1
-        ? http.Response('', 503)
-        : _json({'message': _message(7, 'Сохранённый вопрос', operator: false)},
-            201);
+    fixture.send = (_) async => _json({
+          'message': {'content': 'Вопрос', 'fromMe': false},
+        }, 201);
     await pumpChat(tester, fixture);
-    await tester.enterText(find.byKey(_input), 'Сохранённый вопрос');
+    await tester.enterText(find.byKey(_input), 'Вопрос');
     await tester.pump();
     await tester.tap(find.byKey(_send));
     await tester.pumpAndSettle();
-
+    expect(find.text('Отправлено'), findsNothing);
+    expect(find.text('Не отправлено'), findsOneWidget);
+    expect(find.text('Повторить отправку'), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(_input)).controller!.text,
-        'Сохранённый вопрос');
-    expect(find.byKey(const ValueKey('support-send-error')), findsOneWidget);
-    expect(find.byKey(const ValueKey('support-message-7')), findsNothing);
-    expect(find.byKey(const ValueKey('support-empty-conversation')),
-        findsOneWidget);
-
-    await tester.tap(find.text('Повторить отправку'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('support-message-7')), findsOneWidget);
-    expect(find.byKey(const ValueKey('support-send-error')), findsNothing);
-    expect(
-        tester.widget<TextField>(find.byKey(_input)).controller!.text, isEmpty);
-    expect(fixture.sends, ['Сохранённый вопрос', 'Сохранённый вопрос']);
+        'Вопрос');
+    expect(fixture.sends, ['Вопрос']);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -208,6 +250,13 @@ void main() {
     expect(tester.widget<TextField>(find.byKey(_input)).controller!.text,
         'Не потерять после 401');
     expect(tester.widget<IconButton>(find.byKey(_send)).onPressed, isNotNull);
+    expect(find.text('Не отправлено'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Повторить отправку'))
+          .onPressed,
+      isNotNull,
+    );
     expect(fixture.sends, ['Не потерять после 401']);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -565,7 +614,8 @@ void main() {
     }, () => authClient);
   }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
-  testWidgets('account switch hides private history and refuses an old push',
+  testWidgets(
+      'account switch discards private outbox, late send and prior push',
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'chat_widget_session': jsonEncode({
@@ -576,6 +626,8 @@ void main() {
     });
     await AuthService.bindAuthenticatedIdentity('user-a');
     final fixture = _ChatFixture();
+    final pendingSend = Completer<http.Response>();
+    fixture.send = (_) => pendingSend.future;
     fixture.history = (_) async => _json({
           'messages': [_message(11, 'Частная переписка A')],
         });
@@ -603,10 +655,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Частная переписка A'), findsOneWidget);
     await tester.enterText(find.byKey(_input), 'Частный черновик A');
+    await tester.pump();
+    await tester.tap(find.byKey(_send));
+    await tester.pump();
+    expect(find.text('Отправляется…'), findsOneWidget);
     identity = 'user-b';
     await AuthService.bindAuthenticatedIdentity(identity);
+    pendingSend.complete(_json({
+      'message': _message(12, 'Частный черновик A', operator: false),
+    }, 201));
     await tester.pumpAndSettle();
     expect(find.text('Частная переписка A'), findsNothing);
+    expect(find.text('Частный черновик A'), findsNothing);
+    expect(find.text('Отправляется…'), findsNothing);
+    expect(find.byKey(const ValueKey('support-message-12')), findsNothing);
     expect(
         tester.widget<TextField>(find.byKey(_input)).controller!.text, isEmpty);
     expect(
@@ -615,7 +677,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Частная переписка A'), findsNothing);
     expect(fixture.historyCursors.length, 1);
-    expect(fixture.sends, isEmpty);
+    expect(fixture.sends, ['Частный черновик A']);
     expect(fixture.unexpected, isEmpty);
     await tester.pumpWidget(const SizedBox.shrink());
   }, variant: TargetPlatformVariant.only(TargetPlatform.windows));

@@ -20,8 +20,13 @@ import 'package:naliv_delivery/utils/liked_storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/haptic_calls.dart';
+
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await AuthService.notifySessionChanged();
+  });
 
   testWidgets('later-page failure retries the complete scoped campaign',
       (tester) async {
@@ -110,7 +115,10 @@ void main() {
   testWidgets(
       'prefetched products stay visible and fractional stock is bounded',
       (tester) async {
+    enableQuantityClicks(tester);
+    final calls = recordHapticCalls(tester);
     final cart = CartProvider();
+    addTearDown(cart.dispose);
     await cart.bindBusiness(7);
     final weight = Item(
       itemId: 17,
@@ -142,17 +150,20 @@ void main() {
           alignment: 0.5,
         );
         await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 90));
         await tester.tap(
             _step(first, index == 0 ? 'Добавить' : 'Увеличить количество'));
         await tester.pumpAndSettle();
       }
       expect(cart.getCatalogQuantity(weight), 0.75);
+      expect(calls, [lightImpact, selectionClick, selectionClick]);
       expect(find.byType(ProductPage), findsNothing);
       expect(find.byType(ProductDetailPage), findsNothing);
       await Scrollable.ensureVisible(
           tester.element(_step(first, 'Уменьшить количество')),
           alignment: 0.5);
       await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 90));
       await tester.tap(_step(first, 'Уменьшить количество'));
       await tester.pumpAndSettle();
       expect(cart.getCatalogQuantity(weight), 0.5);
@@ -161,15 +172,63 @@ void main() {
       await tester.tap(_step(third, 'Добавить'));
       await tester.pumpAndSettle();
       expect(cart.getCatalogQuantity(unavailable), 0);
+      expect(
+          calls, [lightImpact, selectionClick, selectionClick, selectionClick]);
       expect(unexpected, isEmpty);
     },
         () => MockClient((request) async {
               unexpected.add('$request');
               throw StateError('Unexpected request: $request');
             }));
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('likes persist only after success and stay business-scoped',
+  for (final (authenticated, audience) in [
+    (false, 'guests'),
+    (true, 'signed-in shoppers'),
+  ]) {
+    testWidgets('promotion grid has no favorites for $audience', (tester) async {
+      if (authenticated) {
+        SharedPreferences.setMockInitialValues({'auth_token': 'mock-token'});
+        await AuthService.notifySessionChanged();
+      }
+      expect(await AuthService.captureSession(), authenticated ? isNotNull : isNull);
+      final liked = LikedItemsProvider();
+      addTearDown(liked.dispose);
+      if (authenticated) liked.updateLike(7, 17, true);
+      final unexpected = <String>[];
+      final client = MockClient((request) async {
+        if (request.method != 'GET' ||
+            request.url.path != '/api/promotions/44/items') {
+          unexpected.add('$request');
+          throw StateError('Unexpected request: $request');
+        }
+        return _response({
+          'items': [
+            _item(17, 'Первый товар').toJson(),
+            _item(18, 'Второй товар').toJson(),
+          ],
+        });
+      });
+
+      await http.runWithClient(() async {
+        await tester.pumpWidget(_app(
+          const PromotionItemsPage(promotionId: 44, businessId: 7),
+          liked: liked,
+        ));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProductCard), findsNWidgets(2));
+        expect(find.byTooltip('В избранное'), findsNothing);
+        expect(find.byTooltip('Добавить в избранное'), findsNothing);
+        expect(find.byTooltip('Убрать из избранного'), findsNothing);
+        expect(unexpected, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      }, () => client);
+    });
+  }
+
+  testWidgets(
+      'promotion product detail persists likes only after a scoped success',
       (tester) async {
     SharedPreferences.setMockInitialValues({'auth_token': 'mock-token'});
     await AuthService.notifySessionChanged();
@@ -187,12 +246,14 @@ void main() {
         ),
         liked: liked,
       ));
-      final heart = find.byKey(const ValueKey('promotion-like-0'));
-      await Scrollable.ensureVisible(
-        tester.element(heart),
-        alignment: .3,
-      );
       await tester.pumpAndSettle();
+      final card = find.byKey(const ValueKey('promotion-product-0'));
+      // The artwork corner once occupied by the heart now opens the product.
+      await tester.tapAt(tester.getTopRight(card) + const Offset(-26, 26));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProductPage), findsOneWidget);
+      expect(toggles, 0);
+      final heart = find.byTooltip('В избранное');
       await tester.tap(heart);
       await tester.pumpAndSettle();
       expect(liked.isLiked(7, 17), isFalse);
@@ -205,6 +266,7 @@ void main() {
       expect(await LikedStorageService.getLikedIds(businessId: 8), isEmpty);
       expect(toggles, 2);
       expect(unexpected, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
     },
         () => MockClient((request) async {
               if (request.method != 'POST' ||
@@ -222,6 +284,7 @@ void main() {
 
   testWidgets('simple and option products open their supported detail routes',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final simple = _item(17, 'Обычный товар');
     final option = Item(
       itemId: 18,
@@ -258,11 +321,15 @@ void main() {
       await tester.tap(find.text('Обычный товар'));
       await tester.pumpAndSettle();
       expect(find.byType(ProductPage), findsOneWidget);
-      tester.state<NavigatorState>(find.byType(Navigator)).pop();
+      await tester.tap(find.byTooltip('Назад'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Товар с выбором'));
       await tester.pumpAndSettle();
       expect(find.byType(ProductDetailPage), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('configuration-back')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PromotionItemsPage), findsOneWidget);
+      expect(calls, isEmpty);
       expect(unexpected, isEmpty);
       expect(tester.takeException(), isNull);
     },
@@ -270,7 +337,7 @@ void main() {
               unexpected.add('$request');
               throw StateError('Unexpected request: $request');
             }));
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 }
 
 Finder _step(Finder product, String label) => find.descendant(

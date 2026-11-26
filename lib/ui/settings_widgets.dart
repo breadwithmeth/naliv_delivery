@@ -262,11 +262,10 @@ class SettingsChoice<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final reduced = MediaQuery.disableAnimationsOf(context);
     final duration =
         reduced ? Duration.zero : const Duration(milliseconds: 240);
-    final track = dark ? palette.background : Colors.white;
+    final track = palette.background;
     final scaler = MediaQuery.textScalerOf(context);
     return Semantics(
       container: true,

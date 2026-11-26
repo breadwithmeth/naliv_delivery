@@ -34,6 +34,9 @@
   <title>Градусы24</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preload" href="assets/assets/startup/logo1.png" as="image">
+  <link rel="preload" href="assets/assets/startup/3.png" as="image" media="(prefers-reduced-motion: no-preference)">
+  <link rel="preload" href="assets/assets/startup/2.png" as="image" media="(prefers-reduced-motion: no-preference)">
+  <link rel="preload" href="assets/assets/startup/1.png" as="image" media="(prefers-reduced-motion: no-preference)">
 
   <script>
     // The value below is injected by flutter build, do not touch.
@@ -272,7 +275,14 @@
       margin: 0;
       min-height: 100%;
       height: 100%;
+    }
+
+    html {
       background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-deep) 100%);
+    }
+
+    html[data-html-splash=""] {
+      background: var(--splash-orange);
     }
 
     body {
@@ -305,16 +315,67 @@
       transition: opacity 240ms ease;
     }
 
-    .splash-logo {
+    .splash-lockup {
       position: absolute;
+      z-index: 3;
       top: 50%;
       left: 50%;
-      width: min(420px, calc(100% - 20px));
+      width: min(336px, max(0px, calc(80% - 16px)));
+      transform: translate(-50%, -50%);
+    }
+
+    .splash-mark {
+      position: relative;
+    }
+
+    .splash-logo {
+      display: block;
+      width: 100%;
       height: auto;
-      max-height: calc(100% - 20px);
-      object-fit: contain;
-      transform: translate(-50%, -50%) scale(.8);
-      transition: opacity 240ms ease, transform 240ms ease;
+    }
+
+    .splash-imprint {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .splash-imprinting .splash-imprint {
+      display: block;
+    }
+
+    .splash-imprinting .splash-logo {
+      visibility: hidden;
+    }
+
+    .splash-imprint-word,
+    .splash-imprint-cap,
+    .splash-imprint-seal {
+      position: absolute;
+      inset: 0 auto 0 0;
+    }
+
+    /* Crop the same preloaded PNG; the animation needs no second logo download. */
+    .splash-imprint-word,
+    .splash-imprint-seal {
+      background: url("assets/assets/startup/logo1.png") no-repeat;
+    }
+
+    .splash-imprint-word {
+      width: calc(1854 * 100% / 2450);
+      background-size: calc(2450 * 100% / 1854) 100%;
+    }
+
+    .splash-imprint-cap {
+      left: calc(1897 * 100% / 2450);
+      width: calc(553 * 100% / 2450);
+    }
+
+    .splash-imprint-seal {
+      right: 0;
+      background-size: calc(2450 * 100% / 553) 100%;
+      background-position: right center;
     }
 
     .splash-sweep {
@@ -342,13 +403,8 @@
       transition: opacity 240ms ease, filter 240ms ease;
     }
 
-    .splash-revealing .splash-orange,
-    .splash-revealing .splash-logo {
+    .splash-revealing .splash-orange {
       opacity: 0;
-    }
-
-    .splash-revealing .splash-logo {
-      transform: translate(-50%, calc(-50% - 8px)) scale(.9);
     }
 
     .splash-revealing .splash-sweep {
@@ -357,13 +413,14 @@
       transition: transform 520ms ease-in-out, border-radius 520ms ease-in-out;
     }
 
-    .splash-past-intro .splash-layer {
+    .splash-revealing .splash-layer {
       opacity: var(--reveal-opacity);
       filter: var(--reveal-filter);
     }
 
     .splash-recovery {
       position: absolute;
+      z-index: 2;
       inset: auto 16px max(40px, 16%);
       margin: 0 auto;
       max-width: 360px;
@@ -448,23 +505,23 @@
 
     @media (prefers-reduced-motion: reduce) {
       #splash,
-      .splash-orange,
-      .splash-logo {
+      .splash-orange {
         transition: none;
       }
 
+      .splash-imprinting .splash-logo {
+        visibility: visible;
+      }
+
+      .splash-mark {
+        transform: none !important;
+        opacity: 1 !important;
+      }
+
       .splash-sweep,
+      .splash-imprinting .splash-imprint,
       .splash-layers {
         display: none;
-      }
-
-      .splash-revealing .splash-orange,
-      .splash-revealing .splash-logo {
-        opacity: 1;
-      }
-
-      .splash-revealing .splash-logo {
-        transform: translate(-50%, -50%) scale(.8);
       }
     }
   </style>
@@ -556,7 +613,15 @@
   </script>
   <div id="splash">
     <div class="splash-orange"></div>
-    <img class="splash-logo" src="assets/assets/startup/logo1.png" width="2450" height="553" alt="Градусы24" draggable="false">
+    <div class="splash-lockup" role="img" aria-label="Градусы24">
+      <div class="splash-mark">
+        <img class="splash-logo" src="assets/assets/startup/logo1.png" width="2450" height="553" alt="" draggable="false">
+        <div class="splash-imprint" aria-hidden="true">
+          <div class="splash-imprint-word"></div>
+          <div class="splash-imprint-cap"><div class="splash-imprint-seal"></div></div>
+        </div>
+      </div>
+    </div>
     <div class="splash-sweep"></div>
     <div class="splash-layers" aria-hidden="true"></div>
     <p class="splash-recovery" role="status"></p>
@@ -565,53 +630,132 @@
     (() => {
       const splash = document.getElementById("splash");
       const layers = splash.querySelector(".splash-layers");
+      const recovery = splash.querySelector(".splash-recovery");
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const holdAt = 990;
       const revealStart = 1600;
       const flightDuration = 2750;
       const lastSealDelay = 500;
       const handoffDuration = 520;
+      const animations = [];
+      const gatedAnimations = [];
+      const canAnimate = typeof Element.prototype.animate === "function" &&
+        typeof KeyframeEffect !== "undefined" &&
+        typeof KeyframeEffect.prototype.updateTiming === "function" &&
+        typeof document.timeline?.currentTime === "number" &&
+        CSS.supports("clip-path", "inset(0 100% 0 0)");
+      let skipMotion = reduceMotion.matches || !canAnimate;
+      const launchStart = skipMotion ? 0 : document.timeline.currentTime;
       let flutterReady = false;
-      let revealStarted = false;
+      let revealTimer;
+      let handoffTimer;
 
-      // A mounted Flutter view does not mean it has painted a frame.
-      function handoffIfReady() {
-        if (!flutterReady || (!revealStarted && !reduceMotion.matches)) return;
+      function clearMotion() {
         clearTimeout(revealTimer);
-        clearTimeout(settleTimer);
-        clearTimeout(recoveryTimer);
-        reduceMotion.removeEventListener?.("change", handoffIfReady);
-        splash.setAttribute("aria-hidden", "true");
-        if (!reduceMotion.matches) splash.classList.add("splash-revealing");
-        splash.classList.add("removing");
-        document.body.style.background = "transparent";
-        if (reduceMotion.matches) {
-          splash.remove();
-        } else {
-          setTimeout(() => splash.remove(), handoffDuration);
-        }
+        clearTimeout(handoffTimer);
+        for (const animation of animations) animation.cancel();
+        animations.length = 0;
+        gatedAnimations.length = 0;
       }
 
-      const revealTimer = setTimeout(() => {
-        revealStarted = true;
-        splash.classList.add("splash-past-intro");
-        handoffIfReady();
-      }, revealStart);
-      const settleTimer = setTimeout(() => {
-        // A slow cold boot keeps its logo; do not reveal an empty white surface.
-        layers.replaceChildren();
-      }, flightDuration + lastSealDelay);
+      function finish() {
+        clearMotion();
+        if (reduceMotion.removeEventListener) {
+          reduceMotion.removeEventListener("change", stopMotion);
+        } else {
+          reduceMotion.removeListener(stopMotion);
+        }
+        // Keep the HTML ownership marker; switch only the pre-paint background.
+        document.documentElement.dataset.htmlSplash = "handoff";
+        splash.remove();
+      }
+
+      function reveal() {
+        document.documentElement.dataset.htmlSplash = "handoff";
+        splash.setAttribute("aria-hidden", "true");
+        splash.classList.add("splash-revealing", "removing");
+        handoffTimer = setTimeout(finish, handoffDuration);
+      }
+
+      function stopMotion(event) {
+        if (!event.matches) return;
+        // Do not replay the entrance if the user enables motion again mid-boot.
+        skipMotion = true;
+        if (flutterReady) {
+          finish();
+          return;
+        }
+        clearMotion();
+        splash.classList.remove("splash-imprinting");
+        layers.textContent = "";
+      }
+
       const recoveryTimer = setTimeout(() => {
-        splash.querySelector(".splash-recovery").textContent =
-          "Загрузка занимает дольше обычного — подождите или обновите страницу.";
+        recovery.textContent = "Загрузка занимает дольше обычного — подождите или обновите страницу.";
       }, 60000);
 
+      // A mounted Flutter view does not mean it has painted a frame.
       window.addEventListener("flutter-first-frame", () => {
         flutterReady = true;
-        handoffIfReady();
-      }, { once: true });
-      reduceMotion.addEventListener?.("change", handoffIfReady);
+        clearTimeout(recoveryTimer);
+        recovery.textContent = "";
+        if (skipMotion || reduceMotion.matches) {
+          finish();
+          return;
+        }
 
-      if (reduceMotion.matches || !Element.prototype.animate) return;
+        const now = document.timeline.currentTime;
+        const elapsed = Math.min(holdAt, Math.max(0, now - launchStart));
+        for (const animation of gatedAnimations) {
+          animation.effect.updateTiming({ endDelay: 0 });
+          animation.startTime = now - elapsed;
+        }
+        revealTimer = setTimeout(reveal, revealStart - elapsed);
+      }, { once: true });
+
+      if (reduceMotion.addEventListener) {
+        reduceMotion.addEventListener("change", stopMotion);
+      } else {
+        reduceMotion.addListener(stopMotion);
+      }
+
+      if (skipMotion) return;
+
+      function animate(node, keyframes, timing) {
+        // End the effect at the hold beat until Flutter paints. WAAPI holds that
+        // frame even when the main thread cannot run a pause timer promptly.
+        const endDelay = Math.min(0, holdAt - timing.duration - (timing.delay || 0));
+        const motion = node.animate(keyframes, { ...timing, fill: "both", endDelay });
+        motion.startTime = launchStart;
+        animations.push(motion);
+        if (endDelay < 0) gatedAnimations.push(motion);
+        return motion;
+      }
+
+      const easeInCubic = "cubic-bezier(.55,.055,.675,.19)";
+      const easeOutCubic = "cubic-bezier(.215,.61,.355,1)";
+      const centeredCapX = (2450 - 553) / 2;
+      const travel = { delay: 130, duration: 400, easing: easeOutCubic };
+      const imprint = animate(splash.querySelector(".splash-imprint-word"), [
+        { transform: `translateX(${100 * centeredCapX / 1854}%)`, clipPath: "inset(0 100% 0 0)" },
+        { transform: "translateX(0%)", clipPath: "inset(0 0% 0 0)" }
+      ], travel);
+      imprint.onfinish = () => splash.classList.remove("splash-imprinting");
+      animate(splash.querySelector(".splash-imprint-cap"), [
+        { transform: `translateX(${100 * (centeredCapX - 1897) / 553}%) rotate(-22deg)` },
+        { transform: "translateX(0%) rotate(0deg)" }
+      ], travel);
+      animate(splash.querySelector(".splash-imprint-seal"), [
+        { transform: "scale(1.38)", easing: easeInCubic },
+        { transform: "scale(.92)", offset: .5, easing: easeOutCubic },
+        { transform: "scale(1)" }
+      ], { duration: 200 });
+      animate(splash.querySelector(".splash-mark"), [
+        { transform: "translateY(0px)", opacity: 1, easing: easeInCubic },
+        { transform: "translateY(4px)", opacity: 1, offset: .3, easing: easeInCubic },
+        { transform: "translateY(-48px)", opacity: 0 }
+      ], { delay: holdAt, duration: 300 });
+      splash.classList.add("splash-imprinting");
 
       // Keep the waypoints and timing in sync with Flutter's AppLaunchIntro.
       const offsets = [0, .2, .52, .8, 1];
@@ -708,7 +852,7 @@
         img.style.setProperty("--layer-filter", echo ? `blur(${echoBlur}px) ${shadow}` : shadow);
         img.style.setProperty("--reveal-filter", echo ? `blur(${revealEchoBlur}px) ${shadow}` : shadow);
         layers.append(img);
-        img.animate(keyframes, { duration: flightDuration, delay: art.delay, fill: "both" });
+        animate(img, keyframes, { duration: flightDuration, delay: art.delay });
       }
 
       for (const art of artwork) {

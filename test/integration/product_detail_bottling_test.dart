@@ -4,17 +4,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/core/money.dart';
 import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/model/cart_item.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
+import 'package:naliv_delivery/ui/surfaces.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/smart_cart.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../support/bottling_surface_items.dart';
+import '../support/haptic_calls.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -22,6 +25,8 @@ void main() {
   testWidgets(
       'required multi selection blocks save and optional single can be cleared',
       (tester) async {
+    final calls = recordHapticCalls(tester);
+    enableQuantityClicks(tester);
     final item = _optionsItem(amount: 3);
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
@@ -32,13 +37,87 @@ void main() {
     await _tap(tester, 'configuration-option-9-61');
     await _tap(tester, 'configuration-option-9-61');
     await _tap(tester, 'configuration-quantity-plus');
+    expect(calls, isEmpty, reason: 'Rejected save and draft edits are silent');
     await _tap(tester, 'configuration-save');
     final group = cart.activeDisplayGroups.single;
     expect(group.baseVariants.map(SmartCartSelection.variantRelationId).toSet(),
         {41, 52});
     expect(group.totalQuantity, 2);
     expect(group.totalPrice, 2100);
-  });
+    expect(calls, [lightImpact]);
+    // Revert a draft change to re-enable Save with identical contents.
+    await _tap(tester, 'configuration-option-9-61');
+    await _tap(tester, 'configuration-option-9-61');
+    await _tap(tester, 'configuration-save');
+    expect(calls, [lightImpact], reason: 'Resaving identical options is silent');
+    await _tap(tester, 'configuration-option-9-61');
+    expect(calls, [lightImpact]);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.totalQuantity, 2);
+    expect(calls, [lightImpact, selectionClick]);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('save reveals only unanswered required groups on a long form',
+      (tester) async {
+    final calls = recordHapticCalls(tester);
+    final cart = await _newCart(tester);
+    await _mount(
+      tester,
+      cart,
+      Builder(builder: (context) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            padding: const EdgeInsets.only(top: 48, bottom: 34),
+            disableAnimations: true,
+            textScaler: const TextScaler.linear(1.5),
+          ),
+          child: ProductDetailPage(
+              item: _optionsItem(), initialBaseVariants: const []),
+        );
+      }),
+      size: const Size(375, 620),
+    );
+
+    final save = find.byKey(const ValueKey('configuration-save'));
+    Finder error(int id) =>
+        find.byKey(ValueKey('configuration-option-$id-error'));
+    void expectVisibleError(int id) {
+      final rect = tester.getRect(error(id));
+      expect(
+        rect.top,
+        greaterThan(tester
+            .getBottomLeft(find.byKey(const ValueKey('configuration-back')))
+            .dy),
+      );
+      expect(rect.bottom, lessThan(tester.getTopLeft(save).dy));
+    }
+
+    expect(error(7), findsNothing);
+    await _tap(tester, 'configuration-save');
+    expect(error(7), findsOneWidget);
+    expect(error(8), findsOneWidget);
+    expect(error(9), findsNothing);
+    expectVisibleError(7);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.byKey(const ValueKey('configuration-feedback')), findsNothing);
+
+    await _tap(tester, 'configuration-option-7-41');
+    expect(error(7), findsNothing);
+    expect(error(8), findsOneWidget);
+    await _tap(tester, 'configuration-save');
+    expectVisibleError(8);
+    expect(cart.items, isEmpty);
+    expect(calls, isEmpty);
+
+    await _tap(tester, 'configuration-option-8-52');
+    expect(error(8), findsNothing);
+    expect(_text(tester, 'configuration-total'), formatTenge(1050));
+    expect(calls, isEmpty);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.totalPrice, 1050);
+    expect(calls, [lightImpact]);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'single and multiple options preserve price and relation IDs after reload and edit',
@@ -47,6 +126,20 @@ void main() {
     final cart = await _newCart(tester);
     await _mount(tester, cart, ProductDetailPage(item: item));
     await _tap(tester, 'configuration-option-7-42');
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+              find.byKey(const ValueKey('configuration-option-7-41')))
+          .selected,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+              find.byKey(const ValueKey('configuration-option-7-42')))
+          .selected,
+      isTrue,
+    );
     await _tap(tester, 'configuration-option-8-52');
     await _tap(tester, 'configuration-option-9-61');
     await _tap(tester, 'configuration-save');
@@ -155,6 +248,7 @@ void main() {
     await _tap(tester, 'configuration-option-7-41');
     await _tap(tester, 'configuration-save');
     expect(cart.items.map((item) => item.toJson()).toList(), before);
+    expect(find.byType(SnackBar), findsNothing);
     expect(
         find.byKey(const ValueKey('configuration-feedback')), findsOneWidget);
   });
@@ -385,6 +479,33 @@ void main() {
         isNull);
     expect(cart.items, isEmpty);
   });
+
+  testWidgets('same litres in different bottles click only when saved',
+      (tester) async {
+    final calls = recordHapticCalls(tester);
+    enableQuantityClicks(tester);
+    final item = _pourItem();
+    final cart = await _newCart(tester);
+    expect(cart.syncItemBottleCounts(item, [], {1: 2}), isTrue);
+    await _mount(tester, cart, ProductDetailPage(item: item));
+    AppSurface bottle(int id) => tester.widget<AppSurface>(
+        find.byKey(ValueKey('configuration-bottle-$id-surface')));
+    expect(bottle(1).border, Border.all(color: AppPalette.dark.accent));
+    expect(bottle(2).border, Border.all(color: Colors.transparent));
+    expect(_text(tester, 'configuration-total'), formatTenge(2100));
+    await _tap(tester, 'configuration-bottle-1-minus');
+    await _tap(tester, 'configuration-bottle-1-minus');
+    await _tap(tester, 'configuration-bottle-2-plus');
+    expect(bottle(1).border, Border.all(color: Colors.transparent));
+    expect(bottle(2).border, Border.all(color: AppPalette.dark.accent));
+    expect(_text(tester, 'configuration-total'), formatTenge(2120));
+    expect(cart.activeDisplayGroups.single.bottleCounts, {1: 2});
+    expect(calls, isEmpty);
+    await _tap(tester, 'configuration-save');
+    expect(cart.activeDisplayGroups.single.bottleCounts, {2: 1});
+    expect(cart.activeDisplayGroups.single.totalQuantity, 2);
+    expect(calls, [selectionClick]);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'cart cancel discards draft and subsequent save only edits the opened bottle group',
@@ -766,8 +887,12 @@ Future<CartProvider> _newCart(WidgetTester tester) async {
 }
 
 Future<void> _mount(
-    WidgetTester tester, CartProvider cart, Widget child) async {
-  await tester.binding.setSurfaceSize(const Size(800, 1400));
+  WidgetTester tester,
+  CartProvider cart,
+  Widget child, {
+  Size size = const Size(800, 1400),
+}) async {
+  await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(MultiProvider(
     providers: [

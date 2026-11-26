@@ -7,6 +7,7 @@ import '../../../design/theme.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_dock.dart';
@@ -230,6 +231,24 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
     _active.value = next;
   }
 
+  /// The displayed selection, including the fallback before the scroll spy runs.
+  int? _selectedParentId(int? active) {
+    int? first;
+    for (final parent in _data?.categories ?? const <CategoryRef>[]) {
+      if (_empty.contains(parent.id)) continue;
+      if (parent.id == active) return active;
+      first ??= parent.id;
+    }
+    return first;
+  }
+
+  void _selectParent(CategoryRef parent) {
+    final changed = !_empty.contains(parent.id) &&
+        parent.id != _selectedParentId(_active.value);
+    _scrollTo(parent);
+    if (changed) AppHaptics.selectionConfirmed();
+  }
+
   /// Brings [parent]'s section to the top. Sections are built lazily, so a far one is first
   /// approached by the average section height and then aligned once it exists.
   Future<void> _scrollTo(CategoryRef parent) async {
@@ -347,11 +366,8 @@ class _SupercategoryPageState extends State<SupercategoryPage> {
                           final parents = _parents;
                           return CategorySwitcher(
                             parents: parents,
-                            selectedId:
-                                parents.any((parent) => parent.id == active)
-                                    ? active!
-                                    : parents.first.id,
-                            onParent: _scrollTo,
+                            selectedId: _selectedParentId(active)!,
+                            onParent: _selectParent,
                             onChild: _openChild,
                           );
                         },
@@ -636,10 +652,14 @@ class _ParentSectionState extends State<_ParentSection> {
           item,
           onTap: () => _openProduct(item),
           quantity: quantity,
-          onIncrement: () =>
-              context.read<CartProvider>().incrementCatalogItem(item.source),
-          onDecrement: () =>
-              context.read<CartProvider>().decrementCatalogItem(item.source),
+          onIncrement: () => AppHaptics.addCatalogStep(
+            context.read<CartProvider>(),
+            item,
+          ),
+          onDecrement: () => AppHaptics.removeCatalogStep(
+            context.read<CartProvider>(),
+            item,
+          ),
         ),
       );
 }

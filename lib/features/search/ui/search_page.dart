@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/product_view.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_search_field.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_icon_button.dart';
@@ -37,7 +38,7 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class _SearchPageState extends State<SearchPage> with FavoriteSessionVisibility {
   final _controller = TextEditingController();
   final _scroll = ScrollController();
   int _generation = 0;
@@ -163,12 +164,10 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _openProduct(ProductView item, bool liked) {
+  void _openProduct(ProductView item) {
     openProduct(
       context,
       item,
-      liked: liked,
-      onLike: () => _toggleLike(item),
       onCart: widget.onCart,
       businessId: widget.businessId,
     );
@@ -205,6 +204,9 @@ class _SearchPageState extends State<SearchPage> {
                   child: AppSearchField(
                     controller: _controller,
                     autofocus: true,
+                    // Commit the composing range without yielding keyboard
+                    // focus; submit, errors and retries only change results.
+                    onEditingComplete: _controller.clearComposing,
                     onSubmitted: _search,
                     onChanged: _textChanged,
                   ),
@@ -289,13 +291,15 @@ class _SearchPageState extends State<SearchPage> {
           builder: (context, state, _) => ProductRow.fromView(
             item,
             liked: state.$2,
-            onTap: () => _openProduct(item, state.$2),
+            onTap: () => _openProduct(item),
             quantity: state.$1,
-            onLike: () => _toggleLike(item),
+            onLike: canFavorite && widget.businessId != null
+                ? () => _toggleLike(item)
+                : null,
             onIncrement: () =>
-                context.read<CartProvider>().incrementCatalogItem(item.source),
-            onDecrement: () =>
-                context.read<CartProvider>().decrementCatalogItem(item.source),
+                AppHaptics.addCatalogStep(context.read<CartProvider>(), item),
+            onDecrement: () => AppHaptics.removeCatalogStep(
+                context.read<CartProvider>(), item),
           ),
         );
       },

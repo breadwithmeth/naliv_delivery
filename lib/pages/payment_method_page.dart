@@ -12,9 +12,10 @@ import 'package:naliv_delivery/features/orders/ui/orders_page.dart';
 import 'package:naliv_delivery/features/faq/faq_navigation.dart';
 import 'package:naliv_delivery/features/faq/models/faq.dart';
 import 'package:naliv_delivery/pages/help_chat_page.dart';
-import 'package:naliv_delivery/ui/app_states.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/ui/app_icon.dart';
 import 'package:naliv_delivery/ui/app_icon_button.dart';
+import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/ui/frosted_dock.dart';
 import 'package:naliv_delivery/ui/frosted_surface.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
@@ -66,6 +67,17 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   bool _readingPaymentGuard = true;
   bool get _paymentUnconfirmed =>
       _paymentState == OrderPaymentState.unconfirmed;
+  bool get _selectionBusy =>
+      !_ownerCurrent ||
+      _isPaying ||
+      _flow.reauthenticationRequired ||
+      _orderClosed ||
+      _readingPaymentGuard ||
+      _paymentState != OrderPaymentState.ready ||
+      _flow.preparing ||
+      _flow.awaiting;
+  bool get _cardSelectionBusy =>
+      _selectionBusy || _flow.loading || _flow.error != null;
   _CardFeedback? _cardFeedback;
   String? _kaspiPaymentLink;
   Map<String, dynamic>? _refreshedOrder;
@@ -75,6 +87,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   final String? _ownerAccount = AuthService.currentIdentity;
   bool _invalidated = false;
   Route<void>? _progressRoute;
+  final _progressTitle = ValueNotifier('');
   PaymentFollowUp? _deferredFollowUp;
   double _dockHeight = 0;
   bool get _ownerCurrent =>
@@ -151,6 +164,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     AuthService.sessionRevision.removeListener(_credentialsChanged);
     _flow.removeListener(_cardsChanged);
     _flow.dispose();
+    _progressTitle.dispose();
     super.dispose();
   }
 
@@ -168,12 +182,19 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     }
     setState(() => _readingPaymentGuard = true);
     final session = await AuthService.captureSession();
-    if (session == null || !session.isCurrent || !_ownerCurrent) return;
+    if (session == null || !session.isCurrent || !_ownerCurrent) {
+      if (_ownerCurrent) {
+        _applyPaymentState(OrderPaymentState.storageUnavailable);
+        setState(() => _readingPaymentGuard = false);
+      }
+      return;
+    }
     final id = _orderId();
     var state = id == null
         ? OrderPaymentState.storageUnavailable
         : await OrderPaymentGuard.read(id, accountId: _ownerAccount);
     var serverCompleted = false;
+    var confirmedViaKaspi = false;
     var statusUnavailable = false;
     var kaspiCancelled = false;
     try {
@@ -203,6 +224,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           if (_kaspiPaymentLink != null) {
             final outcome = await _refreshKaspiStatus(id, session);
             serverCompleted = outcome == OrderPaymentOutcome.completed;
+            confirmedViaKaspi = serverCompleted;
             statusUnavailable = outcome == OrderPaymentOutcome.unknown;
             kaspiCancelled = !initial && outcome == OrderPaymentOutcome.refused;
           } else {
@@ -223,7 +245,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                 }
               }
             }
-            statusUnavailable = order == null;
+            statusUnavailable = order == null ||
+                orderPaymentOutcome(order) == OrderPaymentOutcome.unknown;
             if (order != null && _ownerCurrent && session.isCurrent) {
               _refreshedOrder = order;
               serverCompleted =
@@ -246,7 +269,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           !_orderClosed &&
           id != null &&
           state == OrderPaymentState.completed) {
-        await _finishSuccessfulPayment(id);
+        await _finishSuccessfulPayment(id, kaspi: confirmedViaKaspi);
       }
     } catch (_) {
       if (!_ownerCurrent || !session.isCurrent) return;
@@ -256,7 +279,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         _CardFeedbackTone.error,
       );
     } finally {
-      if (mounted) setState(() => _readingPaymentGuard = false);
+      if (_ownerCurrent && session.isCurrent) {
+        setState(() => _readingPaymentGuard = false);
+      }
     }
     if (kaspiCancelled &&
         _ownerCurrent &&
@@ -284,8 +309,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         );
       } else if (state == OrderPaymentState.unconfirmed) {
         _cardFeedback = const _CardFeedback(
-          message:
-              'Оплата ещё не подтверждена. Проверьте заказ перед повторной оплатой.',
+          message: 'Сервер ещё не подтвердил оплату. Новый платёж недоступен, '
+              'пока результат не известен.',
           tone: _CardFeedbackTone.info,
         );
       } else if (state == OrderPaymentState.completed) {
@@ -330,16 +355,24 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     _selectedCardId = null;
   }
 
+  void _choosePaymentMethod(_PaymentMethodType method, {String? cardId}) {
+    if (_selectionBusy ||
+        (method == _selectedPaymentMethod && cardId == _selectedCardId) ||
+        (method == _PaymentMethodType.card &&
+            (_cardSelectionBusy ||
+                cardId == null ||
+                !_flow.cards.any((card) => card.chargeId == cardId)))) {
+      return;
+    }
+    setState(() {
+      _selectedPaymentMethod = method;
+      _selectedCardId = cardId;
+    });
+    AppHaptics.selectionConfirmed();
+  }
+
   Future<void> _pay({_PaymentMethodType? paymentMethod}) async {
-    if (!_ownerCurrent ||
-        _flow.reauthenticationRequired ||
-        _isPaying ||
-        _orderClosed ||
-        _readingPaymentGuard ||
-        _paymentState != OrderPaymentState.ready ||
-        _flow.loading ||
-        _flow.preparing ||
-        _flow.awaiting) {
+    if (_selectionBusy || _flow.loading) {
       return;
     }
     final selectedMethod = paymentMethod ?? _selectedPaymentMethod;
@@ -515,9 +548,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           createOutcome == OrderPaymentOutcome.refused) {
         if (_ownerCurrent && session.isCurrent) {
           closeProgressDialog();
+          final unresolved = _paymentUnconfirmed;
           _deferredFollowUp = await _showKaspiFailure(
-            title: 'Не удалось начать оплату',
-            message: _paymentErrorMessage(result['error']),
+            title: unresolved ? 'Проверяем оплату' : 'Не удалось начать оплату',
+            message: unresolved
+                ? 'Сервер пока не подтвердил результат запроса Kaspi.kz.'
+                : _paymentErrorMessage(result['error']),
+            failed: !unresolved,
+            preferCheck: unresolved,
           );
         }
         return false;
@@ -527,7 +565,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         await _settleKaspiPayment(orderId, OrderPaymentOutcome.completed);
         if (!_ownerCurrent || !session.isCurrent) return false;
         closeProgressDialog();
-        await _finishSuccessfulPayment(orderId);
+        await _finishSuccessfulPayment(orderId, kaspi: true);
         return false;
       }
 
@@ -537,8 +575,11 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         if (_ownerCurrent && session.isCurrent) {
           closeProgressDialog();
           _deferredFollowUp = await _showKaspiFailure(
-            title: 'Не удалось начать оплату',
-            message: 'Kaspi.kz не вернул ссылку для оплаты.',
+            title: 'Проверяем оплату',
+            message: 'Ссылка Kaspi.kz не получена. Проверьте статус, '
+                'прежде чем продолжить.',
+            failed: false,
+            preferCheck: true,
           );
         }
         return false;
@@ -560,18 +601,19 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       try {
         opened = await _openKaspiPaymentLink(paymentLink, webKaspiWindowHandle);
       } catch (_) {}
+      if (!_ownerCurrent || !session.isCurrent) return opened;
       if (!opened) {
-        if (mounted) {
-          closeProgressDialog();
-          _deferredFollowUp = await _showKaspiFailure(
-            title: 'Не удалось открыть Kaspi.kz',
-            message:
-                'Ссылка для оплаты сохранена: её можно открыть снова без нового списания.',
-          );
-        }
+        closeProgressDialog();
+        _deferredFollowUp = await _showKaspiFailure(
+          title: 'Не удалось открыть Kaspi.kz',
+          message:
+              'Ссылка для оплаты сохранена: её можно открыть снова без нового списания.',
+          failed: false,
+        );
         return false;
       }
 
+      _progressTitle.value = 'Проверяем оплату';
       _setCardFeedback(
         'Ссылка Kaspi.kz открыта. Ожидаем подтверждение оплаты.',
         _CardFeedbackTone.info,
@@ -584,9 +626,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       if (statusResult == null || statusResult['success'] != true) {
         closeProgressDialog();
         _deferredFollowUp = await _showKaspiFailure(
-          title: 'Статус оплаты не получен',
-          message:
-              'Не удалось проверить оплату в Kaspi.kz. Если вы уже оплатили заказ, она обновится после подтверждения.',
+          title: 'Проверяем оплату',
+          message: 'Сервер Kaspi.kz пока не подтвердил статус. '
+              'Проверьте оплату снова или откройте ту же ссылку.',
           failed: false,
           preferCheck: true,
         );
@@ -597,13 +639,15 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       if (outcome == OrderPaymentOutcome.completed) {
         await _settleKaspiPayment(orderId, outcome);
         closeProgressDialog();
-        await _finishSuccessfulPayment(orderId);
+        if (!_ownerCurrent || !session.isCurrent) return true;
+        await _finishSuccessfulPayment(orderId, kaspi: true);
         return true;
       }
 
       if (outcome == OrderPaymentOutcome.refused) {
         await _settleKaspiPayment(orderId, outcome);
         closeProgressDialog();
+        if (!_ownerCurrent || !session.isCurrent) return true;
         _deferredFollowUp = await _showKaspiFailure(
           title: 'Отмена покупки',
           message: 'Вы не подтвердили покупку',
@@ -613,9 +657,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
       closeProgressDialog();
       _deferredFollowUp = await _showKaspiFailure(
-        title: 'Подтвердите оплату',
-        message:
-            'Откройте приложение Kaspi.kz и подтвердите покупку. Если вы уже оплатили заказ, статус обновится после подтверждения.',
+        title: 'Проверяем оплату',
+        message: 'Подтвердите покупку в приложении Kaspi.kz. '
+            'Если уже оплатили, дождитесь подтверждения сервера.',
         failed: false,
         preferCheck: true,
       );
@@ -784,6 +828,8 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   void _showPaymentProgressDialog(_PaymentMethodType paymentMethod) {
     final isKaspi = paymentMethod == _PaymentMethodType.kaspi;
+    _progressTitle.value =
+        isKaspi ? 'Готовимся к приему оплаты' : 'Проводим оплату…';
     final route = DialogRoute<void>(
       context: context,
       barrierDismissible: false,
@@ -791,11 +837,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       builder: (_) => PopScope(
         canPop: false,
         child: Dialog.fullscreen(
-          child: PaymentNoticePage(
-            title: isKaspi ? 'Готовимся к приему оплаты' : 'Проводим оплату…',
-            message: null,
-            kaspi: isKaspi,
-            loading: true,
+          child: ValueListenableBuilder<String>(
+            valueListenable: _progressTitle,
+            builder: (_, title, _) => PaymentNoticePage(
+              title: title,
+              message: null,
+              kaspi: isKaspi,
+              loading: true,
+            ),
           ),
         ),
       ),
@@ -804,8 +853,13 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     unawaited(Navigator.of(context, rootNavigator: true).push(route));
   }
 
-  Future<void> _finishSuccessfulPayment(String orderId) async {
-    if (!_ownerCurrent || _completionPresented) return;
+  Future<void> _finishSuccessfulPayment(String orderId,
+      {bool kaspi = false}) async {
+    if (!_ownerCurrent ||
+        _completionPresented ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
     _completionPresented = true;
 
     await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
@@ -816,8 +870,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
         onOrders: widget.onPaymentCompleted == null
             ? null
             : () => widget.onPaymentCompleted!(orderId),
-        kaspi: _selectedPaymentMethod == _PaymentMethodType.kaspi ||
-            _kaspiPaymentLink != null,
+        kaspi: kaspi,
         amount: _chargedAmount(),
       ),
     ));
@@ -886,7 +939,9 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
     PaymentNoticeChoice? secondary,
     String? supportError,
   }) async {
-    if (!_ownerCurrent) return null;
+    if (!_ownerCurrent || ModalRoute.of(context)?.isCurrent == false) {
+      return null;
+    }
     final result = await showDialog<PaymentFollowUp>(
       context: context,
       useSafeArea: false,
@@ -992,19 +1047,23 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
 
   Future<PaymentFollowUp?> _showPaymentFailureNotice(String message,
       {bool kaspi = false, String? title, String? supportError}) {
+    final unresolved = _paymentUnconfirmed;
     if (kaspi) {
       return _showKaspiFailure(
-        title: title ?? 'Не удалось выполнить оплату',
+        title: title ??
+            (unresolved ? 'Проверяем оплату' : 'Не удалось выполнить оплату'),
         message: message,
+        failed: !unresolved,
+        preferCheck: unresolved,
         supportError: supportError,
       );
     }
     final (primary, secondary) = _noticeChoices(kaspi: false);
     return _presentNotice(
-      title: title ?? 'Ошибка оплаты',
+      title: title ?? (unresolved ? 'Проверяем оплату' : 'Ошибка оплаты'),
       message: message,
       note: _lockedNote,
-      failed: true,
+      failed: !unresolved,
       cardFaq: true,
       help: true,
       primary: primary,
@@ -1056,14 +1115,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
       );
     }
     final palette = context.palette;
-    final selectionBusy = _isPaying ||
-        _flow.reauthenticationRequired ||
-        _orderClosed ||
-        _readingPaymentGuard ||
-        _paymentState != OrderPaymentState.ready ||
-        _flow.preparing ||
-        _flow.awaiting;
-    final cannotPay = selectionBusy ||
+    final cannotPay = _selectionBusy ||
         _flow.loading ||
         _selectedPaymentMethod == null ||
         (_selectedPaymentMethod == _PaymentMethodType.card &&
@@ -1115,7 +1167,6 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                   child: _methodList(
                     topInset: topInset,
                     bottomClearance: bottomClearance,
-                    selectionBusy: selectionBusy,
                   ),
                 ),
               ),
@@ -1139,7 +1190,6 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   Widget _methodList({
     required double topInset,
     required double bottomClearance,
-    required bool selectionBusy,
   }) {
     final palette = context.palette;
     const gap = SizedBox(height: AppSpacing.xl);
@@ -1161,7 +1211,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                     child: CardFlowFeedback(flow: _flow),
                   ),
                 ),
-              SliverToBoxAdapter(child: _kaspiTile(selectionBusy)),
+              SliverToBoxAdapter(child: _kaspiTile()),
               if (_flow.loading)
                 const SliverToBoxAdapter(
                   child: SizedBox(height: 80, child: AppLoading()),
@@ -1202,16 +1252,12 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
                             _selectedPaymentMethod == _PaymentMethodType.card &&
                             _selectedCardId == card.chargeId,
                         showSelection: card.canCharge,
-                        onSelected: selectionBusy ||
-                                _flow.loading ||
-                                _flow.error != null ||
-                                !card.canCharge
+                        onSelected: _cardSelectionBusy || !card.canCharge
                             ? null
-                            : () => setState(() {
-                                  _selectedPaymentMethod =
-                                      _PaymentMethodType.card;
-                                  _selectedCardId = card.chargeId;
-                                }),
+                            : () => _choosePaymentMethod(
+                                _PaymentMethodType.card,
+                                cardId: card.chargeId,
+                              ),
                       );
                     },
                   ),
@@ -1291,9 +1337,14 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_selectedPaymentMethod == _PaymentMethodType.kaspi) ...[
+                  if (_selectedPaymentMethod == _PaymentMethodType.kaspi &&
+                      (!_paymentUnconfirmed || _kaspiPaymentLink != null)) ...[
                     const KaspiLogo(),
                     const SizedBox(height: AppSpacing.xl),
+                  ],
+                  if (_paymentUnconfirmed && !_orderClosed) ...[
+                    Text('Проверяем оплату', style: AppTypography.title),
+                    const SizedBox(height: AppSpacing.md),
                   ],
                   Text(feedback.message, style: AppTypography.body),
                 ],
@@ -1382,6 +1433,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
           key: key,
           onPressed: onPressed,
           style: FilledButton.styleFrom(
+            enableFeedback: false,
             minimumSize: const Size.fromHeight(52),
             shape: const StadiumBorder(),
           ),
@@ -1394,15 +1446,12 @@ class _PaymentMethodPageState extends State<PaymentMethodPage>
   /// other methods: the logo starts where a card's glyph starts. A row keeps at least 220
   /// dp for them even at 320 dp wide, so the compact mark is never needed; the Wrap only
   /// moves Gold under the logo if a very narrow window ever forces it.
-  Widget _kaspiTile(bool busy) => PaymentMethodTile(
+  Widget _kaspiTile() => PaymentMethodTile(
         inkKey: const ValueKey('payment-kaspi'),
         selected: _selectedPaymentMethod == _PaymentMethodType.kaspi,
-        onTap: busy
+        onTap: _selectionBusy
             ? null
-            : () => setState(() {
-                  _selectedPaymentMethod = _PaymentMethodType.kaspi;
-                  _selectedCardId = null;
-                }),
+            : () => _choosePaymentMethod(_PaymentMethodType.kaspi),
         title: const Wrap(
           spacing: AppSpacing.md,
           runSpacing: AppSpacing.xs,

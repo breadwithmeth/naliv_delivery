@@ -63,7 +63,7 @@ void main() {
             await tester.pumpWidget(const SizedBox());
             final context = tester.element(find.byType(SizedBox));
             await tester.runAsync(() => Future.wait([
-              for (final name in ['logo1', '3', '2', '1'])
+              for (final name in ['logo1', 'launch-cap', 'launch-word', '3', '2', '1'])
                 precacheImage(AssetImage('assets/startup/$name.png'), context),
             ]));
           }
@@ -80,6 +80,10 @@ void main() {
           // Avoid pumpAndSettle: home SVG/banner animation never settles. Allow the
           // mocked catalogue/recommendation GETs and preference read to finish.
           await tester.pump(const Duration(milliseconds: 100));
+          if (surface == 'startup') {
+            await tester.pump(); // Decoded, static imprint frame.
+            await tester.pump(); // First ticker frame, t=0.
+          }
           await tester.pump(const Duration(milliseconds: 400));
           await tester.pump(const Duration(milliseconds: 100));
           // Store readiness mounts nested pages on a later frame; settle their

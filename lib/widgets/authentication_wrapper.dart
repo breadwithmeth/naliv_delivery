@@ -26,6 +26,7 @@ import 'package:naliv_delivery/features/notifications/ui/notification_history_pa
 import 'package:naliv_delivery/pages/profile_addresses_page.dart';
 import 'package:naliv_delivery/pages/profile_cards_page.dart';
 import 'package:naliv_delivery/pages/profile_setup_page.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/app_navigator.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
@@ -66,9 +67,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   bool _requiresProfileSetup = false;
   bool _initialDestinationQueued = false;
   bool _homeEntryQueued = false;
-  bool _showingAgeConfirmation = false;
   int? _navigationAuthRequest;
   late final AgeConfirmationSession _ageConfirmation;
+  late final bool _ownsAgeConfirmation;
   Future<void>? _checkingAuth;
   String? _checkingAuthToken;
   int? _checkingCredentialRevision;
@@ -82,15 +83,19 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   @override
   void initState() {
     super.initState();
-    _ageConfirmation = widget.ageConfirmation ??
-        context.read<AgeConfirmationSession?>() ??
-        AgeConfirmationSession.currentRun;
+    final ageConfirmation =
+        widget.ageConfirmation ?? context.read<AgeConfirmationSession?>();
+    _ownsAgeConfirmation = ageConfirmation == null;
+    _ageConfirmation = ageConfirmation ?? AgeConfirmationSession();
+    _ageConfirmation.addListener(_ageConfirmationChanged);
     _credentialRevision = AuthService.credentialRevision;
     _observedEndingSession = AuthService.isEndingSession;
     AuthService.sessionRevision.addListener(_sessionChanged);
     AppNavigator.registerCartOpener(_openCartFromAnywhere);
     _checkAuth();
   }
+
+  void _ageConfirmationChanged() => setState(() {});
 
   void _openCartFromAnywhere() {
     if (!mounted || !_ageConfirmation.isConfirmed) return;
@@ -101,6 +106,8 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _ageConfirmation.removeListener(_ageConfirmationChanged);
+    if (_ownsAgeConfirmation) _ageConfirmation.dispose();
     AuthService.sessionRevision.removeListener(_sessionChanged);
     AppNavigator.unregisterCartOpener(_openCartFromAnywhere);
     super.dispose();
@@ -261,7 +268,7 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
   }
 
   void _queueHomeEntry() {
-    if (_homeEntryQueued || _showingAgeConfirmation) return;
+    if (_homeEntryQueued) return;
     final hasInitialDestination =
         !_initialDestinationQueued && widget.initialDestination != null;
     if (_ageConfirmation.isConfirmed &&
@@ -273,13 +280,16 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _homeEntryQueued = false;
       if (!mounted ||
+          !_ageConfirmation.isReady ||
           _homeData == null ||
           (_isAuthenticated && _requiresProfileSetup) ||
           ModalRoute.of(context)?.isCurrent != true) {
         return;
       }
       if (!_ageConfirmation.isConfirmed) {
-        unawaited(_presentAgeConfirmation());
+        unawaited(_ageConfirmation.requestConfirmation(
+          (save) => showAgeConfirmationDialog(context, onConfirm: save),
+        ));
         return;
       }
       final destination = widget.initialDestination;
@@ -297,17 +307,9 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
     });
   }
 
-  Future<void> _presentAgeConfirmation() async {
-    _showingAgeConfirmation = true;
-    final confirmed = await showAgeConfirmationDialog(context);
-    if (confirmed) _ageConfirmation.confirm();
-    _showingAgeConfirmation = false;
-    if (mounted) setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading || !_ageConfirmation.isReady) {
       return const AppLoadingScreen();
     }
 
@@ -496,77 +498,100 @@ class _AuthenticationWrapperState extends State<AuthenticationWrapper>
 
   Future<void> _selectStore() async {
     final data = _homeData;
-    if (_selectingStore) return;
-    if (data == null || data.stores.isEmpty) return;
-    final palette = Theme.of(context).colorScheme;
-    final store = await showModalBottomSheet<HomeStore>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: palette.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => HomeStoreSheet(
-        stores: data.stores,
-        selectedId: data.storeId,
-      ),
-    );
-    if (!mounted || store == null) return;
+    if (_selectingStore || data == null || data.stores.isEmpty) return;
+    final route = ModalRoute.of(context);
+    final revision = AuthService.credentialRevision;
+    bool currentSession() =>
+        revision == AuthService.credentialRevision &&
+        !AuthService.isEndingSession;
+    bool canAccept() =>
+        currentSession() &&
+        route?.isCurrent == true &&
+        identical(_homeData, data);
+
     final cart = context.read<CartProvider>();
     final selected = context.read<BusinessProvider>();
-    final currentId = cart.hasActiveItems ? cart.businessId : data.storeId;
-    if (store.id == currentId) return;
-    if (cart.hasActiveItems) {
-      final discard = await showDialog<bool>(
+    _selectingStore = true;
+    try {
+      final palette = Theme.of(context).colorScheme;
+      final store = await showModalBottomSheet<HomeStore>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Сменить магазин?'),
-          content: const Text(
-            'Товары относятся к исходному магазину: переносить их без пересчёта нельзя. Удалить текущую корзину и выбрать другой магазин?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Отмена'),
-            ),
-            TextButton(
-              key: const ValueKey('confirm-store-change'),
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Удалить корзину и сменить'),
-            ),
-          ],
+        isScrollControlled: true,
+        backgroundColor: palette.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => HomeStoreSheet(
+          stores: data.stores,
+          selectedId: cart.hasActiveItems ? cart.businessId : data.storeId,
         ),
       );
-      if (!mounted || discard != true) return;
-    }
-    _selectingStore = true;
-    final previous = selected.selectedBusiness;
-    final saved = await selected.setSelectedBusiness({
-      'id': store.id,
-      'name': store.name,
-      'address': store.address,
-      if (store.city != null) '_cityName': store.city,
-      if (store.cityId != null) 'city_id': store.cityId,
-    });
-    final cartSaved = saved &&
-        (cart.hasActiveItems
-            ? await cart.discardForBusiness(store.id)
-            : await cart.bindBusiness(store.id));
-    if (saved && !cartSaved) await selected.setSelectedBusiness(previous);
-    _selectingStore = false;
-    if (!cartSaved) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Не удалось сохранить магазин. Корзина не изменена.')),
+      if (!mounted || !canAccept() || store == null) return;
+      final discardCart = cart.hasActiveItems;
+      final currentId = discardCart ? cart.businessId : data.storeId;
+      if (store.id == currentId) return;
+      if (discardCart) {
+        final discard = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Сменить магазин?'),
+            content: const Text(
+              'Товары относятся к исходному магазину: переносить их без пересчёта нельзя. Удалить текущую корзину и выбрать другой магазин?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Отмена'),
+              ),
+              TextButton(
+                key: const ValueKey('confirm-store-change'),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Удалить корзину и сменить'),
+              ),
+            ],
+          ),
         );
+        if (!mounted || discard != true || !canAccept() ||
+            cart.businessId != currentId) {
+          return;
+        }
       }
-      return;
-    }
-    if (mounted) {
+      final previous = selected.selectedBusiness;
+      final saved = await selected.setSelectedBusiness({
+        'id': store.id,
+        'name': store.name,
+        'address': store.address,
+        if (store.city != null) '_cityName': store.city,
+        if (store.cityId != null) 'city_id': store.cityId,
+      });
+      final cartSaved = saved &&
+          (discardCart
+              ? await cart.discardForBusiness(store.id)
+              : await cart.bindBusiness(store.id));
+      if (saved && !cartSaved) await selected.setSelectedBusiness(previous);
+      if (!mounted || !currentSession()) return;
+      if (!cartSaved) {
+        if (route?.isCurrent == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Не удалось сохранить магазин. Корзина не изменена.'),
+            ),
+          );
+        }
+        return;
+      }
+      final changed = canAccept() &&
+          selected.selectedBusinessId == store.id &&
+          cart.businessId == store.id;
       setState(() => _homeData = null);
+      if (changed &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        AppHaptics.selectionConfirmed();
+      }
       await _loadHome();
+    } finally {
+      _selectingStore = false;
     }
   }
 

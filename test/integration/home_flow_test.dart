@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -5,11 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/core/theme_controller.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/home/age_confirmation_session.dart';
 import 'package:naliv_delivery/features/home/home_screen.dart';
+import 'package:naliv_delivery/features/home/home_view_data.dart';
 import 'package:naliv_delivery/features/search/ui/search_page.dart';
 import 'package:naliv_delivery/features/profile/ui/profile_page.dart';
 import 'package:naliv_delivery/pages/promotion_items_page.dart';
@@ -19,16 +22,77 @@ import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:naliv_delivery/ui/app_icon.dart';
+import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/widgets/authentication_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 import '../support/design_surfaces.dart';
 import 'package:naliv_delivery/features/bonuses/ui/bonus_history_page.dart';
 import 'package:naliv_delivery/features/notifications/ui/notification_history_page.dart';
 import 'package:naliv_delivery/pages/notification_settings_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
 
+import '../support/haptic_calls.dart';
+import '../support/preferences_store.dart';
+
 void main() {
+  testWidgets('home product rail confirms first add and accepted quantity edits',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    enableQuantityClicks(tester);
+    final calls = recordHapticCalls(tester);
+    await tester.binding.setSurfaceSize(const Size(375, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    expect(await cart.bindBusiness(1), isTrue);
+    final item =
+        Item(itemId: 73, name: 'Тестовая закуска', price: 500, amount: 2);
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: cart,
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: HomeScreen(
+          data: HomeViewData(
+            storeName: 'Магазин',
+            storeAddress: 'Тестовый адрес',
+            storeId: 1,
+            banners: const [],
+            promoCard: null,
+            categories: const [],
+            signedIn: false,
+            productSections: [
+              HomeProductSection(
+                category: const HomeCategory(id: 2, title: 'Закуски'),
+                products: [ProductView.fromItem(item)],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+    Finder step(String label) => find.descendant(
+          of: find.byKey(const ValueKey('home-product-73')),
+          matching: find.byWidgetPredicate(
+              (widget) => widget is StepTap && widget.label == label),
+        );
+    await tester.ensureVisible(step('Добавить'));
+    await tester.pumpAndSettle();
+    await tester.tap(step('Добавить'));
+    expect(cart.getCatalogQuantity(item), 1);
+    expect(calls, [lightImpact]);
+    await tester.pumpAndSettle();
+    await tester.tap(step('Увеличить количество'));
+    expect(cart.getCatalogQuantity(item), 2);
+    expect(calls, [lightImpact, selectionClick]);
+    await tester.pump(const Duration(milliseconds: 90));
+    await tester.tap(step('Уменьшить количество'));
+    expect(cart.getCatalogQuantity(item), 1);
+    expect(calls, [lightImpact, selectionClick, selectionClick]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   for (final inbox in [false, true]) {
     testWidgets('guest header ${inbox ? "inbox" : "bonuses"} resumes after fixture OTP', (
     tester,
@@ -135,7 +199,14 @@ void main() {
   testWidgets('home chooses a store and scopes subsequent catalog requests', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
+    final priorStore = SharedPreferencesStorePlatform.instance;
+    final preferences = OnboardingPreferences()..install();
+    addTearDown(() {
+      SharedPreferencesStorePlatform.instance = priorStore;
+      SharedPreferences.resetStatic();
+    });
+    final calls = recordHapticCalls(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final business = BusinessProvider();
@@ -153,7 +224,7 @@ void main() {
         child: MaterialApp(
           theme: AppTheme.dark(),
           home: AuthenticationWrapper(
-            ageConfirmation: AgeConfirmationSession(),
+            ageConfirmation: AgeConfirmationSession.inMemory(),
           ),
         ),
       ));
@@ -163,6 +234,7 @@ void main() {
       await tester.tap(find.text('Мне есть 21 год'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-store-card')), findsOneWidget);
+      expect(calls, isEmpty, reason: 'automatic home store binding is silent');
       // The account icon is the profile route, not the navigation drawer.
       await tester.tap(find.byWidgetPredicate(
         (widget) => widget is AppIcon && widget.asset == AppIcons.user,
@@ -218,17 +290,48 @@ void main() {
           ),
         );
 
+        Finder storeCheck(int id) => find.descendant(
+          of: find.byKey(ValueKey('home-store-$id')),
+          matching: find.byIcon(Icons.check),
+        );
+        await tester.tap(find.byKey(const ValueKey('home-store-card')));
+        await tester.pumpAndSettle();
+        expect(storeCheck(1), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('home-store-1')));
+        await tester.pumpAndSettle();
+        expect(find.text('Сменить магазин?'), findsNothing);
+        expect(calls, isEmpty);
+
         await tester.tap(find.byKey(const ValueKey('home-store-card')));
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('home-store-2')), findsOneWidget);
         expect(find.text('Астана  1'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('home-store-2')));
         await tester.pumpAndSettle();
+        expect(calls, isEmpty, reason: 'chooser result still needs confirmation');
         await tester.tap(find.text('Отмена'));
         await tester.pumpAndSettle();
         expect(business.selectedBusinessId, isNot(2));
         expect(cart.hasActiveItems, isTrue);
+        expect(calls, isEmpty);
         await expectContact('Караганда', '+77719290005');
+
+        preferences.heldKey = 'selected_business';
+        final rejectedWrite = preferences.heldWrite = Completer<bool>();
+        await tester.tap(find.byKey(const ValueKey('home-store-card')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('home-store-2')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('confirm-store-change')));
+        await tester.pumpAndSettle();
+        expect(calls, isEmpty, reason: 'preference write is still pending');
+        rejectedWrite.complete(false);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Не удалось сохранить магазин'), findsOneWidget);
+        expect(cart.hasActiveItems, isTrue);
+        expect(business.selectedBusinessId, 1);
+        expect(calls, isEmpty);
+        preferences.heldKey = null;
 
         await tester.tap(find.byKey(const ValueKey('home-store-card')));
         await tester.pumpAndSettle();
@@ -240,6 +343,7 @@ void main() {
         }
         expect(cart.hasActiveItems, isFalse);
         expect(business.selectedBusinessId, 2);
+        expect(calls, [selectionClick]);
         expect(
           requests
               .where((uri) => uri.path.endsWith('/promotions/active'))
@@ -248,6 +352,12 @@ void main() {
           '2',
         );
         expect(find.text('Второй магазин'), findsWidgets);
+        await tester.tap(find.byKey(const ValueKey('home-store-card')));
+        await tester.pumpAndSettle();
+        expect(storeCheck(2), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('home-store-2')));
+        await tester.pumpAndSettle();
+        expect(calls, [selectionClick]);
         await expectContact('Астана', '+77719291001');
         await tester.tap(find.byKey(const ValueKey('home-search-field')));
         await tester.pumpAndSettle();
@@ -283,6 +393,7 @@ void main() {
               .queryParameters['business_id'],
           '2');
       expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
     },
         () => MockClient((request) async {
               requests.add(request.url);
@@ -366,7 +477,7 @@ void main() {
                   jsonEncode({'success': true, 'data': data}), 200,
                   headers: {'content-type': 'application/json; charset=utf-8'});
             }));
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   testWidgets('invalid cached user does not prevent profile refresh navigation',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -419,7 +530,7 @@ void main() {
           child: MaterialApp(
             theme: AppTheme.dark(),
             home: AuthenticationWrapper(
-              ageConfirmation: AgeConfirmationSession()..confirm(),
+              ageConfirmation: AgeConfirmationSession.inMemory(confirmed: true),
             ),
           ),
         ));

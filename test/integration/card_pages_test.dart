@@ -17,8 +17,11 @@ import 'package:naliv_delivery/ui/kaspi_payment.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
 import 'package:naliv_delivery/utils/order_payment_guard.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
+import 'package:naliv_delivery/ui/payment_method_tile.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/haptic_calls.dart';
 
 http.Response _response(Object? cards) => http.Response(
     jsonEncode({
@@ -111,13 +114,17 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
-  testWidgets(
-      'opened provider stays pending until refresh proves a new identity, even at the same count',
+  for (final explicitCheck in [true, false]) {
+    testWidgets(
+      'a verified binding ${explicitCheck ? 'after an explicit check clicks once' : 'on resume stays quiet'}',
       (tester) async {
+    final calls = recordHapticCalls(tester);
+    var reads = 0;
     var cards = [_card('old')];
     final client = MockClient((request) async {
-      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
-        expect(request.url.queryParameters, {'source': 'halyk'});
+      if (request.method == 'GET' && request.url.path == '/api/user/cards' &&
+          request.url.query == 'source=halyk') {
+        reads++;
         return _response(cards);
       }
       if (request.method == 'POST' &&
@@ -146,22 +153,40 @@ void main() {
                   find.byKey(const ValueKey('add-card-button')))
               .onPressed,
           isNull);
-      await tester.tap(find.byKey(const ValueKey('refresh-card-list')));
-      await tester.pumpAndSettle();
-      expect(
-          find.text('Новая карта сохранена и готова к оплате'), findsNothing);
-      expect(find.byKey(const ValueKey('cancel-card-add')), findsOneWidget);
+      expect(calls, isEmpty);
+      if (explicitCheck) {
+        await tester.tap(find.byKey(const ValueKey('refresh-card-list')));
+        await tester.pumpAndSettle();
+        expect(find.text('Новая карта сохранена и готова к оплате'),
+            findsNothing);
+        expect(find.byKey(const ValueKey('cancel-card-add')), findsOneWidget);
+        expect(calls, isEmpty);
+      }
+      final readsBefore = reads;
       cards = [_card('new')];
-      await tester.tap(find.byKey(const ValueKey('refresh-card-list')));
+      if (explicitCheck) {
+        await tester.tap(find.byKey(const ValueKey('refresh-card-list')));
+      } else {
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        await tester.pump();
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      }
       await tester.pumpAndSettle();
+      expect(reads, readsBefore + 1);
       expect(
           find.text('Новая карта сохранена и готова к оплате'), findsOneWidget);
       expect(find.byKey(const ValueKey('saved-card-new')), findsOneWidget);
       expect(find.byKey(const ValueKey('cancel-card-add')), findsNothing);
+      expect(calls, explicitCheck ? [selectionClick] : isEmpty);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(calls, explicitCheck ? [selectionClick] : isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
     }, () => client);
     await tester.binding.setSurfaceSize(null);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
 
   testWidgets(
       'failed launch offers retry and opened-form cancellation restores adding without success',
@@ -248,6 +273,56 @@ void main() {
     }, () => client);
     await tester.binding.setSurfaceSize(null);
   });
+
+  testWidgets('payment checkmark and click follow only a different selection',
+      (tester) async {
+    final calls = recordHapticCalls(tester);
+    final unexpected = <http.Request>[];
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/api/user/cards') {
+        return _response([_card('first'), _card('second')]);
+      }
+      unexpected.add(request);
+      throw StateError('Unexpected fixture request: $request');
+    });
+    addTearDown(client.close);
+    await http.runWithClient(() async {
+      await _pumpPage(
+        tester,
+        const PaymentMethodPage(orderData: {
+          'order_id': 'fixture-selection',
+          'payable_amount': 1200,
+        }),
+      );
+      final first = find.byKey(const ValueKey('payment-card-first'));
+      final second = find.byKey(const ValueKey('payment-card-second'));
+      final kaspi = find.byKey(const ValueKey('payment-kaspi'));
+      final kaspiTile =
+          find.ancestor(of: kaspi, matching: find.byType(PaymentMethodTile));
+      Finder cardTile(Finder row) =>
+          find.descendant(of: row, matching: find.byType(PaymentMethodTile));
+      bool selected(Finder tile) =>
+          tester.widget<PaymentMethodTile>(tile).selected;
+
+      expect(selected(cardTile(first)), isTrue);
+      await tester.tap(first);
+      expect(calls, isEmpty);
+      await tester.tap(kaspi);
+      await tester.tap(kaspi); // Same frame, before the row updates.
+      await tester.pumpAndSettle();
+      expect(selected(kaspiTile), isTrue);
+      expect(selected(cardTile(first)), isFalse);
+      expect(calls, [selectionClick]);
+      await tester.tap(second);
+      await tester.pumpAndSettle();
+      expect(selected(cardTile(second)), isTrue);
+      expect(selected(kaspiTile), isFalse);
+      expect(calls, [selectionClick, selectionClick]);
+      expect(unexpected, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => client);
+    await tester.binding.setSurfaceSize(null);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'with many cards the pay bar stays full width and the list ends above it',

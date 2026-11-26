@@ -6,6 +6,8 @@ import 'package:naliv_delivery/core/theme_controller.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
+import 'package:naliv_delivery/core/like_action.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/utils/browser_history.dart';
 import 'package:naliv_delivery/utils/browser_route_history_observer.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
@@ -33,6 +35,20 @@ import 'features/support/ui/city_contacts_sheet.dart';
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 final BrowserRouteHistoryObserver browserRouteHistoryObserver =
     BrowserRouteHistoryObserver();
+
+Future<void> _visibleLaunchWindow() async {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    try {
+      await const MethodChannel('kz.gradusy24.app/launch')
+          .invokeMethod<void>('waitForVisibleWindow');
+    } on MissingPluginException {
+      // Alternative Flutter hosts need only the first-raster barrier.
+    } on PlatformException catch (error) {
+      debugPrint('Launch window notification unavailable: ${error.code}');
+    }
+  }
+  await WidgetsBinding.instance.waitUntilFirstFrameRasterized;
+}
 
 Future<void> main() async {
   await runZonedGuarded<Future<void>>(
@@ -96,7 +112,7 @@ Future<void> main() async {
             ],
             child: isHtmlSplashManaged()
                 ? const Main()
-                : const AppLaunchIntro(child: Main()),
+                : AppLaunchIntro(visibleWindow: _visibleLaunchWindow(), child: const Main()),
           ),
         ),
       );
@@ -119,8 +135,9 @@ class Main extends StatefulWidget {
 
 class _MainState extends State<Main> with WidgetsBindingObserver {
   final _admissionKey = GlobalKey<NavigatorState>();
-  late final AgeConfirmationSession _ageConfirmation =
-      widget.ageConfirmation ?? AgeConfirmationSession.currentRun;
+  final _favoriteRouteObserver = FavoriteRouteObserver();
+  late final AgeConfirmationSession _ageConfirmation;
+  late final bool _ownsAgeConfirmation;
   bool _admitted = false;
   late bool _pendingFaq =
       WidgetsBinding.instance.platformDispatcher.defaultRouteName ==
@@ -129,6 +146,11 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    if (AppHaptics.supported) unawaited(AppHaptics.preference.load());
+    final ageConfirmation = widget.ageConfirmation;
+    _ownsAgeConfirmation = ageConfirmation == null;
+    // Read the installation preference during admission, before Home can open.
+    _ageConfirmation = ageConfirmation ?? AgeConfirmationSession();
     _ageConfirmation.addListener(_schedulePendingFaq);
     browserHistoryEnableExitWarning();
     WidgetsBinding.instance.addObserver(this);
@@ -137,6 +159,7 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
   @override
   void dispose() {
     _ageConfirmation.removeListener(_schedulePendingFaq);
+    if (_ownsAgeConfirmation) _ageConfirmation.dispose();
     WidgetsBinding.instance.removeObserver(this);
     browserHistoryDisableExitWarning();
     super.dispose();
@@ -219,7 +242,7 @@ class _MainState extends State<Main> with WidgetsBindingObserver {
     return MaterialApp(
       navigatorKey: _admitted ? AppNavigator.key : _admissionKey,
       navigatorObservers: _admitted
-          ? [browserRouteHistoryObserver, routeObserver, SentryNavigatorObserver()]
+          ? [browserRouteHistoryObserver, routeObserver, _favoriteRouteObserver, SentryNavigatorObserver()]
           : const [],
       builder: (context, child) => !_admitted
           ? child!

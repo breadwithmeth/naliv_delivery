@@ -9,6 +9,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'photo_store.dart';
 
+typedef _PhotoHeader = ({int checkedAt, int length});
+typedef _DiskEntry = ({int checkedAt, int size});
+
 final _nativeStore = DiskPhotoStore._temporary();
 
 PhotoStore createPhotoStore() => _nativeStore;
@@ -32,56 +35,109 @@ class DiskPhotoStore implements PhotoStore {
 
   Directory? _directory;
   Future<void> _pending = Future<void>.value();
-  // Insertion order is oldest write first; rebuilt lazily, only before writing.
-  final _sizes = <String, int>{};
+  // Insertion order remains oldest write first for capacity eviction.
+  final _entries = <String, _DiskEntry>{};
+  int? _nextCheck;
   var _totalBytes = 0;
   var _indexed = false;
+
+  static final _idle = Future<void>.value();
+
+  bool _needsPrune(int cutoff) =>
+      !_indexed || (_nextCheck != null && _nextCheck! <= cutoff);
+
+  @override
+  Future<void> pruneExpired(DateTime through) {
+    final cutoff = through.microsecondsSinceEpoch;
+    if (!_needsPrune(cutoff)) return _idle;
+    return _serialize(() async {
+      if (!_needsPrune(cutoff)) return;
+      final directory = await _cacheDirectory();
+      await _ensureIndex(directory);
+      final expired = <String>[];
+      int? next;
+      for (final entry in _entries.entries) {
+        final check = entry.value.checkedAt;
+        if (check <= cutoff) {
+          expired.add(entry.key);
+        } else if (next == null || check < next) {
+          next = check;
+        }
+      }
+      for (final name in expired) {
+        await _removeEntry(directory, name);
+      }
+      _nextCheck = next;
+    });
+  }
+
+  void _rememberCheck(int checkedAt) {
+    if (_nextCheck == null || checkedAt < _nextCheck!) {
+      _nextCheck = checkedAt;
+    }
+  }
 
   @override
   Future<SavedPhoto?> read(Uri url) => _serialize(() async {
     final directory = await _cacheDirectory();
-    final file = File(p.join(directory.path, _name(url)));
+    final name = _name(url);
+    final file = File(p.join(directory.path, name));
     if (await FileSystemEntity.type(file.path, followLinks: false) !=
         FileSystemEntityType.file) {
+      _forget(name);
       return null;
     }
 
     try {
       final input = await file.open();
       try {
-        final headerBytes = await input.read(_headerSize);
-        if (headerBytes.length != _headerSize) return null;
-        final header = ByteData.sublistView(headerBytes);
-        if (header.getUint32(0) != _magic) return null;
-        final checkedAt = header.getInt64(4);
-        final length = header.getUint32(12);
-        if (checkedAt < -_maxDateTimeMicros ||
-            checkedAt > _maxDateTimeMicros ||
-            length == 0 ||
-            length > _maxPhotoBytes ||
-            await input.length() != _headerSize + length) {
-          return null;
+        final header = await _readHeader(input);
+        if (header != null) {
+          final (:checkedAt, :length) = header;
+          final bytes = await input.read(length);
+          if (bytes.length == length) {
+            return (
+              bytes: bytes,
+              checkedAt: DateTime.fromMicrosecondsSinceEpoch(
+                checkedAt,
+                isUtc: true,
+              ),
+            );
+          }
         }
-        final bytes = await input.read(length);
-        if (bytes.length != length) return null;
-        return (
-          bytes: bytes,
-          checkedAt: DateTime.fromMicrosecondsSinceEpoch(
-            checkedAt,
-            isUtc: true,
-          ),
-        );
       } finally {
         await input.close();
       }
+      await _removeEntry(directory, name);
     } on PathNotFoundException {
       // The OS may reclaim temporary files between operations.
-      return null;
+      _forget(name);
     }
+    return null;
   });
 
+  static Future<_PhotoHeader?> _readHeader(
+    RandomAccessFile input, {
+    int? fileSize,
+  }) async {
+    final bytes = await input.read(_headerSize);
+    if (bytes.length != _headerSize) return null;
+    final header = ByteData.sublistView(bytes);
+    if (header.getUint32(0) != _magic) return null;
+    final checkedAt = header.getInt64(4);
+    final length = header.getUint32(12);
+    if (checkedAt < -_maxDateTimeMicros ||
+        checkedAt > _maxDateTimeMicros ||
+        length == 0 ||
+        length > _maxPhotoBytes ||
+        (fileSize ?? await input.length()) != _headerSize + length) {
+      return null;
+    }
+    return (checkedAt: checkedAt, length: length);
+  }
+
   @override
-  Future<void> write(Uri url, SavedPhoto photo) {
+  Future<void> write(Uri url, SavedPhoto photo, {DateTime? previousCheck}) {
     final length = photo.bytes.length;
     if (length == 0 || length > _maxPhotoBytes) return Future<void>.value();
 
@@ -89,19 +145,25 @@ class DiskPhotoStore implements PhotoStore {
       final directory = await _cacheDirectory();
       await _ensureIndex(directory);
       final name = _name(url);
+      final current = _entries[name];
+      if (current != null &&
+          current.checkedAt != previousCheck?.microsecondsSinceEpoch) {
+        return;
+      }
       final size = _headerSize + length;
+      final checkedAt = photo.checkedAt.microsecondsSinceEpoch;
       final staged = File(p.join(directory.path, _stagingName));
       await staged.create(exclusive: true);
       try {
         // Reserve room for the staged record without deleting the live copy.
         while (_totalBytes + size > _maxCacheBytes) {
-          final oldest = _sizes.keys.firstWhere((entry) => entry != name);
+          final oldest = _entries.keys.firstWhere((entry) => entry != name);
           await _removeEntry(directory, oldest);
         }
 
         final header = ByteData(_headerSize)
           ..setUint32(0, _magic)
-          ..setInt64(4, photo.checkedAt.microsecondsSinceEpoch)
+          ..setInt64(4, checkedAt)
           ..setUint32(12, length);
         final output = await staged.open(mode: FileMode.write);
         try {
@@ -121,16 +183,25 @@ class DiskPhotoStore implements PhotoStore {
         }
         rethrow;
       }
-      _totalBytes -= _sizes.remove(name) ?? 0;
-      _sizes[name] = size;
+      _totalBytes -= _entries.remove(name)?.size ?? 0;
+      _entries[name] = (checkedAt: checkedAt, size: size);
       _totalBytes += size;
+      _rememberCheck(checkedAt);
     });
   }
 
   @override
-  Future<void> remove(Uri url) => _serialize(() async {
-    await _removeEntry(await _cacheDirectory(), _name(url));
-  });
+  Future<void> remove(Uri url, {DateTime? previousCheck}) {
+    if (previousCheck == null) return _idle;
+    return _serialize(() async {
+      final directory = await _cacheDirectory();
+      await _ensureIndex(directory);
+      final name = _name(url);
+      if (_entries[name]?.checkedAt == previousCheck.microsecondsSinceEpoch) {
+        await _removeEntry(directory, name);
+      }
+    });
+  }
 
   Future<Directory> _cacheDirectory() async => _directory ??= Directory(
     p.join((await getTemporaryDirectory()).path, 'naliv_catalog_photos_v1'),
@@ -148,36 +219,56 @@ class DiskPhotoStore implements PhotoStore {
   Future<void> _ensureIndex(Directory directory) async {
     if (_indexed && await directory.exists()) return;
     await directory.create(recursive: true);
-    final entries = <({String name, int size, DateTime modified})>[];
+    final entries = <({String name, _DiskEntry record, DateTime modified})>[];
     await for (final entry in directory.list(followLinks: false)) {
       if (entry is! File) continue;
       final name = p.basename(entry.path);
       if (name == _stagingName) {
         await _deleteIfPresent(entry);
       } else if (_recordName.hasMatch(name)) {
-        final stat = await entry.stat();
-        if (stat.type != FileSystemEntityType.file) continue;
-        if (stat.size <= _headerSize ||
-            stat.size > _headerSize + _maxPhotoBytes) {
-          await _deleteIfPresent(entry);
-          continue;
+        try {
+          final stat = await entry.stat();
+          if (stat.type != FileSystemEntityType.file) continue;
+          final input = await entry.open();
+          final _PhotoHeader? header;
+          try {
+            header = await _readHeader(input, fileSize: stat.size);
+          } finally {
+            await input.close();
+          }
+          if (header == null) {
+            await _deleteIfPresent(entry);
+            continue;
+          }
+          entries.add((
+            name: name,
+            record: (checkedAt: header.checkedAt, size: stat.size),
+            modified: stat.modified,
+          ));
+        } on PathNotFoundException {
+          // The OS may reclaim temporary files between operations.
         }
-        entries.add((name: name, size: stat.size, modified: stat.modified));
       }
     }
     entries.sort((a, b) => a.modified.compareTo(b.modified));
-    _sizes.clear();
+    _entries.clear();
+    _nextCheck = null;
     _totalBytes = 0;
     for (final entry in entries) {
-      _sizes[entry.name] = entry.size;
-      _totalBytes += entry.size;
+      _entries[entry.name] = entry.record;
+      _totalBytes += entry.record.size;
+      _rememberCheck(entry.record.checkedAt);
     }
     _indexed = true;
   }
 
   Future<void> _removeEntry(Directory directory, String name) async {
     await _deleteIfPresent(File(p.join(directory.path, name)));
-    _totalBytes -= _sizes.remove(name) ?? 0;
+    _forget(name);
+  }
+
+  void _forget(String name) {
+    _totalBytes -= _entries.remove(name)?.size ?? 0;
   }
 
   static Future<void> _deleteIfPresent(File file) async {

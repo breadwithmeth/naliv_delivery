@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/json_payload.dart';
 import '../../../core/money.dart';
 import '../../../design/theme.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../design/typography.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_icon.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_controls.dart';
@@ -51,6 +53,7 @@ class _CertificatesPageState extends State<CertificatesPage>
   String? _claimError;
   int _requestId = 0;
   bool _claiming = false;
+  bool _presentClaimConfirmation = false;
   bool _hasMore = false;
   bool _loadingMore = false;
   String? _moreError;
@@ -74,7 +77,16 @@ class _CertificatesPageState extends State<CertificatesPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ModalRoute.isCurrentOf(context) == false) {
+      _presentClaimConfirmation = false;
+    }
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _presentClaimConfirmation = false;
     if (state == AppLifecycleState.resumed && !_purchaseOpen && !_claiming) {
       _load();
     }
@@ -89,6 +101,8 @@ class _CertificatesPageState extends State<CertificatesPage>
     setState(() {
       _certificates = null;
       _claimError = null;
+      _claiming = false;
+      _presentClaimConfirmation = false;
       _error = null;
       _moreError = null;
       _loadingMore = false;
@@ -164,41 +178,68 @@ class _CertificatesPageState extends State<CertificatesPage>
     return message is String && message.trim().isNotEmpty ? message : fallback;
   }
 
+  String _claimConfirmation(Map<String, dynamic> response) {
+    final data = nullablePayloadMap(response['data']);
+    final certificate = nullablePayloadMap(data?['certificate']) ?? data;
+    final nominal = payloadDouble(certificate?['initial_amount']);
+    final status = switch (certificate?['status']) {
+      'active' => 'Активен',
+      'redeemed' => 'Использован',
+      'canceled' => 'Отменён',
+      _ => null,
+    };
+    return [
+      'Сертификат активирован',
+      if (nominal != null && nominal.isFinite && nominal >= 0)
+        formatTenge(nominal),
+      if (status != null) status,
+    ].join(' · ');
+  }
+
   Future<void> _claim() async {
     final code = _code.text.trim();
     if (code.isEmpty || _claiming) return;
+    final revision = _credentialRevision;
+    _presentClaimConfirmation =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
+            (ModalRoute.isCurrentOf(context) ?? false);
     setState(() {
       _claiming = true;
       _claimError = null;
     });
     final messenger = ScaffoldMessenger.of(context);
-    final session = await AuthService.captureSession();
-    if (session == null || !mounted) {
-      if (mounted) setState(() => _claiming = false);
-      return;
-    }
+    bool current() => mounted && revision == _credentialRevision;
     try {
+      final session = await AuthService.captureSession();
+      if (!current()) return;
+      if (session == null) {
+        setState(() => _claimError = 'Требуется авторизация');
+        return;
+      }
+      if (!session.isCurrent) return;
       final response = await ApiService.claimCertificate(code,
           credentialToken: session.token);
       if (!mounted || !session.isCurrent) return;
       if (response['success'] != true) {
-        if (mounted) {
-          setState(() => _claimError =
-              _message(response, 'Не удалось активировать сертификат'));
-        }
+        setState(() => _claimError =
+            _message(response, 'Не удалось активировать сертификат'));
         return;
       }
-      if (!mounted) return;
       _code.clear();
       setState(() => _status = 'active');
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Сертификат активирован')));
+      if (_presentClaimConfirmation &&
+          ModalRoute.isCurrentOf(context) == true) {
+        AppHaptics.selectionConfirmed();
+        messenger.showSnackBar(
+          SnackBar(content: Text(_claimConfirmation(response))),
+        );
+      }
       await _load();
     } catch (_) {
-      if (!mounted || !session.isCurrent) return;
+      if (!current() || AuthService.isEndingSession) return;
       setState(() => _claimError = 'Не удалось активировать сертификат');
     } finally {
-      if (mounted) setState(() => _claiming = false);
+      if (current()) setState(() => _claiming = false);
     }
   }
 

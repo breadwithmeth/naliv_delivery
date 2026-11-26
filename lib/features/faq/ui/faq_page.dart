@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/design/motion.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/design/typography.dart';
@@ -59,7 +60,8 @@ class _FaqPageState extends State<FaqPage> {
     Scrollable.ensureVisible(
       target,
       alignment: viewport == null || viewport <= 0 ? 0 : _topInset / viewport,
-      duration: const Duration(milliseconds: 250),
+      duration: AppMotion.of(context, AppMotion.slide),
+      curve: AppMotion.out,
     );
   }
 
@@ -152,6 +154,7 @@ class _FaqPageState extends State<FaqPage> {
                   children: [
                     for (final section in sections)
                       _Section(
+                        key: ValueKey(section.number),
                         headerKey: _sectionKeys.putIfAbsent(
                           section.number,
                           () => GlobalKey(),
@@ -180,6 +183,7 @@ class _Section extends StatelessWidget {
     required this.openKey,
     required this.onToggle,
     required this.headerKey,
+    super.key,
   });
 
   final FaqSectionData section;
@@ -205,6 +209,7 @@ class _Section extends StatelessWidget {
         ),
         for (final entry in section.entries)
           Column(
+            key: ValueKey(entry.number),
             children: [
               _EntryCard(
                 entry: entry,
@@ -233,12 +238,23 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final duration = AppMotion.of(context, AppMotion.slide);
+    final chevron =
+        Icon(Icons.chevron_right_rounded, size: 20, color: palette.textSecondary);
+    final answer = Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      child: Text(
+        entry.answer,
+        style: AppTypography.label.copyWith(color: palette.textSecondary),
+      ),
+    );
 
     return Semantics(
       button: true,
       expanded: isOpen,
       label: entry.question,
       child: InkWell(
+        enableFeedback: false,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -254,27 +270,38 @@ class _EntryCard extends StatelessWidget {
                             .copyWith(color: palette.textPrimary)),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  AnimatedRotation(
-                    turns: isOpen ? 0.25 : 0,
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 150),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: palette.textSecondary,
+                  if (duration == Duration.zero)
+                    RotatedBox(quarterTurns: isOpen ? 1 : 0, child: chevron)
+                  else
+                    AnimatedRotation(
+                      turns: isOpen ? 0.25 : 0,
+                      duration: duration,
+                      curve: AppMotion.out,
+                      child: chevron,
                     ),
-                  ),
                 ],
               ),
-              if (isOpen) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  entry.answer,
-                  style: AppTypography.label
-                      .copyWith(color: palette.textSecondary),
-                ),
-              ],
+              if (duration != Duration.zero)
+                ExcludeSemantics(
+                  excluding: !isOpen,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: isOpen ? 1.0 : 0.0),
+                    duration: duration,
+                    curve: AppMotion.out,
+                    child: answer,
+                    builder: (context, progress, answer) => progress == 0
+                        ? const SizedBox.shrink()
+                        : ClipRect(
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              heightFactor: progress,
+                              child: answer,
+                            ),
+                          ),
+                  ),
+                )
+              else if (isOpen)
+                answer,
             ],
           ),
         ),

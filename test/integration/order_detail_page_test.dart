@@ -11,6 +11,7 @@ import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/business_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../support/haptic_calls.dart';
 import '../support/preferences_store.dart';
 
 Widget _host() => MultiProvider(
@@ -132,9 +133,13 @@ void main() {
     }, () => client);
   });
 
-  testWidgets(
-      'repeat commits the cart and opens it even when the address cannot be saved',
+  for (final restorable in [true, false]) {
+    testWidgets(
+      restorable
+          ? 'repeat reports restored rows and known losses before opening the committed cart'
+          : 'repeat reports only the known losses when no row can be restored',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     const originalAddress = {
       'address': 'Исходный адрес',
       'lat': 52.28,
@@ -151,7 +156,21 @@ void main() {
     addTearDown(cart.dispose);
     addTearDown(business.dispose);
     final unexpected = <String>[];
-    const source = {
+    const restored = {
+      'item_id': 8302,
+      'name': 'Повторённый товар',
+      'price': 120,
+      'amount': 2,
+      'item_data': {
+        'item_id': 8302,
+        'name': 'Повторённый товар',
+        'price': 120,
+        'unit': 'шт',
+        'step_quantity': 1,
+        'amount': 10,
+      },
+    };
+    final source = {
       'order_id': 45,
       'business_id': 7,
       'business': {'id': 7, 'name': 'Магазин повторного заказа'},
@@ -163,20 +182,17 @@ void main() {
         'lon': 76.96,
       },
       'items': [
-        {
-          'item_id': 8302,
-          'name': 'Повторённый товар',
-          'price': 120,
-          'amount': 2,
-          'item_data': {
-            'item_id': 8302,
-            'name': 'Повторённый товар',
-            'price': 120,
-            'unit': 'шт',
-            'step_quantity': 1,
-            'amount': 10,
+        if (restorable) ...[
+          restored,
+          restored,
+          {
+            ...restored,
+            'options': [
+              {'option_item_relation_id': 91, 'item_name': 'Лайм', 'price': 0},
+            ],
           },
-        },
+        ],
+        {'name': 'Строка без идентификатора'},
       ],
     };
     http.Response jsonResponse(Object value) =>
@@ -219,29 +235,54 @@ void main() {
         child: MaterialApp(
           navigatorKey: AppNavigator.key,
           theme: AppTheme.light(),
-          home: const OrderDetailPage(order: source),
+          home: OrderDetailPage(order: source),
         ),
       ));
       await tester.pumpAndSettle();
       await tester
           .tap(find.byKey(const ValueKey('order-detail-repeat-button')));
-      for (var frame = 0; frame < 40 && cartOpened == 0; frame++) {
-        await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Собираем корзину…'), findsNothing);
+      expect(cartOpened, 0);
+      if (!restorable) {
+        expect(find.text('Не удалось повторить заказ'), findsOneWidget);
+        expect(find.textContaining('Корзина не изменена.'), findsOneWidget);
+        expect(find.textContaining('Восстановлено строк заказа:'), findsNothing);
+        expect(find.byKey(const ValueKey('repeat-open-cart')), findsNothing);
+        expect(calls, isEmpty);
+        expect(cart.items, isEmpty);
+        expect(tester.takeException(), isNull);
+        return;
       }
-      // The cart is where a repeated order is reviewed; checkout asks for the
-      // address later, so a refused address save needs no dialog here.
+      expect(find.text('Восстановлено строк заказа: 3'), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.textContaining('Строка без идентификатора')),
+          findsOneWidget);
+      expect(find.textContaining('Не удалось сохранить прежний адрес доставки'),
+          findsOneWidget);
+      expect(calls, [selectionClick]);
+      await tester.tap(find.byKey(const ValueKey('repeat-open-cart')));
+      await tester.pumpAndSettle();
       expect(cartOpened, 1);
       expect(find.byType(AlertDialog), findsNothing);
+      expect(calls, [selectionClick]);
       expect(find.byType(CheckoutPage), findsNothing);
       expect(cart.businessId, 7);
-      expect(cart.items.single.itemId, 8302);
-      expect(cart.items.single.quantity, 2);
-      expect(cart.getTotalPrice(), 240);
+      expect(cart.items.map((item) => item.itemId), [8302, 8302]);
+      expect(cart.items.map((item) => item.quantity), [4, 2]);
+      expect(cart.items.first.selectedVariants, isEmpty);
+      expect(cart.items.last.selectedVariants.single['relation_id'], 91);
+      expect(cart.getTotalPrice(), 720);
       expect(business.selectedBusinessId, 7);
       final prefs = await SharedPreferences.getInstance();
       expect(jsonDecode(prefs.getString('selected_address')!), originalAddress);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }, () => client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
 }

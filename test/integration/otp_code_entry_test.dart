@@ -7,11 +7,46 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
+import 'package:naliv_delivery/features/faq/models/faq.dart';
+import 'package:naliv_delivery/features/faq/ui/faq_page.dart';
 import 'package:naliv_delivery/pages/login_page.dart';
+import 'package:naliv_delivery/ui/frosted_surface.dart';
 import 'package:naliv_delivery/ui/otp_code_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/haptic_calls.dart';
+
 const _codeKey = ValueKey('auth-code-input');
+const _phoneKey = ValueKey('auth-phone-input');
+const _sendKey = ValueKey('request-code-button');
+const _verificationError = 'Не удалось проверить код. Введите его ещё раз.';
+
+Iterable<MethodCall> _keyboardShows(WidgetTester tester) =>
+    tester.testTextInput.log.where((call) => call.method == 'TextInput.show');
+
+void _simulateVisibleKeyboard(WidgetTester tester) {
+  tester.view.viewInsets =
+      FakeViewPadding(bottom: 260 * tester.view.devicePixelRatio);
+}
+
+Future<void> _leaveForAnotherApp(WidgetTester tester,
+    {bool closeConnection = false}) async {
+  final binding = tester.binding;
+  binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  tester.testTextInput.hide();
+  tester.view.resetViewInsets();
+  if (closeConnection) tester.testTextInput.closeConnection();
+  await tester.pump();
+  binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+  binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+}
+
+void _resumeApp(WidgetTester tester) {
+  final binding = tester.binding;
+  binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+  binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+}
 
 /// Replaces the platform clipboard. [text] null means "empty clipboard".
 void _mockClipboard(WidgetTester tester, {String? text}) {
@@ -237,18 +272,6 @@ void main() {
       await _dispose(tester);
     });
 
-    testWidgets('shows the error text and a live-region for assistive tech',
-        (tester) async {
-      _mockClipboard(tester);
-      await _pumpHarness(tester, errorText: 'Неверный код');
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(find.text('Неверный код'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-
-      await _dispose(tester);
-    });
-
     for (final theme in [AppTheme.dark(), AppTheme.light()]) {
       testWidgets(
           'fits 320 px at 2x text without overflow '
@@ -263,7 +286,7 @@ void main() {
             ),
             child: child!,
           ),
-          home: const _Harness(),
+          home: const _Harness(errorText: _verificationError),
         ));
         await tester.pump();
         await tester.enterText(find.byKey(_codeKey), '123456');
@@ -272,6 +295,7 @@ void main() {
         final fieldBox = tester.getRect(find.byKey(_codeKey));
         expect(fieldBox.left, greaterThanOrEqualTo(0));
         expect(fieldBox.right, lessThanOrEqualTo(320));
+        expect(find.text(_verificationError), findsOneWidget);
         for (var i = 0; i < 6; i++) {
           expect(_digit(i, '123456'[i]), findsOneWidget);
         }
@@ -285,39 +309,241 @@ void main() {
   group('LoginPage code step', () {
     late List<http.Request> verifyRequests;
     late Completer<http.Response> verifyGate;
+    late Set<String> verifyCodes;
+    late bool seedCooldown;
 
-    MockClient client() => MockClient((request) async {
+    MockClient client() {
+      final rejected = <http.Request>[];
+      addTearDown(() => expect(rejected, isEmpty));
+      return MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.origin == 'https://njt25.naliv.kz' &&
+            !request.url.hasQuery &&
+            !request.url.hasFragment &&
+            request.headers['content-type'] == 'application/json' &&
+            request.headers['authorization'] == null) {
           if (request.url.path == '/api/auth/send-code') {
-            return http.Response('{"success":true}', 200);
+            if (seedCooldown &&
+                request.body == '{"phone_number":"+77001234567"}') {
+              return http.Response(
+                '{"success":false,"message":"Слишком много запросов"}',
+                429,
+                headers: const {
+                  'content-type': 'application/json',
+                  'retry-after': '5',
+                },
+              );
+            }
+            if (request.body == '{"phone_number":"+77000000000"}') {
+              return http.Response('{"success":true}', 200);
+            }
           }
-          if (request.url.path == '/api/auth/verify-code') {
+          if (request.url.path == '/api/auth/verify-code' &&
+              verifyCodes.any((code) =>
+                  request.body ==
+                  '{"phone_number":"+77000000000","onetime_code":"$code"}')) {
             verifyRequests.add(request);
             return verifyGate.future;
           }
-          throw StateError('unexpected ${request.method} ${request.url}');
-        });
+        }
+        rejected.add(request);
+        throw StateError('Unexpected ${request.method} ${request.url}');
+      });
+    }
 
-    Future<void> openCodeStep(WidgetTester tester) async {
+    Future<void> openCodeStep(
+      WidgetTester tester, {
+      Set<String> codes = const {'123456'},
+      bool withCooldown = false,
+    }) async {
       // Created inside the test body: a Completer made in setUp would live
       // outside the fake-async zone and its continuations would never be
       // flushed by pump().
       verifyRequests = [];
       verifyGate = Completer<http.Response>();
+      verifyCodes = codes;
+      seedCooldown = withCooldown;
+      addTearDown(tester.view.resetViewInsets);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       _mockClipboard(tester);
       await tester.binding.setSurfaceSize(const Size(375, 812));
       await tester.pumpWidget(MaterialApp(
         theme: AppTheme.dark(),
+        routes: {
+          FaqPage.routeName: (context) => FaqPage(
+                initialSection:
+                    ModalRoute.of(context)!.settings.arguments as FaqSection?,
+              ),
+        },
         home: const LoginPage(startWithPhoneForm: true),
       ));
       await tester.pump();
-      await tester.enterText(
-          find.byKey(const ValueKey('auth-phone-input')), '+77000000000');
-      await tester.tap(find.byKey(const ValueKey('request-code-button')));
+      if (withCooldown) {
+        await tester.enterText(find.byKey(_phoneKey), '+77001234567');
+        await tester.tap(find.byKey(_sendKey));
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Повторить через 00:05'), findsOneWidget);
+      }
+      await tester.enterText(find.byKey(_phoneKey), '+77000000000');
+      // The existing cooldown ticks once a second and rebuilds this button
+      // for the edited number. Wait for it to become actionable before tapping.
+      if (withCooldown) await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byKey(_sendKey));
       await tester.pump();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byKey(_codeKey), findsOneWidget);
     }
+
+    for (final closeConnection in [false, true]) {
+      testWidgets(
+          'restores the OTP keyboard once and preserves digits when the '
+          'native input connection ${closeConnection ? 'closes' : 'stays'}',
+          (tester) async {
+        await http.runWithClient(() async {
+          await openCodeStep(tester, withCooldown: true);
+          await tester.enterText(find.byKey(_codeKey), '12');
+          _simulateVisibleKeyboard(tester);
+          await tester.pump();
+          expect(tester.testTextInput.isVisible, isTrue);
+          final input = tester.widget<TextField>(find.byKey(_codeKey));
+          expect(input.focusNode!.hasPrimaryFocus, isTrue);
+          tester.testTextInput.log.clear();
+
+          await _leaveForAnotherApp(tester, closeConnection: closeConnection);
+          await tester.pump(const Duration(seconds: 1));
+          expect(_keyboardShows(tester), isEmpty);
+          expect(tester.testTextInput.isVisible, isFalse);
+          _resumeApp(tester);
+          await tester.pump();
+          await tester.pump();
+
+          expect(_keyboardShows(tester), hasLength(1));
+          expect(tester.testTextInput.isVisible, isTrue);
+          expect(_digit(0, '1'), findsOneWidget);
+          expect(_digit(1, '2'), findsOneWidget);
+          expect(_fieldController(tester).text, '12');
+          expect(verifyRequests, isEmpty);
+
+          _simulateVisibleKeyboard(tester);
+          // Send input through the restored connection, without refocusing it.
+          tester.testTextInput.enterText('123');
+          await tester.pump(const Duration(seconds: 2));
+          expect(_digit(2, '3'), findsOneWidget);
+          expect(_keyboardShows(tester), hasLength(1));
+          expect(tester.testTextInput.isVisible, isTrue);
+          expect(verifyRequests, isEmpty);
+
+          tester.testTextInput.enterText('123456');
+          await tester.pump();
+          expect(verifyRequests, hasLength(1));
+          verifyGate.complete(http.Response('{"success":false}', 401));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await _dispose(tester);
+        }, client);
+      });
+    }
+
+    testWidgets('does not reopen the keyboard after the user dismissed it',
+        (tester) async {
+      await http.runWithClient(() async {
+        await openCodeStep(tester);
+        await tester.enterText(find.byKey(_codeKey), '12');
+        _simulateVisibleKeyboard(tester);
+        await tester.pump();
+
+        tester.testTextInput.hide();
+        tester.view.resetViewInsets();
+        await tester.pump();
+        expect(tester.widget<TextField>(find.byKey(_codeKey)).focusNode!.hasFocus,
+            isTrue);
+        tester.testTextInput.log.clear();
+        await _leaveForAnotherApp(tester);
+        _resumeApp(tester);
+        await tester.pumpAndSettle();
+
+        expect(_keyboardShows(tester), isEmpty);
+        expect(tester.testTextInput.isVisible, isFalse);
+        expect(_fieldController(tester).text, '12');
+        expect(verifyRequests, isEmpty);
+        expect(tester.takeException(), isNull);
+        await _dispose(tester);
+      }, client);
+    });
+
+    testWidgets('app return does not focus OTP behind the real login FAQ',
+        (tester) async {
+      await http.runWithClient(() async {
+        await openCodeStep(tester);
+        await tester.enterText(find.byKey(_codeKey), '12');
+        _simulateVisibleKeyboard(tester);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Не приходит код в WhatsApp?'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FaqPage), findsOneWidget);
+        expect(find.text('Что делать, если код для входа не пришёл в WhatsApp?'),
+            findsOneWidget);
+
+        tester.testTextInput.log.clear();
+        await _leaveForAnotherApp(tester);
+        _resumeApp(tester);
+        await tester.pumpAndSettle();
+        expect(_keyboardShows(tester), isEmpty);
+        expect(find.byType(FaqPage), findsOneWidget);
+        expect(verifyRequests, isEmpty);
+
+        await tester.tap(find.byTooltip('Назад'));
+        await tester.pumpAndSettle();
+        expect(_fieldController(tester).text, '12');
+        expect(tester.takeException(), isNull);
+        await _dispose(tester);
+      }, client);
+    });
+
+    testWidgets('app return does not focus OTP during a verification request',
+        (tester) async {
+      await http.runWithClient(() async {
+        await openCodeStep(tester);
+        await tester.enterText(find.byKey(_codeKey), '123456');
+        _simulateVisibleKeyboard(tester);
+        await tester.pump();
+        expect(verifyRequests, hasLength(1));
+
+        tester.testTextInput.log.clear();
+        await _leaveForAnotherApp(tester, closeConnection: true);
+        _resumeApp(tester);
+        await tester.pump();
+        expect(_keyboardShows(tester), isEmpty);
+        expect(tester.testTextInput.isVisible, isFalse);
+        expect(_fieldController(tester).text, '123456');
+
+        verifyGate.complete(http.Response('{"success":false}', 401));
+        await tester.pumpAndSettle();
+        expect(find.text(_verificationError), findsOneWidget);
+        expect(_keyboardShows(tester), isEmpty);
+        expect(verifyRequests, hasLength(1));
+        expect(tester.takeException(), isNull);
+        await _dispose(tester);
+      }, client);
+    });
+
+    testWidgets('disposing the login on the resume frame cancels OTP restore',
+        (tester) async {
+      await http.runWithClient(() async {
+        await openCodeStep(tester);
+        await tester.enterText(find.byKey(_codeKey), '12');
+        _simulateVisibleKeyboard(tester);
+        await tester.pump();
+        tester.testTextInput.log.clear();
+        await _leaveForAnotherApp(tester, closeConnection: true);
+        _resumeApp(tester);
+        await _dispose(tester);
+        expect(_keyboardShows(tester), isEmpty);
+        expect(tester.takeException(), isNull);
+      }, client);
+    });
 
     testWidgets(
         'a pasted code fills the boxes and is submitted exactly once '
@@ -352,10 +578,47 @@ void main() {
       }, client);
     });
 
-    testWidgets('a wrong code shakes, shows the error, clears and retries',
+    testWidgets('a verification failure leaves the boxes still and silent',
         (tester) async {
       await http.runWithClient(() async {
         await openCodeStep(tester);
+        final haptics = recordHapticCalls(tester);
+        final firstBox = find
+            .descendant(
+              of: find.byType(OtpCodeField),
+              matching: find.byType(FrostedSurface),
+            )
+            .first;
+
+        await tester.enterText(find.byKey(_codeKey), '123456');
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(verifyRequests, hasLength(1));
+        final initialPosition = tester.getTopLeft(firstBox);
+
+        verifyGate.complete(http.Response('{"success":false}', 401));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 35));
+        expect(tester.getTopLeft(firstBox), initialPosition);
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(firstBox), initialPosition);
+        expect(haptics, isEmpty);
+        final input = tester.widget<TextField>(find.byKey(_codeKey));
+        expect(input.focusNode!.hasPrimaryFocus, isTrue);
+        expect(find.text(_verificationError), findsOneWidget);
+        expect(
+          tester.getSemantics(find.bySemanticsLabel(_verificationError)),
+          isSemantics(label: _verificationError, isLiveRegion: true),
+        );
+        expect(tester.takeException(), isNull);
+        await _dispose(tester);
+      }, client);
+    });
+
+    testWidgets('an ambiguous failure clears the code and allows a retry',
+        (tester) async {
+      await http.runWithClient(() async {
+        await openCodeStep(tester, codes: const {'111111', '222222'});
 
         await tester.enterText(find.byKey(_codeKey), '111111');
         await tester.pump(const Duration(milliseconds: 50));
@@ -364,25 +627,36 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
 
-        expect(find.text('Неверный код или ошибка. Попробуйте ещё раз'),
-            findsOneWidget);
+        expect(find.text(_verificationError), findsOneWidget);
         expect(_fieldController(tester).text, isEmpty);
         expect(_digit(0, '1'), findsNothing);
         expect(tester.takeException(), isNull);
 
-        // Typing again removes the error and submits the new code.
+        // The next edit clears the error without submitting a partial code.
         verifyGate = Completer<http.Response>();
+        await tester.enterText(find.byKey(_codeKey), '22');
+        await tester.pump();
+        expect(find.text(_verificationError), findsNothing);
+        expect(verifyRequests, hasLength(1));
+
         await tester.enterText(find.byKey(_codeKey), '222222');
         await tester.pump(const Duration(milliseconds: 50));
         await tester.pump(const Duration(milliseconds: 300));
-        expect(find.text('Неверный код или ошибка. Попробуйте ещё раз'),
-            findsNothing);
+        expect(find.text(_verificationError), findsNothing);
         expect(verifyRequests, hasLength(2));
         expect(jsonDecode(verifyRequests.last.body)['onetime_code'], '222222');
 
-        verifyGate.complete(http.Response('{"success":false}', 401));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
+        // A transport failure uses the same inline guidance without blaming
+        // the entered code or opening a second error surface.
+        verifyGate.completeError(
+          http.ClientException('Fixture connection lost'),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(_verificationError), findsOneWidget);
+        expect(_fieldController(tester).text, isEmpty);
+        expect(find.byType(SnackBar), findsNothing);
+        expect(verifyRequests, hasLength(2));
+        expect(tester.takeException(), isNull);
         await _dispose(tester);
       }, client);
     });
@@ -396,6 +670,8 @@ void main() {
         await tester.pump();
         await tester.testTextInput.receiveAction(TextInputAction.done);
         await tester.pump();
+        expect(tester.testTextInput.isVisible, isTrue);
+        expect(_fieldController(tester).text, '12345');
 
         expect(verifyRequests, isEmpty);
         final confirm = tester.widget<FilledButton>(find.descendant(

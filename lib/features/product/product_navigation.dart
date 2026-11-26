@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/like_action.dart';
 import '../../core/product_view.dart';
 import '../../pages/product_detail_page.dart';
 import 'ui/product_page.dart';
@@ -10,15 +9,13 @@ import 'ui/product_page.dart';
 void openProduct(
   BuildContext context,
   ProductView view, {
-  bool liked = false,
-  VoidCallback? onLike,
   VoidCallback? onCart,
   int? businessId,
 }) {
   final hasOptions = view.source.options?.isNotEmpty ?? false;
   Navigator.of(context).push(
     MaterialPageRoute(
-      builder: (routeContext) => hasOptions
+      builder: (_) => hasOptions
           ? ProductDetailPage(
               item: view.source,
               businessId: businessId,
@@ -26,16 +23,7 @@ void openProduct(
             )
           : ProductPage(
               view: view,
-              liked: liked,
               businessId: businessId,
-              onLike: onLike ??
-                  (businessId == null
-                      ? null
-                      : () => toggleItemLike(
-                            routeContext,
-                            businessId: businessId,
-                            itemId: view.itemId,
-                          )),
               onCart: onCart,
             ),
     ),

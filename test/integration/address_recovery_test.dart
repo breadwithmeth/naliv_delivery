@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 import '../support/fixture_map_tiles.dart';
+import '../support/haptic_calls.dart';
 import '../support/preferences_store.dart';
 
 const _address = <String, dynamic>{
@@ -83,6 +84,8 @@ void main() {
                 ? 'only explicit discard removes a rejected address draft'
                 : 'rejected $scenario keeps the same draft for resubmission',
         (tester) async {
+      final calls = recordHapticCalls(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       final priorStore = SharedPreferencesStorePlatform.instance;
       final store = OnboardingPreferences({
         'auth_token': 'fixture-only',
@@ -120,8 +123,10 @@ void main() {
           } else {
             await tester.tap(find.byKey(const Key('address_book_add')));
             await tester.pumpAndSettle();
+            expect(calls, isEmpty, reason: 'opening and geocoding are silent');
             await tester.tap(find.byKey(const Key('address_map_confirm')));
             await tester.pumpAndSettle();
+            expect(calls, isEmpty, reason: 'map confirmation is only a draft');
           }
           await tester.enterText(
               find.byKey(const Key('address_entrance')), '2А');
@@ -135,6 +140,7 @@ void main() {
 
           expect(find.textContaining('Не удалось сохранить'), findsOneWidget);
           expect(find.text('Адрес сохранён на этом устройстве'), findsNothing);
+          expect(calls, isEmpty);
           expect((await AddressStorageService.getBookSnapshot()).localAddresses,
               isEmpty);
           expect(await AddressStorageService.getSelectedAddress(),
@@ -152,6 +158,7 @@ void main() {
             await tester.pumpAndSettle();
             expect(find.byType(MapAddressPage), findsOneWidget);
             expect(find.byType(AddressDetailsPage), findsNothing);
+            expect(calls, isEmpty);
             expect(reverseReads, 2);
             return;
           }
@@ -205,6 +212,8 @@ void main() {
           expect(reverseReads, editing ? 0 : 1);
           expect(
               find.text('Адрес сохранён на этом устройстве'), findsOneWidget);
+          expect(find.text('Тестовый адрес, 16'), findsOneWidget);
+          if (!editing) expect(calls, [selectionClick]);
         }, () => client);
       } finally {
         await _dispose(tester);
@@ -213,7 +222,7 @@ void main() {
         client.close();
         expect(unexpected, isEmpty);
       }
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   }
 
   testWidgets(

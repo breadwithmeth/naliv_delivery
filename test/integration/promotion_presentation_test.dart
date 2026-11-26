@@ -8,7 +8,6 @@ import 'package:naliv_delivery/features/cart/ui/cart_page.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/pages/promotion_items_page.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
-import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -42,11 +41,8 @@ Future<void> _pumpCampaign(
   required Brightness brightness,
   required double scale,
 }) async {
-  await tester.pumpWidget(MultiProvider(
-    providers: [
-      ChangeNotifierProvider.value(value: cart),
-      ChangeNotifierProvider(create: (_) => LikedItemsProvider()),
-    ],
+  await tester.pumpWidget(ChangeNotifierProvider<CartProvider>.value(
+    value: cart,
     child: MaterialApp(
       theme:
           brightness == Brightness.light ? AppTheme.light() : AppTheme.dark(),
@@ -121,6 +117,9 @@ void main() {
             brightness: brightness,
             scale: scale,
           );
+          expect(find.text('Товары акции · 2'), findsOneWidget);
+          expect(find.text('Условия отдельных товаров: 2+1 · -10%'),
+              findsOneWidget);
           final card = find.byKey(const ValueKey('promotion-product-0'));
           final offer = find.descendant(
             of: card,

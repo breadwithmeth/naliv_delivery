@@ -8,6 +8,7 @@ import '../../../services/auth_service.dart';
 import '../../../ui/app_states.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_surface.dart';
 import '../../../ui/frosted_dock.dart';
@@ -198,6 +199,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       context,
       businessId: widget.businessId,
       itemId: item.itemId,
+      wasLiked: true,
     );
     if (!mounted || generation != _generation) return;
     setState(() {
@@ -319,16 +321,14 @@ class _FavoritesPageState extends State<FavoritesPage> {
             onTap: () => openProduct(
               context,
               item,
-              liked: true,
-              onLike: () => _unlike(item),
               onCart: widget.onCart,
               businessId: widget.businessId,
             ),
             onLike: () => _unlike(item),
             onIncrement: () =>
-                context.read<CartProvider>().incrementCatalogItem(item.source),
-            onDecrement: () =>
-                context.read<CartProvider>().decrementCatalogItem(item.source),
+                AppHaptics.addCatalogStep(context.read<CartProvider>(), item),
+            onDecrement: () => AppHaptics.removeCatalogStep(
+                context.read<CartProvider>(), item),
           ),
         );
       },

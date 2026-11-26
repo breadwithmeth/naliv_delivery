@@ -17,6 +17,7 @@ import '../../../services/auth_service.dart';
 import '../../../utils/api.dart';
 import '../../../utils/bonus_rules.dart';
 import '../../../utils/cart_provider.dart';
+import '../../../utils/order_payment_guard.dart';
 import '../../../utils/order_ui_helpers.dart';
 import '../../../pages/order_detail_page.dart';
 import '../../bonuses/bonus_account.dart';
@@ -308,7 +309,13 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final canceled = isOrderCanceled(order);
-    final statusText = resolveOrderStatusText(order);
+    final localPayment = order[OrderPaymentGuard.localStateKey];
+    final paymentPending = !isOrderClosed(order) &&
+        localPayment != OrderPaymentState.completed.name &&
+        (localPayment == OrderPaymentState.unconfirmed.name ||
+            orderPaymentOutcome(order) == OrderPaymentOutcome.pending);
+    final statusText =
+        paymentPending ? 'Проверяем оплату' : resolveOrderStatusText(order);
     final total = resolveOrderTotalAmount(order);
     final estimate = _pendingBonusEstimate(order);
     final timestamp = _timestamp(order);

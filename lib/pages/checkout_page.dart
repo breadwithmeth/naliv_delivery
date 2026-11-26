@@ -24,6 +24,7 @@ import '../features/checkout/checkout_contract.dart';
 import '../features/orders/ui/orders_page.dart';
 import '../services/onboarding_service.dart';
 import '../services/store_city.dart';
+import '../ui/app_haptics.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/app_states.dart';
@@ -65,6 +66,8 @@ typedef CheckoutAddressPicker = Future<Map<String, dynamic>?> Function(
   ({double lat, double lon})? fallbackCenter,
 });
 
+typedef _SelectionStamp = ({int foreground, int credential, String? account});
+
 class CheckoutPage extends StatefulWidget {
   static const routeName = '/checkout';
 
@@ -104,6 +107,7 @@ class _CheckoutPageState extends State<CheckoutPage>
   bool _certificateMode = false;
   List<Map<String, dynamic>> _accountAddresses = const [];
   bool _addressSheetOpen = false;
+  bool _storeSheetOpen = false;
   CartProvider? _cart;
   BusinessProvider? _business;
   Map<String, dynamic>? _address;
@@ -118,6 +122,8 @@ class _CheckoutPageState extends State<CheckoutPage>
   int _cartSnapshot = -1;
   int? _storeSnapshot;
   int _revision = 0;
+  int _checkoutVisit = 0;
+  int _foregroundRevision = 0;
   int _quoteRequest = 0;
   int _benefitRequest = 0;
   int _bonusRequest = 0;
@@ -158,12 +164,14 @@ class _CheckoutPageState extends State<CheckoutPage>
   bool _quoting = false;
   bool _validating = false;
   bool _submitting = false;
+  bool _checkingCreation = false;
   bool _pickingAddress = false;
   bool _switchingStore = false;
   bool _creationUncertain = false;
   bool _created = false;
   String? _quoteError;
   String? _addressError;
+  bool _retryAddressSave = false;
   String? _benefitError;
   String? _submitError;
 
@@ -173,7 +181,11 @@ class _CheckoutPageState extends State<CheckoutPage>
   List<CartDisplayGroup> get _groups => _cart!.activeDisplayGroups;
   bool get _hasItems => _cart?.hasActiveItems == true;
   bool get _busy =>
-      _initializing || _submitting || _switchingStore || _pickingAddress;
+      _initializing ||
+      _submitting ||
+      _checkingCreation ||
+      _switchingStore ||
+      _pickingAddress;
   bool get _editingLocked =>
       _busy || _creationUncertain || _created || _cartRestoreFailed;
   bool get _quoteReady => !_delivery || (!_quoting && _quote != null);
@@ -199,6 +211,22 @@ class _CheckoutPageState extends State<CheckoutPage>
       !_addressCityMismatch &&
       (!_delivery || _normalizedAddress() != null);
 
+  _SelectionStamp get _feedbackStamp => (
+        foreground: _foregroundRevision,
+        credential: AuthService.credentialRevision,
+        account: AuthService.currentIdentity,
+      );
+
+  void _confirmSelection([_SelectionStamp? started]) {
+    if (mounted &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
+        ModalRoute.of(context)?.isCurrent == true &&
+        !AuthService.isEndingSession &&
+        (started == null || started == _feedbackStamp)) {
+      AppHaptics.selectionConfirmed();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -208,13 +236,14 @@ class _CheckoutPageState extends State<CheckoutPage>
       _mode = 'PICKUP';
     }
     if (widget.initialAddress != null) _setAddress(widget.initialAddress!);
-    _promo.addListener(_codeChanged);
-    _certificate.addListener(_codeChanged);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // A pending code may still apply to the same basket when this route is
+    // revisited, but feedback belongs to the visit that requested it.
+    if (ModalRoute.isCurrentOf(context) == false) _checkoutVisit++;
     final cart = context.read<CartProvider>();
     final business = context.read<BusinessProvider>();
     if (identical(cart, _cart) && identical(business, _business)) return;
@@ -343,15 +372,10 @@ class _CheckoutPageState extends State<CheckoutPage>
   void _invalidate() {
     _revision++;
     _quoteRequest++;
-    _benefitRequest++;
+    _resetCodeValidation();
     _quote = null;
     _quoting = false;
     _quoteError = null;
-    _promoData = null;
-    _certificateData = null;
-    _benefitSnapshot = null;
-    _validating = false;
-    _benefitError = null;
     _useBonus = false;
     _submitError = null;
   }
@@ -396,6 +420,7 @@ class _CheckoutPageState extends State<CheckoutPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foregroundRevision++;
     if (state == AppLifecycleState.resumed &&
         mounted &&
         ModalRoute.of(context)?.isCurrent == true &&
@@ -587,10 +612,7 @@ class _CheckoutPageState extends State<CheckoutPage>
         if (previous != null &&
             (previous.itemId != bag.itemId || previous.price != bag.price)) {
           _revision++;
-          _benefitRequest++;
-          _promoData = null;
-          _certificateData = null;
-          _benefitSnapshot = null;
+          _resetCodeValidation();
           _useBonus = false;
           _benefitError =
               'Упаковка или цена изменились. Проверьте сумму и примените льготу заново.';
@@ -641,42 +663,80 @@ class _CheckoutPageState extends State<CheckoutPage>
     _comment.text = address['comment']?.toString() ?? '';
   }
 
-  Map<String, dynamic>? _normalizedAddress() {
-    if (_address == null) return null;
-    final value = <String, dynamic>{
-      ..._address!,
-      'address': (_address!['address'] ?? _address!['name'])
-                  ?.toString()
-                  .trim()
-                  .isNotEmpty ==
-              true
-          ? (_address!['address'] ?? _address!['name']).toString().trim()
-          : '${_address!['street'] ?? ''} ${_address!['house'] ?? ''}'.trim(),
-      'entrance': _entrance.text.trim(),
-      'floor': _floor.text.trim(),
-      'apartment': _apartment.text.trim(),
-      if (_comment.text.trim().isNotEmpty || _address!.containsKey('comment'))
-        'comment': _comment.text.trim(),
-    };
-    return AddressStorageService.deliveryAddress(value);
+  ({String entrance, String floor, String apartment, String comment})
+      _detailsSnapshot() => (
+            entrance: _entrance.text.trim(),
+            floor: _floor.text.trim(),
+            apartment: _apartment.text.trim(),
+            comment: _comment.text.trim(),
+          );
+
+  Map<String, dynamic>? _normalizedAddress([Map<String, dynamic>? candidate]) {
+    final address = candidate ?? _address;
+    if (address == null) return null;
+    final label = (address['address'] ?? address['name'])?.toString().trim();
+    final details = candidate == null
+        ? _detailsSnapshot()
+        : (
+            entrance: candidate['entrance']?.toString().trim() ?? '',
+            floor: candidate['floor']?.toString().trim() ?? '',
+            apartment: candidate['apartment']?.toString().trim() ?? '',
+            comment: candidate['comment']?.toString().trim() ?? '',
+          );
+    return AddressStorageService.deliveryAddress({
+      ...address,
+      'address': label != null && label.isNotEmpty
+          ? label
+          : '${address['street'] ?? ''} ${address['house'] ?? ''}'.trim(),
+      'entrance': details.entrance,
+      'floor': details.floor,
+      'apartment': details.apartment,
+      if (details.comment.isNotEmpty || address.containsKey('comment'))
+        'comment': details.comment,
+    });
   }
+
+  static bool _sameDeliveryAddress(
+    Map<String, dynamic> current,
+    Map<String, dynamic> next,
+  ) =>
+      current['lat'] == next['lat'] &&
+      current['lon'] == next['lon'] &&
+      checkoutAddressTitle(current).toLowerCase() ==
+          checkoutAddressTitle(next).toLowerCase() &&
+      current['entrance'] == next['entrance'] &&
+      current['floor'] == next['floor'] &&
+      current['apartment'] == next['apartment'] &&
+      (current['comment'] ?? '') == (next['comment'] ?? '');
 
   /// Runs the map picker, or applies [chosen] (an address picked from the
   /// saved list) the same way a map choice is applied.
   Future<void> _pickAddress({Map<String, dynamic>? chosen}) async {
-    if (_busy) return;
+    if (_editingLocked || !_delivery) return;
+    final feedback = _feedbackStamp;
+    final store = _businessId;
+    var city = _storeCity;
+    bool stillCurrent() =>
+        _delivery &&
+        store == _businessId &&
+        feedback.credential == AuthService.credentialRevision;
+
     setState(() {
       _pickingAddress = true;
       _addressError = null;
+      _retryAddressSave = false;
     });
     try {
       var selected = chosen;
       if (selected == null) {
         final business = _business?.selectedBusiness;
-        final city = _storeCity ??
-            await storeCityName(business)
-                .timeout(const Duration(seconds: 4), onTimeout: () => null);
-        if (!mounted) return;
+        city ??= await storeCityName(business)
+            .timeout(const Duration(seconds: 4), onTimeout: () => null);
+        if (!mounted ||
+            !stillCurrent() ||
+            ModalRoute.of(context)?.isCurrent != true) {
+          return;
+        }
         final center = storeCoordinates(business);
         // An address from another city is never offered as the starting point:
         // the picker opens on the store's city instead.
@@ -696,26 +756,46 @@ class _CheckoutPageState extends State<CheckoutPage>
                 city: city,
                 fallbackCenter: center);
       }
-      if (!mounted || selected == null) return;
-      setState(() {
-        _setAddress(selected!);
-        _invalidate();
-      });
-      final normalized = _normalizedAddress();
+      if (!mounted ||
+          !stillCurrent() ||
+          selected == null ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
+      final normalized = _normalizedAddress(selected);
       if (normalized == null) {
         setState(() => _addressError =
             'Для адреса нужны точные координаты и название. Выберите его на карте.');
         return;
       }
-      if (!await AddressStorageService.saveSelectedAddress(normalized)) {
-        if (mounted) {
-          setState(() => _addressError =
-              'Адрес не сохранён на устройстве. Повторите сохранение.');
-        }
+      final destinationCity = _storeCity ?? city;
+      if (addressMatchesCity(normalized, destinationCity) == false) {
+        setState(() => _addressError =
+            'Выберите адрес в г. $destinationCity. Прежний адрес не изменён.');
+        return;
       }
-      if (mounted) _calculateDelivery();
+      final current = _normalizedAddress();
+      if (current != null &&
+          !_addressCityMismatch &&
+          _sameDeliveryAddress(current, normalized)) {
+        return;
+      }
+      final visit = _checkoutVisit;
+      final saved = await AddressStorageService.saveSelectedAddress(normalized);
+      if (!mounted || !stillCurrent()) return;
+      if (!saved) {
+        setState(() => _addressError =
+            'Не удалось сохранить выбранный адрес. Выберите его снова.');
+        return;
+      }
+      setState(() {
+        _setAddress(normalized);
+        _invalidate();
+      });
+      if (visit == _checkoutVisit) _confirmSelection(feedback);
+      _calculateDelivery();
     } catch (_) {
-      if (mounted) {
+      if (mounted && stillCurrent()) {
         setState(() => _addressError =
             'Не удалось выбрать или сохранить адрес. Попробуйте ещё раз.');
       }
@@ -754,13 +834,18 @@ class _CheckoutPageState extends State<CheckoutPage>
     return result;
   }
 
-  String _detailsSnapshot() =>
-      '${_entrance.text}|${_floor.text}|${_apartment.text}|${_comment.text}';
-
   /// Opens the address chooser and applies what it returns.
   Future<void> _openAddressSheet() async {
     if (_editingLocked || _addressSheetOpen) return;
     _addressSheetOpen = true;
+    final feedback = _feedbackStamp;
+    final store = _businessId;
+    bool stillCurrent() =>
+        _delivery &&
+        !_editingLocked &&
+        store == _businessId &&
+        feedback.credential == AuthService.credentialRevision &&
+        ModalRoute.of(context)?.isCurrent == true;
     try {
       List<Map<String, dynamic>> saved;
       try {
@@ -768,7 +853,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       } catch (_) {
         saved = const [];
       }
-      if (!mounted) return;
+      if (!mounted || !stillCurrent()) return;
       final before = _detailsSnapshot();
       final result = await showCheckoutAddressSheet(
         context,
@@ -780,16 +865,26 @@ class _CheckoutPageState extends State<CheckoutPage>
         apartment: _apartment,
         comment: _comment,
       );
-      if (!mounted) return;
-      setState(() {
-        if (_detailsSnapshot() != before) _addressError = null;
-      });
+      if (!mounted || !stillCurrent()) return;
+      final detailsChanged = _detailsSnapshot() != before;
+      if (detailsChanged) {
+        setState(() {
+          _addressError = null;
+          _retryAddressSave = false;
+        });
+      }
       switch (result?.action) {
         case CheckoutAddressAction.select:
           await _pickAddress(chosen: result!.address);
         case CheckoutAddressAction.newOnMap:
           await _pickAddress();
         case CheckoutAddressAction.detailsDone:
+          if (detailsChanged &&
+              !_addressCityMismatch &&
+              _normalizedAddress() != null) {
+            _confirmSelection(feedback);
+          }
+          break;
         case null:
           break;
       }
@@ -800,17 +895,23 @@ class _CheckoutPageState extends State<CheckoutPage>
 
   Future<void> _saveAddress() async {
     final normalized = _normalizedAddress();
-    if (normalized == null || _busy) return;
+    if (normalized == null || _editingLocked) return;
     try {
       final saved = await AddressStorageService.saveSelectedAddress(normalized);
       if (!mounted) return;
-      setState(() => _addressError = saved
-          ? null
-          : 'Адрес не сохранён на устройстве. Повторите сохранение.');
+      setState(() {
+        _retryAddressSave = !saved;
+        _addressError = saved
+            ? null
+            : 'Адрес не сохранён на устройстве. Повторите сохранение.';
+      });
     } catch (_) {
       if (mounted) {
-        setState(() => _addressError =
-            'Адрес не сохранён на устройстве. Повторите сохранение.');
+        setState(() {
+          _retryAddressSave = true;
+          _addressError =
+              'Адрес не сохранён на устройстве. Повторите сохранение.';
+        });
       }
     }
   }
@@ -838,10 +939,7 @@ class _CheckoutPageState extends State<CheckoutPage>
       _quote = null;
       _quoting = true;
       _quoteError = null;
-      _benefitRequest++;
-      _promoData = null;
-      _certificateData = null;
-      _validating = false;
+      _resetCodeValidation();
     });
     CheckoutQuote? quote;
     try {
@@ -870,43 +968,53 @@ class _CheckoutPageState extends State<CheckoutPage>
   }
 
   void _changeMode(String mode) {
-    if (_busy || _mode == mode) return;
+    if (_editingLocked || _mode == mode) return;
     setState(() {
       _mode = mode;
       _invalidate();
     });
+    _confirmSelection();
     _calculateDelivery();
   }
 
-  void _codeChanged() {
-    if (!mounted) return;
-    setState(() {
-      _benefitRequest++;
-      _validating = false;
-      _promoData = null;
-      _certificateData = null;
-      _benefitError = null;
-    });
+  void _resetCodeValidation() {
+    _benefitRequest++;
+    _validating = false;
+    _promoData = null;
+    _certificateData = null;
+    _benefitSnapshot = null;
+    _benefitError = null;
   }
 
   void _toggleBonuses(bool value) {
-    if (_busy) return;
+    if (_editingLocked ||
+        _useBonus == value ||
+        (value && (_loggedIn != true || _loadingBonus || _maxBonusUsed <= 0))) {
+      return;
+    }
     setState(() {
-      _benefitRequest++;
-      _validating = false;
+      _resetCodeValidation();
       _useBonus = value;
-      if (value) {
-        _promoData = null;
-        _certificateData = null;
-      }
-      _benefitError = null;
     });
+    _confirmSelection();
+  }
+
+  void _removeAppliedCode() {
+    if (_editingLocked || (_promoData == null && _certificateData == null)) {
+      return;
+    }
+    setState(_resetCodeValidation);
+    _confirmSelection();
   }
 
   Future<void> _validateCode({required bool certificate}) async {
-    if (_validating || _busy) return;
-    // A code replaces the bonus deduction (one benefit per order).
-    if (_useBonus) _toggleBonuses(false);
+    if (_editingLocked ||
+        _validating ||
+        _certificateMode != certificate ||
+        _promoData != null ||
+        _certificateData != null) {
+      return;
+    }
     final code = (certificate ? _certificate : _promo).text.trim();
     if (code.isEmpty) {
       setState(() => _benefitError = 'Введите код');
@@ -926,6 +1034,8 @@ class _CheckoutPageState extends State<CheckoutPage>
       return;
     }
     final revision = _revision;
+    final feedback = _feedbackStamp;
+    final visit = _checkoutVisit;
     final input = _withPricing(() => (
           snapshot: _pricedSnapshot(),
           subtotal: _itemsSubtotal,
@@ -958,8 +1068,7 @@ class _CheckoutPageState extends State<CheckoutPage>
           revision != _revision ||
           request != _benefitRequest ||
           pricedSnapshot != _pricedSnapshot() ||
-          controller.text.trim() != code ||
-          _useBonus) {
+          controller.text.trim() != code) {
         return;
       }
       final data = payloadMap(result['data']);
@@ -995,9 +1104,14 @@ class _CheckoutPageState extends State<CheckoutPage>
           _useBonus = false;
         } else {
           _benefitError = _errorMessage(
-              result['error'], 'Код не применён. Проверьте код и условия.');
+              result['error'] ??
+                  result['message'] ??
+                  data['reason'] ??
+                  data['message'],
+              'Код не применён. Проверьте код и условия.');
         }
       });
+      if (accepted && visit == _checkoutVisit) _confirmSelection(feedback);
     } catch (_) {
       if (mounted && revision == _revision && request == _benefitRequest) {
         setState(() =>
@@ -1011,13 +1125,38 @@ class _CheckoutPageState extends State<CheckoutPage>
   }
 
   Future<void> _selectStore() async {
-    if (_busy) return;
+    if (_editingLocked || _storeSheetOpen) return;
+    _storeSheetOpen = true;
+    try {
+      await _pickCheckoutStore();
+    } finally {
+      _storeSheetOpen = false;
+    }
+  }
+
+  Future<void> _pickCheckoutStore() async {
+    final feedback = _feedbackStamp;
+    final store = _businessId;
+    bool stillCurrent() =>
+        !_editingLocked &&
+        store == _businessId &&
+        feedback.credential == AuthService.credentialRevision &&
+        ModalRoute.of(context)?.isCurrent == true;
+
     final selected = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _CheckoutStoreSheet(selectedId: _businessId),
     );
-    if (!mounted || selected == null || _id(selected) == _businessId) return;
+    final nextId = _id(selected);
+    if (!mounted ||
+        !stillCurrent() ||
+        selected == null ||
+        nextId == null ||
+        nextId == store) {
+      return;
+    }
+    final cartRevision = _cart!.contentRevision;
     final confirmed = !_hasItems ||
         await showDialog<bool>(
               context: context,
@@ -1037,7 +1176,13 @@ class _CheckoutPageState extends State<CheckoutPage>
               ),
             ) ==
             true;
-    if (!mounted || !confirmed) return;
+    if (!mounted ||
+        !confirmed ||
+        !stillCurrent() ||
+        cartRevision != _cart!.contentRevision) {
+      return;
+    }
+    final visit = _checkoutVisit;
     setState(() => _switchingStore = true);
     final previous = _business!.selectedBusiness;
     String? previousCity;
@@ -1059,12 +1204,18 @@ class _CheckoutPageState extends State<CheckoutPage>
           throw StateError('Не удалось сбросить адрес предыдущего города');
         }
       }
-      final nextId = _id(selected)!;
+      if (cartRevision != _cart!.contentRevision ||
+          feedback.credential != AuthService.credentialRevision) {
+        throw StateError('Корзина изменилась во время выбора');
+      }
       final committed = _hasItems
           ? await _cart!.discardForBusiness(nextId)
           : await _cart!.bindBusiness(nextId);
       if (!committed) throw StateError('Корзина не сохранена');
-      if (mounted) _goCatalog();
+      if (mounted) {
+        if (visit == _checkoutVisit) _confirmSelection(feedback);
+        _goCatalog();
+      }
     } catch (_) {
       var restored = true;
       if (storeChanged) {
@@ -1135,7 +1286,7 @@ class _CheckoutPageState extends State<CheckoutPage>
     final journal = _creationJournal;
     final identity = _creationIdentity;
     if (_busy || identity == null || journal == null) return;
-    setState(() => _submitting = true);
+    setState(() => _checkingCreation = true);
     try {
       final session = await AuthService.captureSession();
       if (session == null ||
@@ -1188,7 +1339,7 @@ class _CheckoutPageState extends State<CheckoutPage>
             PaymentMethodPage(orderData: order, displayAmount: _creationAmount),
       );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) setState(() => _checkingCreation = false);
     }
   }
 
@@ -1248,8 +1399,11 @@ class _CheckoutPageState extends State<CheckoutPage>
       if (_delivery &&
           !await AddressStorageService.saveSelectedAddress(address!)) {
         if (mounted) {
-          setState(() => _addressError =
-              'Адрес не сохранён на устройстве. Повторите сохранение перед заказом.');
+          setState(() {
+            _retryAddressSave = true;
+            _addressError =
+                'Адрес не сохранён на устройстве. Повторите сохранение перед заказом.';
+          });
         }
         return;
       }
@@ -1665,10 +1819,12 @@ class _CheckoutPageState extends State<CheckoutPage>
             ? Wrap(children: [
                 TextButton(
                   key: const ValueKey('checkout-check-orders'),
-                  onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => OrdersPage(
-                              businessId: _businessId, onCart: _openCart))),
+                  onPressed: _checkingCreation
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => OrdersPage(
+                                  businessId: _businessId, onCart: _openCart))),
                   style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
                   child: const Text('Мои заказы'),
                 ),
@@ -1676,14 +1832,18 @@ class _CheckoutPageState extends State<CheckoutPage>
                   TextButton(
                     key: const ValueKey('checkout-resume-order'),
                     onPressed: _busy ? null : _resumeCreation,
-                    child: const Text('Проверить созданный заказ'),
+                    child: Text(_checkingCreation
+                        ? 'Проверяем статус…'
+                        : 'Проверить созданный заказ'),
                   ),
                 TextButton(
                   key: const ValueKey('checkout-creation-support'),
-                  onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => const HelpChatPage(
-                              entryPoint: 'order_creation_unknown'))),
+                  onPressed: _checkingCreation
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const HelpChatPage(
+                                  entryPoint: 'order_creation_unknown'))),
                   child: const Text('Поддержка'),
                 ),
               ])
@@ -1958,12 +2118,10 @@ class _CheckoutPageState extends State<CheckoutPage>
           key: const ValueKey('checkout-address-error'),
           tone: _StatusTone.error,
           action: _statusAction(
-            _normalizedAddress() == null
-                ? 'Выбрать на карте'
-                : 'Повторить сохранение',
+            _retryAddressSave ? 'Повторить сохранение' : 'Выбрать на карте',
             _editingLocked
                 ? null
-                : (_normalizedAddress() == null ? _pickAddress : _saveAddress),
+                : (_retryAddressSave ? _saveAddress : _pickAddress),
             key: const ValueKey('checkout-save-address'),
           ),
         ),
@@ -2038,20 +2196,27 @@ class _CheckoutPageState extends State<CheckoutPage>
                   size: 20, color: palette.accent),
               const SizedBox(width: 12),
               Expanded(
-                child: _summaryRow(
-                  'Стоимость доставки',
-                  _quoting
-                      ? 'Рассчитываем…'
-                      : _quote == null
-                          ? 'Не рассчитана'
-                          : _money(_deliveryCost),
+                child: Semantics(
+                  key: const ValueKey('checkout-delivery-price'),
+                  liveRegion: true,
+                  child: _summaryRow(
+                    'Стоимость доставки',
+                    _quoting
+                        ? 'Рассчитываем…'
+                        : _quote == null
+                            ? 'Не рассчитана'
+                            : _money(_deliveryCost),
+                  ),
                 ),
               ),
             ],
           ),
           if (_quoting) ...[
             const SizedBox(height: 8),
-            _statusRow('Рассчитываем доставку…', progress: true),
+            const ClipRRect(
+              borderRadius: AppRadii.pillAll,
+              child: LinearProgressIndicator(minHeight: 4),
+            ),
           ],
           if (_quoteError != null) ...[
             const SizedBox(height: 8),
@@ -2077,7 +2242,6 @@ class _CheckoutPageState extends State<CheckoutPage>
     _StatusTone tone = _StatusTone.info,
     IconData? icon,
     Widget? action,
-    bool progress = false,
   }) {
     final palette = context.palette;
     final tint = tone == _StatusTone.error ? palette.error : palette.accent;
@@ -2109,13 +2273,6 @@ class _CheckoutPageState extends State<CheckoutPage>
                 Text(text,
                     style: AppTypography.bodySmall
                         .copyWith(color: palette.textPrimary)),
-                if (progress) ...[
-                  const SizedBox(height: 8),
-                  const ClipRRect(
-                    borderRadius: AppRadii.pillAll,
-                    child: LinearProgressIndicator(minHeight: 4),
-                  ),
-                ],
                 if (action != null) ...[
                   const SizedBox(height: 8),
                   action,
@@ -2151,7 +2308,7 @@ class _CheckoutPageState extends State<CheckoutPage>
 
   /// Bonuses first: one card with the switch and what it saves. Promo codes and
   /// certificates are rarer, so they share one folded row that opens a single
-  /// field. One benefit applies per order; applying a code turns bonuses off.
+  /// field. A code replaces the bonus deduction only after acceptance.
   Widget _benefits() {
     final palette = context.palette;
     final codeApplied = _promoData != null || _certificateData != null;
@@ -2172,9 +2329,15 @@ class _CheckoutPageState extends State<CheckoutPage>
                             ? 'Можно списать ${_money(_maxBonusUsed)}'
                             : 'Можно списать ${_money(_maxBonusUsed)} из ${_money(_bonusBalance!)}')
                         : 'На балансе ${_money(_bonusBalance!)}';
+    final promoSavings = _promoData == null
+        ? 0.0
+        : math.min(_itemsSubtotal, _promoDiscount) +
+            (_quote == null ? 0 : _quote!.baseDeliveryCost - _deliveryCost);
+    final promoEffect = promoSavings == 0
+        ? 'применён, сумма не изменилась'
+        : '${promoSavings > 0 ? '−' : '+'}${_money(promoSavings.abs())}';
     final codeSummary = _promoData != null
-        ? 'Промокод ${_promoData!['promo_code']}'
-            '${_promoDiscount > 0 ? ' · −${_money(_promoDiscount)}' : ''}'
+        ? 'Промокод ${_promoData!['promo_code']} · $promoEffect'
         : _certificateData != null
             ? 'Сертификат · −${_money(_certificateUsed)}'
             : null;
@@ -2287,13 +2450,7 @@ class _CheckoutPageState extends State<CheckoutPage>
                         if (codeApplied)
                           TextButton(
                             key: const ValueKey('checkout-clear-benefit'),
-                            onPressed: _editingLocked
-                                ? null
-                                : () => setState(() {
-                                      _promoData = null;
-                                      _certificateData = null;
-                                      _benefitRequest++;
-                                    }),
+                            onPressed: _editingLocked ? null : _removeAppliedCode,
                             style: TextButton.styleFrom(
                                 minimumSize: const Size(44, 44)),
                             child: const Text('Убрать'),
@@ -2339,8 +2496,11 @@ class _CheckoutPageState extends State<CheckoutPage>
         ),
         if (_benefitError != null) ...[
           const SizedBox(height: 8),
-          _message(_benefitError!,
-              key: const ValueKey('checkout-benefit-error')),
+          Semantics(
+            liveRegion: true,
+            child: _message(_benefitError!,
+                key: const ValueKey('checkout-benefit-error')),
+          ),
         ],
       ],
     );
@@ -2358,10 +2518,15 @@ class _CheckoutPageState extends State<CheckoutPage>
             key: ValueKey(
                 'checkout-code-mode-${certificate ? 'certificate' : 'promo'}'),
             borderRadius: AppRadii.pillAll,
-            onTap: () => setState(() {
-              _certificateMode = certificate;
-              _benefitError = null;
-            }),
+            onTap: _editingLocked
+                ? null
+                : () {
+                    if (selected) return;
+                    setState(() {
+                      _certificateMode = certificate;
+                      _resetCodeValidation();
+                    });
+                  },
             child: Container(
               constraints: const BoxConstraints(minHeight: 40),
               alignment: Alignment.center,
@@ -2401,6 +2566,7 @@ class _CheckoutPageState extends State<CheckoutPage>
         textCapitalization: TextCapitalization.characters,
         textInputAction: TextInputAction.done,
         scrollPadding: EdgeInsets.only(bottom: _footerReserve + 24),
+        onChanged: (_) => setState(_resetCodeValidation),
         onSubmitted: (_) => _validateCode(certificate: certificate),
         onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
         style: AppTypography.bodySmall,
@@ -2796,7 +2962,7 @@ class _CheckoutPageState extends State<CheckoutPage>
                 _summaryRow(
                     'Промокод',
                     _promoDiscount > 0
-                        ? '−${_money(_promoDiscount)}'
+                        ? '−${_money(math.min(_itemsSubtotal, _promoDiscount))}'
                         : 'Применён')
               else if (_bonusUsed > 0)
                 _summaryRow('Бонусы', '−${_money(_bonusUsed)}')
@@ -2881,7 +3047,9 @@ class _CheckoutPageState extends State<CheckoutPage>
 
   /// Why the order cannot be placed yet; null when it can.
   String? get _submissionStatus {
+    if (_checkingCreation) return 'Проверяем, подтвердил ли магазин заказ';
     if (_creationUncertain) return 'Проверьте статус в «Моих заказах»';
+    if (_creationStorageUnavailable) return 'Оформление заблокировано';
     if (_submitting) return 'Не закрывайте экран до ответа магазина';
     if (_initializing) return 'Проверяем данные заказа…';
     if (_loggedIn == null) {
@@ -2954,9 +3122,18 @@ class _CheckoutPageState extends State<CheckoutPage>
               textStyle: AppTypography.bodyMedium,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
-            child: Text(
-              _submitting ? 'Создаём заказ…' : 'Оформить заказ',
-              textAlign: TextAlign.center,
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                _checkingCreation
+                    ? 'Проверяем заказ…'
+                    : _creationUncertain
+                        ? 'Статус неизвестен'
+                        : _submitting
+                            ? 'Отправляем…'
+                            : 'Оформить заказ',
+                textAlign: TextAlign.center,
+              ),
             ),
           );
           if (keyboard) return action;

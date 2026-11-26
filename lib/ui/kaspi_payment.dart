@@ -91,6 +91,7 @@ class KaspiPayButton extends StatelessWidget {
           key: buttonKey,
           onPressed: onPressed,
           style: ButtonStyle(
+            enableFeedback: false,
             backgroundColor: const WidgetStatePropertyAll(_kaspiRed),
             foregroundColor: const WidgetStatePropertyAll(Colors.white),
             overlayColor: const WidgetStatePropertyAll(Colors.transparent),

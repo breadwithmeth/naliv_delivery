@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'dart:ui' show Tristate;
@@ -13,6 +14,7 @@ import 'package:naliv_delivery/features/catalog/ui/supercategory_page.dart';
 import 'package:naliv_delivery/features/product/ui/product_page.dart';
 import 'package:naliv_delivery/model/item.dart';
 import 'package:naliv_delivery/ui/app_cart_button.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
@@ -23,6 +25,7 @@ import 'package:naliv_delivery/features/catalog/catalog_data_source.dart';
 import 'package:naliv_delivery/features/catalog/category_merchandising.dart';
 import '../support/category_merchandising_fixture.dart';
 import '../support/design_surfaces.dart';
+import '../support/haptic_calls.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -252,12 +255,20 @@ void main() {
     );
   }
 
-  testWidgets('category card stepper updates the cart, card opens details', (
-    tester,
-  ) async {
+  testWidgets('category card haptics confirm only accepted quantity changes',
+      (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    enableQuantityClicks(tester);
+    final impacts = recordHapticCalls(tester);
+    final products = [
+      ProductView.fromItem(Item.fromJson({..._itemJson(1), 'amount': 2})),
+      ProductView.fromItem(Item.fromJson({..._itemJson(2), 'amount': 0.5})),
+      for (var id = 3; id <= 24; id++)
+        ProductView.fromItem(Item.fromJson(_itemJson(id))),
+    ];
     final cart = CartProvider();
+    addTearDown(cart.dispose);
     await cart.bindBusiness(1);
     await tester.pumpWidget(
       MultiProvider(
@@ -271,36 +282,88 @@ void main() {
             categoryId: 10,
             title: 'Белое',
             businessId: 1,
-            initialItems: _products,
+            initialItems: products,
           ),
         ),
       ),
     );
-    final first = find.byKey(const ValueKey('category-product-0'));
-    Finder step(String label) => find.descendant(
-          of: first,
+    Finder card(int index) => find.byKey(ValueKey('category-product-$index'));
+    Finder step(int index, String label) => find.descendant(
+          of: card(index),
           matching: find.byWidgetPredicate(
               (widget) => widget is StepTap && widget.label == label),
         );
-    await tester.tap(step('Добавить'));
-    await tester.pump();
-    expect(cart.getCatalogQuantity(_products.first.source), 1);
-    // At the last unit the minus is a delete: the item leaves the cart.
-    await tester.tap(step('Удалить из корзины'));
-    await tester.pump();
-    expect(cart.getCatalogQuantity(_products.first.source), 0);
+    final add = step(0, 'Добавить');
+    final position = Scrollable.of(tester.element(add)).position;
+    await tester.timedDrag(add, const Offset(0, -100),
+        const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(position.pixels, greaterThan(0));
     expect(cart.items, isEmpty);
-    await tester.tapAt(tester.getRect(first).topLeft + const Offset(50, 130));
+    expect(impacts, isEmpty);
+    position.jumpTo(0);
+    await tester.pumpAndSettle();
+
+    // The card can be tapped, but the provider rejects a whole unit of
+    // packaged stock when only half a unit remains.
+    final rejected = step(1, 'Добавить');
+    expect(tester.widget<StepTap>(rejected).onTap, isNotNull);
+    await tester.tap(rejected);
+    await tester.pumpAndSettle();
+    expect(cart.getCatalogQuantity(products[1].source), 0);
+    expect(impacts, isEmpty);
+
+    final item = products.first.source;
+    await tester.tap(add);
+    expect(cart.getCatalogQuantity(item), 1);
+    await tester.pumpAndSettle();
+    expect(impacts, [lightImpact]);
+
+    final increase = step(0, 'Увеличить количество');
+    await tester.tap(increase);
+    expect(cart.getCatalogQuantity(item), 2);
+    await tester.pumpAndSettle();
+    await tester.tap(increase);
+    expect(cart.getCatalogQuantity(item), 2);
+    await tester.pumpAndSettle();
+    expect(impacts, [lightImpact, selectionClick]);
+
+    await tester.pump(const Duration(milliseconds: 90));
+    await tester.tap(step(0, 'Уменьшить количество'));
+    await tester.pumpAndSettle();
+    expect(cart.getCatalogQuantity(item), 1);
+    expect(impacts, [lightImpact, selectionClick, selectionClick]);
+    await tester.pump(const Duration(milliseconds: 90));
+    await tester.tap(step(0, 'Удалить из корзины'));
+    await tester.pumpAndSettle();
+    expect(cart.items, isEmpty);
+    expect(impacts, [lightImpact, selectionClick, selectionClick, selectionClick]);
+
+    await tester.tap(add);
+    expect(cart.getCatalogQuantity(item), 1);
+    await tester.pumpAndSettle();
+    expect(impacts, [
+      lightImpact,
+      selectionClick,
+      selectionClick,
+      selectionClick,
+      lightImpact,
+    ]);
+    await tester.tapAt(tester.getRect(card(0)).topLeft + const Offset(50, 130));
     await tester.pumpAndSettle();
     expect(find.byType(ProductPage), findsOneWidget);
     expect(tester.takeException(), isNull);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('product add action adds once, then opens the cart',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final channelReply = Completer<Object?>();
+    enableQuantityClicks(tester);
+    final impacts = recordHapticCalls(tester, reply: () => channelReply.future);
     final cart = CartProvider();
+    addTearDown(cart.dispose);
     await cart.bindBusiness(1);
     var cartOpened = 0;
     await tester.pumpWidget(
@@ -322,19 +385,27 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(FilledButton, 'В корзину'));
-    await tester.pump();
     expect(cart.getCatalogQuantity(_products.first.source), 1);
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('В корзине: 1 шт'), findsOneWidget);
+    expect(impacts, [lightImpact]);
 
-    // A second press must do something visible: it opens the cart rather than
-    // silently re-confirming, and it never adds behind the customer's back.
-    await tester.tap(find.widgetWithText(FilledButton, 'Перейти в корзину'));
+    // Cart UI and navigation must not wait for the pending platform reply.
+    await tester.tap(find.widgetWithText(FilledButton, 'Добавлено'));
     await tester.pumpAndSettle();
     expect(cartOpened, 1);
     expect(cart.getCatalogQuantity(_products.first.source), 1);
-    expect(find.text('В корзине: 1 шт'), findsOneWidget);
+    expect(impacts, [lightImpact]);
+
+    channelReply.complete();
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.tap(find.widgetWithText(FilledButton, 'Перейти в корзину'));
+    await tester.pumpAndSettle();
+    expect(cartOpened, 2);
+    expect(cart.getCatalogQuantity(_products.first.source), 1);
+    expect(impacts, [lightImpact]);
     expect(tester.takeException(), isNull);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
   testWidgets(
     'failed leaf request retries; successful empty response stays empty',
@@ -436,6 +507,8 @@ void main() {
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    enableQuantityClicks(tester);
+    final impacts = recordHapticCalls(tester);
     final cart = CartProvider();
     await cart.bindBusiness(1);
     var itemReads = 0;
@@ -510,6 +583,18 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump();
       expect(itemReads, 1);
+      final railFirstAdd = find.descendant(
+        of: find.byType(ProductCard).first,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is StepTap && widget.label == 'Добавить',
+        ),
+      );
+      await tester.ensureVisible(railFirstAdd);
+      await tester.pumpAndSettle();
+      await tester.tap(railFirstAdd);
+      await tester.pumpAndSettle();
+      expect(cart.getTotalQuantityForItem(100), 1);
+      expect(impacts, [lightImpact]);
       await tester.tap(find.byKey(const ValueKey('catalog-open-2')));
       await tester.pumpAndSettle();
       expect(find.byType(CategoryProductsPage), findsOneWidget);
@@ -531,22 +616,60 @@ void main() {
       await tester.tap(lastAdd);
       await tester.pumpAndSettle();
       expect(cart.getTotalQuantityForItem(111), 1);
-      final firstAdd = find.descendant(
+      expect(impacts, [lightImpact, lightImpact]);
+      final firstIncrease = find.descendant(
         of: find.byKey(const ValueKey('category-product-0')),
         matching: find.byWidgetPredicate(
-          (widget) => widget is StepTap && widget.label == 'Добавить',
+          (widget) =>
+              widget is StepTap && widget.label == 'Увеличить количество',
         ),
       );
-      await tester.scrollUntilVisible(firstAdd, -300, scrollable: scrollable);
-      await Scrollable.ensureVisible(tester.element(firstAdd), alignment: .3);
+      await tester.scrollUntilVisible(firstIncrease, -300,
+          scrollable: scrollable);
+      await Scrollable.ensureVisible(tester.element(firstIncrease),
+          alignment: .3);
       await tester.pumpAndSettle();
-      await tester.tap(firstAdd);
+      await tester.tap(firstIncrease);
       await tester.pumpAndSettle();
+      expect(cart.getTotalQuantityForItem(100), 2);
+      expect(impacts, [lightImpact, lightImpact, selectionClick]);
+
+      await tester.pump(const Duration(milliseconds: 90));
+      await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('category-product-0')),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is StepTap && widget.label == 'Уменьшить количество',
+        ),
+      ));
       expect(cart.getTotalQuantityForItem(100), 1);
+      expect(impacts, [lightImpact, lightImpact, selectionClick, selectionClick]);
+
+      await tester.tap(find.byTooltip('Назад'));
+      await tester.pumpAndSettle();
+      expect(impacts, [lightImpact, lightImpact, selectionClick, selectionClick]);
+      final railRemove = find.descendant(
+        of: find.byType(ProductCard).first,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is StepTap && widget.label == 'Удалить из корзины',
+        ),
+      );
+      await tester.ensureVisible(railRemove);
+      await tester.pump(const Duration(milliseconds: 90));
+      await tester.tap(railRemove);
+      expect(cart.getTotalQuantityForItem(100), 0);
+      expect(impacts, [
+        lightImpact,
+        lightImpact,
+        selectionClick,
+        selectionClick,
+        selectionClick,
+      ]);
       expect(itemReads, 1);
       expect(tester.takeException(), isNull);
     }, () => client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
     'prefetched pagination retries without refetching or losing items',
@@ -646,11 +769,11 @@ void main() {
     },
   );
 
-  testWidgets('parents hold their children; every level opens its own products',
+  testWidgets('category haptics follow accepted selection, not navigation',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final semantics = tester.ensureSemantics();
+    final clicks = recordHapticCalls(tester);
     final reads = <String>[];
     final client = MockClient((request) async {
       if (request.method != 'GET') {
@@ -735,6 +858,15 @@ void main() {
       expect(find.byKey(const ValueKey('category-tab-3')), findsOneWidget);
       expect(find.byKey(const ValueKey('category-tab-4')), findsNothing);
       expect(find.byKey(const ValueKey('category-tab-101')), findsNothing);
+      final firstTab = find.byKey(const ValueKey('category-tab-2'));
+      expect(
+        tester.widget<CategorySwitcher>(find.byType(CategorySwitcher)).selectedId,
+        2,
+      );
+      expect(clicks, isEmpty);
+      await tester.tap(firstTab);
+      await tester.pumpAndSettle();
+      expect(clicks, isEmpty);
       expect(find.text('Пусто'), findsNothing);
       // The parent previews its products; its child sits inside the same section.
       expect(find.text('Разное пиво'), findsOneWidget);
@@ -748,19 +880,50 @@ void main() {
       expect(find.text('Пиво'), findsOneWidget);
       expect(_selected(tester, 'category-chip-101'), Tristate.isTrue);
       expect(_selected(tester, 'category-chip-2'), Tristate.isFalse);
+      expect(clicks, isEmpty);
 
-      await tester.tap(find.byKey(const ValueKey('category-chip-2')));
+      final all = find.byKey(const ValueKey('category-chip-2'));
+      final cancelled = await tester.startGesture(tester.getCenter(all));
+      await cancelled.cancel();
+      await tester.pumpAndSettle();
+      expect(_selected(tester, 'category-chip-101'), Tristate.isTrue);
+      expect(clicks, isEmpty);
+
+      await tester.tap(all);
       await tester.pumpAndSettle();
       expect(find.text('Разное пиво'), findsOneWidget);
       expect(find.text('Светлый лагер'), findsNothing);
       expect(find.text('Напитки'), findsOneWidget);
       expect(_selected(tester, 'category-chip-2'), Tristate.isTrue);
+      expect(clicks, [selectionClick]);
+
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+      expect(clicks, [selectionClick]);
 
       // Going back to a list that was already loaded never refetches it.
       await tester.tap(find.byKey(const ValueKey('category-chip-101')));
       await tester.pumpAndSettle();
       expect(find.text('Светлый лагер'), findsOneWidget);
       expect(reads.where((id) => id == '101').length, 1);
+      expect(clicks, [selectionClick, selectionClick]);
+
+      await AppHaptics.preference.setEnabled(false);
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+      expect(_selected(tester, 'category-chip-2'), Tristate.isTrue);
+      expect(clicks, [selectionClick, selectionClick]);
+      await AppHaptics.preference.setEnabled(true);
+
+      // Switching back and forth within one frame still confirms both changes.
+      clicks.clear();
+      await tester.tap(find.byKey(const ValueKey('category-chip-101')));
+      await tester.pump();
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+      expect(_selected(tester, 'category-chip-2'), Tristate.isTrue);
+      expect(clicks, [selectionClick, selectionClick]);
+      clicks.clear();
 
       await tester.tap(find.byTooltip('Назад'));
       await tester.pumpAndSettle();
@@ -772,21 +935,57 @@ void main() {
         find.byKey(const ValueKey('catalog-open-3')).hitTestable(),
         findsOneWidget,
       );
+      expect(clicks, [selectionClick]);
 
       // The sheet lists every parent with its children; the current parent is marked.
-      await tester.tap(find.byKey(const ValueKey('category-switch-control')));
+      final switchControl = find.byKey(const ValueKey('category-switch-control'));
+      await tester.tap(switchControl);
       await tester.pumpAndSettle();
       expect(_selected(tester, 'category-menu-3'), Tristate.isTrue);
       expect(_selected(tester, 'category-menu-2'), Tristate.isFalse);
       expect(find.byKey(const ValueKey('category-menu-101')), findsOneWidget);
+      await tester.tap(find.byTooltip('Закрыть категории'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(clicks, [selectionClick]);
+
+      await tester.tap(switchControl);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('category-menu-202')));
       await tester.pumpAndSettle();
       expect(find.byType(CategoryProductsPage), findsOneWidget);
       expect(find.text('Безалкогольный лагер'), findsOneWidget);
       expect(find.text('Безалкогольное пиво'), findsOneWidget);
+      expect(clicks, [selectionClick]);
+
+      await tester.tap(find.byTooltip('Назад'));
+      await tester.pumpAndSettle();
+      final overview = tester.widget<ListView>(
+        find.byKey(const ValueKey('catalog-overview')),
+      );
+      final position = overview.controller!.position;
+      position.jumpTo(position.minScrollExtent);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<CategorySwitcher>(find.byType(CategorySwitcher)).selectedId,
+        2,
+      );
+      expect(clicks, [selectionClick]);
+
+      await AppHaptics.preference.setEnabled(false);
+      await tester.tap(find.byKey(const ValueKey('category-tab-3')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<CategorySwitcher>(find.byType(CategorySwitcher)).selectedId,
+        3,
+      );
+      expect(clicks, [selectionClick]);
+      await AppHaptics.preference.setEnabled(true);
+      await tester.pumpWidget(const SizedBox.shrink());
+      client.close();
       expect(tester.takeException(), isNull);
-    }, () => client).whenComplete(semantics.dispose);
-  });
+    }, () => client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('the child chips reveal a distant selection at large text',
       (tester) async {
@@ -857,6 +1056,7 @@ void main() {
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 812));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final clicks = recordHapticCalls(tester);
     final client = MockClient((request) async {
       if (request.method != 'GET') {
         throw StateError('Unexpected mutation: $request');
@@ -936,6 +1136,7 @@ void main() {
             .first,
       );
       await tester.pumpAndSettle();
+      expect(clicks, isEmpty);
       await tester.tap(last);
       await tester.pumpAndSettle();
       expect(
@@ -948,9 +1149,12 @@ void main() {
             .selectedId,
         17,
       );
+      expect(clicks, [selectionClick]);
+      await tester.pumpWidget(const SizedBox.shrink());
+      client.close();
       expect(tester.takeException(), isNull);
     }, () => client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 }
 
 Map<String, dynamic> _itemJson(int id) => {

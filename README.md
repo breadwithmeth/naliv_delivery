@@ -29,6 +29,16 @@ flutter run -d windows -t tool/dev_surface.dart
 
 The gallery uses synthetic preferences and a strict HTTP fixture. Unexpected requests are rejected, never forwarded to production. Its controls select the surface, theme, width, text scaling and keyboard inset. A fixture web URL may use `?surface=active_route&guest=1` to remove only the synthetic auth token and exercise guest checkout/login continuation. Card/payment scenario names are the existing enums in `test/support/design_surfaces.dart`. VS Code's **Design fixtures (Windows)** launch configuration uses this entry point and supports hot reload.
 
+For the bundled shopping pilot use `--dart-define=SHOPPING_PILOT=true`.
+**Пройти покупку** opens the active app routes with the strict fixture transport.
+Manual category selection, cart changes and confirmed favorites share the device
+haptics preference under Profile, including for guests. **К выбору** ends a trial.
+**Открыть вход** accepts `+70000000000`: `000000` simulates a service error, `123456` succeeds.
+No WhatsApp message is sent. Desktop can exercise the flow
+but not the mobile impact. On a phone use only the separate offline pilot APK
+(`kz.gradusy24.app.firstaddpilot`, no `INTERNET` permission), not the production
+application ID.
+
 Optional mobile-update fixtures use `?surface=active_route&updates=android` (or
 `ios`, `androidOpenFailed`, `iosOpenFailed`; default `off`), or the gallery's Updates
 selector. They exercise the real notice with synthetic metadata and visible store

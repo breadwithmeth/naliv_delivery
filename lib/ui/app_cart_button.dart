@@ -9,7 +9,6 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'app_icon.dart';
 import 'frosted_dock.dart';
-import 'frosted_surface.dart';
 import 'motion_widgets.dart';
 
 /// The sharp, accessible foreground of the single floating cart dock.
@@ -79,9 +78,11 @@ class AppCartButton extends StatefulWidget {
 
   /// The space the dock occupies above the bottom safe-area inset, plus a
   /// gutter: the control's box (stamp rise included), the dock's base padding
-  /// and a margin.
+  /// and the scroll gutter.
   static double clearanceFor(BuildContext context) =>
-      _boxHeight(context) + FrostedDock.basePadding + AppSpacing.xl;
+      _boxHeight(context) +
+      FrostedDock.basePadding +
+      AppSpacing.xl;
 
   bool get _filled => itemCount > 0 && total != null;
 
@@ -184,6 +185,8 @@ class _AppCartButtonState extends State<AppCartButton>
   Widget _group(BuildContext context, double open, double box) {
     final pillHeight = AppCartButton._pillHeightFor(context);
     final centre = AppCartButton._pillCentre(context);
+    final palette = context.palette;
+    final shadow = AppShadows.control(palette);
     final pillFade = const Interval(0, .4).transform(open);
     final badgeScale =
         const Interval(.35, 1, curve: AppMotion.overshoot).transform(open);
@@ -192,6 +195,19 @@ class _AppCartButtonState extends State<AppCartButton>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          // Paint the stamp's shadow behind both fills, never across the join.
+          Positioned(
+            left: 0,
+            top: 0,
+            width: AppCartButton.stampSize,
+            height: AppCartButton.stampSize,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: shadow,
+              ),
+            ),
+          ),
           if (open > 0)
             Positioned(
               key: const ValueKey('cart-pill'),
@@ -201,11 +217,12 @@ class _AppCartButtonState extends State<AppCartButton>
               height: pillHeight,
               child: Opacity(
                 opacity: pillFade,
-                child: FrostedSurface(
-                  borderRadius: AppRadii.pillAll,
-                  tint: Frost.accent(context),
-                  edge: false,
-                  child: const SizedBox.expand(),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: palette.accent,
+                    borderRadius: AppRadii.pillAll,
+                    boxShadow: shadow,
+                  ),
                 ),
               ),
             ),
@@ -310,25 +327,11 @@ class _AppCartButtonState extends State<AppCartButton>
 }
 
 /// The scalloped brand stamp with its white cart glyph.
-///
-/// The artwork is exported at the design's 75 % orange; it is recoloured to the
-/// shared [Frost.accent] (nearly opaque glass) so the stamp reads the same as
-/// the pill beside it and stays legible over busy content.
 class _Stamp extends StatelessWidget {
   const _Stamp();
 
-  /// Alpha baked into `cart_fab.svg`.
-  static const double _artworkAlpha = .75;
-
   @override
   Widget build(BuildContext context) {
-    final accent = Frost.accent(context);
-    final filter = ColorFilter.matrix(<double>[
-      0, 0, 0, 0, accent.r * 255, //
-      0, 0, 0, 0, accent.g * 255,
-      0, 0, 0, 0, accent.b * 255,
-      0, 0, 0, accent.a / _artworkAlpha, 0,
-    ]);
     const size = AppCartButton.stampSize;
     return RepaintBoundary(
       child: SizedBox.square(
@@ -336,24 +339,10 @@ class _Stamp extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // The control shadow only: the scalloped artwork carries the fill.
-            Positioned.fill(
-              child: FrostedScope(
-                child: FrostedSurface(
-                  borderRadius: BorderRadius.circular(size / 2),
-                  tint: Colors.transparent,
-                  edge: false,
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ),
-            ColorFiltered(
-              colorFilter: filter,
-              child: const AppIcon(
-                AppIcons.cartFab,
-                width: size,
-                height: size,
-              ),
+            AppIcon(
+              AppIcons.cartFab,
+              size: size,
+              color: context.palette.accent,
             ),
             const AppIcon(
               AppIcons.cart,

@@ -83,7 +83,7 @@ void main() {
         child: MaterialApp(
           theme: AppTheme.dark(),
           home: AuthenticationWrapper(
-            ageConfirmation: AgeConfirmationSession()..confirm(),
+            ageConfirmation: AgeConfirmationSession.inMemory(confirmed: true),
           ),
         ),
       ));
@@ -159,7 +159,7 @@ void main() {
           child: MaterialApp(
             theme: AppTheme.dark(),
             home: AuthenticationWrapper(
-              ageConfirmation: AgeConfirmationSession()..confirm(),
+              ageConfirmation: AgeConfirmationSession.inMemory(confirmed: true),
             ),
           ),
         ));

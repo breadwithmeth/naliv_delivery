@@ -7,6 +7,7 @@ import '../../../design/typography.dart';
 import '../../../pages/card_flow.dart';
 import '../../../pages/card_widgets.dart';
 import '../../../pages/help_chat_page.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/frosted_controls.dart';
 import '../../../ui/frosted_surface.dart';
 import '../../../ui/surfaces.dart';
@@ -142,14 +143,28 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
     super.dispose();
   }
 
-  bool get _canSubmit =>
+  bool get _canSelectCard =>
       _session.canPurchase &&
       !_cards.loading &&
       !_cards.preparing &&
       !_cards.awaiting &&
-      _cards.error == null &&
+      _cards.error == null;
+
+  bool get _canSubmit =>
+      _canSelectCard &&
       _cards.cards.any(
           (card) => card.canCharge && card.chargeId == _session.selectedCardId);
+
+  void _selectCard(String? id) {
+    if (!_canSelectCard ||
+        id == null ||
+        id == _session.selectedCardId ||
+        !_cards.cards.any((card) => card.canCharge && card.chargeId == id)) {
+      return;
+    }
+    setState(() => _session.selectedCardId = id);
+    AppHaptics.selectionConfirmed();
+  }
 
   void _close() {
     if (_session.busy) return;
@@ -421,14 +436,8 @@ class _CertificatePurchaseSheetState extends State<CertificatePurchaseSheet>
                 card: card,
                 selected:
                     card.canCharge && card.chargeId == _session.selectedCardId,
-                onSelected: card.canCharge &&
-                        editable &&
-                        _cards.error == null &&
-                        !_cards.loading &&
-                        !_cards.preparing &&
-                        !_cards.awaiting
-                    ? () =>
-                        setState(() => _session.selectedCardId = card.chargeId)
+                onSelected: card.canCharge && _canSelectCard
+                    ? () => _selectCard(card.chargeId)
                     : null,
               ),
             ),

@@ -87,8 +87,10 @@ class RepeatOrderService {
     final deliveryType = resolveDeliveryType(order);
     final buildResult = buildCartItemsFromOrder(order);
     if (buildResult.items.isEmpty) {
-      throw const RepeatOrderException(
-          'Не удалось восстановить товары из этого заказа.');
+      final skipped = buildResult.skippedItems;
+      throw RepeatOrderException(skipped.isEmpty
+          ? 'Не удалось восстановить товары из этого заказа. Корзина не изменена.'
+          : 'Не удалось восстановить: ${skipped.join(', ')}. Корзина не изменена.');
     }
     if (!current()) {
       throw const RepeatOrderException(

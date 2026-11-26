@@ -11,6 +11,7 @@ import 'package:naliv_delivery/services/onboarding_service.dart';
 import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/ui/app_icon.dart';
 import 'package:naliv_delivery/ui/surfaces.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/utils/api.dart';
 import 'package:naliv_delivery/utils/location_service.dart';
 
@@ -52,6 +53,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _locationRevision = 0;
   List<OnboardingCity> _cities = const [];
   String? _selectedCity;
+  bool _manuallySelectedCity = false;
   bool _loadingCities = true;
   bool _citiesFailed = false;
   bool _citiesStale = false;
@@ -100,7 +102,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
       _citiesFailed = result.failed;
       _citiesStale = result.isStale;
       _loadingCities = false;
-      if (!_validSelection) _selectedCity = null;
+      if (!_validSelection) {
+        _selectedCity = null;
+        _manuallySelectedCity = false;
+      }
       // One city needs no choice.
       if (_selectedCity == null && _cities.length == 1) {
         _selectedCity = _cities.single.name;
@@ -113,6 +118,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     setState(() {
       _locationRevision++;
       _locating = false;
+      if (_selectedCity != city) _manuallySelectedCity = true;
       _selectedCity = city;
       _saveError = null;
     });
@@ -166,6 +172,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               'Не удалось определить город. Выберите его в списке.';
         } else {
           _selectedCity = matched.name;
+          _manuallySelectedCity = false;
           _locationMessage = null;
         }
       });
@@ -183,6 +190,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _continue() async {
     if (_saving || _loadingCities || !_validSelection) return;
     final city = _selectedCity!;
+    final changedManually = _manuallySelectedCity && city != widget.initialCity;
     if (_notificationsSupported) {
       // Started inside the tap, so a browser accepts the permission prompt.
       // A refused or failed request never blocks onboarding.
@@ -203,6 +211,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
       await OnboardingService.markNotificationPromptSeen();
       await OnboardingService.complete(city: city);
       if (!mounted) return;
+      if (changedManually &&
+          ModalRoute.of(context)?.isCurrent == true &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        AppHaptics.selectionConfirmed();
+      }
       widget.onCompleted();
     } catch (_) {
       if (!mounted) return;
@@ -312,6 +325,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                       activeColor: palette.accent,
                                       title: Text(city.name,
                                           style: AppTypography.titleMedium),
+                                      secondary: city.name == _selectedCity
+                                          ? Icon(Icons.check,
+                                              color: palette.accent, size: 20)
+                                          : null,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                         horizontal: AppSpacing.md,

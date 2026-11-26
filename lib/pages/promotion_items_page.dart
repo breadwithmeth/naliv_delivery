@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/kitchen_policy.dart';
-import '../core/like_action.dart';
 import '../core/product_view.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
@@ -11,8 +10,7 @@ import '../features/cart/ui/cart_page.dart';
 import '../features/product/product_navigation.dart';
 import '../model/item.dart' as item_model;
 import '../ui/app_cart_button.dart';
-import '../ui/app_icon.dart';
-import '../ui/app_icon_button.dart';
+import '../ui/app_haptics.dart';
 import '../ui/app_states.dart';
 import '../ui/app_top_bar.dart';
 import '../ui/frosted_dock.dart';
@@ -20,7 +18,6 @@ import '../ui/product_card.dart';
 import '../ui/product_grid.dart';
 import '../utils/api.dart';
 import '../utils/cart_provider.dart';
-import '../utils/liked_items_provider.dart';
 import 'checkout_page.dart';
 
 /// Страница с товарами конкретной акции
@@ -50,7 +47,6 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
   bool _isLoading = false;
   bool _failed = false;
   int _loadGeneration = 0;
-  final _liking = <(int, int)>{};
 
   String get _title {
     final name = widget.promotionName?.trim();
@@ -173,30 +169,6 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     return visible && hasStock && hasPriceSignal;
   }
 
-  Future<void> _toggleLike(ProductView item) async {
-    final businessId = widget.businessId;
-    final key = (businessId, item.itemId);
-    if (_liking.contains(key)) return;
-    setState(() => _liking.add(key));
-    bool? changed;
-    try {
-      changed = await toggleItemLike(
-        context,
-        businessId: businessId,
-        itemId: item.itemId,
-      );
-    } catch (_) {
-      changed = null;
-    }
-    if (!mounted) return;
-    setState(() => _liking.remove(key));
-    if (changed == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось изменить избранное')),
-      );
-    }
-  }
-
   void _openCart() {
     final callback = widget.onCart;
     if (callback != null) {
@@ -220,10 +192,6 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
     openProduct(
       context,
       item,
-      liked: context
-          .read<LikedItemsProvider>()
-          .isLiked(widget.businessId, item.itemId),
-      onLike: () => _toggleLike(item),
       onCart: _openCart,
       businessId: widget.businessId,
     );
@@ -327,15 +295,9 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
           itemCount: _isLoading || _failed ? 0 : items?.length ?? 0,
           itemBuilder: (context, index) {
             final item = items![index];
-            final busy = _liking.contains((widget.businessId, item.itemId));
-            return Selector2<CartProvider, LikedItemsProvider, (double, bool)>(
-              selector: (_, cart, likes) => (
-                cart.getCatalogQuantityForKey(item.catalogKey),
-                likes.isLiked(widget.businessId, item.itemId),
-              ),
-              builder: (context, state, _) {
-                final quantity = state.$1;
-                final isLiked = state.$2;
+            return Selector<CartProvider, double>(
+              selector: (_, cart) => cart.getCatalogQuantityForKey(item.catalogKey),
+              builder: (context, quantity, _) {
                 return ProductCard.fromView(
                   item,
                   key: ValueKey('promotion-product-$index'),
@@ -344,39 +306,10 @@ class _PromotionItemsPageState extends State<PromotionItemsPage> {
                   onIncrement: item.source.amount != null &&
                           quantity >= item.source.amount!
                       ? null
-                      : () => context
-                          .read<CartProvider>()
-                          .incrementCatalogItem(item.source),
-                  onDecrement: () => context
-                      .read<CartProvider>()
-                      .decrementCatalogItem(item.source),
-                  trailingAction: Semantics(
-                    button: true,
-                    toggled: isLiked,
-                    enabled: !busy,
-                    label: isLiked
-                        ? 'Убрать из избранного'
-                        : 'Добавить в избранное',
-                    child: Opacity(
-                      opacity: busy ? 0.5 : 1,
-                      child: AppIconButton(
-                        key: ValueKey('promotion-like-$index'),
-                        asset: AppIcons.heart,
-                        size: AppSpacing.touchTarget,
-                        glyphSize: 20,
-                        fill: isLiked
-                            ? context.palette.brandRed
-                            : context.palette.surfaceMuted,
-                        color: isLiked
-                            ? Colors.white
-                            : context.palette.textPrimary,
-                        onTap: busy ? null : () => _toggleLike(item),
-                        tooltip: isLiked
-                            ? 'Убрать из избранного'
-                            : 'Добавить в избранное',
-                      ),
-                    ),
-                  ),
+                      : () => AppHaptics.addCatalogStep(
+                          context.read<CartProvider>(), item),
+                  onDecrement: () => AppHaptics.removeCatalogStep(
+                      context.read<CartProvider>(), item),
                 );
               },
             );

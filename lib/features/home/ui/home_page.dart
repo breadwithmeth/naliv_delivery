@@ -541,7 +541,7 @@ class _ActiveOrderCard extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  AppIcon(AppIcons.cartFab, size: 56),
+                  AppIcon(AppIcons.cartFab, size: 56, color: Color(0xBFFF6800)),
                   AppIcon(AppIcons.orders, size: 24, color: Colors.white),
                 ],
               ),

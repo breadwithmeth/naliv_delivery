@@ -9,9 +9,12 @@ import '../../../ui/app_icon.dart';
 import '../../onboarding/legal_acceptance.dart';
 import '../../onboarding/ui/legal_document_page.dart';
 
-Future<bool> showAgeConfirmationDialog(BuildContext context) async {
+Future<void> showAgeConfirmationDialog(
+  BuildContext context, {
+  required Future<bool> Function() onConfirm,
+}) async {
   final navigator = Navigator.of(context);
-  final route = DialogRoute<bool>(
+  final route = DialogRoute<void>(
     context: context,
     barrierDismissible: false,
     barrierColor: const Color(0x99000000),
@@ -20,16 +23,64 @@ Future<bool> showAgeConfirmationDialog(BuildContext context) async {
     animationStyle: MediaQuery.disableAnimationsOf(context)
         ? AnimationStyle.noAnimation
         : null,
-    builder: (_) => const _AgeConfirmationDialog(),
+    builder: (_) => _AgeConfirmationDialog(onConfirm: onConfirm),
   );
-  final confirmed = await navigator.push(route);
+  await navigator.push(route);
   // Leave the dialog fully behind before opening a deferred destination.
   await route.completed;
-  return confirmed == true;
 }
 
-class _AgeConfirmationDialog extends StatelessWidget {
-  const _AgeConfirmationDialog();
+class _AgeConfirmationDialog extends StatefulWidget {
+  const _AgeConfirmationDialog({required this.onConfirm});
+
+  final Future<bool> Function() onConfirm;
+
+  @override
+  State<_AgeConfirmationDialog> createState() => _AgeConfirmationDialogState();
+}
+
+class _AgeConfirmationDialogState extends State<_AgeConfirmationDialog> {
+  bool _saving = false;
+  bool _saveFailed = false;
+
+  Future<void> _confirm() async {
+    if (_saving || ModalRoute.of(context)?.isCurrent != true) return;
+    setState(() {
+      _saving = true;
+      _saveFailed = false;
+    });
+    final saved = await widget.onConfirm();
+    if (!mounted) return;
+    if (!saved) {
+      setState(() {
+        _saving = false;
+        _saveFailed = true;
+      });
+      return;
+    }
+
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isActive) return;
+    final navigator = Navigator.of(context);
+    if (route.isCurrent) {
+      navigator.pop();
+    } else {
+      navigator.removeRoute(route);
+    }
+  }
+
+  void _openOffer() {
+    if (_saving || ModalRoute.of(context)?.isCurrent != true) return;
+    final asset = LegalAcceptance.assets['offer']!;
+    unawaited(Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => LegalDocumentPage.asset(
+          title: 'Публичная оферта',
+          asset: asset,
+        ),
+      ),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +88,7 @@ class _AgeConfirmationDialog extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     const actionFill = Color(0xFFB94F00);
     final linkColor = dark ? const Color(0xFFFF9B50) : actionFill;
-    return PopScope<bool>(
+    return PopScope<void>(
       canPop: false,
       child: Dialog(
         backgroundColor: dark ? palette.surface : palette.background,
@@ -70,22 +121,24 @@ class _AgeConfirmationDialog extends StatelessWidget {
                     minimumSize: const Size(44, 44),
                     textStyle: AppTypography.bodySmall,
                   ),
-                  onPressed: () {
-                    if (ModalRoute.of(context)?.isCurrent != true) return;
-                    final asset = LegalAcceptance.assets['offer']!;
-                    unawaited(Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => LegalDocumentPage.asset(
-                          title: 'Публичная оферта',
-                          asset: asset,
-                        ),
-                      ),
-                    ));
-                  },
+                  onPressed: _saving ? null : _openOffer,
                   child: const Text('Договор оферты', textAlign: TextAlign.center),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
+              if (_saveFailed) ...[
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    'Не удалось сохранить подтверждение. Попробуйте ещё раз.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: actionFill,
@@ -95,12 +148,11 @@ class _AgeConfirmationDialog extends StatelessWidget {
                   shape: const StadiumBorder(),
                   textStyle: AppTypography.bodyBold,
                 ),
-                onPressed: () {
-                  if (ModalRoute.of(context)?.isCurrent == true) {
-                    Navigator.of(context).pop(true);
-                  }
-                },
-                child: const Text('Мне есть 21 год', textAlign: TextAlign.center),
+                onPressed: _saving ? null : _confirm,
+                child: Text(
+                  _saving ? 'Сохраняем…' : 'Мне есть 21 год',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),

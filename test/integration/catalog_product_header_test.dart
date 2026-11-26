@@ -22,7 +22,6 @@ void main() {
       (tester) async {
     final dish = ProductView.fromItem(_photoItem(categoryId: 237));
     final bottle = ProductView.fromItem(_photoItem(categoryId: 58));
-    var favorites = 0;
     const dishKey = ValueKey('dish-card');
     const bottleKey = ValueKey('bottle-card');
     await tester.pumpWidget(MaterialApp(
@@ -31,15 +30,7 @@ void main() {
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ProductCard.fromView(
-              dish,
-              key: dishKey,
-              trailingAction: IconButton(
-                tooltip: 'В избранное',
-                onPressed: () => favorites++,
-                icon: const Icon(Icons.favorite_border),
-              ),
-            ),
+            ProductCard.fromView(dish, key: dishKey),
             ProductCard.fromView(bottle, key: bottleKey),
           ],
         ),
@@ -68,8 +59,6 @@ void main() {
         find.ancestor(of: dishPhoto, matching: find.byType(ClipRRect));
     expect(tester.getRect(roundedSlot.first), tester.getRect(dishPhoto));
 
-    await tester.tap(find.byTooltip('В избранное'));
-    expect(favorites, 1);
     expect(tester.takeException(), isNull);
   });
 
@@ -168,7 +157,6 @@ void main() {
                   heroRect.bottom - 16,
                 ),
         );
-        expect(find.byTooltip('В избранное'), findsOneWidget);
         await tester.tap(find.byTooltip(
             configurable ? 'Назад без сохранения' : 'Назад'));
         await tester.pumpAndSettle();

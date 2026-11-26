@@ -7,14 +7,116 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/search/ui/search_page.dart';
+import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/ui/product_row.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/haptic_calls.dart';
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('search result confirms accepted changes, not a rejected plus',
+      (tester) async {
+    enableQuantityClicks(tester);
+    final calls = recordHapticCalls(tester);
+    final transport = _SearchTransport();
+    await http.runWithClient(() async {
+      await _mount(tester);
+      await _submit(tester, 'лимонад');
+      transport.complete('лимонад', 1, [
+        {..._item(502, 'Лимонад'), 'amount': 2},
+      ]);
+      await tester.pumpAndSettle();
+      final cart = tester.element(find.byType(SearchPage)).read<CartProvider>();
+      Finder step(String label) => find.descendant(
+            of: find.byType(ProductRow),
+            matching: find.byWidgetPredicate(
+                (widget) => widget is StepTap && widget.label == label),
+          );
+
+      await tester.tap(step('Добавить'));
+      expect(cart.getTotalQuantityForItem(502), 1);
+      expect(calls, [lightImpact]);
+      await tester.pumpAndSettle();
+      await tester.tap(step('Увеличить количество'));
+      expect(cart.getTotalQuantityForItem(502), 2);
+      expect(calls, [lightImpact, selectionClick]);
+      await tester.pump(const Duration(milliseconds: 90));
+      await tester.tap(step('Увеличить количество'));
+      expect(cart.getTotalQuantityForItem(502), 2);
+      expect(calls, [lightImpact, selectionClick]);
+      await tester.tap(step('Уменьшить количество'));
+      expect(cart.getTotalQuantityForItem(502), 1);
+      expect(calls, [lightImpact, selectionClick, selectionClick]);
+      expect(transport.requests, ['лимонад:1']);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => transport.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('submit and results preserve the keyboard until it is dismissed',
+      (tester) async {
+    final transport = _SearchTransport();
+    final calls = recordHapticCalls(tester);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetViewInsets);
+    await http.runWithClient(() async {
+      await _mount(tester);
+      final field = find.byType(EditableText);
+      final input = tester.state<EditableTextState>(field);
+      const draft = '  лимонад  ';
+      await _submit(tester, draft);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(input.widget.focusNode.hasFocus, isTrue);
+      expect(input.widget.controller.text, draft);
+
+      transport.fail('лимонад', 1);
+      await tester.pumpAndSettle();
+      expect(find.text('Не удалось выполнить поиск'), findsOneWidget);
+      expect(tester.state<EditableTextState>(field), same(input));
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(input.widget.controller.text, draft);
+
+      await tester.tap(find.text('Повторить'));
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      input.widget.focusNode.unfocus();
+      await tester.pump();
+      expect(tester.testTextInput.isVisible, isFalse);
+      transport.complete('лимонад', 1, [_item(502, 'Тестовый лимонад')]);
+      await tester.pumpAndSettle();
+      expect(find.text('Тестовый лимонад'), findsOneWidget);
+      expect(tester.state<EditableTextState>(field), same(input));
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(input.widget.focusNode.hasFocus, isFalse);
+      expect(input.widget.controller.text, draft);
+
+      await tester.enterText(find.byType(TextField), 'чай');
+      await tester.pump();
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(input.widget.controller.text, 'чай');
+      expect(transport.requests, ['лимонад:1', 'лимонад:1']);
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+      transport.complete('чай', 1, [_item(503, 'Тестовый чай')]);
+      await tester.pumpAndSettle();
+      expect(find.text('Тестовый чай'), findsOneWidget);
+      expect(tester.state<EditableTextState>(field), same(input));
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(input.widget.controller.text, 'чай');
+      expect(transport.requests, ['лимонад:1', 'лимонад:1', 'чай:1']);
+      expect(calls, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => transport.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('late search success cannot replace a newer submitted query',
       (tester) async {
@@ -168,6 +270,47 @@ void main() {
       expect(find.text('Старый результат'), findsNothing);
     }, () => transport.client);
   });
+
+  testWidgets('search row favorite follows the live session', (tester) async {
+    await AuthService.notifySessionChanged();
+    final transport = _SearchTransport(favoriteItemId: 502);
+    final row = find.byType(ProductRow);
+    final addFavorite = find.descendant(
+        of: row, matching: find.byTooltip('В избранное'));
+    final removeFavorite = find.descendant(
+        of: row, matching: find.byTooltip('Убрать из избранного'));
+
+    await http.runWithClient(() async {
+      await _mount(tester);
+      await _submit(tester, 'лимонад');
+      transport.complete('лимонад', 1, [_item(502, 'Лимонад')]);
+      await tester.pumpAndSettle();
+      expect(find.text('Лимонад'), findsOneWidget);
+      expect(addFavorite, findsNothing);
+      expect(removeFavorite, findsNothing);
+      expect(transport.toggleCount, 0);
+
+      await AuthService.saveToken('search-account');
+      await AuthService.bindAuthenticatedIdentity('search-user');
+      await tester.pumpAndSettle();
+      expect(addFavorite.hitTestable(), findsOneWidget);
+      await tester.tap(addFavorite);
+      await tester.pumpAndSettle();
+      expect(removeFavorite.hitTestable(), findsOneWidget);
+      expect(transport.toggleCount, 1);
+
+      await (await SharedPreferences.getInstance()).remove('auth_token');
+      await AuthService.notifySessionChanged();
+      await tester.pumpAndSettle();
+      expect(find.text('Лимонад'), findsOneWidget);
+      expect(addFavorite, findsNothing);
+      expect(removeFavorite, findsNothing);
+      expect(transport.toggleCount, 1);
+      expect(transport.requests, ['лимонад:1']);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => transport.client);
+  });
 }
 
 Future<void> _mount(WidgetTester tester) async {
@@ -219,9 +362,24 @@ Map<String, Object> _item(int id, String name) => {
     };
 
 class _SearchTransport {
-  _SearchTransport() {
+  _SearchTransport({int? favoriteItemId}) {
     client = MockClient((request) async {
       final query = request.url.queryParameters;
+      if (favoriteItemId != null &&
+          request.method == 'POST' &&
+          request.url.scheme == 'https' &&
+          request.url.host == 'njt25.naliv.kz' &&
+          request.url.path == '/api/users/liked-items/toggle' &&
+          query.isEmpty &&
+          request.headers['authorization'] == 'Bearer search-account' &&
+          request.body == '{"item_id":$favoriteItemId}') {
+        toggleCount++;
+        return http.Response(
+          '{"success":true,"data":{"is_liked":true}}',
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
       if (request.method != 'GET' ||
           request.url.scheme != 'https' ||
           request.url.host != 'njt25.naliv.kz' ||
@@ -253,6 +411,7 @@ class _SearchTransport {
   late final MockClient client;
   final unexpected = <String>[];
   final requests = <String>[];
+  int toggleCount = 0;
   final _pending = <String, Completer<http.Response>>{};
 
   void complete(String query, int page, List<Map<String, Object>> items,

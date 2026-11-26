@@ -5,6 +5,11 @@ import 'item_name_country_rules.dart';
 import 'item_name_packaging_rules.dart';
 import 'item_name_prefix_rules.dart';
 
+final _kitchenPrefix = RegExp(
+  r'^кухня(?:[\s\-–—.,:;|/]+|$)',
+  caseSensitive: false,
+);
+
 class ItemTitlePresentation {
   final String name;
   final String? type;
@@ -155,7 +160,8 @@ ItemTitlePresentation presentItemName({
   bool allowImplicitVolume = true,
 }) {
   final original = _normalizeSpaces(rawName);
-  final fallbackType = _cleanType(storedType) ?? _cleanType(categoryName);
+  final categoryType = _cleanItemType(categoryName);
+  final fallbackType = _cleanItemType(storedType) ?? categoryType;
   String? packagingType = _cleanType(storedPackagingType);
   String? countryName = _cleanType(storedCountryName);
   String? countryFlag =
@@ -175,9 +181,12 @@ ItemTitlePresentation presentItemName({
     );
   }
 
-  var cleaned = original;
+  // The kitchen prefix is a source marker, not a display type.
+  final kitchenPrefix = _kitchenPrefix.matchAsPrefix(original);
+  var cleaned =
+      kitchenPrefix == null ? original : original.substring(kitchenPrefix.end);
   final removedChunks = <String>[];
-  final rules = _buildRules(categoryName);
+  final rules = _buildRules(categoryType);
   final packagingRules = _buildPackagingRules();
 
   while (true) {
@@ -231,7 +240,13 @@ ItemTitlePresentation presentItemName({
           allowImplicitVolume && storedWeightKilograms == null);
   cleaned = extractedSpecs.cleaned;
   if (cleaned.isEmpty) {
-    cleaned = original;
+    cleaned = kitchenPrefix == null ? original : 'Товар';
+  } else if (kitchenPrefix != null) {
+    final initial = String.fromCharCode(cleaned.runes.first);
+    final uppercase = initial.toUpperCase();
+    if (initial != uppercase) {
+      cleaned = '$uppercase${cleaned.substring(initial.length)}';
+    }
   }
 
   final type = fallbackType ?? _cleanType(removedChunks.join(' '));
@@ -642,6 +657,11 @@ String? _cleanType(String? value) {
     return null;
   }
   return trimmed;
+}
+
+String? _cleanItemType(String? value) {
+  final type = _cleanType(value);
+  return type?.toLowerCase() == 'кухня' ? null : type;
 }
 
 class _PackagingRule {

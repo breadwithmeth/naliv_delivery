@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
@@ -18,11 +20,9 @@ import 'frosted_surface.dart';
 /// with [DockOverhang]; that strip belongs to the foreground's layout box, so
 /// the projecting part stays hit-testable, but the bar starts below it.
 ///
-/// The material is the app's one [Frost] liquid glass, as on the scrolled
-/// header and floating controls: the page runs full-bleed behind it in its own
-/// repaint boundary, one glass surface softens only the bar's rectangle, and
-/// the [Frost.tint] plus a hairline top edge finish it. The foreground sits in
-/// a [FrostedScope], so frosted controls on the bar do not blur a second time.
+/// A single glass surface covers the bar, with a shader-lit rim on supported
+/// mobile devices and a painted top edge otherwise. The foreground sits in a
+/// [FrostedScope], so frosted controls on the bar do not blur a second time.
 /// With [MediaQueryData.highContrast] the bar is an opaque surface instead.
 /// There is no loading state: the first frame already has its final geometry.
 class FrostedDock extends StatefulWidget {
@@ -37,6 +37,7 @@ class FrostedDock extends StatefulWidget {
 
   final Widget content;
   final Widget? dock;
+
   final BorderRadius borderRadius;
 
   /// Overrides the translucent fill; defaults to a theme-dependent tint.
@@ -197,71 +198,96 @@ class _FrostedBar extends StatelessWidget {
   final Color? tint;
   final bool opaque;
 
+  static const bool _enableRefraction =
+      bool.fromEnvironment('GRADUSY_DOCK_REFRACTION', defaultValue: true);
+
+  Widget _edge(Color color, double width) => CustomPaint(
+        painter: _TopEdgePainter(
+          borderRadius: borderRadius,
+          color: color,
+          width: width,
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final edge = CustomPaint(
-      painter: _TopEdgePainter(
-        borderRadius: borderRadius,
-        color: Frost.edge(context),
-      ),
-    );
     if (opaque) {
       return ClipRRect(
         borderRadius: borderRadius,
         child: ColoredBox(
-          color: Theme.of(context).colorScheme.error,
-          child: edge,
+          color: Color.alphaBlend(
+            tint ?? Frost.tint(context),
+            context.palette.background,
+          ),
+          child: _edge(Frost.edge(context), 0.5),
         ),
       );
     }
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = tint ??
+        (dark ? const Color(0xBD282625) : const Color(0xB3F4F5F4));
+    final refract = _enableRefraction &&
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS) &&
+        !MediaQuery.disableAnimationsOf(context) &&
+        ui.ImageFilter.isShaderFilterSupported;
     return AdaptiveGlass(
       shape: liquidShapeFor(borderRadius),
-      settings: LiquidGlassSettings(
-        edgeAbsorption: 10,
-        refractiveIndex: 0.1,
-        chromaticAberration: 900,
-        fresnelStrength: 100,
-        frost: 4,
-        thickness: 50,
-        blurWeight: 0,
-        blur: 0,
+      settings: Frost.glass(
+        context,
+        tint: fill,
+        blur: 2,
+        refractingDock: refract,
       ),
-      quality: GlassQuality.standard,
-      allowElevation: true,
-      child: edge,
+      quality: refract ? GlassQuality.premium : GlassQuality.standard,
+      allowElevation: false,
+      child: refract
+          ? const SizedBox.expand()
+          : _edge(
+              dark
+                  ? Colors.white.withValues(alpha: 0.18)
+                  : Colors.black.withValues(alpha: 0.14),
+              0.75,
+            ),
     );
   }
 }
 
-/// A 0.5 px outline of the bar's rounded top, cut off where the straight
+/// An outline of the bar's rounded top, cut off where the straight
 /// sides begin so nothing is drawn along the screen edge or the bottom.
 class _TopEdgePainter extends CustomPainter {
-  const _TopEdgePainter({required this.borderRadius, required this.color});
-
-  static const double _width = 0.5;
+  const _TopEdgePainter({
+    required this.borderRadius,
+    required this.color,
+    required this.width,
+  });
 
   final BorderRadius borderRadius;
   final Color color;
+  final double width;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final reach = math.max(borderRadius.topLeft.y, borderRadius.topRight.y);
-    final outline = (Offset.zero & size).deflate(_width / 2);
+    final outline = (Offset.zero & size).deflate(width / 2);
     canvas
-      ..clipRect(Rect.fromLTWH(0, 0, size.width, reach + _width))
+      ..clipRect(Rect.fromLTWH(0, 0, size.width, reach + width))
       ..drawRRect(
         borderRadius.toRRect(outline),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = _width
+          ..strokeWidth = width
           ..color = color,
       );
   }
 
   @override
   bool shouldRepaint(_TopEdgePainter oldDelegate) =>
-      color != oldDelegate.color || borderRadius != oldDelegate.borderRadius;
+      color != oldDelegate.color ||
+      width != oldDelegate.width ||
+      borderRadius != oldDelegate.borderRadius;
 }
 
 class _DockLayout extends MultiChildLayoutDelegate {

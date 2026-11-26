@@ -1,14 +1,18 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:naliv_delivery/core/quantity.dart';
 import 'package:naliv_delivery/core/product_view.dart';
 import 'package:naliv_delivery/model/item.dart' as item_model;
 import 'package:naliv_delivery/services/repeat_order_service.dart';
 import 'package:naliv_delivery/model/category_items.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/smart_cart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/haptic_calls.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -20,6 +24,67 @@ void main() {
     expect(formatQuantity(0.00025, 'кг'), '0.00025 кг');
     expect(formatQuantity(0, 'кг'), '0 кг');
   });
+
+  testWidgets(
+      'only emitted quantity clicks throttle fractional edits across SKUs',
+      (tester) async {
+    enableQuantityClicks(tester);
+    final calls = recordHapticCalls(tester);
+    final cart = CartProvider();
+    addTearDown(cart.dispose);
+    expect(await cart.bindBusiness(7), isTrue);
+
+    ProductView item(int id) => ProductView.fromItem(item_model.Item(
+          itemId: id,
+          name: 'Сыр',
+          price: 1000,
+          unit: 'кг',
+          amount: .75,
+          stepQuantity: .25,
+        ));
+    final cheese = item(721);
+    final other = item(722);
+    double quantity(ProductView product) =>
+        cart.getCatalogQuantityForKey(product.catalogKey);
+
+    AppHaptics.removeCatalogStep(cart, cheese);
+    expect(calls, isEmpty);
+    expect(AppHaptics.addCatalogStep(cart, cheese), isTrue);
+    expect(quantity(cheese), .25);
+    expect(AppHaptics.addCatalogStep(cart, cheese), isFalse);
+    expect(quantity(cheese), .5);
+    expect(calls, [lightImpact, selectionClick]);
+
+    expect(AppHaptics.addCatalogStep(cart, other), isTrue);
+    expect(AppHaptics.addCatalogStep(cart, other), isFalse);
+    expect(quantity(other), .5);
+    expect(calls, [lightImpact, selectionClick, lightImpact]);
+
+    await tester.pump(const Duration(milliseconds: 89));
+    AppHaptics.removeCatalogStep(cart, cheese);
+    expect(quantity(cheese), .25);
+    expect(calls, [lightImpact, selectionClick, lightImpact]);
+    await tester.pump(const Duration(milliseconds: 1));
+    // Suppressed edits neither queue a click nor postpone the next one.
+    expect(calls, [lightImpact, selectionClick, lightImpact]);
+    expect(AppHaptics.addCatalogStep(cart, other), isFalse);
+    expect(quantity(other), .75);
+    expect(calls, [lightImpact, selectionClick, lightImpact, selectionClick]);
+
+    await tester.pump(const Duration(milliseconds: 90));
+    expect(AppHaptics.addCatalogStep(cart, other), isFalse);
+    expect(quantity(other), .75);
+    expect(calls, [lightImpact, selectionClick, lightImpact, selectionClick]);
+    AppHaptics.removeCatalogStep(cart, cheese);
+    expect(quantity(cheese), 0);
+    expect(calls, [
+      lightImpact,
+      selectionClick,
+      lightImpact,
+      selectionClick,
+      selectionClick,
+    ]);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   test(
       'typed fractional stock survives selection, persistence, order and repeat',

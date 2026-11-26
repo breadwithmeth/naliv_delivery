@@ -12,11 +12,23 @@ import '../support/fixture_product_image.dart';
 class _Store implements PhotoStore {
   final entries = <Uri, SavedPhoto>{};
   @override
+  Future<void> pruneExpired(DateTime through) async {
+    entries.removeWhere((_, photo) => !photo.checkedAt.isAfter(through));
+  }
+
+  @override
   Future<SavedPhoto?> read(Uri url) async => entries[url];
   @override
-  Future<void> write(Uri url, SavedPhoto photo) async => entries[url] = photo;
+  Future<void> write(Uri url, SavedPhoto photo, {DateTime? previousCheck}) async {
+    final current = entries[url];
+    if (current == null || current.checkedAt == previousCheck) {
+      entries[url] = photo;
+    }
+  }
   @override
-  Future<void> remove(Uri url) async => entries.remove(url);
+  Future<void> remove(Uri url, {DateTime? previousCheck}) async {
+    if (entries[url]?.checkedAt == previousCheck) entries.remove(url);
+  }
 }
 
 void main() {
@@ -78,6 +90,113 @@ void main() {
       expect(store.entries[url]!.checkedAt, now);
     },
   );
+
+  test('a paused stale subscriber cannot start a second replacement', () async {
+    final store = _Store();
+    final stale = Uint8List.fromList([1]);
+    store.entries[url] = (
+      bytes: stale,
+      checkedAt: now.subtract(const Duration(days: 1)),
+    );
+    final answer = Completer<http.Response>();
+    var requests = 0;
+    final cache = CatalogPhotoCache(store, (requested) {
+      expect(requested, url);
+      if (++requests == 1) return answer.future;
+      return Future.value(http.Response.bytes(stale, 200));
+    }, now: () => now);
+    final paused = StreamIterator(cache.images(url));
+    final active = StreamIterator(cache.images(url));
+    addTearDown(paused.cancel);
+    addTearDown(active.cancel);
+
+    expect(await paused.moveNext(), isTrue);
+    expect(paused.current, stale);
+    expect(await active.moveNext(), isTrue);
+    expect(active.current, stale);
+    answer.complete(http.Response.bytes(photo, 200));
+    expect(await active.moveNext(), isTrue);
+    expect(active.current, photo);
+    expect(await active.moveNext(), isFalse);
+
+    expect(await paused.moveNext(), isTrue);
+    expect(paused.current, photo);
+    expect(await paused.moveNext(), isFalse);
+    expect(requests, 1);
+    expect(store.entries[url]?.bytes, photo);
+  });
+
+  test('unchanged revalidation renews retention without emitting twice', () async {
+    final store = _Store();
+    var clock = now;
+    store.entries[url] = (
+      bytes: photo,
+      checkedAt: now.subtract(const Duration(days: 29)),
+    );
+    var requests = 0;
+    final cache = CatalogPhotoCache(store, (requested) async {
+      expect(requested, url);
+      requests++;
+      return http.Response.bytes(photo, 200);
+    }, now: () => clock);
+
+    expect(await cache.images(url).toList(), [photo]);
+    expect(store.entries[url]?.checkedAt, now);
+    clock = now.add(const Duration(days: 1, seconds: -1));
+    expect(await cache.images(url).toList(), [photo]);
+    expect(requests, 1);
+  });
+
+  test('a 30-day-old photo is discarded instead of masking a failure', () async {
+    final store = _Store();
+    store.entries[url] = (
+      bytes: photo,
+      checkedAt: now.subtract(const Duration(days: 30)),
+    );
+    final cache = CatalogPhotoCache(store, (requested) async {
+      expect(requested, url);
+      return http.Response('offline', 503);
+    }, now: () => now);
+
+    await expectLater(cache.images(url), emitsError(isA<http.ClientException>()));
+    expect(store.entries[url], isNull);
+  });
+
+  test('a fresh lookup prunes an unused URL without downloading it', () async {
+    final store = _Store();
+    final untouchedUrl = url.replace(query: 'v=2');
+    store.entries[url] = (bytes: photo, checkedAt: now);
+    store.entries[untouchedUrl] = (
+      bytes: photo,
+      checkedAt: now.subtract(const Duration(days: 30)),
+    );
+    final cache = CatalogPhotoCache(store, (requested) {
+      fail('Unexpected request for $requested');
+    }, now: () => now);
+
+    expect(await cache.images(url).single, photo);
+    expect(store.entries.keys, [url]);
+  });
+
+  test('a new query URL never falls back to the shared previous URL', () async {
+    final store = _Store();
+    final previous = (bytes: photo, checkedAt: now);
+    store.entries[url] = previous;
+    final changedUrl = url.replace(query: 'v=2');
+    final requested = <Uri>[];
+    final cache = CatalogPhotoCache(store, (uri) async {
+      requested.add(uri);
+      return http.Response('offline', 503);
+    }, now: () => now);
+
+    await expectLater(
+      cache.images(changedUrl),
+      emitsError(isA<http.ClientException>()),
+    );
+    expect(await cache.images(url).single, photo);
+    expect(requested, [changedUrl]);
+    expect(store.entries[url], previous);
+  });
 
   for (final response in [
     http.Response('offline', 503),

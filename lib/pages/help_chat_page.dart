@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:naliv_delivery/design/motion.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/design/tokens.dart';
 import 'package:naliv_delivery/design/typography.dart';
@@ -57,6 +58,7 @@ class _HelpChatPageState extends State<HelpChatPage>
   final _messageFocus = FocusNode();
   final _scrollController = ScrollController();
   final _messages = <ChatMessage>[];
+  final _outbox = <_OutgoingMessage>[];
   final _sentOrderContextKeys = <String>{};
   StreamSubscription<ChatMessage>? _messageSubscription;
   StreamSubscription<SupportNotificationTarget>? _pushSubscription;
@@ -65,12 +67,9 @@ class _HelpChatPageState extends State<HelpChatPage>
   WidgetConfig? _config;
   String? _conversationId;
   String? _historyError;
-  String? _sendError;
-  String? _contextError;
+  _OutgoingMessage? _sendingMessage;
   bool _loading = true;
   bool _sessionFailed = false;
-  bool _sending = false;
-  bool _sendingContext = false;
   bool _profileSyncStarted = false;
   bool _connecting = false;
   bool _foreground = true;
@@ -149,16 +148,14 @@ class _HelpChatPageState extends State<HelpChatPage>
     _chatService.setForeground(false);
     setState(() {
       _messages.clear();
+      _outbox.clear();
       _messageController.clear();
       _selectedOrder = null;
       _conversationId = null;
       _sentOrderContextKeys.clear();
       _profileSyncStarted = false;
       _historyRefreshQueued = false;
-      _sendError = null;
-      _contextError = null;
-      _sending = false;
-      _sendingContext = false;
+      _sendingMessage = null;
       _sessionFailed = true;
       _historyError = 'Учётная запись изменилась. Переписка закрыта.';
     });
@@ -347,10 +344,16 @@ class _HelpChatPageState extends State<HelpChatPage>
   void _scrollDown() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
+      final target = _scrollController.position.maxScrollExtent;
+      final duration = AppMotion.of(context, AppMotion.state);
+      if (duration == Duration.zero) {
+        _scrollController.jumpTo(target);
+        return;
+      }
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
+        target,
+        duration: duration,
+        curve: AppMotion.out,
       );
     });
   }
@@ -373,64 +376,76 @@ class _HelpChatPageState extends State<HelpChatPage>
     return null;
   }
 
-  Future<void> _sendMessage({bool attachOrder = false}) async {
-    if (_sending || _loading || _sessionFailed || !_chatService.hasSession) {
+  bool get _canSend =>
+      _sendingMessage == null &&
+      !_loading &&
+      !_sessionFailed &&
+      _chatService.hasSession;
+
+  void _sendMessage({bool attachOrder = false}) {
+    if (!_canSend) return;
+    final order = _selectedOrder;
+    final orderKey = attachOrder ? _orderKey(order) : null;
+    if (attachOrder &&
+        (orderKey == null || _sentOrderContextKeys.contains(orderKey))) {
       return;
     }
-    final order = _selectedOrder;
-    final orderKey = _orderKey(order);
-    if (attachOrder && (order == null || orderKey == null)) return;
-    final draft = _messageController.text;
-    final generation = _pageGeneration;
-    final content =
-        attachOrder ? _buildOrderContextMessage(order!) : draft.trim();
+    final content = attachOrder
+        ? _buildOrderContextMessage(order!)
+        : _messageController.text.trim();
     if (content.isEmpty) return;
-    setState(() {
-      _sending = true;
-      _sendingContext = attachOrder;
-      if (attachOrder) {
-        _contextError = null;
-      } else {
-        _sendError = null;
+    // The composer can still contain the failed draft. Sending it again is a
+    // retry of that row, not a second copy of the same unconfirmed message.
+    for (final pending in _outbox) {
+      if (pending.orderKey == orderKey &&
+          (orderKey != null || pending.content == content)) {
+        unawaited(_sendOutgoing(pending));
+        return;
       }
+    }
+    unawaited(_sendOutgoing(_OutgoingMessage(content, orderKey)));
+  }
+
+  Future<void> _sendOutgoing(_OutgoingMessage outgoing) async {
+    final orderKey = outgoing.orderKey;
+    if (!_canSend ||
+        !_foreground ||
+        !_routeVisible ||
+        (orderKey != null && _sentOrderContextKeys.contains(orderKey))) {
+      return;
+    }
+    final generation = _pageGeneration;
+    setState(() {
+      _sendingMessage = outgoing;
+      if (outgoing.error == null) _outbox.add(outgoing);
+      outgoing.error = null;
     });
-    final result = await _chatService.sendMessage(content);
+    _scrollDown();
+    final result = await _chatService.sendMessage(outgoing.content);
     if (!mounted || generation != _pageGeneration) return;
     setState(() {
-      _sending = false;
-      _sendingContext = false;
+      _sendingMessage = null;
       switch (result) {
         case SendSuccess(:final message):
+          _outbox.remove(outgoing);
           _mergeMessage(message);
-          if (attachOrder) {
-            _sentOrderContextKeys.add(orderKey!);
-            _contextError = null;
-          } else {
-            if (_messageController.text == draft) _messageController.clear();
-            _sendError = null;
+          if (orderKey != null) {
+            _sentOrderContextKeys.add(orderKey);
+          } else if (_messageController.text.trim() == outgoing.content) {
+            _messageController.clear();
           }
         case SendSessionExpired():
           _sessionFailed = true;
           _historyError = 'Сессия чата истекла. Подключитесь заново.';
-          if (attachOrder) {
-            _contextError = 'Заказ не прикреплён.';
-          } else {
-            _sendError = 'Сообщение не отправлено. Текст сохранён.';
-          }
+          outgoing.error = 'Сессия чата истекла.';
         case SendFailure(:final error):
-          if (attachOrder) {
-            _contextError = 'Не удалось прикрепить заказ: $error';
-          } else {
-            _sendError = 'Сообщение не отправлено: $error';
-          }
+          outgoing.error = error;
       }
     });
-    if (result is SendSuccess) {
-      _scrollDown();
-      if (!_profileSyncStarted) {
-        _profileSyncStarted = true;
-        unawaited(_syncUserProfile());
-      }
+    if (_foreground && _routeVisible && _nearBottom) _scrollDown();
+    if (result is SendSuccess && !_profileSyncStarted) {
+      _profileSyncStarted = true;
+      unawaited(_syncUserProfile());
     }
   }
 
@@ -510,10 +525,7 @@ class _HelpChatPageState extends State<HelpChatPage>
       builder: (_) => _SupportOrderPicker(selectedOrder: _selectedOrder),
     );
     if (!mounted || order == null) return;
-    setState(() {
-      _selectedOrder = order;
-      _contextError = null;
-    });
+    setState(() => _selectedOrder = order);
   }
 
   FaqSection? get _faqSection => switch (widget.entryPoint) {
@@ -583,6 +595,10 @@ class _HelpChatPageState extends State<HelpChatPage>
   }
 
   Widget _conversation(double topInset) {
+    final historyLength = _messages.length;
+    final messageCount = historyLength + _outbox.length;
+    bool fromOperator(int index) =>
+        index < historyLength && _messages[index].isFromOperator;
     final rows = <Widget>[
       _supportIdentity(),
       const SizedBox(height: 24),
@@ -606,7 +622,7 @@ class _HelpChatPageState extends State<HelpChatPage>
         ),
         const SizedBox(height: 16),
       ],
-      if (!_loading && _historyError == null && _messages.isEmpty)
+      if (!_loading && _historyError == null && messageCount == 0)
         _emptyConversation(),
     ];
     return CustomScrollView(
@@ -621,16 +637,31 @@ class _HelpChatPageState extends State<HelpChatPage>
         SliverPadding(
           padding: EdgeInsets.fromLTRB(16, 0, 16, _composerExtent + 12),
           sliver: SliverList.builder(
-            itemCount: _messages.length,
-            itemBuilder: (context, index) => _messageBubble(
-              _messages[index],
-              separate: index > 0 &&
-                  _messages[index - 1].isFromOperator !=
-                      _messages[index].isFromOperator,
-              tail: index == _messages.length - 1 ||
-                  _messages[index + 1].isFromOperator !=
-                      _messages[index].isFromOperator,
-            ),
+            itemCount: messageCount,
+            itemBuilder: (context, index) {
+              final user = !fromOperator(index);
+              final separate = index > 0 && fromOperator(index - 1) == user;
+              final tail = index == messageCount - 1 ||
+                  fromOperator(index + 1) == user;
+              if (index >= historyLength) {
+                final outgoing = _outbox[index - historyLength];
+                return _messageBubble(
+                  content: outgoing.content,
+                  user: true,
+                  separate: separate,
+                  tail: tail,
+                  outgoing: outgoing,
+                );
+              }
+              final message = _messages[index];
+              return _messageBubble(
+                content: message.content,
+                id: message.id,
+                user: user,
+                separate: separate,
+                tail: tail,
+              );
+            },
           ),
         ),
       ],
@@ -673,7 +704,7 @@ class _HelpChatPageState extends State<HelpChatPage>
           ),
         ),
         IconButton(
-          onPressed: _sending ? null : _showOrderPicker,
+          onPressed: _sendingMessage != null ? null : _showOrderPicker,
           tooltip: 'Выбрать заказ для обращения',
           icon: const Icon(Icons.attach_file_rounded, size: 22),
           color: palette.textSecondary,
@@ -686,6 +717,9 @@ class _HelpChatPageState extends State<HelpChatPage>
     final palette = context.palette;
     final key = _orderKey(_selectedOrder);
     final sent = key != null && _sentOrderContextKeys.contains(key);
+    final attaching = key != null && _sendingMessage?.orderKey == key;
+    final failed = key != null &&
+        _outbox.any((message) => message.orderKey == key && message.error != null);
     final total = _selectedOrder == null
         ? null
         : order_ui.resolveOrderTotalAmount(_selectedOrder!);
@@ -713,24 +747,17 @@ class _HelpChatPageState extends State<HelpChatPage>
                   color: palette.error,
                 )),
           ],
-          if (_contextError != null) ...[
-            const SizedBox(height: 8),
-            Text(_contextError!,
-                style: AppTypography.bodySmall.copyWith(
-                  color: palette.error,
-                )),
-          ],
           Wrap(
             spacing: 8,
             children: [
               TextButton.icon(
-                onPressed: _sending ? null : _showOrderPicker,
+                onPressed: _sendingMessage != null ? null : _showOrderPicker,
                 icon: const Icon(Icons.receipt_long_rounded, size: 18),
                 label: Text(key == null ? 'Выбрать заказ' : 'Сменить заказ'),
               ),
               if (key != null)
                 TextButton.icon(
-                  onPressed: sent || _loading || _sessionFailed || _sending
+                  onPressed: sent || !_canSend
                       ? null
                       : () => _sendMessage(attachOrder: true),
                   icon: Icon(
@@ -738,11 +765,11 @@ class _HelpChatPageState extends State<HelpChatPage>
                       size: 18),
                   label: Text(sent
                       ? 'Заказ прикреплён'
-                      : _sendingContext
+                      : attaching
                           ? 'Прикрепляем…'
-                          : _contextError == null
-                              ? 'Прикрепить заказ'
-                              : 'Повторить прикрепление'),
+                          : failed
+                              ? 'Повторить прикрепление'
+                              : 'Прикрепить заказ'),
                 ),
             ],
           ),
@@ -801,54 +828,94 @@ class _HelpChatPageState extends State<HelpChatPage>
     );
   }
 
-  Widget _messageBubble(
-    ChatMessage message, {
+  Widget _messageBubble({
+    required String content,
+    required bool user,
     required bool separate,
     required bool tail,
+    int? id,
+    _OutgoingMessage? outgoing,
   }) {
     final palette = context.palette;
-    final user = !message.isFromOperator;
+    final foreground = user ? palette.textOnAccent : palette.textPrimary;
+    final error = outgoing?.error;
+    final status = outgoing != null
+        ? error == null
+            ? 'Отправляется…'
+            : 'Не отправлено'
+        : user && id != null
+            ? 'Отправлено'
+            : null;
     final color = user ? palette.accent : palette.surface;
     return Padding(
       padding: EdgeInsets.only(top: separate ? 24 : 0, bottom: tail ? 10 : 4),
-      child: LayoutBuilder(builder: (context, constraints) {
-        return Align(
-          alignment: user ? Alignment.centerRight : Alignment.centerLeft,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              if (tail)
-                Positioned(
-                  bottom: -7,
-                  left: user ? null : 0,
-                  right: user ? 0 : null,
-                  child: CustomPaint(
-                    size: const Size(20, 12),
-                    painter: _BubbleTail(color, user),
+      child: Align(
+        alignment: user ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              user ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                if (tail)
+                  Positioned(
+                    bottom: -7,
+                    left: user ? null : 0,
+                    right: user ? 0 : null,
+                    child: CustomPaint(
+                      size: const Size(20, 12),
+                      painter: _BubbleTail(color, user),
+                    ),
+                  ),
+                Container(
+                  key: id == null ? null : ValueKey('support-message-$id'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: AppRadii.lgAll,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        content,
+                        style:
+                            AppTypography.bodyLight.copyWith(color: foreground),
+                      ),
+                      if (status != null) ...[
+                        const SizedBox(height: 4),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(status,
+                              style: AppTypography.bodySmall
+                                  .copyWith(color: foreground)),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              Container(
-                key: message.id == null
-                    ? null
-                    : ValueKey('support-message-${message.id}'),
-                constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: AppRadii.lgAll,
-                ),
-                child: Text(
-                  message.content,
-                  style: AppTypography.bodyLight.copyWith(
-                    color: user ? palette.textOnAccent : palette.textPrimary,
-                  ),
-                ),
+              ],
+            ),
+            if (outgoing != null && error != null) ...[
+              const SizedBox(height: 8),
+              Text(error,
+                  textAlign: TextAlign.end,
+                  style: AppTypography.bodySmall.copyWith(color: palette.error)),
+              TextButton(
+                onPressed: _canSend &&
+                        !_sentOrderContextKeys.contains(outgoing.orderKey)
+                    ? () => _sendOutgoing(outgoing)
+                    : null,
+                child: const Text('Повторить отправку'),
               ),
             ],
-          ),
-        );
-      }),
+          ],
+        ),
+      ),
     );
   }
 
@@ -858,23 +925,16 @@ class _HelpChatPageState extends State<HelpChatPage>
   Widget _composer() {
     final palette = context.palette;
     final padding = MediaQuery.paddingOf(context).bottom;
+    final sending = _sendingMessage;
+    final sendingDraft = sending != null &&
+        sending.orderKey == null &&
+        sending.content == _messageController.text.trim();
     return Padding(
       key: _composerKey,
       padding: EdgeInsets.fromLTRB(16, 12, 16, padding + 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_sendError != null) ...[
-            _notice(
-              key: const ValueKey('support-send-error'),
-              text: _sendError!,
-              action: 'Повторить отправку',
-              onRetry: _loading || _sending || _sessionFailed
-                  ? null
-                  : () => _sendMessage(),
-            ),
-            const SizedBox(height: 8),
-          ],
           FrostedSurface(
             key: const ValueKey('support-composer'),
             borderRadius: BorderRadius.circular(30),
@@ -890,7 +950,7 @@ class _HelpChatPageState extends State<HelpChatPage>
                         key: const ValueKey('support-message-input'),
                         controller: _messageController,
                         focusNode: _messageFocus,
-                        readOnly: _sending && !_sendingContext,
+                        readOnly: sendingDraft,
                         minLines: 1,
                         maxLines: MediaQuery.sizeOf(context).height -
                                     MediaQuery.viewInsetsOf(context).bottom <
@@ -927,10 +987,7 @@ class _HelpChatPageState extends State<HelpChatPage>
                         valueListenable: _messageController,
                         builder: (_, value, __) => IconButton.filled(
                           key: const ValueKey('support-send'),
-                          onPressed: _loading ||
-                                  _sessionFailed ||
-                                  _sending ||
-                                  value.text.trim().isEmpty
+                          onPressed: !_canSend || value.text.trim().isEmpty
                               ? null
                               : () => _sendMessage(),
                           tooltip: 'Отправить сообщение',
@@ -945,14 +1002,7 @@ class _HelpChatPageState extends State<HelpChatPage>
                             disabledForegroundColor:
                                 palette.textOnAccent.withValues(alpha: 0.8),
                           ),
-                          icon: _sending && !_sendingContext
-                              ? SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: palette.textOnAccent))
-                              : const Icon(Icons.send_rounded, size: 20),
+                          icon: const Icon(Icons.send_rounded, size: 20),
                         ),
                       ),
                     ),
@@ -965,6 +1015,14 @@ class _HelpChatPageState extends State<HelpChatPage>
       ),
     );
   }
+}
+
+class _OutgoingMessage {
+  _OutgoingMessage(this.content, this.orderKey);
+
+  final String content;
+  final String? orderKey;
+  String? error;
 }
 
 class _BubbleTail extends CustomPainter {

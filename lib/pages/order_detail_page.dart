@@ -11,6 +11,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../services/auth_service.dart';
 import '../services/repeat_order_service.dart';
+import '../ui/app_haptics.dart';
 import '../ui/app_states.dart';
 import '../ui/frosted_surface.dart';
 import '../ui/app_top_bar.dart';
@@ -42,6 +43,7 @@ class _OrderDetailPageState extends State<OrderDetailPage>
   _OrderDetails? _details;
   bool _loading = false;
   bool _repeating = false;
+  bool _repeatStayedForeground = false;
   bool _openingPayment = false;
   String? _notice;
   int _loadGeneration = 0;
@@ -67,6 +69,7 @@ class _OrderDetailPageState extends State<OrderDetailPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _repeatStayedForeground = false;
     if (state == AppLifecycleState.resumed) _loadOrder();
   }
 
@@ -169,41 +172,46 @@ class _OrderDetailPageState extends State<OrderDetailPage>
         _paymentUnresolved(_details!.order)) {
       return;
     }
+    final source = _details!.order;
+    final widgetOrder = widget.order;
+    final route = ModalRoute.of(context);
+    final cart = context.read<CartProvider>();
+    final business = context.read<BusinessProvider>();
+    AuthSession? session;
+    bool isCurrent() =>
+        mounted &&
+        _sourceAllowed &&
+        identical(widget.order, widgetOrder) &&
+        _details != null &&
+        !_paymentUnresolved(_details!.order) &&
+        session?.isCurrent == true;
+    bool isVisible() => isCurrent() && route?.isCurrent == true;
+
+    _repeatStayedForeground =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     setState(() => _repeating = true);
     try {
-      final session = await AuthService.captureSession();
-      if (session == null || !mounted || !_sourceAllowed) return;
-      final source = _details!.order;
-      if (!await _confirmReplaceCart(source) ||
-          !mounted ||
-          !session.isCurrent) {
+      session = await AuthService.captureSession();
+      if (!isVisible()) return;
+      if (!await _confirmReplaceCart(source, isVisible) || !isVisible()) {
         return;
       }
       final result = await RepeatOrderService.repeatOrderIntoCart(
         sourceOrder: source,
-        cartProvider: context.read<CartProvider>(),
-        businessProvider: context.read<BusinessProvider>(),
-        isCurrent: () => session.isCurrent,
+        cartProvider: cart,
+        businessProvider: business,
+        isCurrent: isCurrent,
       );
-      if (!mounted || !session.isCurrent) return;
-      if (result.hasSkippedItems) {
-        await _showMessage(
-          'Часть позиций пропущена',
-          'Не удалось восстановить: ${result.skippedItems.join(', ')}. '
-              'Проверьте состав и актуальные цены перед оформлением.',
-        );
-      }
-      if (!mounted || !session.isCurrent) return;
-      // The cart is where a repeated order is reviewed: quantities, current
-      // prices and promotions. Checkout asks for the address if it was not
-      // restored.
-      await AppNavigator.openCart();
+      if (!isVisible()) return;
+      if (_repeatStayedForeground) AppHaptics.selectionConfirmed();
+      final openCart = await _showRepeatOutcome(result);
+      if (openCart && isVisible()) await AppNavigator.openCart();
     } on RepeatOrderException catch (error) {
-      if (mounted) {
+      if (isVisible()) {
         await _showMessage('Не удалось повторить заказ', error.message);
       }
     } catch (_) {
-      if (mounted) {
+      if (isVisible()) {
         await _showMessage(
           'Не удалось повторить заказ',
           'Попробуйте ещё раз чуть позже.',
@@ -214,9 +222,10 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     }
   }
 
-  Future<bool> _confirmReplaceCart(Map<String, dynamic> order) async {
+  Future<bool> _confirmReplaceCart(
+      Map<String, dynamic> order, bool Function() isVisible) async {
     await context.read<CartProvider>().ensureLoaded();
-    if (!mounted) return false;
+    if (!mounted || !isVisible()) return false;
     if (!context.read<CartProvider>().hasActiveItems) return true;
     final current = context.read<BusinessProvider>().selectedBusiness;
     final target = RepeatOrderService.resolveBusiness(order);
@@ -227,9 +236,8 @@ class _OrderDetailPageState extends State<OrderDetailPage>
     final changesStore =
         targetId != null && currentId?.toString() != targetId.toString();
     final storeName = _text(target?['name']) ?? 'магазин этого заказа';
-    return await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
+    return await _showOrderDialog<bool>(
+          (dialogContext) => AlertDialog(
             title: const Text('Заменить корзину?'),
             content: Text(changesStore
                 ? 'Товары в текущей корзине будут заменены, а магазин сменится на $storeName.'
@@ -242,6 +250,55 @@ class _OrderDetailPageState extends State<OrderDetailPage>
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 child: const Text('Заменить'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<bool> _showRepeatOutcome(RepeatOrderResult result) async {
+    final restoredAddress = _text(result.restoredAddress?['address']);
+    final addressMessage = switch (result.addressStatus) {
+      RepeatAddressStatus.notRequired => null,
+      RepeatAddressStatus.restored => restoredAddress == null
+          ? 'Адрес доставки восстановлен.'
+          : 'Адрес доставки восстановлен: $restoredAddress.',
+      RepeatAddressStatus.unavailable =>
+        'В заказе нет адреса, который можно восстановить. '
+            'Проверьте адрес при оформлении.',
+      RepeatAddressStatus.failed =>
+        'Не удалось сохранить прежний адрес доставки. '
+            'Проверьте адрес при оформлении.',
+    };
+    return await _showOrderDialog<bool>(
+          (dialogContext) => AlertDialog(
+            scrollable: true,
+            title: const Text('Корзина собрана'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Восстановлено строк заказа: ${result.addedItemsCount}'),
+                if (result.hasSkippedItems) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Не удалось восстановить: ${result.skippedItems.join(', ')}.',
+                  ),
+                ],
+                if (addressMessage != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(addressMessage),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                const Text('Проверьте состав и актуальные цены в корзине.'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                key: const ValueKey('repeat-open-cart'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Открыть корзину'),
               ),
             ],
           ),
@@ -290,9 +347,9 @@ class _OrderDetailPageState extends State<OrderDetailPage>
   }
 
   Future<void> _showMessage(String title, String message) {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
+    return _showOrderDialog<void>(
+      (dialogContext) => AlertDialog(
+        scrollable: true,
         title: Text(title),
         content: Text(message),
         actions: [
@@ -301,6 +358,30 @@ class _OrderDetailPageState extends State<OrderDetailPage>
             child: const Text('Понятно'),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<T?> _showOrderDialog<T>(WidgetBuilder builder) {
+    final revision = AuthService.credentialRevision;
+    return showDialog<T>(
+      context: context,
+      builder: (dialogContext) => ValueListenableBuilder<int>(
+        valueListenable: AuthService.sessionRevision,
+        builder: (_, currentRevision, __) {
+          if (revision == currentRevision && !AuthService.isEndingSession) {
+            return builder(dialogContext);
+          }
+          return AlertDialog(
+            title: const Text('Аккаунт изменился'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Понятно'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -727,6 +808,9 @@ class _OrderDetailPageState extends State<OrderDetailPage>
 
   Widget _actionPanel(_OrderDetails details) {
     final pending = _loading || _repeating || _openingPayment;
+    // A dialog leaves this route visible but not interactive. Stop the
+    // indeterminate progress while it reports or confirms the operation.
+    final restoring = _repeating && ModalRoute.isCurrentOf(context) == true;
     late final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -753,11 +837,12 @@ class _OrderDetailPageState extends State<OrderDetailPage>
       key: const ValueKey('order-detail-repeat-button'),
       onPressed: pending ? null : _repeatOrder,
       style: FilledButton.styleFrom(
+        enableFeedback: false,
         minimumSize: const Size(0, 70),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      icon: _repeating
+      icon: restoring
           ? SizedBox(
               width: 20,
               height: 20,
@@ -765,7 +850,7 @@ class _OrderDetailPageState extends State<OrderDetailPage>
                   strokeWidth: 2, color: context.palette.textOnAccent),
             )
           : const Icon(Icons.repeat_rounded, size: 26),
-      label: Text(_repeating ? 'Собираем корзину…' : 'Повторить заказ',
+      label: Text(restoring ? 'Собираем корзину…' : 'Повторить заказ',
           textAlign: TextAlign.center),
     );
     return SafeArea(
@@ -784,6 +869,8 @@ class _OrderDetailPageState extends State<OrderDetailPage>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_paymentUnresolved(details.order)) ...[
+                  Text('Проверяем оплату', style: AppTypography.title),
+                  const SizedBox(height: AppSpacing.md),
                   _muted('Не удалось подтвердить состояние оплаты. '
                       'Обновите заказ прежде чем оплачивать или повторять его.'),
                   const SizedBox(height: 12),

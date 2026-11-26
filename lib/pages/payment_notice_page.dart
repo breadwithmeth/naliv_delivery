@@ -218,7 +218,7 @@ class _PaymentNoticePageState extends State<PaymentNoticePage> {
           ],
           Semantics(
             container: true,
-            liveRegion: failed,
+            liveRegion: failed || loading || widget.note != null,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

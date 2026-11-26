@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/favorites/ui/favorites_page.dart';
+import 'package:naliv_delivery/features/product/ui/product_page.dart';
 import 'package:naliv_delivery/pages/product_detail_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:naliv_delivery/ui/product_row.dart';
 import 'package:naliv_delivery/utils/cart_provider.dart';
 import 'package:naliv_delivery/utils/liked_items_provider.dart';
@@ -16,6 +18,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/configuration_items.dart';
+import '../support/haptic_calls.dart';
 
 void main() {
   setUp(() async {
@@ -26,6 +29,40 @@ void main() {
     await AuthService.notifySessionChanged();
     await AuthService.bindAuthenticatedIdentity('fixture-user');
   });
+
+  testWidgets('shopping a favorite confirms only accepted cart edits',
+      (tester) async {
+    enableQuantityClicks(tester);
+    final calls = recordHapticCalls(tester);
+    final transport = _LikesTransport();
+    await http.runWithClient(() async {
+      await _mount(tester, LikedItemsProvider()..updateLike(1, 502, true));
+      final sheet = find.byType(FavoritesPage);
+      final cart = tester.element(sheet).read<CartProvider>();
+      final row = find.byWidgetPredicate(
+        (widget) => widget is ProductRow && widget.title == 'Другой товар',
+      );
+      Finder step(String label) => find.descendant(
+            of: row,
+            matching: find.byWidgetPredicate(
+                (widget) => widget is StepTap && widget.label == label),
+          );
+
+      await tester.tap(step('Добавить'));
+      expect(cart.getTotalQuantityForItem(503), 1);
+      expect(calls, [lightImpact]);
+      await tester.pumpAndSettle();
+      await tester.tap(step('Увеличить количество'));
+      expect(cart.getTotalQuantityForItem(503), 2);
+      expect(calls, [lightImpact, selectionClick]);
+      await tester.pump(const Duration(milliseconds: 90));
+      await tester.tap(step('Уменьшить количество'));
+      expect(cart.getTotalQuantityForItem(503), 1);
+      expect(calls, [lightImpact, selectionClick, selectionClick]);
+      expect(transport.toggles, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, () => transport.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'options detail unlike removes favorite without removing unknown rows',
@@ -49,8 +86,9 @@ void main() {
   });
 
   testWidgets(
-      'unlike then re-like in options detail restores loaded membership',
+      'options detail confirms one click per unlike and re-like',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final transport = _LikesTransport();
     final likes = LikedItemsProvider()..updateLike(1, 502, true);
     await http.runWithClient(() async {
@@ -59,17 +97,20 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Убрать из избранного'));
       await tester.pumpAndSettle();
+      expect(calls, [selectionClick]);
       await tester.tap(find.byTooltip('В избранное'));
       await tester.pumpAndSettle();
+      expect(calls, [selectionClick, selectionClick]);
       await tester.tap(find.byKey(const ValueKey('configuration-back')));
       await tester.pumpAndSettle();
       expect(_rowTitles(tester), ['Лимонад', 'Другой товар']);
       expect(transport.toggles, [502, 502]);
     }, () => transport.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('row unlike can be reconciled with a later shared re-like',
       (tester) async {
+    final calls = recordHapticCalls(tester);
     final transport = _LikesTransport();
     final likes = LikedItemsProvider()..updateLike(1, 502, true);
     await http.runWithClient(() async {
@@ -80,27 +121,61 @@ void main() {
       ));
       await tester.pumpAndSettle();
       expect(_rowTitles(tester), ['Другой товар']);
+      expect(calls, [selectionClick]);
       likes.updateLike(1, 502, true);
       await tester.pumpAndSettle();
       expect(_rowTitles(tester), ['Лимонад', 'Другой товар']);
+      expect(calls, [selectionClick]);
     }, () => transport.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('failed optimistic unlike restores row with confirmed membership',
+  testWidgets('simple product opened from favorites owns its heart feedback',
       (tester) async {
-    final transport = _LikesTransport()..failToggle = true;
-    final likes = LikedItemsProvider()..updateLike(1, 502, true);
+    final calls = recordHapticCalls(tester);
+    final transport = _LikesTransport();
+    final likes = LikedItemsProvider();
     await http.runWithClient(() async {
       await _mount(tester, likes);
-      await tester.tap(find.descendant(
-        of: find.byType(ProductRow).first,
-        matching: find.byTooltip('Убрать из избранного'),
-      ));
+      await tester.tap(find.text('Другой товар'));
       await tester.pumpAndSettle();
-      expect(_rowTitles(tester), ['Лимонад', 'Другой товар']);
-      expect(likes.isLiked(1, 502), isTrue);
+      expect(find.byType(ProductPage), findsOneWidget);
+      await tester.tap(find.byTooltip('В избранное'));
+      await tester.pumpAndSettle();
+      expect(calls, [selectionClick]);
+      await tester.tap(find.byTooltip('Назад'));
+      await tester.pumpAndSettle();
+      expect(_rowTitles(tester), ['Лимонад']);
+      expect(transport.toggles, [503]);
     }, () => transport.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  for (final (label, body, status) in [
+    ('failed', 'unavailable', 503),
+    ('unchanged', '{"success":true,"data":{"is_liked":true}}', 200),
+    ('unconfirmed', '{"success":true,"data":{}}', 200),
+    ('malformed', '{"success":true,"data":{"is_liked":0}}', 200),
+  ]) {
+    testWidgets('$label optimistic unlike restores the row without a click',
+        (tester) async {
+      final calls = recordHapticCalls(tester);
+      final transport = _LikesTransport(
+        toggleResponse: http.Response(body, status),
+      );
+      final likes = LikedItemsProvider()..updateLike(1, 502, true);
+      await http.runWithClient(() async {
+        await _mount(tester, likes);
+        await tester.tap(find.descendant(
+          of: find.byType(ProductRow).first,
+          matching: find.byTooltip('Убрать из избранного'),
+        ));
+        await tester.pumpAndSettle();
+        expect(_rowTitles(tester), ['Лимонад', 'Другой товар']);
+        expect(likes.isLiked(1, 502), isTrue);
+        expect(transport.toggles, [502]);
+        expect(calls, isEmpty);
+      }, () => transport.client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
 
   testWidgets(
       'shared membership is store scoped and does not discard unknown favorites',
@@ -186,6 +261,7 @@ List<String> _rowTitles(WidgetTester tester) => tester
 
 Future<void> _mount(WidgetTester tester, LikedItemsProvider likes,
     {bool settle = true}) async {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   await tester.binding.setSurfaceSize(const Size(375, 1100));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final cart = CartProvider();
@@ -234,7 +310,7 @@ http.Response _page(List<Map<String, dynamic>> items,
     );
 
 class _LikesTransport {
-  _LikesTransport({this.paginate = false}) {
+  _LikesTransport({this.paginate = false, this.toggleResponse}) {
     client = MockClient((request) async {
       final url = request.url;
       final query = url.queryParameters;
@@ -267,14 +343,17 @@ class _LikesTransport {
       if (request.method == 'POST' &&
           url.path == '/api/users/liked-items/toggle' &&
           query.isEmpty &&
-          request.body == '{"item_id":502}') {
-        toggles.add(502);
-        if (failToggle) return http.Response('unavailable', 503);
-        _liked = !_liked;
+          (request.body == '{"item_id":502}' ||
+              request.body == '{"item_id":503}')) {
+        final id = jsonDecode(request.body)['item_id'] as int;
+        toggles.add(id);
+        if (toggleResponse != null) return toggleResponse!;
+        final liked = _likedIds.add(id);
+        if (!liked) _likedIds.remove(id);
         return http.Response(
           jsonEncode({
             'success': true,
-            'data': {'is_liked': _liked}
+            'data': {'is_liked': liked}
           }),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
@@ -289,6 +368,7 @@ class _LikesTransport {
   }
 
   final bool paginate;
+  final http.Response? toggleResponse;
   late final MockClient client;
   final unexpected = <String>[];
   final pages = <int>[];
@@ -296,8 +376,7 @@ class _LikesTransport {
   final refreshStarted = Completer<void>();
   final _refresh = Completer<http.Response>();
   final _more = Completer<http.Response>();
-  bool _liked = true;
-  bool failToggle = false;
+  final _likedIds = {502, 503};
 
   void completeMore() => _more.complete(_page([
         fixtureOptionItem().toJson(),

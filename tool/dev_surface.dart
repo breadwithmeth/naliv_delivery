@@ -1,5 +1,8 @@
 // flutter run -d windows -t tool/dev_surface.dart
 // Fixture-only gallery: synthetic content, no authentication or production mutations.
+import 'dart:async';
+
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -10,6 +13,7 @@ import 'package:naliv_delivery/services/push_provider.dart';
 import '../test/support/design_surfaces.dart';
 import '../test/support/remaining_milestone_fixture.dart';
 import 'design/fixture_options.dart' show FixtureOptions;
+import 'design/shopping_pilot.dart';
 import 'design/surface_manifest.dart';
 
 Future<void> main() async {
@@ -31,6 +35,11 @@ Future<void> main() async {
             (key, _) => query['guest'] == '1' && key == 'auth_token',
           ),
       );
+      if (AppHaptics.supported) unawaited(AppHaptics.preference.load());
+      if (const bool.fromEnvironment('SHOPPING_PILOT')) {
+        runApp(const ShoppingPilot());
+        return;
+      }
       try {
         final options = FixtureOptions.parse(
           query,

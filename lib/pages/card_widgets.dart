@@ -6,6 +6,8 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../features/faq/ui/faq_page.dart';
+import '../services/auth_service.dart';
+import '../ui/app_haptics.dart';
 import '../ui/app_icon.dart';
 import '../ui/payment_method_tile.dart';
 import '../ui/surfaces.dart';
@@ -166,6 +168,31 @@ class CardFlowFeedback extends StatelessWidget {
 
   final CardFlow flow;
 
+  Future<void> _verifyBinding(BuildContext context) async {
+    if (!flow.awaiting || flow.loading) return;
+    final route = ModalRoute.of(context);
+    final revision = AuthService.credentialRevision;
+    var stayedForeground =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    final lifecycle = AppLifecycleListener(onStateChange: (state) {
+      if (state != AppLifecycleState.resumed) stayedForeground = false;
+    });
+    try {
+      await flow.refresh();
+      if (context.mounted &&
+          route?.isCurrent == true &&
+          stayedForeground &&
+          revision == AuthService.credentialRevision &&
+          !AuthService.isEndingSession &&
+          flow.addState == CardAddState.confirmed &&
+          flow.newCardId != null) {
+        AppHaptics.selectionConfirmed();
+      }
+    } finally {
+      lifecycle.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final message = flow.message;
@@ -223,7 +250,8 @@ class CardFlowFeedback extends StatelessWidget {
                   if (flow.awaiting)
                     TextButton(
                       key: const ValueKey('refresh-card-list'),
-                      onPressed: flow.loading ? null : flow.refresh,
+                      onPressed:
+                          flow.loading ? null : () => _verifyBinding(context),
                       child: const Text('Обновить список'),
                     ),
                   if (flow.awaiting ||

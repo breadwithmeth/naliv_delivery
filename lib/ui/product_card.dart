@@ -144,7 +144,6 @@ class ProductCard extends StatelessWidget {
     this.onTap,
     this.onIncrement,
     this.onDecrement,
-    this.trailingAction,
     super.key,
   });
 
@@ -172,10 +171,6 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
-
-  /// An extra control (for example a favourite toggle) overlaid on the artwork's top
-  /// corner. It brings its own hit target.
-  final Widget? trailingAction;
 
   static final TextStyle _nameStyle = AppTypography.base(size: 13, weight: 500);
   static final TextStyle _metaStyle = AppTypography.base(size: 12);
@@ -222,7 +217,6 @@ class ProductCard extends StatelessWidget {
     VoidCallback? onTap,
     VoidCallback? onIncrement,
     VoidCallback? onDecrement,
-    Widget? trailingAction,
     Key? key,
   }) =>
       ProductCard(
@@ -247,7 +241,6 @@ class ProductCard extends StatelessWidget {
         onTap: onTap,
         onIncrement: onIncrement,
         onDecrement: onDecrement,
-        trailingAction: trailingAction,
       );
 
   static num _stepOf(ProductView view) {
@@ -349,12 +342,6 @@ class ProductCard extends StatelessWidget {
                   countStyle: _countStyle,
                 ),
               ),
-              if (trailingAction != null)
-                Positioned(
-                  top: _CardMetrics.pad,
-                  right: _CardMetrics.pad,
-                  child: trailingAction!,
-                ),
             ],
           ),
         );
@@ -365,8 +352,7 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  /// Only the details area presses the card; the cart control and the trailing action
-  /// are separate buttons and leave the card still.
+  /// Only the details area presses the card; the separate cart control leaves it still.
   Widget _pressRegion(Widget child) =>
       onTap == null ? child : PressScaleTrigger(child: child);
 
@@ -501,8 +487,10 @@ class ProductCard extends StatelessWidget {
         // Only full-bleed artwork needs a clip; the contained art's 6 px inset
         // keeps it inside the corner arc without clipping every card.
         DecoratedBox(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: !hasImage && Theme.of(context).brightness == Brightness.light
+                ? palette.surfaceMuted
+                : Colors.white,
             borderRadius: AppRadii.mdAll,
           ),
           child: cover

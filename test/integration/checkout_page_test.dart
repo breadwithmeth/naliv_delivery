@@ -21,6 +21,7 @@ import 'package:naliv_delivery/ui/product_card.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../support/bottling_surface_items.dart';
+import '../support/haptic_calls.dart';
 import '../support/preferences_store.dart';
 
 const _cities = <Map<String, dynamic>>[
@@ -103,6 +104,7 @@ class _Fixture {
   Future<http.Response> Function(http.Request)? promo;
   Future<http.Response> Function(http.Request)? certificate;
   Future<http.Response> Function(http.Request)? create;
+  Future<http.Response> Function(http.Request)? orderDetails;
   Future<http.Response> Function(http.Request)? bonuses;
   Future<http.Response> Function(http.Request)? bag;
   Completer<http.Response>? verification;
@@ -253,6 +255,10 @@ class _Fixture {
                 'data': {'order_id': 'fixture-order'}
               }, 201)
             : await create!(request);
+      case ('GET', '/api/orders/42') when orderDetails != null:
+        expectSync(request.url.queryParameters, isEmpty);
+        expectSync(authorization, 'Bearer fixture-only');
+        return orderDetails!(request);
       case ('GET', '/api/user/cards'):
         expectSync(request.url.queryParameters, {'source': 'halyk'});
         return _json({
@@ -796,9 +802,12 @@ void main() {
     await fixture.initialize();
     await fixture.business
         .setSelectedBusiness({'id': ' 01 ', 'name': 'Ignored'});
+    final clicks = recordHapticCalls(tester);
     await http.runWithClient(() async {
       await _pump(tester, fixture);
       await _fillDraft(tester);
+      expect(clicks, [selectionClick], reason: 'saving the edited address is accepted');
+      clicks.clear();
       final rows = jsonEncode(fixture.cart.toJsonForOrder());
       final total = fixture.cart.getTotalPrice();
       await _show(tester, 'checkout-store');
@@ -812,9 +821,10 @@ void main() {
       expect(fixture.cart.getTotalPrice(), total);
       expect(fixture.cart.clears, 0);
       await _expectDraft(tester);
+      expect(clicks, isEmpty);
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   for (final rejectedKey in ['selected_business', 'cart_items']) {
     testWidgets(
@@ -842,8 +852,11 @@ void main() {
         promotions: [],
       ));
       await http.runWithClient(() async {
+        final clicks = recordHapticCalls(tester);
         await _pump(tester, fixture);
         await _fillDraft(tester);
+        expect(clicks, [selectionClick], reason: 'saving the edited address is accepted');
+        clicks.clear();
         final prefs = await SharedPreferences.getInstance();
         final persisted = prefs.getString('cart_items');
         final rows = jsonEncode(fixture.cart.toJsonForOrder());
@@ -865,9 +878,10 @@ void main() {
         expect(prefs.getString('cart_items'), persisted);
         await _expectDraft(tester);
         expect(fixture.creates, isEmpty);
+        expect(clicks, isEmpty);
         await _dispose(tester, fixture);
       }, () => fixture.client);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   }
 
   testWidgets(
@@ -1248,6 +1262,7 @@ void main() {
   testWidgets(
       'accepted create freezes payable amount, suppresses double submit and clears once',
       (tester) async {
+    final clicks = recordHapticCalls(tester);
     final fixture = _Fixture();
     await fixture.initialize();
     final accepted = Completer<http.Response>();
@@ -1261,6 +1276,10 @@ void main() {
       expect(fixture.creates, hasLength(1));
       expect(fixture.cart.hasActiveItems, isTrue);
       expect(_enabled(tester), isFalse);
+      expect(find.descendant(of: submit, matching: find.text('Отправляем…')),
+          findsOneWidget);
+      expect(find.byType(PaymentMethodPage), findsNothing);
+      expect(clicks, isEmpty);
       await tester.binding.handlePopRoute();
       await tester.pump();
       expect(find.byType(CheckoutPage), findsOneWidget);
@@ -1288,9 +1307,10 @@ void main() {
           tester.widget<PaymentMethodPage>(find.byType(PaymentMethodPage));
       expect(payment.displayAmount, 1830);
       expect(payment.orderData['order_id'], 'accepted-order');
+      expect(clicks, isEmpty);
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   for (final benefit in ['promo', 'certificate']) {
     testWidgets(
@@ -1525,17 +1545,59 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       expect(_enabled(tester), isFalse);
+      expect(find.text('Статус неизвестен'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       await _pump(tester, fixture);
       expect(fixture.cart.hasActiveItems, isTrue);
       expect(_enabled(tester), isFalse);
+      expect(find.text('Статус неизвестен'), findsOneWidget);
+      expect(find.byType(PaymentMethodPage), findsNothing);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       expect(fixture.creates, hasLength(1));
       await _show(tester, 'checkout-check-orders');
       expect(
           find.byKey(const ValueKey('checkout-check-orders')), findsOneWidget);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  });
+
+  testWidgets('known but unacknowledged creation is checked, never resubmitted',
+      (tester) async {
+    final fixture = _Fixture();
+    await fixture.initialize();
+    fixture.create = (_) async => _json({
+          'success': false,
+          'data': {'order_id': 42},
+        }, 408);
+    final response = Completer<http.Response>();
+    var reads = 0;
+    fixture.orderDetails = (_) {
+      reads++;
+      return response.future;
+    };
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await tester.tap(find.byKey(const ValueKey('checkout-submit')));
+      await tester.pumpAndSettle();
+      await _show(tester, 'checkout-resume-order');
+      final check = find.byKey(const ValueKey('checkout-resume-order'));
+      await tester.tap(check);
+      await tester.tap(check);
+      await tester.pump();
+      expect(find.text('Проверяем заказ…'), findsOneWidget);
+      expect(_enabled(tester), isFalse);
+      expect(reads, 1);
+      expect(fixture.creates, hasLength(1));
+      expect(find.byType(PaymentMethodPage), findsNothing);
+
+      response.complete(_json({'success': false}, 404));
+      await tester.pumpAndSettle();
+      expect(find.text('Статус неизвестен'), findsOneWidget);
+      expect(_enabled(tester), isFalse);
+      expect(fixture.cart.hasActiveItems, isTrue);
+      expect(fixture.creates, hasLength(1));
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
@@ -1772,16 +1834,29 @@ void main() {
   testWidgets(
       'pickup excludes address and fees and late delivery quote cannot change payment',
       (tester) async {
+    final clicks = recordHapticCalls(tester);
     final fixture = _Fixture();
     await fixture.initialize();
     final pending = Completer<http.Response>();
     fixture.quote = (_) => pending.future;
     await http.runWithClient(() async {
       await _pump(tester, fixture, settle: false);
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('checkout-delivery-price')),
+              matching: find.text('Рассчитываем…')),
+          findsOneWidget);
+      expect(clicks, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('checkout-mode-delivery')));
+      expect(clicks, isEmpty);
       await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
       await tester.pump();
       pending.complete(_quote(1800));
       await tester.pumpAndSettle();
+      await _show(tester, 'checkout-mode-pickup');
+      await tester.tap(find.byKey(const ValueKey('checkout-mode-pickup')));
+      await tester.pumpAndSettle();
+      expect(clicks, [selectionClick]);
       expect(find.byKey(const ValueKey('checkout-address')), findsNothing);
       expect(find.byKey(const ValueKey('checkout-entrance')), findsNothing);
       expect(_enabled(tester), isTrue);
@@ -1799,12 +1874,14 @@ void main() {
               .widget<PaymentMethodPage>(find.byType(PaymentMethodPage))
               .displayAmount,
           1030);
+      expect(clicks, [selectionClick]);
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('late promo validation cannot discount a changed cart',
       (tester) async {
+    final clicks = recordHapticCalls(tester);
     final fixture = _Fixture();
     await fixture.initialize();
     final pending = Completer<http.Response>();
@@ -1831,6 +1908,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
           find.byKey(const ValueKey('checkout-benefit-applied')), findsNothing);
+      expect(clicks, isEmpty);
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
@@ -1838,12 +1916,13 @@ void main() {
           formatTenge(2830));
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'a certificate applies once the promo is removed and bonuses replace the certificate with actual bounded amounts',
       (tester) async {
     final fixture = _Fixture();
+    final clicks = recordHapticCalls(tester);
     await fixture.initialize();
     await http.runWithClient(() async {
       await _pump(tester, fixture);
@@ -1851,6 +1930,7 @@ void main() {
       await tester.enterText(
           find.byKey(const ValueKey('checkout-promo-code')), 'PROMO');
       await _applyCode(tester, 'promo');
+      expect(clicks, [selectionClick]);
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
@@ -1861,6 +1941,7 @@ void main() {
       await _show(tester, 'checkout-clear-benefit');
       await tester.tap(find.byKey(const ValueKey('checkout-clear-benefit')));
       await tester.pumpAndSettle();
+      expect(clicks, [selectionClick, selectionClick]);
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
@@ -1870,6 +1951,7 @@ void main() {
       await tester.enterText(
           find.byKey(const ValueKey('checkout-certificate-code')), 'GIFT');
       await _applyCode(tester, 'certificate');
+      expect(clicks, [selectionClick, selectionClick, selectionClick]);
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
@@ -1884,6 +1966,7 @@ void main() {
       await _show(tester, 'checkout-bonus-toggle');
       await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
       await tester.pumpAndSettle();
+      expect(clicks, List.filled(4, selectionClick));
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('checkout-total')))
@@ -1898,9 +1981,10 @@ void main() {
       expect(body.containsKey('certificate_id'), isFalse);
       expect(body.containsKey('certificate_code'), isFalse);
       expect(find.byType(PaymentMethodPage), findsOneWidget);
+      expect(clicks, List.filled(4, selectionClick));
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'applying a code while bonuses are on turns bonuses off; the payload carries the code and no bonus',
@@ -1958,6 +2042,123 @@ void main() {
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
+
+  testWidgets('refused code keeps the bonuses and text; delivery-only promo shows savings',
+      (tester) async {
+    final clicks = recordHapticCalls(tester);
+    final fixture = _Fixture();
+    await fixture.initialize();
+    fixture.promo = (request) async {
+      final body = jsonDecode(request.body) as Map;
+      expectSync(body['delivery_price'], 800);
+      expectSync(body['order_subtotal'], 1030);
+      return switch (body['promo_code']) {
+        'BAD' => _json({'success': false, 'message': 'Промокод истёк'}),
+        'FREE' => _json({
+            'success': true,
+            'data': {'final_delivery_price': 100},
+          }),
+        final other => throw StateError('Unexpected fixture code: $other'),
+      };
+    };
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _show(tester, 'checkout-bonus-toggle');
+      await tester.tap(find.byKey(const ValueKey('checkout-bonus-toggle')));
+      await tester.pumpAndSettle();
+      await _showCode(tester, 'promo');
+      final promo = find.byKey(const ValueKey('checkout-promo-code'));
+      await tester.enterText(promo, 'BAD');
+      await _applyCode(tester, 'promo');
+      await _show(tester, 'checkout-benefit-error');
+      expect(find.text('Промокод истёк'), findsOneWidget);
+      await _show(tester, 'checkout-promo-code');
+      expect(tester.widget<TextField>(promo).controller!.text, 'BAD');
+      expect(tester.widget<Text>(find.byKey(const ValueKey('checkout-total'))).data,
+          formatTenge(1530));
+      expect(clicks, [selectionClick]);
+
+      await tester.enterText(promo, 'FREE');
+      await _applyCode(tester, 'promo');
+      await _show(tester, 'checkout-benefit-applied');
+      expect(find.text('Промокод FREE · −${formatTenge(700)}'), findsOneWidget);
+      expect(tester.widget<Text>(find.byKey(const ValueKey('checkout-total'))).data,
+          formatTenge(1130));
+      expect(fixture.promoValidations, 2);
+      expect(clicks, [selectionClick, selectionClick]);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('switching code type cancels unfinished code selection',
+      (tester) async {
+    final clicks = recordHapticCalls(tester);
+    final fixture = _Fixture();
+    await fixture.initialize();
+    final response = Completer<http.Response>();
+    fixture.promo = (_) => response.future;
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _showCode(tester, 'promo');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-promo-code')), 'SALE');
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pump();
+      expect(fixture.promoValidations, 1);
+      expect(clicks, isEmpty);
+      await _showCode(tester, 'certificate', settle: false);
+      response.complete(_json({
+        'success': true,
+        'data': {'promo_discount': 100},
+      }));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('checkout-certificate-code')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('checkout-benefit-applied')),
+          findsNothing);
+      expect(clicks, isEmpty);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('an accepted code cannot click after checkout leaves foreground',
+      (tester) async {
+    final clicks = recordHapticCalls(tester);
+    final fixture = _Fixture();
+    await fixture.initialize();
+    final response = Completer<http.Response>();
+    fixture.promo = (_) => response.future;
+    await http.runWithClient(() async {
+      await _pump(tester, fixture);
+      await _showCode(tester, 'promo');
+      await tester.enterText(
+          find.byKey(const ValueKey('checkout-promo-code')), 'SALE');
+      await _show(tester, 'checkout-apply-promo');
+      await tester.tap(find.byKey(const ValueKey('checkout-apply-promo')));
+      await tester.pump();
+      expect(fixture.promoValidations, 1);
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      unawaited(navigator.push<void>(MaterialPageRoute(
+        builder: (_) => const Scaffold(body: Text('Другой экран')),
+      )));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Другой экран'), findsOneWidget);
+      navigator.pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      response.complete(_json({
+        'success': true,
+        'data': {'promo_discount': 100},
+      }));
+      await tester.pumpAndSettle();
+      await _show(tester, 'checkout-benefit-applied');
+      expect(find.text('Промокод SALE · −${formatTenge(100)}'), findsOneWidget);
+      expect(clicks, isEmpty);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'turning bonuses on clears an applied code, and «Убрать» clears only the code',
@@ -2025,12 +2226,18 @@ void main() {
   });
 
   testWidgets(
-      'store change waits for confirmation and cancellation preserves store preferences and cart',
+      'only a confirmed and persisted store change clears the cart and clicks',
       (tester) async {
+    final clicks = recordHapticCalls(tester);
     final fixture = _Fixture();
     await fixture.initialize();
+    var catalogReturns = 0;
     await http.runWithClient(() async {
-      await _pump(tester, fixture);
+      await _pump(tester, fixture,
+          page: CheckoutPage(
+            initialAddress: _address,
+            onCatalog: () => catalogReturns++,
+          ));
       await tester.tap(find.byKey(const ValueKey('checkout-store')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('checkout-store-option-2')));
@@ -2046,9 +2253,24 @@ void main() {
           (jsonDecode(prefs.getString('selected_business')!) as Map)['id'], 1);
       expect(fixture.cart.clears, 0);
       expect(fixture.business.selectedBusinessId, 1);
+      expect(clicks, isEmpty);
+      expect(catalogReturns, 0);
+
+      await _show(tester, 'checkout-store');
+      await tester.tap(find.byKey(const ValueKey('checkout-store')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('checkout-store-option-2')));
+      await tester.pumpAndSettle();
+      expect(clicks, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('checkout-confirm-store')));
+      await tester.pumpAndSettle();
+      expect(fixture.business.selectedBusinessId, 2);
+      expect(fixture.cart.hasActiveItems, isFalse);
+      expect(catalogReturns, 1);
+      expect(clicks, [selectionClick]);
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'guests cannot submit and an empty cart never presents order creation',
@@ -2237,6 +2459,7 @@ void main() {
   testWidgets(
       'delivery details are edited in the address sheet, not on the page',
       (tester) async {
+    final clicks = recordHapticCalls(tester);
     SharedPreferences.setMockInitialValues({
       'auth_token': 'fixture-only',
       'profile_local_addresses': [
@@ -2304,6 +2527,7 @@ void main() {
       expect(
           find.byKey(const ValueKey('checkout-address-new')), findsOneWidget);
       expect(find.text('Подъезд 3 · Этаж 9 · Кв. 90'), findsOneWidget);
+      expect(clicks, isEmpty);
 
       // Choosing a saved address returns to checkout with the card updated.
       await tester.tap(find.byKey(const ValueKey('checkout-address-saved-1')));
@@ -2320,6 +2544,7 @@ void main() {
       expect(
           find.byKey(const ValueKey('checkout-address-comment')), findsNothing);
       expect(_enabled(tester), isTrue);
+      expect(clicks, [selectionClick]);
 
       // Editing the details of the chosen address updates the card and payload.
       await _openAddressDetails(tester);
@@ -2341,6 +2566,7 @@ void main() {
                   find.byKey(const ValueKey('checkout-address-comment')))
               .data,
           'Позвонить за 5 минут');
+      expect(clicks, [selectionClick, selectionClick]);
       await tester.tap(find.byKey(const ValueKey('checkout-submit')));
       await tester.pumpAndSettle();
       final body = fixture.creates.single;
@@ -2350,9 +2576,10 @@ void main() {
       expect(body['floor'], '9');
       expect(body['apartment'], '91');
       expect(body['extra'], 'Позвонить за 5 минут');
+      expect(clicks, [selectionClick, selectionClick]);
       await _dispose(tester, fixture);
     }, () => fixture.client);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('a new map address returns to checkout and replaces the card',
       (tester) async {
@@ -2399,6 +2626,75 @@ void main() {
       await _dispose(tester, fixture);
     }, () => fixture.client);
   });
+
+  testWidgets('cancelled, unchanged and unpersistable map choices do not click',
+      (tester) async {
+    final clicks = recordHapticCalls(tester);
+    final preferences = OnboardingPreferences({'auth_token': 'fixture-only'})
+      ..install();
+    final fixture = _Fixture();
+    await fixture.initialize();
+    var quoteReads = 0;
+    final replacement = Completer<http.Response>();
+    fixture.quote =
+        (_) => ++quoteReads == 1 ? Future.value(_quote(800)) : replacement.future;
+    Map<String, dynamic>? candidate;
+    await http.runWithClient(() async {
+      await _pump(tester, fixture,
+          page: CheckoutPage(
+            initialAddress: _address,
+            addressPicker: (_, __, ___, {city, fallbackCenter}) async => candidate,
+          ));
+      Future<void> chooseOnMap({bool settle = true}) async {
+        await _show(tester, 'checkout-address');
+        await tester.tap(find.byKey(const ValueKey('checkout-address')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('checkout-address-new')));
+        if (settle) {
+          await tester.pumpAndSettle();
+        } else {
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 350));
+        }
+      }
+
+      await chooseOnMap();
+      candidate = {..._address, 'lat': '49.8', 'lon': '73.1'};
+      await chooseOnMap();
+      candidate = {
+        ..._address,
+        'lat': 49.85,
+        'street': 'Новая',
+        'address': 'Новая, 16',
+      };
+      preferences.rejectedKeys.add('selected_address');
+      await chooseOnMap();
+      expect(clicks, isEmpty);
+      expect(quoteReads, 1);
+      expect(find.textContaining('Тестовая'), findsOneWidget);
+      expect(find.byKey(const ValueKey('checkout-address-error')),
+          findsOneWidget);
+
+      preferences.rejectedKeys.remove('selected_address');
+      await chooseOnMap(settle: false);
+      expect(clicks, [selectionClick]);
+      expect(quoteReads, 2);
+      expect(find.textContaining('Новая'), findsOneWidget);
+      Finder deliveryPrice(String label) => find.descendant(
+            of: find.byKey(const ValueKey('checkout-delivery-price')),
+            matching: find.text(label),
+          );
+      expect(deliveryPrice('Рассчитываем…'), findsOneWidget);
+      expect(deliveryPrice(formatTenge(700)), findsNothing);
+      expect(_enabled(tester), isFalse);
+      replacement.complete(_quote(400));
+      await tester.pumpAndSettle();
+      expect(deliveryPrice(formatTenge(300)), findsOneWidget);
+      expect(_enabled(tester), isTrue);
+      expect(clicks, [selectionClick]);
+      await _dispose(tester, fixture);
+    }, () => fixture.client);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets(
       'the address sheet does not offer addresses outside the store city',

@@ -279,11 +279,17 @@ class ChatApiService {
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final message = data is Map ? data['message'] : null;
-        if (message is! Map<String, dynamic>) {
-          return const SendResult.failure('Пустой ответ сервера');
+        if (message is! Map<String, dynamic> ||
+            message['content'] is! String ||
+            (message['content'] as String).trim().isEmpty) {
+          return const SendResult.failure('Нет подтверждения сервера');
         }
         final parsed = ChatMessage.fromJson(message);
-        if (parsed.id != null) _seenMessageIds.add(parsed.id!);
+        final id = parsed.id;
+        if (id == null || id <= 0 || parsed.isFromOperator) {
+          return const SendResult.failure('Нет подтверждения сервера');
+        }
+        _seenMessageIds.add(id);
         // Sending or socket delivery must not move the REST history cursor past
         // an earlier operator reply that has not been fetched yet.
         return SendResult.success(parsed);

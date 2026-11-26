@@ -5,6 +5,7 @@ import '../design/theme.dart';
 import '../design/typography.dart';
 import '../features/faq/faq_navigation.dart';
 import '../services/auth_service.dart';
+import '../ui/app_haptics.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/app_states.dart';
@@ -163,17 +164,28 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
     if (mounted) setState(() => _book = next);
   }
 
+  bool _canConfirmSelection(int credentials) =>
+      mounted &&
+      credentials == AuthService.credentialRevision &&
+      !AuthService.isEndingSession &&
+      ModalRoute.of(context)?.isCurrent == true &&
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
   Future<void> _select(Map<String, dynamic> address) async {
     if (_busy || _loading) return;
+    final normalized =
+        AddressStorageService.deliveryAddress(_delivery(address));
+    if (normalized == null) {
+      _feedback(
+          'У адреса нет точных координат. Уточните его на карте перед выбором.');
+      return;
+    }
+    if (AddressStorageService.sameAddress(_book.selectedAddress, normalized)) {
+      return;
+    }
+    final credentials = _credentialRevision;
     setState(() => _busy = true);
     try {
-      final normalized =
-          AddressStorageService.deliveryAddress(_delivery(address));
-      if (normalized == null) {
-        _feedback(
-            'У адреса нет точных координат. Уточните его на карте перед выбором.');
-        return;
-      }
       final saved = await AddressStorageService.selectBookAddress(normalized);
       if (!saved) {
         _feedback(
@@ -181,6 +193,10 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
         return;
       }
       await _refreshBook();
+      if (_canConfirmSelection(credentials) &&
+          AddressStorageService.sameAddress(_book.selectedAddress, normalized)) {
+        AppHaptics.selectionConfirmed();
+      }
       _feedback('Адрес выбран для доставки');
     } catch (_) {
       _feedback('Не удалось выбрать адрес. Попробуйте снова.');
@@ -200,6 +216,7 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
     final draft = _pendingDraft;
     final replacing = _pendingReplacing;
     if (draft == null) return;
+    final credentials = _credentialRevision;
     final saved = await AddressStorageService.saveBookAddress(draft,
         replacing: replacing);
     if (!mounted || !identical(draft, _pendingDraft)) return;
@@ -211,6 +228,9 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
     }
     setState(_discardDraft);
     await _refreshBook();
+    if (replacing == null && _canConfirmSelection(credentials)) {
+      AppHaptics.selectionConfirmed();
+    }
     _feedback('Адрес сохранён на этом устройстве');
   }
 
@@ -551,6 +571,7 @@ class _ProfileAddressesPageState extends State<ProfileAddressesPage>
                             .copyWith(color: palette.accent, height: 1.2)),
                   ],
                 ])),
+            if (selected) Icon(Icons.check, color: palette.accent, size: 20),
             IconButton(
               key: ValueKey('address_menu_$id'),
               tooltip: 'Действия с адресом ${_label(address)}',

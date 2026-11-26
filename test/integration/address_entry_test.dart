@@ -15,6 +15,10 @@ import 'package:naliv_delivery/ui/app_states.dart';
 import 'package:naliv_delivery/utils/address_storage_service.dart';
 import 'package:naliv_delivery/widgets/address_selection_modal_material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
+
+import '../support/haptic_calls.dart';
+import '../support/preferences_store.dart';
 
 Map<String, dynamic> _feature(String street, {String city = 'Караганда'}) => {
       'type': 'Feature',
@@ -264,7 +268,11 @@ void main() {
   testWidgets(
       'accessible address selection preserves delivery coordinates and details',
       (tester) async {
-    SharedPreferences.setMockInitialValues({'auth_token': 'fixture-only'});
+    final priorStore = SharedPreferencesStorePlatform.instance;
+    final preferences = OnboardingPreferences({'auth_token': 'fixture-only'})
+      ..install();
+    final calls = recordHapticCalls(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     const address = {
       'id': 501,
       'address': 'Тестовый адрес, 16',
@@ -273,9 +281,11 @@ void main() {
       'entrance': '2А',
       'apartment': '45',
     };
+    final unexpected = <Uri>[];
     final client = MockClient((request) async {
       if (request.method != 'GET' ||
           request.url.path != '/api/auth/full-info') {
+        unexpected.add(request.url);
         throw StateError(
             'Unexpected request: ${request.method} ${request.url}');
       }
@@ -298,22 +308,45 @@ void main() {
           home: ProfileAddressesPage(tileProvider: _RasterTiles()),
         ));
         await tester.pumpAndSettle();
-        final node =
-            tester.getSemantics(find.byKey(const Key('address_select_501')));
-        expect(node.flagsCollection.isButton, isTrue);
-        node.owner!.performAction(node.id, SemanticsAction.tap);
+        final row = find.byKey(const Key('address_select_501'));
+        final checked =
+            find.descendant(of: row, matching: find.byIcon(Icons.check));
+        void selectAddress() {
+          final node = tester.getSemantics(row);
+          expect(node.flagsCollection.isButton, isTrue);
+          node.owner!.performAction(node.id, SemanticsAction.tap);
+        }
+
+        preferences.rejectedKeys.add('selected_address');
+        selectAddress();
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Не удалось выбрать адрес'), findsOneWidget);
+        expect(checked, findsNothing);
+        expect(await AddressStorageService.getSelectedAddress(), isNull);
+        expect(calls, isEmpty);
+
+        preferences.rejectedKeys.clear();
+        selectAddress();
         await tester.pumpAndSettle();
         final selected = await AddressStorageService.getSelectedAddress();
         expect(selected?['point'], {'lat': 49.8047, 'lon': 73.1094});
         expect(selected?['entrance'], '2А');
         expect(selected?['apartment'], '45');
+        expect(checked, findsOneWidget);
+        expect(calls, [selectionClick]);
+        selectAddress();
+        await tester.pumpAndSettle();
+        expect(calls, [selectionClick]);
       }, () => client);
     } finally {
       semantics.dispose();
       client.close();
       await _dispose(tester);
+      SharedPreferencesStorePlatform.instance = priorStore;
+      SharedPreferences.resetStatic();
+      expect(unexpected, isEmpty);
     }
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   group('city scoped to the selected store', () {
     const temirtau = (lat: 50.0549, lon: 72.9590);

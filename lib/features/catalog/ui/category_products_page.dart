@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/product_view.dart';
 import '../../../design/tokens.dart';
 import '../../../ui/app_cart_button.dart';
+import '../../../ui/app_haptics.dart';
 import '../../../ui/app_states.dart';
 import '../../../ui/app_top_bar.dart';
 import '../../../ui/frosted_dock.dart';
@@ -198,6 +199,7 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
   void _select(CategoryChipItem chip) {
     if (chip.id == _selectedId) return;
     setState(() => _selectedId = chip.id);
+    AppHaptics.selectionConfirmed();
     if (_scroll.hasClients) _scroll.jumpTo(0);
     final feed = _feeds[chip.id];
     if (feed == null) {
@@ -367,12 +369,14 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                   onCart: widget.onCart,
                 ),
                 quantity: quantity,
-                onIncrement: () => context
-                    .read<CartProvider>()
-                    .incrementCatalogItem(item.source),
-                onDecrement: () => context
-                    .read<CartProvider>()
-                    .decrementCatalogItem(item.source),
+                onIncrement: () => AppHaptics.addCatalogStep(
+                  context.read<CartProvider>(),
+                  item,
+                ),
+                onDecrement: () => AppHaptics.removeCatalogStep(
+                  context.read<CartProvider>(),
+                  item,
+                ),
               ),
             );
           },

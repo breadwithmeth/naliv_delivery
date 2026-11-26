@@ -95,6 +95,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+enum _OtpKeyboardRestore { idle, armed, suspended }
+
 class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
@@ -117,12 +119,15 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
   int _sendCodeCooldownSeconds = 0;
   String? _sendCodeCooldownPhone;
 
-  /// Length of the SMS code the server sends and `verify-code` accepts.
+  // Length of the WhatsApp code accepted by `verify-code`.
   static const _otpLength = 6;
   final _otpBlockKey = GlobalKey();
   String _lastCodeText = '';
   String? _codeError;
-  int _codeErrorShake = 0;
+  AppLifecycleState? _lifecycleState;
+  _OtpKeyboardRestore _otpKeyboardRestore = _OtpKeyboardRestore.idle;
+  // Invalidate an earlier post-frame request if its lifecycle or OTP changes.
+  int _otpKeyboardEpoch = 0;
 
   static const _slides = [
     _SlideData(
@@ -150,6 +155,7 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _lifecycleState = WidgetsBinding.instance.lifecycleState;
     WidgetsBinding.instance.addObserver(this);
     _codeController.addListener(_onCodeChanged);
     _showAuthForm = widget.startWithPhoneForm;
@@ -232,9 +238,7 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
 
       if (result.success) {
         setState(() => _codeSent = true);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _codeFocusNode.requestFocus();
-        });
+        _scheduleOtpKeyboard();
         _revealOtp();
       } else {
         if (result.cooldownSeconds != null && result.cooldownSeconds! > 0) {
@@ -312,6 +316,8 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
   /// the keyboard's "done" action and the confirm button racing each other.
   Future<void> _verifyCode() async {
     if (_isLoading || _codeController.text.length != _otpLength) return;
+    _otpKeyboardRestore = _OtpKeyboardRestore.idle;
+    _otpKeyboardEpoch++;
     setState(() => _isLoading = true);
     final phone = _normalizedPhone();
     final code = _codeController.text;
@@ -335,14 +341,12 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
           );
         }
       } else if (mounted) {
-        // Wrong code (or a failed request): empty the boxes for a retry, shake
-        // and keep the message next to them instead of in a snack bar.
+        // Verification failures share one result. Clear the boxes for a retry
+        // without assuming that the code was wrong.
         _codeController.clear();
         setState(() {
-          _codeError = 'Неверный код или ошибка. Попробуйте ещё раз';
-          _codeErrorShake++;
+          _codeError = 'Не удалось проверить код. Введите его ещё раз.';
         });
-        _codeFocusNode.requestFocus();
       }
     } catch (e) {
       if (mounted) {
@@ -373,25 +377,96 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
   }
 
   void _resetCodeEntry() {
+    _otpKeyboardRestore = _OtpKeyboardRestore.idle;
+    _otpKeyboardEpoch++;
     _codeController.clear();
     _codeError = null;
   }
 
+  bool get _isForeground =>
+      _lifecycleState == null || _lifecycleState == AppLifecycleState.resumed;
+
+  bool get _isCurrentOtp =>
+      _showAuthForm &&
+      _codeSent &&
+      _profileSetupUser == null &&
+      ModalRoute.isCurrentOf(context) == true;
+
+  bool get _isKeyboardOpen => View.of(context).viewInsets.bottom > 0;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final previous = _lifecycleState;
+    _lifecycleState = state;
+    if (state != AppLifecycleState.resumed) _otpKeyboardEpoch++;
+
+    switch (state) {
+      case AppLifecycleState.inactive when previous == AppLifecycleState.resumed:
+        // The OS can close the input connection or clear the keyboard inset
+        // before it reports hidden/paused. Capture intent on departure only.
+        _otpKeyboardRestore = _isCurrentOtp &&
+                !_isLoading &&
+                _codeFocusNode.hasPrimaryFocus &&
+                _isKeyboardOpen
+            ? _OtpKeyboardRestore.armed
+            : _OtpKeyboardRestore.idle;
+      case AppLifecycleState.hidden || AppLifecycleState.paused:
+        if (_otpKeyboardRestore == _OtpKeyboardRestore.armed) {
+          _otpKeyboardRestore = _OtpKeyboardRestore.suspended;
+        }
+      case AppLifecycleState.resumed:
+        final restore = _otpKeyboardRestore == _OtpKeyboardRestore.suspended;
+        _otpKeyboardRestore = _OtpKeyboardRestore.idle;
+        if (restore && _isCurrentOtp && !_isLoading) {
+          _scheduleOtpKeyboard(restoring: true);
+        }
+      case AppLifecycleState.detached:
+        _otpKeyboardRestore = _OtpKeyboardRestore.idle;
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  void _scheduleOtpKeyboard({bool restoring = false}) {
+    if (!_isForeground || !_isCurrentOtp) return;
+    final epoch = _otpKeyboardEpoch;
+    final binding = WidgetsBinding.instance;
+    binding.addPostFrameCallback((_) {
+      if (!mounted ||
+          epoch != _otpKeyboardEpoch ||
+          !_isForeground ||
+          !_isCurrentOtp ||
+          _isLoading ||
+          (restoring && _isKeyboardOpen)) {
+        return;
+      }
+      // Unlike requestFocus on an already focused node, the real editor can
+      // both show an attached IME and reopen a platform-closed connection.
+      _codeFocusNode.context
+          ?.findAncestorStateOfType<EditableTextState>()
+          ?.requestKeyboard();
+    });
+    binding.ensureVisualUpdate();
+  }
+
   /// Scrolls the boxes and the confirm button above the keyboard.
   void _revealOtp() {
-    if (!_codeSent) return;
+    if (!_isForeground || !_isCurrentOtp) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final context = _otpBlockKey.currentContext;
-      if (!mounted || context == null || !context.mounted) return;
+      if (!mounted || !_isForeground || !_isCurrentOtp) return;
+      final block = _otpBlockKey.currentContext;
+      if (block == null || !block.mounted) return;
       Scrollable.ensureVisible(
-        context,
+        block,
         alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
       );
     });
   }
 
   @override
-  void didChangeMetrics() => _revealOtp();
+  void didChangeMetrics() {
+    if (_isForeground && _codeSent && _isKeyboardOpen) _revealOtp();
+  }
 
   Future<void> _continueReauthentication(AuthSession session) async {
     final userInfo =
@@ -618,7 +693,7 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      const AppIcon(AppIcons.cartFab, size: 100),
+                      const AppIcon(AppIcons.cartFab, size: 100, color: Color(0xBFFF6800)),
                       AppIcon(slide.icon, size: 54, color: palette.accent),
                     ],
                   ),
@@ -679,8 +754,8 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
                       const SizedBox(height: 6),
                       Text(
                         _codeSent
-                            ? 'СМС отправлено на ${_phoneController.text}'
-                            : 'Отправим короткий код подтверждения',
+                            ? 'Отправили код в WhatsApp на номер ${_phoneController.text}'
+                            : 'Отправим код подтверждения в WhatsApp',
                         textAlign: TextAlign.center,
                         style: AppTypography.body.copyWith(
                           color: palette.textSecondary,
@@ -694,11 +769,7 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
                             initialSection: FaqSection.profile,
                           ),
                           icon: const Icon(Icons.open_in_new_rounded, size: 17),
-                          label: Text(
-                            _codeSent
-                                ? 'Проблемы с кодом? Открыть FAQ'
-                                : 'Не приходит SMS-код?',
-                          ),
+                          label: const Text('Не приходит код в WhatsApp?'),
                           style: TextButton.styleFrom(
                             foregroundColor: palette.accent,
                             textStyle: AppTypography.body,
@@ -852,9 +923,9 @@ class _LoginPageState extends State<LoginPage> with WidgetsBindingObserver {
       controller: _codeController,
       focusNode: _codeFocusNode,
       length: _otpLength,
+      autofocus: false,
       busy: _isLoading,
       errorText: _codeError,
-      errorShake: _codeErrorShake,
       onSubmitted: (_) => _submitCode(),
     );
   }

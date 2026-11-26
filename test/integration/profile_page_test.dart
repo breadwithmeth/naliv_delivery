@@ -8,9 +8,12 @@ import 'package:naliv_delivery/design/theme.dart';
 import 'package:naliv_delivery/features/profile/profile_account.dart';
 import 'package:naliv_delivery/features/profile/ui/profile_page.dart';
 import 'package:naliv_delivery/services/auth_service.dart';
+import 'package:naliv_delivery/ui/app_haptics.dart';
 import 'package:naliv_delivery/ui/app_top_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/haptic_calls.dart';
 
 const _account = ProfileAccount(
   name: 'Айжан',
@@ -275,6 +278,34 @@ void main() {
     expect(theme.mode, ThemeMode.system);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('guest opt-out mutes feedback immediately and survives a new session',
+      (tester) async {
+    final calls = recordHapticCalls(tester);
+    await tester.binding.setSurfaceSize(const Size(400, 1900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(const ProfilePage()));
+    await tester.pumpAndSettle();
+    final row = find.byKey(const ValueKey('profile-haptics-switch'));
+    AppHaptics.firstAdded();
+    expect(calls, [lightImpact]);
+    await tester.tap(row);
+    AppHaptics.selectionConfirmed(); // Includes a confirmation already in flight.
+    await tester.pumpAndSettle();
+    expect(calls, [lightImpact]);
+    final fresh = HapticPreference();
+    addTearDown(fresh.dispose);
+    expect(fresh.enabled, isNull);
+    await fresh.load();
+    expect(fresh.enabled, isFalse);
+    await tester.pumpWidget(_host(const ProfilePage(account: _account)));
+    await tester.pumpAndSettle();
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(calls, [lightImpact], reason: 'toggling the preference is silent');
+    AppHaptics.selectionConfirmed();
+    expect(calls, [lightImpact, selectionClick]);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('information collection toggle saves consent and explains itself',
       (tester) async {

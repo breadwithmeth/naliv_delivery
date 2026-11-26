@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 import 'package:provider/provider.dart';
 
 import '../design/motion.dart';
@@ -13,6 +16,7 @@ import '../core/like_action.dart';
 import '../core/quantity.dart';
 import '../model/item.dart' as item_model;
 import '../model/cart_item.dart';
+import '../ui/app_haptics.dart';
 import '../ui/app_icon.dart';
 import '../ui/app_icon_button.dart';
 import '../ui/frosted_dock.dart';
@@ -21,7 +25,6 @@ import '../ui/motion_widgets.dart';
 import '../ui/product_hero_header.dart';
 import '../ui/promotion_nudge.dart';
 import '../ui/surfaces.dart';
-import '../utils/api.dart';
 import '../services/auth_service.dart';
 import '../utils/business_provider.dart';
 import '../utils/cart_provider.dart';
@@ -38,22 +41,23 @@ class ProductDetailPage extends StatefulWidget {
     required this.item,
     this.initialBaseVariants,
     this.businessId,
-    this.onLike,
     this.onCart,
   });
 
   final item_model.Item item;
   final List<Map<String, dynamic>>? initialBaseVariants;
   final int? businessId;
-  final Future<bool?> Function(int itemId)? onLike;
   final VoidCallback? onCart;
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
-class _ProductDetailPageState extends State<ProductDetailPage> {
+class _ProductDetailPageState extends State<ProductDetailPage> with FavoriteSessionVisibility {
   final _scroll = ScrollController();
+  final _headerKey = GlobalKey();
+  final _feedbackAnchor = GlobalKey();
+  final _requiredAnchors = <int, GlobalKey>{};
   late final SmartCartSelection _selection;
   late final ProductView _view;
   late final List<item_model.ItemOption> _options;
@@ -68,6 +72,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _summaryMayAnimate = false;
   bool _liking = false;
   bool _saved = false;
+  bool _showRequiredErrors = false;
   int? _businessId;
   String? _feedback;
   int _credentialRevision = AuthService.credentialRevision;
@@ -96,8 +101,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ? _selection.visibleOptions
         : widget.item.options ?? const <item_model.ItemOption>[];
     for (final option in _options) {
-      if (option.required == 1 && option.optionItems.isNotEmpty) {
-        _selected[option.optionId] = [option.optionItems.first];
+      if (option.required == 1) {
+        _requiredAnchors[option.optionId] = GlobalKey();
+        if (option.optionItems.isNotEmpty) {
+          _selected[option.optionId] = [option.optionItems.first];
+        }
       }
     }
     _openedVariants = SmartCartSelection.normalizeVariantMaps(
@@ -194,53 +202,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Future<void> _toggleLike() async {
     if (_liking) return;
     setState(() => _liking = true);
-    final provider = context.read<LikedItemsProvider?>();
-    final session = await AuthService.captureSession();
+    final accountRevision = AuthService.sessionRevision.value;
+    final credentialRevision = _credentialRevision;
     try {
-      if (session == null || !mounted) return;
-      final businessId = _businessId;
-      final callback = widget.onLike;
-      final bool? liked;
-      if (callback == null && businessId != null) {
-        liked = await toggleItemLike(
-          context,
-          businessId: businessId,
-          itemId: widget.item.itemId,
-        );
-      } else {
-        liked = await (callback ??
-            (itemId) => ApiService.toggleLikeItem(
-                  itemId,
-                  credentialToken: session.token,
-                ))(widget.item.itemId);
-        if (!session.isCurrent) return;
-        if (liked != null && businessId != null) {
-          provider?.updateLike(businessId, widget.item.itemId, liked);
-          try {
-            await LikedStorageService.setLiked(
-                businessId: businessId,
-                itemId: widget.item.itemId,
-                liked: liked);
-          } catch (_) {
-            if (mounted && session.isCurrent) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content:
-                    Text('Избранное изменено, но не сохранено на устройстве'),
-              ));
-            }
-          }
-        }
+      final liked = await toggleItemLike(
+        context,
+        businessId: _businessId,
+        itemId: widget.item.itemId,
+        wasLiked: _liked,
+      );
+      if (!mounted || credentialRevision != _credentialRevision) {
+        return;
       }
-      if (!mounted || !session.isCurrent) return;
       if (liked == null) {
+        if (accountRevision != AuthService.sessionRevision.value) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
                 'Не удалось изменить избранное. Войдите в аккаунт или попробуйте ещё раз.')));
         return;
       }
-      setState(() => _liked = liked!);
+      setState(() => _liked = liked);
     } finally {
-      if (mounted) setState(() => _liking = false);
+      if (mounted && credentialRevision == _credentialRevision) {
+        setState(() => _liking = false);
+      }
     }
   }
 
@@ -417,6 +402,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _selection.containerIssue == null &&
       _findGroup(cart, _openedVariants)?.hasWithdrawnBottles != true;
 
+  bool _isMissingRequired(item_model.ItemOption option) =>
+      option.required == 1 && (_selected[option.optionId]?.isEmpty ?? true);
+
+  item_model.ItemOption? _firstMissingOption(CartProvider cart) {
+    for (final option in _options) {
+      if (_isMissingRequired(option)) {
+        return _isRemoval(cart) || _isReduction(cart) ? null : option;
+      }
+    }
+    return null;
+  }
+
   String? _invalidReason(CartProvider cart,
       {CartGroupEvaluation? preview, double? available}) {
     if (_isRemoval(cart) || _isReduction(cart)) return null;
@@ -426,11 +423,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     if (_selection.containerIssue != null) return _selection.containerIssue;
     if (_selection.quantityIssue != null) return _selection.quantityIssue;
     if (!_inStock) return 'Нет в наличии';
-    final missing = _options.where((option) =>
-        option.required == 1 && (_selected[option.optionId]?.isEmpty ?? true));
-    if (missing.isNotEmpty) {
-      return 'Выберите обязательные параметры: ${missing.map((option) => option.name).join(', ')}';
-    }
     if (_amount <= 0) {
       return _pour ? 'Выберите хотя бы одну бутылку' : 'Выберите количество';
     }
@@ -460,24 +452,70 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return null;
   }
 
+  void _revealIssue(GlobalKey anchor) {
+    final duration = AppMotion.of(context, AppMotion.state);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !_scroll.hasClients ||
+          ModalRoute.of(context)?.isCurrent == false) {
+        return;
+      }
+      final target = anchor.currentContext?.findRenderObject();
+      if (target == null || !target.attached) return;
+      final viewport = RenderAbstractViewport.maybeOf(target);
+      if (viewport == null) return;
+      final position = _scroll.position;
+      final topInset = _headerKey.currentContext?.size?.height ?? 0;
+      final offset = (viewport.getOffsetToReveal(target, 0).offset -
+              topInset -
+              AppSpacing.xl)
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      if (duration == Duration.zero) {
+        position.jumpTo(offset);
+      } else {
+        unawaited(position.animateTo(offset,
+            duration: duration, curve: AppMotion.out));
+      }
+    });
+  }
+
+  void _reportSaveError(String message) {
+    setState(() => _feedback = message);
+    _revealIssue(_feedbackAnchor);
+  }
+
   void _save() {
     final cart = context.read<CartProvider>();
+    final missing = _firstMissingOption(cart);
+    if (missing != null) {
+      setState(() {
+        _showRequiredErrors = true;
+        _feedback = null;
+      });
+      _revealIssue(_requiredAnchors[missing.optionId]!);
+      return;
+    }
     final invalid = _invalidReason(cart);
     if (invalid != null) {
-      setState(() => _feedback = invalid);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(invalid)));
+      _reportSaveError(invalid);
       return;
     }
     final variants = _baseVariants();
-    if (_isRemoval(cart)) {
-      cart.removeDisplayGroup(_findGroup(cart, _openedVariants)!);
+    final before = _findGroup(cart, _openedVariants);
+    if (_openedGroupExists && _amount <= 0 && before != null) {
+      cart.removeDisplayGroup(before);
+      if (_findGroup(cart, _openedVariants) != null) {
+        _reportSaveError('Не удалось удалить позицию из корзины.');
+        return;
+      }
+      AppHaptics.selectionConfirmed();
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop(true);
       } else {
         setState(() {
           _openedGroupExists = false;
           _saved = true;
+          _showRequiredErrors = false;
           _feedback = null;
         });
       }
@@ -485,14 +523,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
     final saved = _pour
         ? cart.syncItemBottleCounts(
-            widget.item, variants, Map<int, int>.of(_bottleCounts),
+            widget.item, variants, _bottleCounts,
             previousBaseVariants: _openedVariants)
         : cart.syncItemSelectionQuantity(widget.item, variants, _quantity,
             previousBaseVariants: _openedVariants);
     if (!saved) {
-      setState(() => _feedback =
+      _reportSaveError(
           'Не удалось сохранить: проверьте объём, тару и доступный остаток.');
       return;
+    }
+    final after = _findGroup(cart, variants);
+    if (after != null && after.totalQuantity > 0) {
+      if (before == null || before.totalQuantity <= 0) {
+        AppHaptics.firstAdded();
+      } else if (before.key != after.key ||
+          (before.totalQuantity - after.totalQuantity).abs() > 0.0000001 ||
+          (_pour && !mapEquals(before.bottleCounts, after.bottleCounts))) {
+        AppHaptics.selectionConfirmed();
+      }
     }
     _openedVariants = variants;
     _openedGroupExists = true;
@@ -501,6 +549,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } else {
       setState(() {
         _saved = true;
+        _showRequiredErrors = false;
         _feedback = null;
       });
     }
@@ -528,8 +577,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       _price = null;
       _allocationIssue = error.message.toString();
     }
-    final invalid =
-        _invalidReason(cart, preview: _previewGroup, available: available);
+    final firstMissing =
+        _showRequiredErrors ? _firstMissingOption(cart) : null;
+    final feedback = firstMissing == null
+        ? _feedback ??
+            _invalidReason(cart, preview: _previewGroup, available: available)
+        : null;
     final description = widget.item.description?.trim() ?? '';
     final removal = _isRemoval(cart);
     final heroHeight = _pour ? 144.0 : 320.0;
@@ -665,13 +718,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                     ? () => setState(() {
                                           _quantity += _step;
                                           _saved = false;
+                                          _feedback = null;
                                         })
                                     : null,
                               ),
                               const SizedBox(height: AppSpacing.huge),
                             ],
                             for (final option in _options) ...[
-                              _option(option),
+                              _option(
+                                option,
+                                missing: firstMissing != null &&
+                                    _isMissingRequired(option),
+                                announceError: option == firstMissing,
+                              ),
                               const SizedBox(height: AppSpacing.huge),
                             ],
                             if (!_pour && _promotions.isNotEmpty) ...[
@@ -719,11 +778,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 );
                               }),
                             ],
-                            if (invalid != null || _feedback != null) ...[
+                            if (feedback != null) ...[
                               const SizedBox(height: AppSpacing.xxxl),
                               Semantics(
+                                  key: _feedbackAnchor,
                                   liveRegion: true,
-                                  child: Text(_feedback ?? invalid!,
+                                  child: Text(feedback,
                                       key: const ValueKey(
                                           'configuration-feedback'),
                                       style: AppTypography.bodyMedium
@@ -740,6 +800,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   left: 0,
                   right: 0,
                   child: ProductHeroHeader(
+                    key: _headerKey,
                     controller: _scroll,
                     heroHeight: heroHeight,
                     title: _view.title,
@@ -749,7 +810,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         asset: AppIcons.back,
                         tooltip: 'Назад без сохранения',
                         onTap: () => Navigator.of(context).maybePop()),
-                    trailing: AppIconButton(
+                    trailing: !canFavorite ? const SizedBox.shrink() : AppIconButton(
                         key: const ValueKey('configuration-like'),
                         asset: liked ? AppIcons.heartFilled : AppIcons.heart,
                         tooltip: liked ? 'Убрать из избранного' : 'В избранное',
@@ -810,6 +871,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   List<Widget> _bottles(double available) {
     final cart = context.read<CartProvider>();
+    final palette = context.palette;
     final canAdd = _inStock && _canIncreaseDraft(cart);
     return [
       if (_selection.containerIssue != null) ...[
@@ -819,6 +881,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ],
       for (final bottle in _visibleBottles) ...[
         AppSurface(
+          key: ValueKey('configuration-bottle-${bottle.relationId}-surface'),
+          border: Border.all(
+            color: (_bottleCounts[bottle.relationId] ?? 0) > 0
+                ? palette.accent
+                : Colors.transparent,
+          ),
           padding: const EdgeInsets.all(AppSpacing.md),
           child: LayoutBuilder(builder: (context, constraints) {
             final volume =
@@ -994,51 +1062,91 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  Widget _option(item_model.ItemOption option) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _heading(option.name),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-              '${option.required == 1 ? 'Обязательно' : 'Необязательно'} · ${option.selection.toUpperCase() == 'MULTIPLE' ? 'Можно выбрать несколько' : 'Один вариант'}',
-              style: AppTypography.body
-                  .copyWith(color: context.palette.textSecondary)),
-          const SizedBox(height: AppSpacing.md),
-          if (option.optionItems.isEmpty)
-            Text('Варианты недоступны',
-                style:
-                    AppTypography.body.copyWith(color: context.palette.error)),
-          for (final value in option.optionItems)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: Material(
-                color: context.palette.surface,
-                borderRadius: BorderRadius.circular(AppRadii.lg),
-                clipBehavior: Clip.antiAlias,
-                child: CheckboxListTile(
-                  key: ValueKey(
-                      'configuration-option-${option.optionId}-${value.relationId}'),
-                  value: _selected[option.optionId]?.any((selected) =>
-                          selected.relationId == value.relationId) ==
-                      true,
-                  onChanged:
-                      _inStock ? (_) => _toggleOption(option, value) : null,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: Text(
-                      value.itemName.isEmpty
-                          ? 'Вариант ${value.relationId}'
-                          : value.itemName,
-                      style: AppTypography.titleMedium
-                          .copyWith(color: context.palette.textPrimary)),
-                  subtitle: Text(
-                      '${value.priceType.toUpperCase() == 'REPLACE' ? 'Вместо базовой цены: ' : '+ '}${formatTenge(value.price)} за ${_amountLabel(value.parentItemAmount > 0 ? value.parentItemAmount : _step)}',
-                      style: AppTypography.body
-                          .copyWith(color: context.palette.textSecondary)),
-                ),
+  Widget _option(item_model.ItemOption option,
+      {required bool missing, required bool announceError}) {
+    final palette = context.palette;
+    final picks = _selected[option.optionId];
+    final multiple = option.selection.toUpperCase() == 'MULTIPLE';
+    final availability = option.required == 1 ? 'Обязательно' : 'Необязательно';
+    final selection = multiple ? 'Можно выбрать несколько' : 'Один вариант';
+    final message = option.optionItems.isEmpty
+        ? 'Обязательные варианты недоступны'
+        : multiple
+            ? 'Выберите хотя бы один вариант'
+            : 'Выберите обязательный вариант';
+    return Column(
+      key: _requiredAnchors[option.optionId],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _heading(option.name),
+        const SizedBox(height: AppSpacing.xs),
+        if (missing)
+          Semantics(
+            key: ValueKey('configuration-option-${option.optionId}-error'),
+            liveRegion: announceError,
+            label: '${option.name}. $message',
+            excludeSemantics: true,
+            child: Row(children: [
+              Icon(Icons.error_outline, size: 18, color: palette.error),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(message,
+                    style: AppTypography.bodyMedium
+                        .copyWith(color: palette.textPrimary)),
               ),
-            ),
-        ],
-      );
+            ]),
+          )
+        else
+          Text('$availability · $selection',
+              style:
+                  AppTypography.body.copyWith(color: palette.textSecondary)),
+        const SizedBox(height: AppSpacing.md),
+        if (option.optionItems.isEmpty && !missing)
+          Text('Варианты недоступны',
+              style: AppTypography.body.copyWith(color: palette.error)),
+        for (final value in option.optionItems)
+          _optionTile(
+            option,
+            value,
+            selected:
+                picks?.any((pick) => pick.relationId == value.relationId) ??
+                    false,
+          ),
+      ],
+    );
+  }
+
+  Widget _optionTile(item_model.ItemOption option,
+      item_model.ItemOptionItem value, {required bool selected}) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Material(
+        color: palette.surface,
+        borderRadius: AppRadii.lgAll,
+        clipBehavior: Clip.antiAlias,
+        child: CheckboxListTile(
+          key: ValueKey(
+              'configuration-option-${option.optionId}-${value.relationId}'),
+          value: selected,
+          selected: selected,
+          selectedTileColor:
+              Color.alphaBlend(palette.accentFaint, palette.surface),
+          onChanged: _inStock ? (_) => _toggleOption(option, value) : null,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: Text(
+              value.itemName.isEmpty
+                  ? 'Вариант ${value.relationId}'
+                  : value.itemName,
+              style:
+                  AppTypography.titleMedium.copyWith(color: palette.textPrimary)),
+          subtitle: Text(
+              '${value.priceType.toUpperCase() == 'REPLACE' ? 'Вместо базовой цены: ' : '+ '}${formatTenge(value.price)} за ${_amountLabel(value.parentItemAmount > 0 ? value.parentItemAmount : _step)}',
+              style: AppTypography.body.copyWith(color: palette.textSecondary)),
+        ),
+      ),
+    );
+  }
 
   /// The rule, once, and at the exact threshold the priced nudge. No progress
   /// bar and no «до подарка» countdown: a gift that exists shows in the price.

@@ -20,6 +20,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
+import '../support/haptic_calls.dart';
+
 class _PaymentStore extends InMemorySharedPreferencesStore {
   _PaymentStore() : super.withData({'flutter.auth_token': 'fixture-only'});
 
@@ -115,6 +117,7 @@ void main() {
     testWidgets(
         '$acknowledgment recovery cannot pay through history or a new route after reload',
         (tester) async {
+      final calls = recordHapticCalls(tester);
       var posts = 0;
       final cart = await _cart();
       final client = MockClient((request) async {
@@ -168,10 +171,18 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('pay-order-button')));
         await tester.pumpAndSettle();
         expect(_payAction(tester), isNull);
+        expect(find.text('Проверяем оплату'), findsOneWidget);
+        expect(calls, isEmpty);
         expect(find.byType(PaymentSuccessPage), findsNothing);
         await tester.tap(find.byKey(const ValueKey('payment-pending-orders')));
         await tester.pumpAndSettle();
         expect(find.byType(OrdersPage), findsOneWidget);
+        expect(
+          find.descendant(
+              of: find.byType(OrdersPage),
+              matching: find.text('Проверяем оплату')),
+          findsOneWidget,
+        );
         await tester.tap(find.textContaining('1101'));
         await tester.pumpAndSettle();
         expect(find.byType(OrderDetailPage), findsOneWidget);
@@ -203,6 +214,7 @@ void main() {
             findsOneWidget);
         final duplicate = await ApiService.payOrder('1101', 'saved-card');
         expect(duplicate['requestSent'], isFalse);
+        expect(calls, isEmpty);
         expect(posts, 1);
         expect(cart.items.single.itemId, 83);
         expect(cart.items.single.quantity, 2);
@@ -210,7 +222,7 @@ void main() {
       }, () => client);
       cart.dispose();
       await tester.binding.setSurfaceSize(null);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   }
 
   testWidgets(
@@ -346,6 +358,7 @@ void main() {
     testWidgets(
         'Kaspi link $outcome stays server-confirmed and cannot duplicate an unresolved charge',
         (tester) async {
+      final calls = recordHapticCalls(tester);
       final orderId = {
         'pending': 'kaspi-pending',
         'unreadable': 'kaspi-unreadable',
@@ -409,6 +422,7 @@ void main() {
         await _pump(tester, cart, orderData: draft);
         await tester.tap(find.byKey(const ValueKey('payment-kaspi')));
         await tester.pump();
+        expect(calls, [selectionClick]);
         await tester.tap(find.byKey(const ValueKey('pay-order-button')));
         await tester.pump();
         await tester.pump();
@@ -421,6 +435,12 @@ void main() {
             isNull);
         await tester.pump(const Duration(seconds: 2));
         expect(statusReads, 1);
+        expect(
+          find.descendant(
+              of: find.byType(PaymentNoticePage),
+              matching: find.text('Проверяем оплату')),
+          findsOneWidget,
+        );
         expect(launches.single.arguments['useWebView'], isFalse);
         expect(launches.single.arguments['useSafariVC'], isFalse);
         heldStatus.complete(outcome == 'unreadable'
@@ -439,6 +459,14 @@ void main() {
         } else {
           expect(find.byType(PaymentSuccessPage), findsNothing);
           expect(find.byType(PaymentNoticePage), findsOneWidget);
+          if (outcome != 'refused') {
+            expect(
+              find.descendant(
+                  of: find.byType(PaymentNoticePage),
+                  matching: find.text('Проверяем оплату')),
+              findsOneWidget,
+            );
+          }
           expect(_noticeFaq(), findsNothing);
           expect(find.byKey(const ValueKey('payment-notice-retry')),
               outcome == 'refused' ? findsOneWidget : findsNothing);
@@ -458,12 +486,13 @@ void main() {
         expect(_payAction(tester), outcome == 'refused' ? isNotNull : isNull);
         expect(creates, 1);
         expect(launches, hasLength(1));
+        expect(calls, [selectionClick]);
         expect(find.byType(PaymentSuccessPage), findsNothing);
         await tester.pumpWidget(const SizedBox.shrink());
       }, () => client);
       cart.dispose();
       await tester.binding.setSurfaceSize(null);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   }
 
   testWidgets(
@@ -608,6 +637,12 @@ void main() {
         await tester.pumpAndSettle();
         final refused = responseKind == 'refused';
         expect(find.byType(PaymentNoticePage), findsOneWidget);
+        expect(
+          find.descendant(
+              of: find.byType(PaymentNoticePage),
+              matching: find.text('Проверяем оплату')),
+          refused ? findsNothing : findsOneWidget,
+        );
         expect(_noticeFaq(), findsNothing);
         expect(find.byKey(const ValueKey('payment-notice-retry')),
             refused ? findsOneWidget : findsNothing);
@@ -846,7 +881,12 @@ void main() {
       await _pump(tester, cart, orderData: draft);
       await tester.tap(find.byKey(const ValueKey('pay-order-button')));
       await tester.pumpAndSettle();
-      expect(find.text('Подтвердите оплату'), findsOneWidget);
+      expect(
+        find.descendant(
+            of: find.byType(PaymentNoticePage),
+            matching: find.text('Проверяем оплату')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('payment-notice-retry')), findsNothing);
       expect(
           find.byKey(const ValueKey('payment-notice-reopen')), findsOneWidget);
